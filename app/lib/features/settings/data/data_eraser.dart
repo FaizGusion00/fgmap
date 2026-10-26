@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../core/diagnostics/error_log.dart';
 import '../../../core/storage/preferences.dart';
 import '../../../core/theme/theme_controller.dart';
 import '../../reports/presentation/reports_controller.dart';
@@ -35,6 +36,7 @@ Future<void> eraseAllUserData(WidgetRef ref) async {
   for (final key in sunLocationKeys) {
     await prefs.remove(key);
   }
+  ref.read(errorLogProvider).clear();
   // Bina semula supaya bacaan seterusnya (kini kosong) digunakan, bukan nilai dalam ingatan.
   ref.invalidate(sunLocationProvider);
 }

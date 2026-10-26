@@ -574,5 +574,10 @@
         "type": "String"
       }
     }
-  }
+  },
+  "errorWidgetMessage": "This part couldn't be displayed.",
+  "settingsCopyErrorReport": "Copy error report",
+  "settingsCopyErrorReportHint": "The error log is kept on this phone only and is never sent. Copy and send it yourself if needed.",
+  "settingsErrorReportCopied": "Error report copied",
+  "settingsErrorReportEmpty": "No errors recorded"
 }

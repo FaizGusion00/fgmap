@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/location/location_service.dart';
 import '../../../core/network/dio_provider.dart';
+import '../../../core/network/retry_interceptor.dart';
 import '../../../core/theme/fgmap_theme_extension.dart';
 import '../../../core/platform/external_actions.dart';
 import '../../../core/utils/map_links.dart';
@@ -435,7 +436,9 @@ class _MapScreenState extends ConsumerState<MapScreen>
             .read(dioProvider)
             .headUri<Object?>(
               uri,
-              options: Options(followRedirects: true, maxRedirects: 5),
+              options: RetryInterceptor.options(
+                Options(followRedirects: true, maxRedirects: 5),
+              ),
             );
         final resolved = response.realUri;
         if (_isSupportedMapLink(resolved)) {

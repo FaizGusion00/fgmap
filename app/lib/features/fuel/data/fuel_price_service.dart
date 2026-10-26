@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/network/dio_provider.dart';
 import '../../../core/network/response_text.dart';
+import '../../../core/network/retry_interceptor.dart';
 import '../../../core/storage/preferences.dart';
 import '../../../core/utils/log.dart';
 import '../domain/fuel.dart';
@@ -45,9 +46,11 @@ class FuelPriceService {
     try {
       final response = await _dio.get<Object>(
         fuelPriceUrl,
-        options: Options(
-          responseType: ResponseType.bytes,
-          receiveTimeout: const Duration(seconds: 8),
+        options: RetryInterceptor.options(
+          Options(
+            responseType: ResponseType.bytes,
+            receiveTimeout: const Duration(seconds: 8),
+          ),
         ),
       );
       final text = responseText(response.data);

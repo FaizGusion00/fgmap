@@ -2137,6 +2137,36 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'Papan nombor tidak dapat dibuka. Dail {number} secara manual.'**
   String emergencyDialFailed(String number);
+
+  /// No description provided for @errorWidgetMessage.
+  ///
+  /// In ms, this message translates to:
+  /// **'Bahagian ini tidak dapat dipaparkan.'**
+  String get errorWidgetMessage;
+
+  /// No description provided for @settingsCopyErrorReport.
+  ///
+  /// In ms, this message translates to:
+  /// **'Salin laporan ralat'**
+  String get settingsCopyErrorReport;
+
+  /// No description provided for @settingsCopyErrorReportHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Log ralat disimpan pada telefon ini sahaja dan tidak dihantar. Salin dan hantar sendiri jika perlu.'**
+  String get settingsCopyErrorReportHint;
+
+  /// No description provided for @settingsErrorReportCopied.
+  ///
+  /// In ms, this message translates to:
+  /// **'Laporan ralat disalin'**
+  String get settingsErrorReportCopied;
+
+  /// No description provided for @settingsErrorReportEmpty.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tiada ralat direkodkan'**
+  String get settingsErrorReportEmpty;
 }
 
 class _AppLocalizationsDelegate

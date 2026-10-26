@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/diagnostics/error_log.dart';
 import '../../../core/location/location_service.dart';
 import '../../../core/settings/app_preferences.dart';
 import '../../../core/theme/theme_controller.dart';
@@ -551,6 +553,36 @@ class _HelpGroup extends ConsumerWidget {
               await ref.read(onboardingDoneProvider.notifier).reset();
               // Tutup Tetapan supaya penghala (yang kini mengalihkan ke sambutan) kelihatan.
               if (navigator.mounted && navigator.canPop()) navigator.pop();
+            },
+          ),
+          ListTile(
+            key: const ValueKey('copy-error-report'),
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.bug_report_outlined),
+            title: Text(l10n.settingsCopyErrorReport),
+            subtitle: Text(l10n.settingsCopyErrorReportHint),
+            onTap: () async {
+              final log = ref.read(errorLogProvider);
+              final messenger = ScaffoldMessenger.maybeOf(context);
+              if (log.length == 0) {
+                messenger?.showSnackBar(
+                  SnackBar(content: Text(l10n.settingsErrorReportEmpty)),
+                );
+                return;
+              }
+              final info = ref.read(appPackageInfoProvider).value;
+              await Clipboard.setData(
+                ClipboardData(
+                  text: log.report(
+                    appVersion: info == null
+                        ? null
+                        : '${info.version}+${info.buildNumber}',
+                  ),
+                ),
+              );
+              messenger?.showSnackBar(
+                SnackBar(content: Text(l10n.settingsErrorReportCopied)),
+              );
             },
           ),
           ListTile(

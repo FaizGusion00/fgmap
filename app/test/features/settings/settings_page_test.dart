@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:fgmap/app/app.dart';
+import 'package:fgmap/core/diagnostics/error_log.dart';
 import 'package:fgmap/core/location/location_service.dart';
 import 'package:fgmap/core/settings/app_preferences.dart';
 import 'package:fgmap/core/storage/preferences.dart';
@@ -20,6 +21,7 @@ import 'package:fgmap/features/search/domain/place.dart';
 import 'package:fgmap/features/search/presentation/search_history_controller.dart';
 import 'package:fgmap/features/settings/presentation/settings_page.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -290,6 +292,46 @@ void main() {
       await tester.pump();
       expect(c.read(fuelSettingsProvider).manualPrice, isNull);
     });
+
+    testWidgets(
+      'salin laporan ralat: kosong -> mesej; ada -> disalin ke papan klip',
+      (tester) async {
+        String? clipboard;
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          (call) async {
+            if (call.method == 'Clipboard.setData') {
+              clipboard = (call.arguments as Map)['text'] as String?;
+            }
+            return null;
+          },
+        );
+        addTearDown(
+          () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+            SystemChannels.platform,
+            null,
+          ),
+        );
+        final c = await pumpPage(tester);
+        await openTile(tester, 'copy-error-report');
+        expect(find.text('Tiada ralat direkodkan'), findsOneWidget);
+        expect(clipboard, isNull);
+
+        c
+            .read(errorLogProvider)
+            .record(
+              'async',
+              Exception('gagal https://x.example/?lat=3.15790'),
+              null,
+            );
+        await tester.pump(const Duration(seconds: 5));
+        await openTile(tester, 'copy-error-report');
+        expect(find.text('Laporan ralat disalin'), findsOneWidget);
+        expect(clipboard, contains('FGMaps laporan ralat'));
+        expect(clipboard, isNot(contains('x.example')));
+        expect(clipboard, isNot(contains('3.15790')));
+      },
+    );
 
     testWidgets('Dasar Privasi dan Terma boleh dibuka daripada Tetapan', (
       tester,

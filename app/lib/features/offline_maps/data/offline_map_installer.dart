@@ -7,6 +7,7 @@ import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 
 import '../../../core/network/response_text.dart';
+import '../../../core/network/retry_interceptor.dart';
 import '../domain/offline_models.dart';
 import 'offline_engine_host.dart';
 import 'offline_map_store.dart';
@@ -43,9 +44,11 @@ class OfflineMapInstaller {
     try {
       final response = await _dio.get<Object>(
         manifestUrl,
-        options: Options(
-          responseType: ResponseType.bytes,
-          receiveTimeout: const Duration(seconds: 15),
+        options: RetryInterceptor.options(
+          Options(
+            responseType: ResponseType.bytes,
+            receiveTimeout: const Duration(seconds: 15),
+          ),
         ),
       );
       return OfflineManifest.fromJson(

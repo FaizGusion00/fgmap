@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../config/app_config.dart';
+import 'retry_interceptor.dart';
 
 /// Klien Dio tunggal. Sengaja tiada LogInterceptor: badan permintaan laluan mengandungi koordinat
 /// lokasi pengguna dan tidak boleh sampai ke log peranti.
@@ -20,6 +21,8 @@ final dioProvider = Provider<Dio>((ref) {
       },
     ),
   );
+  // Cuba semula sekali (jitter) hanya untuk GET idempoten yang memintanya; lihat RetryInterceptor.
+  dio.interceptors.add(RetryInterceptor(dio));
   ref.onDispose(dio.close);
   return dio;
 });

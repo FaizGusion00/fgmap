@@ -1183,4 +1183,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String emergencyDialFailed(String number) {
     return 'Couldn\'t open the dialler. Dial $number manually.';
   }
+
+  @override
+  String get errorWidgetMessage => 'This part couldn\'t be displayed.';
+
+  @override
+  String get settingsCopyErrorReport => 'Copy error report';
+
+  @override
+  String get settingsCopyErrorReportHint =>
+      'The error log is kept on this phone only and is never sent. Copy and send it yourself if needed.';
+
+  @override
+  String get settingsErrorReportCopied => 'Error report copied';
+
+  @override
+  String get settingsErrorReportEmpty => 'No errors recorded';
 }

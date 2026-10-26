@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/network/dio_provider.dart';
 import '../domain/night_style.dart';
+import '../../../core/network/retry_interceptor.dart';
 import '../../../core/utils/log.dart';
 
 /// Gaya peta yang sedia dihantar kepada MapLibre: URL atau JSON gaya lengkap.
@@ -120,9 +121,11 @@ class MapStyleLoader {
     try {
       final response = await _dio.get<Object>(
         url,
-        options: Options(
-          responseType: ResponseType.plain,
-          receiveTimeout: const Duration(seconds: 10),
+        options: RetryInterceptor.options(
+          Options(
+            responseType: ResponseType.plain,
+            receiveTimeout: const Duration(seconds: 10),
+          ),
         ),
       );
       final body = response.data;

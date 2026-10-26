@@ -1184,4 +1184,20 @@ class AppLocalizationsMs extends AppLocalizations {
   String emergencyDialFailed(String number) {
     return 'Papan nombor tidak dapat dibuka. Dail $number secara manual.';
   }
+
+  @override
+  String get errorWidgetMessage => 'Bahagian ini tidak dapat dipaparkan.';
+
+  @override
+  String get settingsCopyErrorReport => 'Salin laporan ralat';
+
+  @override
+  String get settingsCopyErrorReportHint =>
+      'Log ralat disimpan pada telefon ini sahaja dan tidak dihantar. Salin dan hantar sendiri jika perlu.';
+
+  @override
+  String get settingsErrorReportCopied => 'Laporan ralat disalin';
+
+  @override
+  String get settingsErrorReportEmpty => 'Tiada ralat direkodkan';
 }

@@ -15,7 +15,8 @@ app/                  Flutter (feature-first)
 packages/fgmap_valhalla/   Plugin: enjin laluan Valhalla dalam peranti (Android: Kotlin; iOS: Swift/SwiftPM)
 tools/tiles/          Skrip membina pek peta offline (+ pelayan dev yang menyokong Range)
 .github/workflows/    app.yml (ujian), tiles.yml (bina dan terbit pek peta secara berjadual)
-docs/adr/             Rekod keputusan seni bina
+docs/adr/             Rekod keputusan seni bina (0009: laluan/tol/kos, 0010: keselamatan/privasi/kestabilan)
+docs/legal, docs/store  Dasar Privasi/Terma (draf, perlu semakan peguam) dan jawapan borang kedai
 ```
 
 ## Cara ia berfungsi
@@ -28,6 +29,8 @@ docs/adr/             Rekod keputusan seni bina
 | Carian tempat | Photon awam (komoot), fallback Nominatim ([ADR 0007](docs/adr/0007-carian-pintar.md)) | RM0, penggunaan wajar |
 | Cari berhampiran (minyak, makan, surau...) | Overpass API (data OSM), cache dalam peranti | RM0, penggunaan wajar |
 | Pek peta offline | GitHub Release `tiles`, dikemas kini mingguan oleh `tiles.yml` | RM0 |
+| Harga petrol/diesel (anggaran kos minyak) | data.gov.my (CC BY 4.0), cache 24 j | RM0 |
+| Plaza tol | OSM melalui Overpass; harga hanya daripada dataset yang disahkan ([docs/tolls-data.md](docs/tolls-data.md)) | RM0 |
 
 Mod **Auto** (lalai): online dahulu; jika gagal (tiada internet, masa tamat, 5xx, disekat) dan pek offline
 dipasang, laluan dikira offline dan ditanda "Offline". Jawapan online "tiada laluan" ialah muktamad.

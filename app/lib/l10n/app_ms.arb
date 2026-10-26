@@ -674,5 +674,10 @@
         "type": "String"
       }
     }
-  }
+  },
+  "errorWidgetMessage": "Bahagian ini tidak dapat dipaparkan.",
+  "settingsCopyErrorReport": "Salin laporan ralat",
+  "settingsCopyErrorReportHint": "Log ralat disimpan pada telefon ini sahaja dan tidak dihantar. Salin dan hantar sendiri jika perlu.",
+  "settingsErrorReportCopied": "Laporan ralat disalin",
+  "settingsErrorReportEmpty": "Tiada ralat direkodkan"
 }
