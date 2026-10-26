@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/widgets/fade_slide_in.dart';
 import '../../../core/widgets/skeleton.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -389,26 +390,29 @@ class _ResultsList extends StatelessWidget {
                     child: Text(l10n.searchClearHistory),
                   ),
                 ),
-                for (final place in history)
-                  ListTile(
+                for (final (i, place) in history.indexed)
+                  FadeSlideIn(
                     key: ValueKey(
                       'history-${place.point.lat}-${place.point.lng}',
                     ),
-                    leading: _PlaceIcon(icon: _iconFor(place.category)),
-                    title: Text(
-                      place.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    index: i,
+                    child: ListTile(
+                      leading: _PlaceIcon(icon: _iconFor(place.category)),
+                      title: Text(
+                        place.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: place.subtitle.isEmpty
+                          ? null
+                          : Text(
+                              place.subtitle,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                      trailing: showSaved ? _FavoriteStar(place: place) : null,
+                      onTap: () => onPick(place),
                     ),
-                    subtitle: place.subtitle.isEmpty
-                        ? null
-                        : Text(
-                            place.subtitle,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                    trailing: showSaved ? _FavoriteStar(place: place) : null,
-                    onTap: () => onPick(place),
                   ),
               ],
             ),
@@ -434,21 +438,24 @@ class _ResultsList extends StatelessWidget {
       SearchStatus.results => Column(
         children: [
           if (state.cachedAt != null) _SavedBanner(at: state.cachedAt!),
-          for (final place in state.results)
-            ListTile(
+          for (final (i, place) in state.results.indexed)
+            FadeSlideIn(
               key: ValueKey('place-${place.point.lat}-${place.point.lng}'),
-              leading: _PlaceIcon(icon: _iconFor(place.category)),
-              title: Text(
-                place.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              index: i,
+              child: ListTile(
+                leading: _PlaceIcon(icon: _iconFor(place.category)),
+                title: Text(
+                  place.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: _ResultSubtitle(
+                  place: place,
+                  from: state.origin ?? userLocation,
+                ),
+                trailing: showSaved ? _FavoriteStar(place: place) : null,
+                onTap: () => onPick(place),
               ),
-              subtitle: _ResultSubtitle(
-                place: place,
-                from: state.origin ?? userLocation,
-              ),
-              trailing: showSaved ? _FavoriteStar(place: place) : null,
-              onTap: () => onPick(place),
             ),
         ],
       ),

@@ -1640,6 +1640,12 @@ abstract class AppLocalizations {
   /// **'Lesen sumber terbuka'**
   String get settingsLicences;
 
+  /// No description provided for @splashTagline.
+  ///
+  /// In ms, this message translates to:
+  /// **'Navigasi komuniti Malaysia'**
+  String get splashTagline;
+
   /// No description provided for @searchCategories.
   ///
   /// In ms, this message translates to:

@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/location/location_service.dart';
 import '../../../core/settings/app_preferences.dart';
 import '../../../core/theme/theme_controller.dart';
+import '../../../core/widgets/fade_slide_in.dart';
+import '../../../core/widgets/fade_through_route.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../navigation/data/navigation_settings.dart';
 import '../../navigation/presentation/navigation_settings_sheet.dart';
@@ -41,12 +43,12 @@ class SettingsPage extends ConsumerWidget {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
               children: const [
-                _AppearanceGroup(),
-                _NavigationGroup(),
-                _ReportsGroup(),
-                _MapsGroup(),
-                _PrivacyGroup(),
-                _HelpGroup(),
+                FadeSlideIn(index: 0, child: _AppearanceGroup()),
+                FadeSlideIn(index: 1, child: _NavigationGroup()),
+                FadeSlideIn(index: 2, child: _ReportsGroup()),
+                FadeSlideIn(index: 3, child: _MapsGroup()),
+                FadeSlideIn(index: 4, child: _PrivacyGroup()),
+                FadeSlideIn(index: 5, child: _HelpGroup()),
               ],
             ),
           ),
@@ -465,9 +467,9 @@ class _HelpGroup extends ConsumerWidget {
             title: Text(l10n.aboutTitle),
             subtitle: Text(l10n.settingsAboutHint),
             trailing: const Icon(Icons.chevron_right_rounded),
-            onTap: () => Navigator.of(context).push<void>(
-              MaterialPageRoute<void>(builder: (_) => const AboutPage()),
-            ),
+            onTap: () => Navigator.of(
+              context,
+            ).push<void>(fadeThroughRoute(const AboutPage())),
           ),
         ],
       ),

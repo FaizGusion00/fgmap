@@ -1,7 +1,7 @@
 name: fgmap
 description: "FGMap: aplikasi navigasi komuniti Malaysia."
 publish_to: 'none'
-version: 0.4.0+8
+version: 0.4.1+9
 
 environment:
   sdk: ^3.11.5
@@ -53,11 +53,12 @@ flutter:
 
 # Lesen fon (SIL OFL 1.1) didaftarkan dalam LicenseRegistry; lihat lib/core/licenses.dart.
 
-# Splash asli tanpa kilat putih dalam mod gelap (Bahagian 14.6). Warna sama dengan token latar tema.
+# Splash asli: biru laut jenama, sama dengan permulaan splash animasi dalam app (tiada kilat putih/gelap
+# antara keduanya, cerah mahupun gelap). Splash animasi: lib/features/splash.
 flutter_native_splash:
-  color: "#F7F9FC"
-  color_dark: "#0B1220"
+  color: "#173B78"
+  color_dark: "#173B78"
   android_12:
-    color: "#F7F9FC"
-    color_dark: "#0B1220"
+    color: "#173B78"
+    color_dark: "#173B78"
   fullscreen: false
