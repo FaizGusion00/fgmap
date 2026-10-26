@@ -39,6 +39,7 @@ class NavProgress {
     required this.crossTrackM,
     required this.street,
     required this.gpsWeak,
+    this.signalLost = false,
   });
 
   final NavStatus status;
@@ -64,6 +65,9 @@ class NavProgress {
   /// Isyarat GPS lemah atau hilang.
   final bool gpsWeak;
 
+  /// Tiada fix langsung > 6 s (cth. terowong): kedudukan dianggar daripada kelajuan terakhir sepanjang laluan.
+  final bool signalLost;
+
   /// Salinan dengan kemajuan dikemas kini (digunakan oleh kemas kini langsung antara dua fix).
   NavProgress withLive({
     required double alongM,
@@ -87,6 +91,7 @@ class NavProgress {
     crossTrackM: crossTrackM,
     street: street,
     gpsWeak: gpsWeak,
+    signalLost: signalLost,
   );
 }
 
@@ -381,6 +386,7 @@ class NavigationSession {
           crossTrackM: p.crossTrackM,
           street: p.street,
           gpsWeak: true,
+          signalLost: true,
         );
       }
       return [_planner.gpsLostNotice];

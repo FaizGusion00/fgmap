@@ -826,6 +826,10 @@ class NavStatusChip extends StatelessWidget {
       message = l10n.navRerouteRetry;
       icon = Icons.wifi_off_rounded;
       tint = fg.warning;
+    } else if (state.progress?.signalLost ?? false) {
+      message = l10n.navGpsEstimating;
+      icon = Icons.gps_off_rounded;
+      tint = fg.warning;
     } else if (state.progress?.gpsWeak ?? false) {
       message = l10n.navGpsWeak;
       icon = Icons.gps_not_fixed_rounded;

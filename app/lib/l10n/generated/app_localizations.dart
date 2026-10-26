@@ -776,6 +776,12 @@ abstract class AppLocalizations {
   /// **'Isyarat GPS lemah'**
   String get navGpsWeak;
 
+  /// No description provided for @navGpsEstimating.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tiada isyarat GPS. Kedudukan dianggar.'**
+  String get navGpsEstimating;
+
   /// No description provided for @navLocationLost.
   ///
   /// In ms, this message translates to:

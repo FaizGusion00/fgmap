@@ -31,6 +31,7 @@ NavProgress progress({
   double distance = 300,
   double speed = 13.9,
   bool gpsWeak = false,
+  bool signalLost = false,
   NavStatus status = NavStatus.onRoute,
 }) => NavProgress(
   status: status,
@@ -47,6 +48,7 @@ NavProgress progress({
   crossTrackM: 0,
   street: 'Jalan A',
   gpsWeak: gpsWeak,
+  signalLost: signalLost,
 );
 
 void main() {
@@ -225,6 +227,21 @@ void main() {
         ),
       );
       expect(find.text('Isyarat GPS lemah'), findsOneWidget);
+
+      // Isyarat hilang sepenuhnya (terowong): mesej berbeza, kedudukan dianggar.
+      await pump(
+        tester,
+        NavStatusChip(
+          state: NavigationState(
+            phase: NavPhase.active,
+            progress: progress(gpsWeak: true, signalLost: true),
+          ),
+        ),
+      );
+      expect(
+        find.text('Tiada isyarat GPS. Kedudukan dianggar.'),
+        findsOneWidget,
+      );
 
       await pump(
         tester,
