@@ -13,6 +13,7 @@ import '../../../core/utils/geo.dart';
 import '../../offline_maps/data/offline_engine_host.dart';
 import '../../route_preview/domain/route_option.dart';
 import '../domain/speed_limits.dart';
+import '../../../core/utils/log.dart';
 
 /// Mengekod titik sebagai polyline berketepatan 6 digit (format Valhalla `encoded_polyline`). Songsangan [decodePolyline].
 String encodePolyline6(List<GeoPoint> points) {
@@ -114,7 +115,7 @@ class SpeedLimitService {
         final limits = parseSpeedLimits(await source(request));
         if (!limits.isEmpty) return limits;
       } on Object catch (e) {
-        debugPrint('Had laju: sumber gagal ($e)');
+        logDiag('Had laju: sumber gagal ($e)');
       }
     }
     return SpeedLimits.empty;

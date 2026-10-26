@@ -11,6 +11,7 @@ import '../domain/route_option.dart';
 import '../domain/toll.dart';
 import '../domain/route_options_merge.dart' show isSameRoute;
 import '../domain/routing_failure.dart';
+import '../../../core/utils/log.dart';
 
 @immutable
 sealed class RoutePreviewState {
@@ -246,7 +247,7 @@ class RoutePreviewController extends Notifier<RoutePreviewState> {
       state = RouteFailed(query: query, kind: failure.kind);
     } on Object catch (e, st) {
       // Kegagalan tidak dijangka mesti tidak meninggalkan lembaran "mengira" selama-lamanya.
-      debugPrint('Pengiraan laluan gagal: $e\n$st');
+      logDiag('Pengiraan laluan gagal: $e\n$st');
       if (seq != _seq) return;
       if (received) return _finishLoading();
       state = RouteFailed(query: query, kind: RoutingFailureKind.generic);

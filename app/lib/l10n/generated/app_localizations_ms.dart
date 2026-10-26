@@ -1033,4 +1033,11 @@ class AppLocalizationsMs extends AppLocalizations {
   String routeTollDisclaimer(String cls) {
     return 'Anggaran sahaja (kelas $cls); semak harga di plaza.';
   }
+
+  @override
+  String get settingsClearAll => 'Padam semua data saya';
+
+  @override
+  String get settingsClearAllHint =>
+      'Sejarah carian, tempat disimpan, laporan dan data simpanan lokasi pada peranti ini.';
 }

@@ -20,6 +20,7 @@ import '../domain/nav_route.dart';
 import '../domain/navigation_session.dart';
 import '../domain/vehicle_model.dart';
 import '../../../core/utils/haptics.dart';
+import '../../../core/utils/log.dart';
 
 enum NavPhase { idle, active, arrived }
 
@@ -234,7 +235,7 @@ class NavigationController extends Notifier<NavigationState> {
       try {
         await ref.read(voiceGuideProvider).stop();
       } on Object catch (e) {
-        debugPrint('Menghentikan suara gagal: $e');
+        logDiag('Menghentikan suara gagal: $e');
       } finally {
         // Skrin mesti dilepaskan walaupun enjin suara bermasalah.
         await ref.read(screenAwakeProvider).disable();
@@ -256,9 +257,7 @@ class NavigationController extends Notifier<NavigationState> {
       final avg =
           _diagLatenciesMs.reduce((a, b) => a + b) / _diagLatenciesMs.length;
       final max = _diagLatenciesMs.reduce((a, b) => a > b ? a : b);
-      debugPrint(
-        'FGDIAG GPS: latensi fix purata ${avg.round()} ms, maks $max ms',
-      );
+      logDiag('FGDIAG GPS: latensi fix purata ${avg.round()} ms, maks $max ms');
       _diagLatenciesMs.clear();
     }
   }
@@ -392,7 +391,7 @@ class NavigationController extends Notifier<NavigationState> {
       state = state.copyWith(rerouting: false, rerouteFailure: failure.kind);
     } on Object catch (e) {
       // Apa-apa ralat lain (respons rosak, dsb.) tidak boleh meninggalkan "mengira semula" tersangkut.
-      debugPrint('Re-route gagal: $e');
+      logDiag('Re-route gagal: $e');
       if (generation != _generation) return;
       state = state.copyWith(
         rerouting: false,
@@ -419,7 +418,7 @@ class NavigationController extends Notifier<NavigationState> {
       }
       state = state.copyWith(speedLimits: limits);
     } on Object catch (e) {
-      debugPrint('Had laju tidak dapat dimuat: $e');
+      logDiag('Had laju tidak dapat dimuat: $e');
     }
   }
 

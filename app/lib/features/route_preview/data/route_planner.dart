@@ -5,7 +5,7 @@ import 'dart:math' as math;
 import 'package:dio/dio.dart';
 import 'package:fgmap_valhalla/fgmap_valhalla.dart'
     show ValhallaEngineException;
-import 'package:flutter/foundation.dart' show debugPrint, kDebugMode;
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/app_config.dart';
@@ -18,6 +18,7 @@ import '../domain/route_option.dart';
 import '../domain/route_options_merge.dart';
 import '../domain/routing_failure.dart';
 import 'valhalla_codec.dart';
+import '../../../core/utils/log.dart';
 
 /// Mengira laluan. Melempar [RoutingFailure] untuk semua kegagalan yang boleh dijangka.
 abstract interface class RoutePlanner {
@@ -260,7 +261,7 @@ class MultiRoutePlanner implements ProgressiveRoutePlanner {
           } on RoutingFailure catch (failure) {
             if (_systemFailures.contains(failure.kind)) stopped = true;
           } on Object catch (e) {
-            if (kDebugMode) debugPrint('Permintaan laluan tambahan gagal: $e');
+            if (kDebugMode) logDiag('Permintaan laluan tambahan gagal: $e');
             stopped = true;
           }
           if (isCancelled()) return;

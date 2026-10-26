@@ -15,6 +15,7 @@ import '../../offline_maps/presentation/offline_maps_sheet.dart';
 import '../../onboarding/data/onboarding_controller.dart';
 import '../../reports/presentation/reports_controller.dart';
 import '../../saved_places/data/saved_places_controller.dart';
+import '../data/data_eraser.dart';
 import '../../saved_places/domain/saved_place.dart';
 import '../../saved_places/presentation/assign_place_flow.dart';
 import '../../saved_places/presentation/save_place_sheet.dart';
@@ -474,6 +475,21 @@ class _PrivacyGroup extends ConsumerWidget {
               context,
               ref.read(reportsControllerProvider.notifier).clear,
             ),
+          ),
+          const Divider(height: 24),
+          ListTile(
+            key: const ValueKey('clear-all'),
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(
+              Icons.delete_forever_outlined,
+              color: Theme.of(context).colorScheme.error,
+            ),
+            title: Text(
+              l10n.settingsClearAll,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+            subtitle: Text(l10n.settingsClearAllHint),
+            onTap: () => _clear(context, () => eraseAllUserData(ref)),
           ),
         ],
       ),

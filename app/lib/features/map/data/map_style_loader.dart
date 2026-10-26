@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/network/dio_provider.dart';
 import '../domain/night_style.dart';
+import '../../../core/utils/log.dart';
 
 /// Gaya peta yang sedia dihantar kepada MapLibre: URL atau JSON gaya lengkap.
 @immutable
@@ -85,7 +86,7 @@ class MapStyleLoader {
         'night:${styled.length}:${styled.hashCode}',
       );
     } on Object catch (e) {
-      debugPrint('Gaya malam gagal, guna URL: $e');
+      logDiag('Gaya malam gagal, guna URL: $e');
       return _darkFallback();
     }
   }

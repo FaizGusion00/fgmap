@@ -558,5 +558,7 @@
         "type": "String"
       }
     }
-  }
+  },
+  "settingsClearAll": "Padam semua data saya",
+  "settingsClearAllHint": "Sejarah carian, tempat disimpan, laporan dan data simpanan lokasi pada peranti ini."
 }

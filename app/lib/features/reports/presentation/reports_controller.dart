@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/location/location_service.dart';
 import '../data/reports_repository.dart';
 import '../domain/report.dart';
+import '../../../core/utils/log.dart';
 
 /// Pembekal masa; di-override dalam ujian supaya luput boleh diuji tanpa menunggu.
 final reportsClockProvider = Provider<DateTime Function()>(
@@ -52,7 +53,7 @@ class ReportsController extends Notifier<List<Report>> {
       final active = await repo.active(_now);
       if (ref.mounted) state = active;
     } on Object catch (e) {
-      debugPrint('Laporan: gagal memuatkan ($e)');
+      logDiag('Laporan: gagal memuatkan ($e)');
     }
   }
 

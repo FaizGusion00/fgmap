@@ -54,6 +54,7 @@ import 'map_view.dart';
 import 'nav_route_line.dart';
 import 'user_location.dart';
 import '../../../core/utils/haptics.dart';
+import '../../../core/utils/log.dart';
 
 class MapScreen extends ConsumerStatefulWidget {
   const MapScreen({super.key});
@@ -100,7 +101,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
     _linkSubscription = _appLinks.uriLinkStream.listen(
       (uri) => unawaited(_openSharedLocation(uri)),
       onError: (Object error, StackTrace stackTrace) {
-        debugPrint('Incoming location link failed: $error');
+        logDiag('Incoming location link failed: $error');
       },
     );
     WidgetsBinding.instance.addPostFrameCallback(
@@ -434,7 +435,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
           shared = sharedLocationFromUri(resolved);
         }
       } on DioException catch (error) {
-        debugPrint('Shared map link could not be resolved: ${error.type.name}');
+        logDiag('Shared map link could not be resolved: ${error.type.name}');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

@@ -9,6 +9,7 @@ import '../../../core/network/dio_provider.dart';
 import '../data/offline_engine_host.dart';
 import '../data/offline_map_installer.dart';
 import '../domain/offline_models.dart';
+import '../../../core/utils/log.dart';
 
 enum OfflineOp { idle, checking, downloading, verifying, installing }
 
@@ -126,7 +127,7 @@ class OfflineMapController extends Notifier<OfflineMapState> {
         error: () => installed == null ? e.kind : null,
       );
     } on Object catch (e, st) {
-      debugPrint('Semakan peta offline gagal tanpa dijangka: $e\n$st');
+      logDiag('Semakan peta offline gagal tanpa dijangka: $e\n$st');
       if (!ref.mounted) return;
       state = state.copyWith(
         op: OfflineOp.idle,
@@ -196,7 +197,7 @@ class OfflineMapController extends Notifier<OfflineMapState> {
       );
     } on Object catch (e, st) {
       // Apa-apa yang tidak dijangka tidak boleh membiarkan UI tersekat pada "sedang memuat turun".
-      debugPrint('Muat turun peta offline gagal tanpa dijangka: $e\n$st');
+      logDiag('Muat turun peta offline gagal tanpa dijangka: $e\n$st');
       if (!ref.mounted) return;
       state = state.copyWith(
         op: OfflineOp.idle,

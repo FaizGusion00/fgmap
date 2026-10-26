@@ -1,4 +1,4 @@
-.PHONY: help test analyze l10n tiles serve-tiles run-android release-android
+.PHONY: help test analyze l10n tiles serve-tiles run-android release-android appbundle
 
 help:
 	@echo "make test           ujian app (tanpa golden)"
@@ -7,7 +7,8 @@ help:
 	@echo "make tiles          bina pek tile offline (Docker, ~10 min) ke tools/tiles/out"
 	@echo "make serve-tiles    sajikan tools/tiles/out di :8099 (menyokong Range) untuk menguji muat turun"
 	@echo "make run-android    jalankan app pada emulator dengan pek tile setempat"
-	@echo "make release-android  bina APK release (arm64 + armv7), simbol dipisah; tandatangan: app/android/key.properties"
+	@echo "make release-android  bina APK release (arm64 + armv7), dikaburkan, simbol dipisah; tandatangan: app/android/key.properties"
+	@echo "make appbundle      bina AAB untuk Play Store (WAJIB kunci release; gagal tanpanya)"
 
 test:
 	cd app && flutter test --exclude-tags golden
@@ -47,4 +48,10 @@ run-android:
 # (simpan untuk menyahobfuskan jejak ranap). Tanpa app/android/key.properties ia ditandatangani dengan
 # kunci debug dan tidak boleh diterbitkan.
 release-android:
-	cd app && flutter build apk --release --split-per-abi --split-debug-info=build/symbols
+	cd app && flutter build apk --release --split-per-abi --obfuscate --split-debug-info=build/symbols
+
+# AAB untuk Play Store: kod Dart dikaburkan (simpan app/build/symbols untuk menyahobfuskan jejak ranap
+# dan muat naik ke Play Console). FGMAP_STORE_BUILD=1 menjadikan build GAGAL jika kunci release tiada,
+# supaya binari bertandatangan debug tidak pernah tersalah terbit.
+appbundle:
+	cd app && FGMAP_STORE_BUILD=1 flutter build appbundle --release --obfuscate --split-debug-info=build/symbols

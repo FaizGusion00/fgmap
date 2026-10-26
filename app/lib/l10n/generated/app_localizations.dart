@@ -1891,6 +1891,18 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'Anggaran sahaja (kelas {cls}); semak harga di plaza.'**
   String routeTollDisclaimer(String cls);
+
+  /// No description provided for @settingsClearAll.
+  ///
+  /// In ms, this message translates to:
+  /// **'Padam semua data saya'**
+  String get settingsClearAll;
+
+  /// No description provided for @settingsClearAllHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Sejarah carian, tempat disimpan, laporan dan data simpanan lokasi pada peranti ini.'**
+  String get settingsClearAllHint;
 }
 
 class _AppLocalizationsDelegate

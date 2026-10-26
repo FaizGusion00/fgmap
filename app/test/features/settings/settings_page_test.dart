@@ -143,11 +143,15 @@ void main() {
       300,
       scrollable: find.byType(Scrollable).first,
     );
+    await tester.ensureVisible(find.byKey(const ValueKey('speech-rate')));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Perlahan').last);
     await tester.pumpAndSettle();
     expect(c.read(navigationSettingsProvider).speechRate, 0.42);
     expect(prefs.getDouble('nav.speechRate'), 0.42);
 
+    await tester.ensureVisible(find.byKey(const ValueKey('voice-volume')));
+    await tester.pumpAndSettle();
     await tester.tap(
       find.descendant(
         of: find.byKey(const ValueKey('voice-volume')),
@@ -162,6 +166,10 @@ void main() {
       300,
       scrollable: find.byType(Scrollable).first,
     );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('report-alerts-switch')),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('report-alerts-switch')));
     await tester.pumpAndSettle();
     expect(c.read(navigationSettingsProvider).reportAlerts, isFalse);
@@ -234,6 +242,29 @@ void main() {
       expect(find.text('Dipadam'), findsOneWidget);
     });
 
+    testWidgets(
+      'padam semua data saya: pengesahan; kemudian semuanya dipadam',
+      (tester) async {
+        final c = await pumpPage(tester);
+        await c.read(searchHistoryControllerProvider.notifier).record(_lotus);
+        await c.read(savedPlacesControllerProvider.notifier).setHome(_lotus);
+        await prefs.setString('nearby.v1.index', '[]');
+
+        await openTile(tester, 'clear-all');
+        await tester.tap(find.text('Batal'));
+        await tester.pumpAndSettle();
+        expect(c.read(savedPlacesControllerProvider), isNotEmpty);
+
+        await openTile(tester, 'clear-all');
+        await tester.tap(find.byKey(const ValueKey('confirm-delete')));
+        await tester.pumpAndSettle();
+        expect(c.read(searchHistoryControllerProvider), isEmpty);
+        expect(c.read(savedPlacesControllerProvider), isEmpty);
+        expect(prefs.containsKey('nearby.v1.index'), isFalse);
+        expect(find.text('Dipadam'), findsOneWidget);
+      },
+    );
+
     testWidgets('tempat disimpan dan laporan dipadam', (tester) async {
       final c = await pumpPage(tester);
       await c.read(savedPlacesControllerProvider.notifier).setHome(_lotus);
@@ -287,6 +318,8 @@ void main() {
         300,
         scrollable: find.byType(Scrollable).first,
       );
+      await tester.ensureVisible(find.byKey(const ValueKey('licences')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('licences')));
       await tester.pumpAndSettle();
       expect(find.byType(LicensePage), findsOneWidget);

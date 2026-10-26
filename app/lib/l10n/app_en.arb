@@ -458,5 +458,7 @@
         "type": "String"
       }
     }
-  }
+  },
+  "settingsClearAll": "Delete all my data",
+  "settingsClearAllHint": "Search history, saved places, reports and cached location data on this device."
 }

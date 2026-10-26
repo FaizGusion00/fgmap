@@ -1,0 +1,40 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../core/storage/preferences.dart';
+import '../../../core/theme/theme_controller.dart';
+import '../../reports/presentation/reports_controller.dart';
+import '../../saved_places/data/saved_places_controller.dart';
+import '../../search/presentation/search_history_controller.dart';
+
+/// Awalan kunci simpanan carian berhampiran (hasil di sekitar lokasi pengguna) dalam SharedPreferences.
+const nearbyCachePrefix = 'nearby.v1.';
+
+/// Kunci yang menyimpan kedudukan (dikaburkan) untuk mengira matahari.
+const sunLocationKeys = ['theme.sunLat', 'theme.sunLng'];
+
+/// Memadam kunci simpanan carian berhampiran. Dipisahkan supaya boleh diuji dan digunakan semula.
+Future<void> eraseNearbyCache(SharedPreferences prefs) async {
+  for (final key in prefs.getKeys().where(
+    (k) => k.startsWith(nearbyCachePrefix),
+  )) {
+    await prefs.remove(key);
+  }
+}
+
+/// Memadam SEMUA data peribadi pada peranti: sejarah carian, tempat disimpan (termasuk Rumah/Kerja),
+/// laporan, simpanan carian berhampiran dan kedudukan matahari. Tetapan (tema, suara, bahasa) dan
+/// status sambutan kekal. Tiada data di pelayan untuk dipadam: app tidak mempunyai akaun.
+Future<void> eraseAllUserData(WidgetRef ref) async {
+  await ref.read(searchHistoryControllerProvider.notifier).clear();
+  await ref.read(savedPlacesControllerProvider.notifier).clear();
+  await ref.read(reportsControllerProvider.notifier).clear();
+
+  final prefs = ref.read(sharedPreferencesProvider);
+  await eraseNearbyCache(prefs);
+  for (final key in sunLocationKeys) {
+    await prefs.remove(key);
+  }
+  // Bina semula supaya bacaan seterusnya (kini kosong) digunakan, bukan nilai dalam ingatan.
+  ref.invalidate(sunLocationProvider);
+}

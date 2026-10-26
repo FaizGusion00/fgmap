@@ -1032,4 +1032,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String routeTollDisclaimer(String cls) {
     return 'Estimate only (class $cls); check the price at the plaza.';
   }
+
+  @override
+  String get settingsClearAll => 'Delete all my data';
+
+  @override
+  String get settingsClearAllHint =>
+      'Search history, saved places, reports and cached location data on this device.';
 }

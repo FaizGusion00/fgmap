@@ -1,11 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart'
-    show TargetPlatform, debugPrint, defaultTargetPlatform, visibleForTesting;
+    show TargetPlatform, defaultTargetPlatform, visibleForTesting;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../utils/geo.dart';
+import '../utils/log.dart';
 
 enum LocationAccess {
   /// Belum diberi, tetapi sistem masih membenarkan kita meminta: sama ada belum pernah diminta atau
@@ -200,12 +201,12 @@ class GeolocatorLocationService implements LocationService {
               }
             },
             onError: (Object error) {
-              debugPrint('GPS acquisition failed: $error');
+              logDiag('GPS acquisition failed: $error');
               if (!result.isCompleted) result.complete(null);
             },
           );
     } on Object catch (error) {
-      debugPrint('GPS acquisition failed: $error');
+      logDiag('GPS acquisition failed: $error');
       if (!result.isCompleted) result.complete(null);
     }
 

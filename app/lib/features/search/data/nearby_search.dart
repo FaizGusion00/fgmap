@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:isolate';
 
-import 'package:flutter/foundation.dart' show debugPrint, kDebugMode;
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -16,6 +16,7 @@ import '../domain/place.dart';
 import 'nearby_cache.dart';
 import 'nominatim_geocoder.dart';
 import 'photon_geocoder.dart';
+import '../../../core/utils/log.dart';
 
 /// Hasil carian berhampiran.
 ///
@@ -163,7 +164,7 @@ class OverpassNearbySearch implements ProgressiveNearbySearch {
     );
     return _race(query, center, fallbackName, cancel).whenComplete(() {
       if (kDebugMode && _diagnostics) {
-        debugPrint(
+        logDiag(
           'FGDIAG nearby ${category.name} peringkat $stage: ${watch.elapsedMilliseconds} ms',
         );
       }
