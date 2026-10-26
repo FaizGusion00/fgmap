@@ -424,6 +424,40 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navOverview => 'Show whole route';
 
   @override
+  String get navChangeRoute => 'Change route';
+
+  @override
+  String get navRoutesTitle => 'Choose a route from here';
+
+  @override
+  String get navRoutesCurrent => 'Current route';
+
+  @override
+  String get navRoutesLoading => 'Finding routes from your location…';
+
+  @override
+  String get navRoutesError => 'Couldn\'t find other routes right now.';
+
+  @override
+  String get navRoutesNone => 'No other routes from here.';
+
+  @override
+  String get navRoutesSame => 'Same time';
+
+  @override
+  String navRoutesFaster(String time) {
+    return '$time faster';
+  }
+
+  @override
+  String navRoutesSlower(String time) {
+    return '$time slower';
+  }
+
+  @override
+  String get navRoutesSwitched => 'Route changed';
+
+  @override
   String get navCameraAuto => 'Auto 3D/2D camera';
 
   @override

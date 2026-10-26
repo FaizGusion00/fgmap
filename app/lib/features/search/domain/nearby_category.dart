@@ -7,7 +7,8 @@ enum NearbyCategory {
     selectors: ['["amenity"="fuel"]'],
     radiiM: [2500, 6000, 15000],
     enoughResults: 5,
-    nominatimPhrase: 'petrol station',
+    nominatimPhrases: ['petrol station'],
+    nominatimTypes: {'amenity:fuel'},
   ),
   food(
     selectors: [
@@ -15,7 +16,15 @@ enum NearbyCategory {
     ],
     radiiM: [800, 2000, 5000],
     enoughResults: 8,
-    nominatimPhrase: 'restaurant',
+    nominatimPhrases: ['restaurant'],
+    nominatimTypes: {
+      'amenity:restaurant',
+      'amenity:fast_food',
+      'amenity:cafe',
+      'amenity:food_court',
+      'amenity:canteen',
+      'amenity:ice_cream',
+    },
   ),
   mosque(
     selectors: [
@@ -27,13 +36,19 @@ enum NearbyCategory {
     ],
     radiiM: [2000, 5000, 15000],
     enoughResults: 5,
-    nominatimPhrase: 'mosque',
+    nominatimPhrases: ['mosque', 'surau'],
+    nominatimTypes: {
+      'amenity:place_of_worship',
+      'amenity:prayer_room',
+      'building:mosque',
+    },
   ),
   toilets(
     selectors: ['["amenity"="toilets"]'],
     radiiM: [1500, 5000, 15000],
     enoughResults: 5,
-    nominatimPhrase: 'toilets',
+    nominatimPhrases: ['toilets'],
+    nominatimTypes: {'amenity:toilets'},
   ),
   parking(
     selectors: [
@@ -41,20 +56,23 @@ enum NearbyCategory {
     ],
     radiiM: [600, 1500, 4000],
     enoughResults: 8,
-    nominatimPhrase: 'parking',
+    nominatimPhrases: ['parking'],
+    nominatimTypes: {'amenity:parking', 'amenity:parking_space'},
   ),
   hospital(
     selectors: ['["amenity"="hospital"]', '["healthcare"="hospital"]'],
     radiiM: [5000, 15000, 30000],
     enoughResults: 3,
-    nominatimPhrase: 'hospital',
+    nominatimPhrases: ['hospital'],
+    nominatimTypes: {'amenity:hospital', 'healthcare:hospital'},
   );
 
   const NearbyCategory({
     required this.selectors,
     required this.radiiM,
     required this.enoughResults,
-    required this.nominatimPhrase,
+    required this.nominatimPhrases,
+    required this.nominatimTypes,
   });
 
   /// Penapis tag Overpass; hasil ialah gabungan semuanya.
@@ -67,8 +85,16 @@ enum NearbyCategory {
   /// Bilangan hasil yang dianggap mencukupi untuk berhenti memperluas radius.
   final int enoughResults;
 
-  /// Frasa khas Nominatim untuk fallback.
-  final String nominatimPhrase;
+  /// Frasa khas Nominatim (Inggeris, tidak bergantung pada bahasa paparan app) untuk fallback.
+  final List<String> nominatimPhrases;
+
+  /// Pasangan `kelas:jenis` OSM yang diterima daripada Nominatim. Frasa bebas juga memadankan nama
+  /// jalan (cth. "toilets" -> "Jalan ..."), jadi hasil yang bukan jenis ini dibuang.
+  final Set<String> nominatimTypes;
+
+  /// Sama ada hasil Nominatim berjenis [osmKey]:[type] tergolong dalam kategori ini.
+  bool acceptsNominatim(String? osmKey, String? type) =>
+      nominatimTypes.contains('$osmKey:$type');
 
   /// Pertanyaan Overpass QL. `out tags center` memberi satu koordinat bagi bangunan dan kawasan.
   String overpassQuery(double lat, double lng, int radius) {

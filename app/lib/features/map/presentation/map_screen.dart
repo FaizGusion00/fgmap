@@ -31,6 +31,8 @@ import '../../navigation/data/navigation_settings.dart';
 import '../../navigation/domain/camera_planner.dart';
 import '../../navigation/domain/instruction_text.dart';
 import '../../navigation/domain/nav_route.dart';
+import '../../navigation/presentation/nav_alternatives.dart';
+import '../../navigation/presentation/nav_routes_sheet.dart';
 import '../../navigation/presentation/navigation_controller.dart';
 import '../../navigation/presentation/navigation_frame_driver.dart';
 import '../../navigation/presentation/navigation_hud.dart';
@@ -621,6 +623,43 @@ class _MapScreenState extends ConsumerState<MapScreen>
     );
   }
 
+  /// Pilih laluan lain dari kedudukan semasa tanpa menamatkan perjalanan. Pilihan dilukis pada peta
+  /// dan kamera menunjukkan seluruh kawasan; selepas ditutup kamera kembali mengikut kenderaan.
+  Future<void> _changeRoute() async {
+    final alternatives = ref.read(navAlternativesProvider.notifier);
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    final media = MediaQuery.of(context);
+    unawaited(
+      alternatives.load().then((_) {
+        if (!mounted) return;
+        final state = ref.read(navAlternativesProvider);
+        if (state.status != NavAlternativesStatus.ready) return;
+        final nav = ref.read(navigationControllerProvider);
+        final route = nav.route;
+        _driver?.showOverview(
+          [
+            for (final option in state.options) ...option.points,
+            ?(route?.points.last),
+          ],
+          padding: EdgeInsets.fromLTRB(
+            40,
+            media.padding.top + 260,
+            40,
+            media.size.height * 0.45,
+          ),
+        );
+      }),
+    );
+    final switched = await showNavRoutesSheet(context);
+    alternatives.clear();
+    if (!mounted) return;
+    _driver?.recenter();
+    if (switched == true) {
+      messenger?.showSnackBar(SnackBar(content: Text(l10n.navRoutesSwitched)));
+    }
+  }
+
   Future<void> _cycleCameraMode() {
     final controller = ref.read(navigationSettingsProvider.notifier);
     final current = ref.read(navigationSettingsProvider).cameraMode;
@@ -848,7 +887,14 @@ class _MapScreenState extends ConsumerState<MapScreen>
       ],
       initialCenter: AppConfig.initialCenter,
       initialZoom: AppConfig.initialZoom,
-      routes: navigating ? const [] : _routeLines(state),
+      routes: navigating
+          ? [
+              // Pilihan laluan lain semasa lembaran "Tukar laluan" dibuka (kelabu di bawah laluan semasa).
+              for (final points
+                  in ref.watch(navAlternativesProvider).otherRoutes)
+                MapRouteLine(points: points, isMain: false),
+            ]
+          : _routeLines(state),
       navRoute: navigating ? _navLineFor(nav) : null,
       navAlong: navigating ? _driver?.routeAlong : null,
       finalLeg: _finalLeg(
@@ -1116,6 +1162,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
       onOverview: _showOverview,
       onSettings: () => showNavigationSettingsSheet(context),
       onReport: _openReport,
+      onChangeRoute: _changeRoute,
     );
 
     if (landscape) {

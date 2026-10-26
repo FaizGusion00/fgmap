@@ -353,39 +353,7 @@ class NavigationController extends Notifier<NavigationState> {
       if (options.isEmpty) {
         throw const RoutingFailure(RoutingFailureKind.generic);
       }
-      final route = NavRoute(options.first);
-      if (!route.isUsable) {
-        throw const RoutingFailure(RoutingFailureKind.generic);
-      }
-
-      final fresh = NavigationSession(
-        route: route,
-        language: _voiceLanguage(),
-        clock: ref.read(navClockProvider),
-        isReroute: true,
-      );
-      _session = fresh;
-      state = NavigationState(
-        phase: NavPhase.active,
-        route: route,
-        query: query,
-        simulated: state.simulated,
-        routeVersion: state.routeVersion + 1,
-      );
-      _speak(fresh.takeStartAnnouncements());
-      unawaited(
-        _loadSpeedLimits(options.first, query, generation, state.routeVersion),
-      );
-
-      // Sesi baharu belum melihat fix: tanpa ini progress kosong sehingga fix seterusnya (~1 s),
-      // banner hilang dan chip "mencari GPS" berkelip. Fix terkini (bukan yang mencetuskan
-      // re-route; kedudukan sudah beralih sepanjang pengiraan) disuap terus.
-      final fix = _lastFix;
-      final clock = ref.read(navClockProvider);
-      if (fix != null &&
-          clock().difference(fix.timestamp ?? clock()) <= _maxFeedAge) {
-        _onFix(fix);
-      }
+      _adopt(options.first, query, generation);
     } on RoutingFailure catch (failure) {
       if (generation != _generation) return;
       // Kekal di sesi semasa; pengesan menyimpang akan mencuba lagi selepas cooldown.
@@ -400,6 +368,81 @@ class NavigationController extends Notifier<NavigationState> {
       );
     } finally {
       _reroutePending = false;
+    }
+  }
+
+  /// Menggantikan laluan semasa dengan [option] (re-route atau pilihan pengguna): sesi baharu dan had laju
+  /// dimuat semula untuk laluan baharu.
+  void _adopt(RouteOption option, RouteQuery query, int generation) {
+    final route = NavRoute(option);
+    if (!route.isUsable) {
+      throw const RoutingFailure(RoutingFailureKind.generic);
+    }
+    final fresh = NavigationSession(
+      route: route,
+      language: _voiceLanguage(),
+      clock: ref.read(navClockProvider),
+      isReroute: true,
+    );
+    _session = fresh;
+    state = NavigationState(
+      phase: NavPhase.active,
+      route: route,
+      query: query,
+      simulated: state.simulated,
+      routeVersion: state.routeVersion + 1,
+    );
+    _speak(fresh.takeStartAnnouncements());
+    unawaited(_loadSpeedLimits(option, query, generation, state.routeVersion));
+
+    // Sesi baharu belum melihat fix: tanpa ini progress kosong sehingga fix seterusnya (~1 s),
+    // banner hilang dan chip "mencari GPS" berkelip. Fix terkini (bukan yang mencetuskan
+    // re-route; kedudukan sudah beralih sepanjang pengiraan) disuap terus.
+    final fix = _lastFix;
+    final clock = ref.read(navClockProvider);
+    if (fix != null &&
+        clock().difference(fix.timestamp ?? clock()) <= _maxFeedAge) {
+      _onFix(fix);
+    }
+  }
+
+  /// Pilihan laluan dari kedudukan semasa ke destinasi yang sama (untuk pengguna menukar laluan semasa
+  /// dalam perjalanan). Tidak mengubah navigasi. Mencampakkan [RoutingFailure] jika gagal.
+  Future<List<RouteOption>> planAlternatives() async {
+    final query = state.query;
+    final fix = _lastFix;
+    if (state.phase != NavPhase.active || query == null) {
+      throw const RoutingFailure(RoutingFailureKind.generic);
+    }
+    if (fix == null) throw const RoutingFailure(RoutingFailureKind.generic);
+    final generation = _generation;
+    final options = await ref
+        .read(routeOptionsPlannerProvider)
+        .plan(
+          query.alternativesFrom(fix.point, headingDegrees: fix.headingDegrees),
+        );
+    if (generation != _generation) {
+      throw const RoutingFailure(RoutingFailureKind.generic);
+    }
+    return options;
+  }
+
+  /// Tukar kepada [option] (daripada [planAlternatives]) tanpa menamatkan perjalanan. Label menentukan
+  /// pilihan elak yang dikekalkan untuk re-route seterusnya. Mengembalikan false jika tidak dapat ditukar.
+  bool switchRoute(RouteOption option) {
+    final query = state.query;
+    if (state.phase != NavPhase.active || query == null || _reroutePending) {
+      return false;
+    }
+    final next = query.copyWith(
+      avoidTolls: option.label == RouteLabel.noTolls,
+      avoidHighways: option.label == RouteLabel.noHighways,
+    );
+    try {
+      _adopt(option, next, _generation);
+      return true;
+    } on RoutingFailure {
+      return false;
     }
   }
 

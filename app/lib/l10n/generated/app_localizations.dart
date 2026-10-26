@@ -812,6 +812,66 @@ abstract class AppLocalizations {
   /// **'Lihat keseluruhan laluan'**
   String get navOverview;
 
+  /// No description provided for @navChangeRoute.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tukar laluan'**
+  String get navChangeRoute;
+
+  /// No description provided for @navRoutesTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pilih laluan dari sini'**
+  String get navRoutesTitle;
+
+  /// No description provided for @navRoutesCurrent.
+  ///
+  /// In ms, this message translates to:
+  /// **'Laluan semasa'**
+  String get navRoutesCurrent;
+
+  /// No description provided for @navRoutesLoading.
+  ///
+  /// In ms, this message translates to:
+  /// **'Mencari laluan dari lokasi anda…'**
+  String get navRoutesLoading;
+
+  /// No description provided for @navRoutesError.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tidak dapat mencari laluan lain sekarang.'**
+  String get navRoutesError;
+
+  /// No description provided for @navRoutesNone.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tiada laluan lain dari sini.'**
+  String get navRoutesNone;
+
+  /// No description provided for @navRoutesSame.
+  ///
+  /// In ms, this message translates to:
+  /// **'Masa sama'**
+  String get navRoutesSame;
+
+  /// No description provided for @navRoutesFaster.
+  ///
+  /// In ms, this message translates to:
+  /// **'{time} lebih cepat'**
+  String navRoutesFaster(String time);
+
+  /// No description provided for @navRoutesSlower.
+  ///
+  /// In ms, this message translates to:
+  /// **'{time} lebih lambat'**
+  String navRoutesSlower(String time);
+
+  /// No description provided for @navRoutesSwitched.
+  ///
+  /// In ms, this message translates to:
+  /// **'Laluan ditukar'**
+  String get navRoutesSwitched;
+
   /// No description provided for @navCameraAuto.
   ///
   /// In ms, this message translates to:

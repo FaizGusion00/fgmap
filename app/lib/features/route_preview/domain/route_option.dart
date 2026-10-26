@@ -169,6 +169,19 @@ class RouteQuery {
     );
   }
 
+  /// Permintaan untuk memilih laluan lain dari [origin] ke destinasi yang sama semasa dalam perjalanan:
+  /// tiada pilihan elak (supaya semua pilihan bermakna ditawarkan) dan alternatif diminta semula.
+  RouteQuery alternativesFrom(GeoPoint origin, {int? headingDegrees}) {
+    return RouteQuery(
+      origin: origin,
+      destination: destination,
+      headingDegrees: headingDegrees,
+      vehicle: vehicle,
+      destinationLabel: destinationLabel,
+      destinationRadiusM: destinationRadiusM,
+    );
+  }
+
   /// Permintaan baharu ke destinasi yang sama dari [origin] (cth. mengira semula bila menyimpang).
   /// Kenderaan, pilihan elak dan nama destinasi dikekalkan; hanya satu laluan diminta.
   RouteQuery rerouteFrom(GeoPoint origin, {int? headingDegrees}) {

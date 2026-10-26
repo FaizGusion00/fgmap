@@ -423,6 +423,40 @@ class AppLocalizationsMs extends AppLocalizations {
   String get navOverview => 'Lihat keseluruhan laluan';
 
   @override
+  String get navChangeRoute => 'Tukar laluan';
+
+  @override
+  String get navRoutesTitle => 'Pilih laluan dari sini';
+
+  @override
+  String get navRoutesCurrent => 'Laluan semasa';
+
+  @override
+  String get navRoutesLoading => 'Mencari laluan dari lokasi anda…';
+
+  @override
+  String get navRoutesError => 'Tidak dapat mencari laluan lain sekarang.';
+
+  @override
+  String get navRoutesNone => 'Tiada laluan lain dari sini.';
+
+  @override
+  String get navRoutesSame => 'Masa sama';
+
+  @override
+  String navRoutesFaster(String time) {
+    return '$time lebih cepat';
+  }
+
+  @override
+  String navRoutesSlower(String time) {
+    return '$time lebih lambat';
+  }
+
+  @override
+  String get navRoutesSwitched => 'Laluan ditukar';
+
+  @override
   String get navCameraAuto => 'Kamera auto 3D/2D';
 
   @override

@@ -147,6 +147,30 @@
   "navMute": "Mute voice",
   "navUnmute": "Unmute voice",
   "navOverview": "Show whole route",
+  "navChangeRoute": "Change route",
+  "navRoutesTitle": "Choose a route from here",
+  "navRoutesCurrent": "Current route",
+  "navRoutesLoading": "Finding routes from your location…",
+  "navRoutesError": "Couldn't find other routes right now.",
+  "navRoutesNone": "No other routes from here.",
+  "navRoutesSame": "Same time",
+  "navRoutesFaster": "{time} faster",
+  "@navRoutesFaster": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "navRoutesSlower": "{time} slower",
+  "@navRoutesSlower": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "navRoutesSwitched": "Route changed",
   "navCameraAuto": "Auto 3D/2D camera",
   "navCameraFlat": "2D camera",
   "navCameraTilted": "3D camera",

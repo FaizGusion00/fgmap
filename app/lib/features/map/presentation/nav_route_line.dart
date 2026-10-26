@@ -31,6 +31,63 @@ class NavRouteLine {
 
   double get totalM => _cum.isEmpty ? 0 : _cum.last;
 
+  /// Panjang setiap keping laluan (m). `line-gradient` dirender ke tekstur 256 piksel merentas SELURUH
+  /// panjang garisan, jadi pada laluan 55 km satu piksel ~215 m dan permulaan garisan boleh tersasar
+  /// ratusan meter daripada kereta. Laluan dipecah kepada keping ~1 km (resolusi ~4 m); hanya keping
+  /// semasa dipangkas dengan gradient, keping selepasnya dilukis penuh dan keping sebelumnya disembunyikan
+  /// melalui penapis lapisan (murah, tanpa menghantar semula geometri).
+  static const chunkM = 1000.0;
+
+  /// Bilangan keping.
+  int get chunkCount => chunks.length;
+
+  late final List<NavRouteChunk> chunks = _buildChunks();
+
+  /// Indeks keping yang mengandungi [alongM].
+  int chunkIndexAt(double alongM) {
+    if (chunks.isEmpty) return 0;
+    final i = (alongM.clamp(0.0, totalM) / chunkM).floor();
+    return i.clamp(0, chunks.length - 1);
+  }
+
+  /// Pecahan (0..1) keping semasa yang telah dilalui, dalam ruang `line-progress` keping itu.
+  double chunkFractionAt(double alongM) {
+    if (chunks.isEmpty) return 0;
+    final i = chunkIndexAt(alongM);
+    return chunks[i].fractionAt(alongM.clamp(0.0, totalM) - i * chunkM);
+  }
+
+  List<NavRouteChunk> _buildChunks() {
+    if (points.length < 2 || totalM <= 0) return const [];
+    // Sisa < 50 m dicantumkan dengan keping terakhir (tiada keping kerdil).
+    final count = math.max(1, (totalM / chunkM - 0.05).ceil());
+    return [
+      for (var c = 0; c < count; c++)
+        _chunk(c * chunkM, c == count - 1 ? totalM : (c + 1) * chunkM),
+    ];
+  }
+
+  GeoPoint _pointAt(double d) {
+    final i = _segmentAt(d);
+    final segLen = _cum[i + 1] - _cum[i];
+    final t = segLen <= 0 ? 0.0 : ((d - _cum[i]) / segLen).clamp(0.0, 1.0);
+    final a = points[i], b = points[i + 1];
+    return GeoPoint(a.lat + (b.lat - a.lat) * t, a.lng + (b.lng - a.lng) * t);
+  }
+
+  NavRouteChunk _chunk(double from, double to) {
+    final pts = <GeoPoint>[_pointAt(from)];
+    final rel = <double>[0];
+    for (var i = 0; i < points.length; i++) {
+      if (_cum[i] <= from || _cum[i] >= to) continue;
+      pts.add(points[i]);
+      rel.add(_cum[i] - from);
+    }
+    pts.add(_pointAt(to));
+    rel.add(to - from);
+    return NavRouteChunk(points: pts, cumulativeM: rel);
+  }
+
   /// Pecahan (0..1) panjang garisan yang telah dilalui apabila kenderaan berada [alongM] meter dari
   /// permulaan, dalam ruang yang sama dengan `line-progress`. Jarak Mercator tidak berskala seragam
   /// dengan jarak sebenar (berubah mengikut latitud), jadi pecahan geodesik biasa akan tersasar
@@ -88,6 +145,41 @@ class NavRouteLine {
       py = y;
     }
     return out;
+  }
+}
+
+/// Satu keping laluan navigasi (~[NavRouteLine.chunkM]) dengan jarak geodesik dan Mercator sendiri.
+class NavRouteChunk {
+  NavRouteChunk({required this.points, required List<double> cumulativeM})
+    : _cum = cumulativeM,
+      _merc = NavRouteLine._mercatorCumulative(points);
+
+  final List<GeoPoint> points;
+
+  /// Jarak geodesik (m) dari permulaan keping.
+  final List<double> _cum;
+  final List<double> _merc;
+
+  /// Pecahan (0..1) keping yang telah dilalui pada [localM] meter dari permulaan keping.
+  double fractionAt(double localM) {
+    final total = _merc.last;
+    if (total <= 0) return 0;
+    final d = localM.clamp(0.0, _cum.last);
+    var lo = 0, hi = points.length - 2;
+    while (lo < hi) {
+      final mid = (lo + hi + 1) >> 1;
+      if (_cum[mid] <= d) {
+        lo = mid;
+      } else {
+        hi = mid - 1;
+      }
+    }
+    final segLen = _cum[lo + 1] - _cum[lo];
+    final t = segLen <= 0 ? 0.0 : (d - _cum[lo]) / segLen;
+    return ((_merc[lo] + (_merc[lo + 1] - _merc[lo]) * t) / total).clamp(
+      0.0,
+      1.0,
+    );
   }
 }
 

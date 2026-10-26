@@ -360,6 +360,84 @@ void main() {
       },
     );
 
+    test(
+      'Nominatim: hasil bukan jenis kategori (nama jalan) dibuang, jadi "toilets" tidak memulangkan jalan',
+      () async {
+        Map<String, Object?> item(
+          int id,
+          String key,
+          String type,
+          String name,
+          String lat,
+        ) => {
+          'osm_type': 'node',
+          'osm_id': id,
+          'lat': lat,
+          'lon': '101.4262',
+          'category': key,
+          'type': type,
+          'name': name,
+          'display_name': '$name, Selangor',
+        };
+        final adapter = StubAdapter(
+          (_) => StubAdapter.json([
+            item(1, 'highway', 'residential', 'Jalan Tandas 1', '3.2291'),
+            item(2, 'amenity', 'toilets', 'Tandas Awam', '3.2295'),
+            item(3, 'amenity', 'parking', 'Parkir', '3.2292'),
+          ]),
+        );
+        final dio = Dio()..httpClientAdapter = adapter;
+        final result = await NominatimNearbySearch(
+          dio,
+          'https://nominatim.example/search',
+        ).search(NearbyCategory.toilets, _center, fallbackName: 'Tandas');
+        expect(result.places.map((p) => p.name), ['Tandas Awam']);
+      },
+    );
+
+    test(
+      'Nominatim masjid: frasa Inggeris "mosque" dan "surau" (tidak bergantung bahasa app), hasil digabung',
+      () async {
+        final phrases = <String>[];
+        final adapter = StubAdapter((o) {
+          final q = o.uri.queryParameters['q']!;
+          phrases.add(q);
+          return StubAdapter.json([
+            {
+              'osm_type': 'node',
+              'osm_id': q == 'surau' ? 11 : 10,
+              'lat': q == 'surau' ? '3.2300' : '3.2310',
+              'lon': '101.4262',
+              'category': 'amenity',
+              'type': 'place_of_worship',
+              'name': q == 'surau' ? 'Surau An-Nur' : 'Masjid Besar',
+              'display_name': 'x, Selangor',
+            },
+          ]);
+        });
+        final dio = Dio()..httpClientAdapter = adapter;
+        final result = await NominatimNearbySearch(
+          dio,
+          'https://nominatim.example/search',
+        ).search(NearbyCategory.mosque, _center, fallbackName: 'Masjid');
+        expect(phrases, ['mosque', 'surau']);
+        expect(result.places.map((p) => p.name), [
+          'Surau An-Nur',
+          'Masjid Besar',
+        ]);
+      },
+    );
+
+    test('kategori sama untuk semua bahasa: frasa dan jenis tetap', () {
+      for (final c in NearbyCategory.values) {
+        expect(c.nominatimPhrases, isNotEmpty);
+        expect(c.nominatimTypes, isNotEmpty);
+        for (final phrase in c.nominatimPhrases) {
+          expect(phrase, matches(RegExp(r'^[a-z ]+$')));
+        }
+      }
+    });
+
     test('Overpass kosong: kekal kosong, Nominatim tidak dipanggil', () async {
       final secondary = _AlwaysFails();
       final search = FallbackNearbySearch(_Empty(), secondary);

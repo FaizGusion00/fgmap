@@ -29,6 +29,9 @@ const _vehicleImage = 'fg-vehicle-icon';
 const _altLayer = 'fg-route-alt';
 const _casingLayer = 'fg-route-casing';
 const _mainLayer = 'fg-route-main';
+// Keping laluan navigasi selepas keping semasa: dilukis penuh (tanpa gradient). Lihat NavRouteLine.chunkM.
+const _casingFarLayer = 'fg-route-casing-far';
+const _mainFarLayer = 'fg-route-main-far';
 const _destLayer = 'fg-destination';
 
 const _emptyCollection = <String, dynamic>{
@@ -83,6 +86,7 @@ class _MapLibreViewState extends State<MapLibreView> {
   bool _gradientOk = true;
   NavRouteLine? _sentNav;
   double? _trimAlong;
+  int? _trimChunk;
   bool _trimQueued = false;
 
   /// Titik lokasi asli peta bertukar kelabu ("lapuk") jika tiada kemas kini selama 30 saat. Pengguna
@@ -259,7 +263,9 @@ class _MapLibreViewState extends State<MapLibreView> {
       _destLayer,
       _legLayer,
       _mainLayer,
+      _mainFarLayer,
       _casingLayer,
+      _casingFarLayer,
       _altLayer,
     ]) {
       await _tryRemoveLayer(c, layer);
@@ -286,6 +292,7 @@ class _MapLibreViewState extends State<MapLibreView> {
     _sentNav = null;
     _sentLeg = const [];
     _trimAlong = null;
+    _trimChunk = null;
     _sentDestination = null;
     _sentReports = const [];
 
@@ -412,11 +419,30 @@ class _MapLibreViewState extends State<MapLibreView> {
     MapOverlayColors colors,
   ) async {
     Future<void> add(bool gradient) async {
+      // Urutan: tepi (jauh, dekat) di bawah, kemudian laluan (jauh, dekat). Lapisan "dekat" memuat keping
+      // semasa (atau laluan tanpa keping, cth. pratonton) dan ialah satu-satunya yang dipangkas.
+      await c.addLineLayer(
+        _mainSource,
+        _casingFarLayer,
+        _plainProps(_hex(colors.routeCasing), 10),
+        belowLayerId: _labelAnchor,
+        filter: _farFilter(_noChunk),
+        enableInteraction: false,
+      );
       await c.addLineLayer(
         _mainSource,
         _casingLayer,
         _casingProps(colors, gradient ? 1.0 : null, gradient: gradient),
         belowLayerId: _labelAnchor,
+        filter: _nearFilter(_noChunk),
+        enableInteraction: false,
+      );
+      await c.addLineLayer(
+        _mainSource,
+        _mainFarLayer,
+        _plainProps(_hex(colors.mainRoute), 6),
+        belowLayerId: _labelAnchor,
+        filter: _farFilter(_noChunk),
         enableInteraction: false,
       );
       await c.addLineLayer(
@@ -424,6 +450,7 @@ class _MapLibreViewState extends State<MapLibreView> {
         _mainLayer,
         _mainProps(colors, gradient ? 1.0 : null, gradient: gradient),
         belowLayerId: _labelAnchor,
+        filter: _nearFilter(_noChunk),
         enableInteraction: false,
       );
     }
@@ -434,12 +461,64 @@ class _MapLibreViewState extends State<MapLibreView> {
       if (!_gradientOk) rethrow;
       debugPrint('line-gradient ditolak, guna sandaran: $e');
       _gradientOk = false;
-      await _tryRemoveLayer(c, _mainLayer);
-      await _tryRemoveLayer(c, _casingLayer);
+      for (final id in [
+        _mainLayer,
+        _mainFarLayer,
+        _casingLayer,
+        _casingFarLayer,
+      ]) {
+        await _tryRemoveLayer(c, id);
+      }
       await _tryRemoveSource(c, _mainSource);
       await c.addGeoJsonSource(_mainSource, _emptyCollection);
       await add(false);
     }
+  }
+
+  LineLayerProperties _plainProps(String hex, double width) =>
+      LineLayerProperties(
+        lineColor: hex,
+        lineWidth: width,
+        lineCap: 'round',
+        lineJoin: 'round',
+      );
+
+  /// Indeks keping "tiada navigasi": tiada keping sepadan, jadi lapisan jauh kosong dan lapisan dekat
+  /// hanya memaparkan ciri tanpa indeks (laluan pratonton).
+  static const _noChunk = 1 << 30;
+
+  /// Keping selepas [chunk] (lapisan jauh).
+  static List<Object> _farFilter(int chunk) => [
+    'all',
+    ['has', 'i'],
+    [
+      '>',
+      ['get', 'i'],
+      chunk,
+    ],
+  ];
+
+  /// Keping [chunk] atau ciri tanpa indeks (lapisan dekat, dipangkas dengan gradient).
+  static List<Object> _nearFilter(int chunk) => [
+    'any',
+    [
+      '!',
+      ['has', 'i'],
+    ],
+    [
+      '==',
+      ['get', 'i'],
+      chunk,
+    ],
+  ];
+
+  /// Menukar keping semasa pada keempat-empat lapisan (penapis sahaja; geometri tidak dihantar semula).
+  Future<void> _setChunkFilters(MapLibreMapController c, int chunk) async {
+    await c.setFilter(_casingFarLayer, _farFilter(chunk));
+    await c.setFilter(_mainFarLayer, _farFilter(chunk));
+    await c.setFilter(_casingLayer, _nearFilter(chunk));
+    await c.setFilter(_mainLayer, _nearFilter(chunk));
+    _trimChunk = chunk;
   }
 
   LineLayerProperties _mainProps(
@@ -506,11 +585,14 @@ class _MapLibreViewState extends State<MapLibreView> {
     _trimAlong = along;
     if (_gradientOk) {
       try {
-        await _setTrim(c, nav.fractionAt(along));
+        final chunk = nav.chunkIndexAt(along);
+        if (_trimChunk != chunk) await _setChunkFilters(c, chunk);
+        await _setTrim(c, nav.chunkFractionAt(along));
         return;
       } on Object catch (e) {
         debugPrint('Pemangkasan line-gradient gagal, guna sandaran: $e');
         _gradientOk = false;
+        await _resetChunkFilters(c);
       }
     }
     await c.setGeoJsonSource(
@@ -533,6 +615,16 @@ class _MapLibreViewState extends State<MapLibreView> {
     );
   }
 
+  /// Kembalikan penapis ke keadaan tanpa navigasi (lapisan jauh kosong, lapisan dekat = ciri tanpa indeks).
+  Future<void> _resetChunkFilters(MapLibreMapController c) async {
+    try {
+      await _setChunkFilters(c, _noChunk);
+    } on Object catch (e) {
+      debugPrint('Tetapan semula penapis keping gagal: $e');
+    }
+    _trimChunk = null;
+  }
+
   Future<void> _pushData() async {
     final c = _controller;
     if (c == null || !_overlaysReady) return;
@@ -552,14 +644,24 @@ class _MapLibreViewState extends State<MapLibreView> {
         _sentMain = const [];
         _trimAlong = null;
         final along = cfg.navAlong?.value ?? 0;
+        if (_gradientOk) {
+          // Penapis dahulu, kemudian data: jika tidak, seluruh laluan kelihatan seketika (lapisan jauh).
+          try {
+            await _setChunkFilters(c, nav.chunkIndexAt(along));
+            await _setTrim(c, nav.chunkFractionAt(along));
+          } on Object catch (e) {
+            debugPrint('Penapis keping ditolak, guna sandaran: $e');
+            _gradientOk = false;
+            await _resetChunkFilters(c);
+          }
+        }
         await c.setGeoJsonSource(
           _mainSource,
-          _lines([
-            MapRouteLine(
-              points: _gradientOk ? nav.points : nav.remainingFrom(along),
-              isMain: true,
-            ),
-          ]),
+          _gradientOk
+              ? _chunkCollection(nav)
+              : _lines([
+                  MapRouteLine(points: nav.remainingFrom(along), isMain: true),
+                ]),
         );
       }
       await _applyTrim();
@@ -570,7 +672,10 @@ class _MapLibreViewState extends State<MapLibreView> {
         _sentMain = const [];
         _trimAlong = null;
         await c.setGeoJsonSource(_mainSource, _emptyCollection);
-        if (_gradientOk) await _setTrim(c, null);
+        if (_gradientOk) {
+          await _resetChunkFilters(c);
+          await _setTrim(c, null);
+        }
       }
       if (!_sameRoutes(_sentMain, main)) {
         _sentMain = main;
@@ -808,6 +913,26 @@ Future<void> _tryRemoveSource(MapLibreMapController c, String id) async {
 
 String _hex(Color c) =>
     '#${(c.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
+
+/// Laluan navigasi sebagai satu ciri bagi setiap keping (sifat `i` = indeks keping).
+Map<String, dynamic> _chunkCollection(NavRouteLine nav) {
+  return {
+    'type': 'FeatureCollection',
+    'features': [
+      for (var i = 0; i < nav.chunks.length; i++)
+        {
+          'type': 'Feature',
+          'properties': <String, dynamic>{'i': i},
+          'geometry': {
+            'type': 'LineString',
+            'coordinates': [
+              for (final p in nav.chunks[i].points) [p.lng, p.lat],
+            ],
+          },
+        },
+    ],
+  };
+}
 
 Map<String, dynamic> _lines(Iterable<MapRouteLine> lines) {
   return {

@@ -90,4 +90,62 @@ void main() {
     expect(solid[5], 1);
     expect(math.pi, isNotNull);
   });
+
+  group('keping laluan (ketepatan pangkas pada laluan panjang)', () {
+    test('keping bersambung tanpa jurang dan jumlah panjang sama', () {
+      final n = long.chunks.length;
+      expect(n, (long.totalM / NavRouteLine.chunkM - 0.05).ceil());
+      var sum = 0.0;
+      for (var i = 0; i < n; i++) {
+        final pts = long.chunks[i].points;
+        expect(pts.length, greaterThanOrEqualTo(2));
+        for (var k = 1; k < pts.length; k++) {
+          sum += distanceMeters(pts[k - 1], pts[k]);
+        }
+        if (i > 0) {
+          expect(
+            distanceMeters(long.chunks[i - 1].points.last, pts.first),
+            lessThan(0.01),
+            reason: 'jurang antara keping ${i - 1} dan $i',
+          );
+        }
+      }
+      expect(sum, closeTo(long.totalM, 1));
+    });
+
+    test('indeks keping mengikut jarak, dihad pada hujung', () {
+      expect(long.chunkIndexAt(0), 0);
+      expect(long.chunkIndexAt(999), 0);
+      expect(long.chunkIndexAt(1000), 1);
+      expect(long.chunkIndexAt(2500), 2);
+      expect(long.chunkIndexAt(-5), 0);
+      expect(long.chunkIndexAt(1e12), long.chunks.length - 1);
+    });
+
+    test(
+      'ralat kedudukan pangkas < 5 m walaupun laluan 330 km (satu gradient penuh ~1.3 km/piksel)',
+      () {
+        // Gradient dirender ke 256 piksel merentas panjang garisan yang dihantar.
+        for (final along in [0.0, 1234.5, 55555.0, 160000.0, long.totalM - 3]) {
+          final i = long.chunkIndexAt(along);
+          final chunk = long.chunks[i];
+          final f = long.chunkFractionAt(along);
+          final chunkLen = chunk.points.length < 2
+              ? 0.0
+              : [
+                  for (var k = 1; k < chunk.points.length; k++)
+                    distanceMeters(chunk.points[k - 1], chunk.points[k]),
+                ].reduce((a, b) => a + b);
+          final texelM = chunkLen / 256;
+          expect(texelM, lessThan(5), reason: 'resolusi gradient');
+          expect(f * chunkLen, closeTo(along - i * NavRouteLine.chunkM, 1));
+        }
+      },
+    );
+
+    test('laluan pendek (< 1 km): satu keping', () {
+      expect(short.chunks, hasLength(1));
+      expect(short.chunkFractionAt(500), closeTo(0.5, 0.001));
+    });
+  });
 }

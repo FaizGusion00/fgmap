@@ -230,6 +230,30 @@
   "navMute": "Senyapkan suara",
   "navUnmute": "Hidupkan suara",
   "navOverview": "Lihat keseluruhan laluan",
+  "navChangeRoute": "Tukar laluan",
+  "navRoutesTitle": "Pilih laluan dari sini",
+  "navRoutesCurrent": "Laluan semasa",
+  "navRoutesLoading": "Mencari laluan dari lokasi anda…",
+  "navRoutesError": "Tidak dapat mencari laluan lain sekarang.",
+  "navRoutesNone": "Tiada laluan lain dari sini.",
+  "navRoutesSame": "Masa sama",
+  "navRoutesFaster": "{time} lebih cepat",
+  "@navRoutesFaster": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "navRoutesSlower": "{time} lebih lambat",
+  "@navRoutesSlower": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "navRoutesSwitched": "Laluan ditukar",
   "navCameraAuto": "Kamera auto 3D/2D",
   "navCameraFlat": "Kamera 2D",
   "navCameraTilted": "Kamera 3D",

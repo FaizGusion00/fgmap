@@ -10,6 +10,7 @@ import 'package:fgmap/features/navigation/domain/announcement_planner.dart';
 import 'package:fgmap/features/navigation/domain/instruction_text.dart';
 import 'package:fgmap/features/navigation/domain/nav_route.dart';
 import 'package:fgmap/features/navigation/domain/navigation_session.dart';
+import 'package:fgmap/features/navigation/presentation/nav_alternatives.dart';
 import 'package:fgmap/features/navigation/presentation/navigation_controller.dart';
 import 'package:fgmap/features/reports/domain/report.dart';
 import 'package:fgmap/features/reports/presentation/report_alerts_controller.dart';
@@ -92,6 +93,7 @@ void main() {
         navClockProvider.overrideWithValue(clock.call),
         reportsClockProvider.overrideWithValue(clock.call),
         routePlannerProvider.overrideWithValue(planner),
+        routeOptionsPlannerProvider.overrideWithValue(planner),
         locationServiceProvider.overrideWithValue(FakeLocationService()),
       ],
     );
@@ -637,5 +639,155 @@ void main() {
         expect(last!.status, NavStatus.arrived);
       },
     );
+  });
+
+  group('tukar laluan semasa perjalanan', () {
+    test(
+      'planAlternatives: dari fix semasa, tanpa pilihan elak, alternatif diminta semula',
+      () async {
+        await setUpContainer();
+        await begin();
+        final base = DateTime.utc(2026, 1, 1, 12);
+        final fix = LocationFix(
+          point: navRoute.pointAt(400),
+          headingDegrees: 90,
+          accuracyMeters: 5,
+          timestamp: base,
+        );
+        await source.emit(fix);
+        planner.queries.clear();
+
+        final options = await controller().planAlternatives();
+
+        expect(options, isNotEmpty);
+        final q = planner.queries.single;
+        expect(q.origin, fix.point);
+        expect(q.headingDegrees, 90);
+        expect(q.destination, destination);
+        expect(q.vehicle, RouteVehicle.motorcycle);
+        expect(q.avoidTolls, isFalse);
+        expect(q.avoidHighways, isFalse);
+        expect(q.alternates, 2);
+        // Navigasi tidak terjejas semasa pilihan dicari.
+        expect(state().routeVersion, 1);
+        expect(state().phase, NavPhase.active);
+      },
+    );
+
+    test('planAlternatives tanpa fix atau tanpa navigasi: gagal', () async {
+      await setUpContainer();
+      container.listen(navigationControllerProvider, (_, _) {});
+      await expectLater(
+        controller().planAlternatives(),
+        throwsA(isA<RoutingFailure>()),
+      );
+      await begin();
+      await expectLater(
+        controller().planAlternatives(),
+        throwsA(isA<RoutingFailure>()),
+      );
+    });
+
+    test(
+      'switchRoute: sesi baharu, versi naik, label menentukan pilihan elak untuk re-route',
+      () async {
+        await setUpContainer();
+        await begin();
+        await source.emit(
+          LocationFix(
+            point: navRoute.pointAt(300),
+            headingDegrees: 90,
+            accuracyMeters: 5,
+            timestamp: DateTime.utc(2026, 1, 1, 12),
+          ),
+        );
+        final other = lShapedRoute(legM: 3000).withLabel(RouteLabel.noTolls);
+
+        expect(controller().switchRoute(other), isTrue);
+
+        expect(state().phase, NavPhase.active);
+        expect(state().routeVersion, 2);
+        expect(state().route!.totalM, closeTo(6000, 30));
+        expect(state().query!.avoidTolls, isTrue);
+        expect(state().query!.avoidHighways, isFalse);
+        expect(state().query!.vehicle, RouteVehicle.motorcycle);
+        expect(state().rerouting, isFalse);
+        expect(state().progress, isNotNull, reason: 'fix terkini disuap');
+
+        final fastest = lShapedRoute(legM: 2500).withLabel(RouteLabel.fastest);
+        expect(controller().switchRoute(fastest), isTrue);
+        expect(state().routeVersion, 3);
+        expect(state().query!.avoidTolls, isFalse);
+      },
+    );
+
+    test('switchRoute tanpa navigasi aktif: false', () async {
+      await setUpContainer();
+      container.listen(navigationControllerProvider, (_, _) {});
+      expect(controller().switchRoute(routeOption), isFalse);
+    });
+
+    test(
+      'NavAlternativesController: menanda pilihan yang sama dengan laluan semasa dan hanya melukis yang lain',
+      () async {
+        await setUpContainer();
+        await begin();
+        await source.emit(
+          LocationFix(
+            point: navRoute.pointAt(300),
+            headingDegrees: 90,
+            accuracyMeters: 5,
+            timestamp: DateTime.utc(2026, 1, 1, 12),
+          ),
+        );
+        final far = RouteOption(
+          distanceM: 5000,
+          durationS: 400,
+          hasTolls: false,
+          points: [
+            for (var d = 0.0; d <= 5000; d += 100)
+              destinationPoint(const GeoPoint(3.2, 101.3), 90, d),
+          ],
+          label: RouteLabel.alternative,
+        );
+        planner.handler = (_) async => [far, routeOption];
+        container.listen(navAlternativesProvider, (_, _) {});
+
+        await container.read(navAlternativesProvider.notifier).load();
+
+        final alt = container.read(navAlternativesProvider);
+        expect(alt.status, NavAlternativesStatus.ready);
+        expect(alt.options, hasLength(2));
+        expect(alt.currentIndex, 1);
+        expect(alt.otherRoutes, [far.points]);
+
+        container.read(navAlternativesProvider.notifier).clear();
+        expect(
+          container.read(navAlternativesProvider).status,
+          NavAlternativesStatus.idle,
+        );
+      },
+    );
+
+    test('NavAlternativesController: kegagalan rangkaian -> failed', () async {
+      await setUpContainer();
+      await begin();
+      await source.emit(
+        LocationFix(
+          point: navRoute.pointAt(300),
+          headingDegrees: 90,
+          accuracyMeters: 5,
+          timestamp: DateTime.utc(2026, 1, 1, 12),
+        ),
+      );
+      planner.handler = (_) async =>
+          throw const RoutingFailure(RoutingFailureKind.network);
+      container.listen(navAlternativesProvider, (_, _) {});
+      await container.read(navAlternativesProvider.notifier).load();
+      expect(
+        container.read(navAlternativesProvider).status,
+        NavAlternativesStatus.failed,
+      );
+    });
   });
 }

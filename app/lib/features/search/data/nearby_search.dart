@@ -148,31 +148,43 @@ class NominatimNearbySearch implements NearbySearch {
     required String fallbackName,
     CancelToken? cancel,
   }) async {
-    try {
-      final response = await _dio.get<Object>(
-        _url,
-        cancelToken: cancel,
-        queryParameters: {
-          'q': category.nominatimPhrase,
-          'format': 'jsonv2',
-          'addressdetails': 1,
-          'limit': 20,
-          'accept-language': 'en',
-          'bounded': 1,
-          'viewbox':
-              '${center.lng - _halfDegrees},${center.lat + _halfDegrees},'
-              '${center.lng + _halfDegrees},${center.lat - _halfDegrees}',
-        },
-        options: Options(
-          responseType: ResponseType.bytes,
-          receiveTimeout: const Duration(seconds: 8),
-        ),
-      );
-      final places = parseNominatimResponse(responseText(response.data));
-      return NearbyResult(sortNearby(places, center));
-    } on DioException catch (e) {
-      throw geocodeFailureOf(e);
+    final found = <Place>[];
+    GeocodeFailure? failure;
+    for (final phrase in category.nominatimPhrases) {
+      try {
+        final response = await _dio.get<Object>(
+          _url,
+          cancelToken: cancel,
+          queryParameters: {
+            'q': phrase,
+            'format': 'jsonv2',
+            'addressdetails': 1,
+            'limit': 40,
+            'accept-language': 'en',
+            'bounded': 1,
+            'viewbox':
+                '${center.lng - _halfDegrees},${center.lat + _halfDegrees},'
+                '${center.lng + _halfDegrees},${center.lat - _halfDegrees}',
+          },
+          options: Options(
+            responseType: ResponseType.bytes,
+            receiveTimeout: const Duration(seconds: 8),
+          ),
+        );
+        found.addAll(
+          parseNominatimResponse(
+            responseText(response.data),
+          ).where((p) => category.acceptsNominatim(p.osmKey, p.category)),
+        );
+      } on DioException catch (e) {
+        if (e.type == DioExceptionType.cancel) rethrow;
+        failure = geocodeFailureOf(e);
+        break;
+      }
     }
+    // Satu frasa gagal tetapi yang lain berjaya: pulangkan apa yang ada. Semua gagal: lapor gagal.
+    if (found.isEmpty && failure != null) throw failure;
+    return NearbyResult(sortNearby(found, center));
   }
 }
 

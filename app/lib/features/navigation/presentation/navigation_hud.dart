@@ -557,6 +557,7 @@ class NavSideButtons extends StatelessWidget {
     required this.onOverview,
     required this.onSettings,
     this.onReport,
+    this.onChangeRoute,
   });
 
   final bool voiceEnabled;
@@ -568,6 +569,9 @@ class NavSideButtons extends StatelessWidget {
 
   /// Laporkan sesuatu di jalan (penumpang atau berhenti); tersembunyi jika null.
   final VoidCallback? onReport;
+
+  /// Pilih laluan lain dari kedudukan semasa; tersembunyi jika null.
+  final VoidCallback? onChangeRoute;
 
   @override
   Widget build(BuildContext context) {
@@ -589,6 +593,14 @@ class NavSideButtons extends StatelessWidget {
           onPressed: onOverview,
         ),
         const SizedBox(height: 6),
+        if (onChangeRoute != null) ...[
+          _GlassButton(
+            icon: Icons.alt_route_rounded,
+            tooltip: l10n.navChangeRoute,
+            onPressed: onChangeRoute!,
+          ),
+          const SizedBox(height: 6),
+        ],
         _GlassButton(
           icon: switch (cameraMode) {
             NavCameraMode.auto => Icons.auto_mode_rounded,
