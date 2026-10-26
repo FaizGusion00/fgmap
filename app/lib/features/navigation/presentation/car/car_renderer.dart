@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart' show immutable;
+import 'package:flutter/material.dart' show Brightness;
 import 'package:flutter/painting.dart';
 
 import 'car_mesh.dart';
@@ -21,6 +22,9 @@ class CarPalette {
     this.headlight = const Color(0xFFFFF4C9),
     this.taillight = const Color(0xFFFF4D5E),
     this.halo,
+    this.haloAlpha = 0.22,
+    this.rim,
+    this.shadow = const Color(0x59000000),
   });
 
   factory CarPalette.fromPrimary(Color primary) {
@@ -37,6 +41,28 @@ class CarPalette {
     );
   }
 
+  /// Palet untuk peta [brightness]. Pada peta gelap kaca, tayar dan penunggang yang gelap hilang dalam
+  /// latar, jadi warna dicerahkan, halo diperkuat, dan satu kontur terang dilukis di atas jalan di
+  /// bawah kenderaan supaya siluetnya sentiasa jelas.
+  factory CarPalette.forBrightness(Color primary, Brightness brightness) {
+    if (brightness == Brightness.light) return CarPalette.fromPrimary(primary);
+    final hsl = HSLColor.fromColor(primary);
+    return CarPalette(
+      body: hsl.withLightness((hsl.lightness + 0.07).clamp(0.0, 1.0)).toColor(),
+      bodyTop: hsl
+          .withLightness((hsl.lightness + 0.16).clamp(0.0, 1.0))
+          .toColor(),
+      glass: const Color(0xFF3B5575),
+      tire: const Color(0xFF59627A),
+      rider: const Color(0xFF8A9AB5),
+      metal: const Color(0xFF93A0B4),
+      halo: primary,
+      haloAlpha: 0.42,
+      rim: const Color(0xFFEAF1FF),
+      shadow: const Color(0x66000000),
+    );
+  }
+
   final Color body;
   final Color bodyTop;
   final Color glass;
@@ -48,8 +74,14 @@ class CarPalette {
 
   /// Cahaya lembut di atas jalan di bawah kereta; null = tiada.
   final Color? halo;
+  final double haloAlpha;
 
-  CarPalette withoutHalo() => CarPalette(
+  /// Kontur terang di atas jalan di bawah kenderaan (peta gelap); null = tiada.
+  final Color? rim;
+  final Color shadow;
+
+  /// Tanpa halo/bayang (sprite lapisan peta menambahnya sendiri); kontur terang boleh dikekalkan.
+  CarPalette withoutHalo({bool withRim = false}) => CarPalette(
     body: body,
     bodyTop: bodyTop,
     glass: glass,
@@ -58,6 +90,8 @@ class CarPalette {
     metal: metal,
     headlight: headlight,
     taillight: taillight,
+    shadow: shadow,
+    rim: withRim ? rim : null,
   );
 
   Color of(CarMaterial material) => switch (material) {
@@ -82,7 +116,10 @@ class CarPalette {
       other.metal == metal &&
       other.headlight == headlight &&
       other.taillight == taillight &&
-      other.halo == halo;
+      other.halo == halo &&
+      other.haloAlpha == haloAlpha &&
+      other.rim == rim &&
+      other.shadow == shadow;
 
   @override
   int get hashCode => Object.hashAll([
@@ -95,6 +132,9 @@ class CarPalette {
     headlight,
     taillight,
     halo,
+    haloAlpha,
+    rim,
+    shadow,
   ]);
 }
 
@@ -160,8 +200,12 @@ class CarRenderer {
     }
 
     final halo = palette.halo;
-    if (halo != null) _paintHalo(canvas, anchor, lengthPx, ct, halo);
-    if (shadow) _paintShadow(canvas, anchor, ppm, cy, sy, ct, st);
+    if (halo != null) {
+      _paintHalo(canvas, anchor, lengthPx, ct, halo, palette.haloAlpha);
+    }
+    if (shadow) _paintShadow(canvas, anchor, ppm, cy, sy, ct, palette.shadow);
+    final rim = palette.rim;
+    if (rim != null) _paintRim(canvas, anchor, ppm, cy, sy, ct, rim);
 
     // Muka yang menghadap pemandang, disusun jauh -> dekat dalam setiap kumpulan.
     final faces = mesh.faces;
@@ -260,6 +304,7 @@ class CarRenderer {
     double lengthPx,
     double ct,
     Color color,
+    double alpha,
   ) {
     // Bulatan yang dipepatkan menjadi elips mengikut condongan: cahaya terbaring di atas jalan.
     final r = lengthPx * 0.78;
@@ -274,7 +319,7 @@ class CarRenderer {
           ..shader = ui.Gradient.radial(
             Offset.zero,
             r,
-            [color.withValues(alpha: 0.22), color.withValues(alpha: 0)],
+            [color.withValues(alpha: alpha), color.withValues(alpha: 0)],
             const [0.25, 1],
           ),
       )
@@ -288,7 +333,7 @@ class CarRenderer {
     double cy,
     double sy,
     double ct,
-    double st,
+    Color color,
   ) {
     final fp = mesh.footprint;
     final path = Path();
@@ -310,12 +355,57 @@ class CarRenderer {
     canvas.drawPath(
       path,
       Paint()
-        ..color = const Color(0x59000000)
+        ..color = color
         ..maskFilter = MaskFilter.blur(
           BlurStyle.normal,
           math.max(1.5, ppm * 0.22),
         ),
     );
+  }
+
+  /// Kontur terang di atas jalan mengikut tapak kenderaan: cahaya lembut dan garis tajam di atasnya.
+  void _paintRim(
+    Canvas canvas,
+    Offset anchor,
+    double ppm,
+    double cy,
+    double sy,
+    double ct,
+    Color color,
+  ) {
+    final fp = mesh.footprint;
+    final path = Path();
+    for (var i = 0; i < fp.length ~/ 2; i++) {
+      final x = fp[i * 2] * 1.06, y = fp[i * 2 + 1] * 1.04;
+      final px = anchor.dx + (x * cy + y * sy) * ppm;
+      final py = anchor.dy - (-x * sy + y * cy) * ct * ppm;
+      if (i == 0) {
+        path.moveTo(px, py);
+      } else {
+        path.lineTo(px, py);
+      }
+    }
+    path.close();
+    canvas
+      ..drawPath(
+        path,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = math.max(3, ppm * 0.22)
+          ..color = color.withValues(alpha: 0.35)
+          ..maskFilter = MaskFilter.blur(
+            BlurStyle.normal,
+            math.max(2, ppm * 0.12),
+          ),
+      )
+      ..drawPath(
+        path,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = math.max(1.4, ppm * 0.06)
+          ..strokeJoin = StrokeJoin.round
+          ..color = color.withValues(alpha: 0.9),
+      );
   }
 
   void _paintBrakeGlow(

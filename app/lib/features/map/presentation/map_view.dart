@@ -71,8 +71,11 @@ class MapOverlayColors {
     required this.alternativeRoute,
     required this.destination,
     this.vehicle = const Color(0xFF2F6BFF),
+    this.dark = false,
   });
 
+  /// Peta gelap: sprite kenderaan dilukis dengan palet gelap (kontur terang).
+  final bool dark;
   final Color vehicle;
   final Color mainRoute;
   final Color routeCasing;
@@ -86,6 +89,7 @@ class MapOverlayColors {
       other.routeCasing == routeCasing &&
       other.alternativeRoute == alternativeRoute &&
       other.destination == destination &&
+      other.dark == dark &&
       other.vehicle == vehicle;
 
   @override
@@ -95,6 +99,7 @@ class MapOverlayColors {
     alternativeRoute,
     destination,
     vehicle,
+    dark,
   );
 }
 

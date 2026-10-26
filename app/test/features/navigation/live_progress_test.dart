@@ -152,7 +152,7 @@ void main() {
         clock.advance(const Duration(milliseconds: 100));
         final update = session.refreshLive();
         if (update != null) {
-          said.addAll(update.announcements.map((a) => '${a.kind.name}'));
+          said.addAll(update.announcements.map((a) => a.kind.name));
         }
       }
       // "now" untuk belok kanan diucap tepat sekali.

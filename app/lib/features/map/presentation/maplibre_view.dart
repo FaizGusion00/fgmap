@@ -239,6 +239,10 @@ class _MapLibreViewState extends State<MapLibreView> {
     final c = _controller;
     if (c == null) return;
     final colors = widget.config.colors;
+    if (MapFramePump.diagnostics) {
+      // Untuk menala gaya peta (cth. kontras mod gelap) tanpa meneka id lapisan.
+      debugPrint('FGDIAG lapisan gaya: ${(await c.getLayerIds()).join(', ')}');
+    }
 
     // Buang dahulu jika wujud (onStyleLoaded boleh dipanggil lebih daripada sekali bagi gaya yang sama).
     for (final layer in [
@@ -319,6 +323,7 @@ class _MapLibreViewState extends State<MapLibreView> {
       await renderVehicleIcon(
         fill: colors.vehicle,
         kind: widget.config.vehicleKind,
+        dark: colors.dark,
       ),
     );
     await c.addGeoJsonSource(_vehicleSource, _vehiclePoint(_pump.vehicle));

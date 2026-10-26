@@ -402,7 +402,7 @@ void main() {
         final px = groundM / (metersPerPixel(pose.zoom, point.lat) * mppError);
         final tilt = pose.tilt * math.pi / 180;
         const altitude = 1.5;
-        final a = altitude * height;
+        const a = altitude * height;
         final below = a * px * math.cos(tilt) / (a - px * math.sin(tilt));
         return Offset(width / 2, height / 2 + below);
       };

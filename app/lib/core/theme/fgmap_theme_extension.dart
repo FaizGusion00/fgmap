@@ -39,7 +39,10 @@ class FgmapColors extends ThemeExtension<FgmapColors> {
       trafficHeavy: p.trafficHeavy,
       trafficSevere: p.trafficSevere,
       glassSurface: p.surface.withValues(alpha: 0.82),
-      glassBorder: p.outline,
+      // Garis tepi kad/butang pada peta gelap mesti kelihatan: `outline` gelap hampir sama dengan latar.
+      glassBorder: p.brightness == Brightness.dark
+          ? Color.lerp(p.outline, const Color(0xFFFFFFFF), 0.2)!
+          : p.outline,
     );
   }
 

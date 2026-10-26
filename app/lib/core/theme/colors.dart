@@ -90,8 +90,10 @@ class FgPalette {
     textPrimary: Color(0xFFE6EAF2),
     textSecondary: Color(0xFFA3AEC2),
     outline: Color(0xFF263149),
-    routeCasing: Color(0xFF0B1220),
-    routeAlternative: Color(0xFF64748B),
+    // Tepi laluan TERANG pada peta gelap (sama seperti tepi putih pada peta cerah): tepi gelap hilang
+    // dalam jalan gelap dan garisan biru kehilangan sempadannya.
+    routeCasing: Color(0xFFCFE0FF),
+    routeAlternative: Color(0xFF7C8BA3),
     trafficFree: Color(0xFF4ADE80),
     trafficModerate: Color(0xFFFBBF24),
     trafficHeavy: Color(0xFFF87171),
@@ -104,7 +106,6 @@ class FgPalette {
     background: const Color(0xFF000000),
     surface: const Color(0xFF0A0F1C),
     outline: const Color(0xFF1C2438),
-    routeCasing: const Color(0xFF000000),
   );
 
   FgPalette copyWith({

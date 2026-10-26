@@ -742,6 +742,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
         alternativeRoute: fg.routeAlternative,
         destination: fg.destination,
         vehicle: theme.colorScheme.primary,
+        dark: mapIsDark,
       ),
       onLongPress: navigating ? (_) {} : _onLongPress,
       onTap: navigating ? null : _onMapTap,
@@ -759,7 +760,10 @@ class _MapScreenState extends ConsumerState<MapScreen>
             Positioned.fill(
               child: VehicleOverlay(
                 placement: _driver!.car,
-                palette: CarPalette.fromPrimary(theme.colorScheme.primary),
+                palette: CarPalette.forBrightness(
+                  theme.colorScheme.primary,
+                  mapIsDark ? Brightness.dark : Brightness.light,
+                ),
                 kind: vehicleKind,
               ),
             ),

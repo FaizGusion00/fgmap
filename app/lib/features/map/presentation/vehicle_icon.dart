@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:flutter/material.dart' show Brightness;
 import 'package:flutter/painting.dart';
 
 import '../../navigation/presentation/car/car_mesh.dart';
@@ -19,6 +20,7 @@ const vehicleIconPixels = 192;
 Future<Uint8List> renderVehicleIcon({
   required Color fill,
   VehicleKind kind = VehicleKind.car,
+  bool dark = false,
 }) async {
   const s = vehicleIconPixels * 1.0;
   final recorder = ui.PictureRecorder();
@@ -29,7 +31,10 @@ Future<Uint8List> renderVehicleIcon({
     lengthPx: s * 0.84 * kind.screenScale,
     yawDeg: 0,
     tiltDeg: 0,
-    palette: CarPalette.fromPrimary(fill).withoutHalo(),
+    palette: CarPalette.forBrightness(
+      fill,
+      dark ? Brightness.dark : Brightness.light,
+    ).withoutHalo(withRim: dark),
     shadow: false,
   );
   final image = await recorder.endRecording().toImage(
