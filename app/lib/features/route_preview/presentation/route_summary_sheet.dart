@@ -7,6 +7,7 @@ import '../../../core/widgets/press_scale.dart';
 import '../../../core/widgets/skeleton.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../domain/route_option.dart';
+import '../domain/route_scoring.dart';
 import '../domain/routing_failure.dart';
 import 'route_format.dart';
 import 'route_preview_controller.dart';
@@ -25,6 +26,7 @@ class RouteSummarySheet extends StatelessWidget {
     this.onStart,
     this.onSimulate,
     this.onSave,
+    this.onShowMore,
     this.now,
   });
 
@@ -43,6 +45,9 @@ class RouteSummarySheet extends StatelessWidget {
 
   /// Simpan destinasi (Rumah/Kerja/Kegemaran); butang bintang tersembunyi jika null.
   final VoidCallback? onSave;
+
+  /// Papar semua pilihan laluan (sehingga 10) apabila ada yang tersembunyi.
+  final VoidCallback? onShowMore;
 
   /// Masa semasa untuk mengira waktu tiba; lalai `DateTime.now()`. Ujian golden menetapkannya.
   final DateTime? now;
@@ -97,6 +102,7 @@ class RouteSummarySheet extends StatelessWidget {
                       onStart: onStart,
                       onSimulate: onSimulate,
                       onSave: onSave,
+                      onShowMore: onShowMore,
                       now: now ?? DateTime.now(),
                     ),
                     RouteFailed() => _FailedBody(
@@ -185,6 +191,7 @@ class _ReadyBody extends StatelessWidget {
     this.onStart,
     this.onSimulate,
     this.onSave,
+    this.onShowMore,
   });
 
   final RouteReady state;
@@ -194,6 +201,7 @@ class _ReadyBody extends StatelessWidget {
   final VoidCallback? onStart;
   final VoidCallback? onSimulate;
   final VoidCallback? onSave;
+  final VoidCallback? onShowMore;
   final DateTime now;
 
   @override
@@ -310,11 +318,17 @@ class _ReadyBody extends StatelessWidget {
         const SizedBox(height: 14),
         if (state.options.length > 1) ...[
           _RouteOptionCards(
-            options: state.options,
+            options: state.visibleOptions,
             fastestS: fastestS,
             selectedIndex: state.selectedIndex,
             onSelect: onSelect,
+            hiddenCount: state.hiddenCount,
+            onShowMore: onShowMore,
           ),
+          const SizedBox(height: 12),
+        ],
+        if (state.loadingMore) ...[
+          const _SearchingMore(),
           const SizedBox(height: 12),
         ],
         Row(
@@ -421,12 +435,18 @@ class _RouteOptionCards extends StatelessWidget {
     required this.fastestS,
     required this.selectedIndex,
     required this.onSelect,
+    this.hiddenCount = 0,
+    this.onShowMore,
   });
 
   final List<RouteOption> options;
   final int fastestS;
   final int selectedIndex;
   final ValueChanged<int> onSelect;
+
+  /// Pilihan di sebalik "Lagi"; kad "Lagi" dipaparkan di hujung jika > 0.
+  final int hiddenCount;
+  final VoidCallback? onShowMore;
 
   static const _gap = 8.0;
   static const _minCardWidth = 106.0;
@@ -436,9 +456,10 @@ class _RouteOptionCards extends StatelessWidget {
     final textScale = MediaQuery.textScalerOf(context).scale(1);
     return LayoutBuilder(
       builder: (context, constraints) {
+        final count = options.length + (hiddenCount > 0 ? 1 : 0);
         final needed =
-            options.length * _minCardWidth * textScale.clamp(1.0, 1.5) +
-            (options.length - 1) * _gap;
+            count * _minCardWidth * textScale.clamp(1.0, 1.5) +
+            (count - 1) * _gap;
         final fits = needed <= constraints.maxWidth;
 
         Widget card(int i) => _RouteOptionCard(
@@ -451,6 +472,12 @@ class _RouteOptionCards extends StatelessWidget {
 
         // Tinggi mengikut kandungan (bukan nilai tetap) supaya saiz teks sistem yang besar tidak
         // memotong kad; IntrinsicHeight menyamakan tinggi semua kad.
+        Widget more() => _MoreCard(
+          key: const ValueKey('route-more'),
+          count: hiddenCount,
+          onTap: onShowMore,
+        );
+
         if (fits) {
           return IntrinsicHeight(
             child: Row(
@@ -459,6 +486,10 @@ class _RouteOptionCards extends StatelessWidget {
                 for (var i = 0; i < options.length; i++) ...[
                   if (i > 0) const SizedBox(width: _gap),
                   Expanded(child: card(i)),
+                ],
+                if (hiddenCount > 0) ...[
+                  const SizedBox(width: _gap),
+                  Expanded(child: more()),
                 ],
               ],
             ),
@@ -475,6 +506,7 @@ class _RouteOptionCards extends StatelessWidget {
                   if (i > 0) const SizedBox(width: _gap),
                   card(i),
                 ],
+                if (hiddenCount > 0) ...[const SizedBox(width: _gap), more()],
               ],
             ),
           ),
@@ -486,6 +518,8 @@ class _RouteOptionCards extends StatelessWidget {
 
 String routeLabelText(AppLocalizations l10n, RouteLabel label) {
   return switch (label) {
+    RouteLabel.recommended => l10n.routeRecommended,
+    RouteLabel.simplest => l10n.routeSimplest,
     RouteLabel.fastest => l10n.routeFastest,
     RouteLabel.shortest => l10n.routeShortest,
     RouteLabel.noTolls => l10n.routeNoTolls,
@@ -496,6 +530,8 @@ String routeLabelText(AppLocalizations l10n, RouteLabel label) {
 
 IconData _routeLabelIcon(RouteLabel label) {
   return switch (label) {
+    RouteLabel.recommended => Icons.verified_rounded,
+    RouteLabel.simplest => Icons.looks_one_rounded,
     RouteLabel.fastest => Icons.bolt_rounded,
     RouteLabel.shortest => Icons.straighten_rounded,
     RouteLabel.noTolls => Icons.money_off_rounded,
@@ -536,11 +572,22 @@ class _RouteOptionCard extends StatelessWidget {
         ? '+${formatDuration(l10n, slowerByS)}'
         : null;
     final tollText = option.hasTolls ? l10n.routeHasTolls : l10n.routeNoTolls;
+    final turns = turnCountOf(option);
+    final turnsText = l10n.routeTurns(turns);
 
     return Semantics(
       button: true,
       selected: selected,
-      label: [label, duration, ?slower, distance, tollText].join(', '),
+      label: [
+        label,
+        duration,
+        ?slower,
+        distance,
+        turnsText,
+        tollText,
+        if (option.hasHighway) l10n.routeHasHighway,
+        if (option.hasFerry) l10n.routeHasFerry,
+      ].join(', '),
       excludeSemantics: true,
       child: Material(
         color: selected
@@ -607,21 +654,132 @@ class _RouteOptionCard extends StatelessWidget {
                         Text(slower, style: theme.textTheme.labelSmall),
                     ],
                   ),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(distance, style: theme.textTheme.bodySmall),
-                      if (option.hasTolls) ...[
-                        const SizedBox(width: 6),
-                        Icon(Icons.toll_rounded, size: 14, color: fg.warning),
-                      ],
-                    ],
+                  Text(
+                    '$distance · $turnsText',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall,
+                  ),
+                  if (option.hasTolls || option.hasHighway || option.hasFerry)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (option.hasTolls)
+                            Icon(
+                              Icons.toll_rounded,
+                              size: 14,
+                              color: fg.warning,
+                            ),
+                          if (option.hasHighway) ...[
+                            const SizedBox(width: 6),
+                            Icon(
+                              Icons.add_road_rounded,
+                              size: 14,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ],
+                          if (option.hasFerry) ...[
+                            const SizedBox(width: 6),
+                            Icon(
+                              Icons.directions_boat_rounded,
+                              size: 14,
+                              color: fg.warning,
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Kad "Lagi N": memaparkan pilihan laluan yang tersembunyi.
+class _MoreCard extends StatelessWidget {
+  const _MoreCard({super.key, required this.count, required this.onTap});
+
+  final int count;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    return Semantics(
+      button: true,
+      label: l10n.routeMore(count),
+      excludeSemantics: true,
+      child: Material(
+        color: theme.colorScheme.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: theme.colorScheme.outline),
+        ),
+        child: InkWell(
+          customBorder: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          onTap: onTap,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 84, minHeight: 64),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.expand_more_rounded,
+                    color: theme.colorScheme.primary,
+                  ),
+                  Text(
+                    l10n.routeMore(count),
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: theme.colorScheme.primary,
+                    ),
                   ),
                 ],
               ),
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Penunjuk kecil "Mencari laluan lain…" semasa alternatif masih tiba.
+class _SearchingMore extends StatelessWidget {
+  const _SearchingMore();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    return Semantics(
+      liveRegion: true,
+      child: Row(
+        key: const ValueKey('route-searching-more'),
+        children: [
+          const SizedBox(
+            width: 14,
+            height: 14,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            l10n.routeSearchingMore,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
       ),
     );
   }

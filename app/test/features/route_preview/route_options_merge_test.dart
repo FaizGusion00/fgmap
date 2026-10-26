@@ -1,6 +1,8 @@
 import 'package:fgmap/core/utils/geo.dart';
+import 'package:fgmap/features/route_preview/domain/route_candidates.dart';
 import 'package:fgmap/features/route_preview/domain/route_option.dart';
 import 'package:fgmap/features/route_preview/domain/route_options_merge.dart';
+import 'package:fgmap/features/route_preview/domain/route_scoring.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/fakes.dart';
@@ -17,6 +19,34 @@ List<GeoPoint> _path(GeoPoint a, GeoPoint b, {double bulge = 0, int n = 60}) {
 }
 
 double _hump(double t) => 4 * t * (1 - t);
+
+/// Salinan [route] dengan manuver sintetik: [turns] belokan kanan dan [uTurns] pusingan-U.
+RouteOption _withManeuvers(RouteOption route, {int turns = 0, int uTurns = 0}) {
+  return RouteOption(
+    distanceM: route.distanceM,
+    durationS: route.durationS,
+    hasTolls: route.hasTolls,
+    points: route.points,
+    maneuvers: [
+      for (var i = 0; i < turns; i++)
+        const Maneuver(
+          type: 10,
+          streetNames: [],
+          lengthM: 1000,
+          timeS: 60,
+          beginShapeIndex: 0,
+        ),
+      for (var i = 0; i < uTurns; i++)
+        const Maneuver(
+          type: 12,
+          streetNames: [],
+          lengthM: 1000,
+          timeS: 60,
+          beginShapeIndex: 0,
+        ),
+    ],
+  );
+}
 
 RouteOption _route({
   required int durationS,
@@ -48,11 +78,11 @@ void main() {
         );
 
         expect(merged, hasLength(1));
-        expect(merged.single.label, RouteLabel.fastest);
+        expect(merged.single.label, RouteLabel.recommended);
       },
     );
 
-    test('laluan tanpa tol muncul serta-merta bila yang terpantas ada tol', () {
+    test('laluan tanpa tol muncul serta-merta bila yang utama ada tol', () {
       final merged = mergeRouteCandidates(
         standard: [
           _route(
@@ -66,7 +96,7 @@ void main() {
       );
 
       expect(merged.map((r) => r.label), [
-        RouteLabel.fastest,
+        RouteLabel.recommended,
         RouteLabel.noTolls,
       ]);
       expect(merged.last.hasTolls, isFalse);
@@ -91,7 +121,7 @@ void main() {
       },
     );
 
-    test('tiada label tanpa tol bila yang terpantas sendiri bebas tol', () {
+    test('tiada label tanpa tol bila laluan utama sendiri bebas tol', () {
       final merged = mergeRouteCandidates(
         standard: [
           _route(durationS: 3000, distanceM: 60000, points: direct),
@@ -100,7 +130,7 @@ void main() {
       );
 
       expect(merged.map((r) => r.label), [
-        RouteLabel.fastest,
+        RouteLabel.recommended,
         RouteLabel.alternative,
       ]);
     });
@@ -108,11 +138,11 @@ void main() {
     test('laluan yang mengelak lebuh raya dilabel tanpa lebuh raya', () {
       final merged = mergeRouteCandidates(
         standard: [_route(durationS: 3000, distanceM: 60000, points: direct)],
-        noHighways: [_route(durationS: 4200, distanceM: 66000, points: south)],
+        noHighways: [_route(durationS: 3800, distanceM: 66000, points: south)],
       );
 
       expect(merged.map((r) => r.label), [
-        RouteLabel.fastest,
+        RouteLabel.recommended,
         RouteLabel.noHighways,
       ]);
     });
@@ -138,53 +168,318 @@ void main() {
       },
     );
 
-    test('disusun mengikut masa dengan yang terpantas dahulu', () {
+    group('laluan utama = terbaik dan selamat, bukan sekadar terpantas', () {
+      test('beza masa kecil: laluan jauh lebih mudah menjadi utama', () {
+        final merged = mergeRouteCandidates(
+          standard: [
+            // Terpantas tetapi 30 belokan (lorong dan simpang).
+            _withManeuvers(
+              _route(durationS: 3000, distanceM: 60000, points: direct),
+              turns: 30,
+            ),
+            // 3.3% lebih perlahan, 4 belokan sahaja.
+            _withManeuvers(
+              _route(durationS: 3100, distanceM: 61000, points: north),
+              turns: 4,
+            ),
+          ],
+        );
+
+        expect(merged.first.durationS, 3100);
+        expect(merged.first.label, RouteLabel.recommended);
+        expect(merged[1].durationS, 3000);
+        expect(
+          merged[1].label,
+          RouteLabel.fastest,
+          reason: 'yang terpantas tetap ditunjuk berasingan',
+        );
+      });
+
+      test(
+        'lebih 5% perlahan: yang terpantas kekal utama walau banyak belok',
+        () {
+          final merged = mergeRouteCandidates(
+            standard: [
+              _withManeuvers(
+                _route(durationS: 3000, distanceM: 60000, points: direct),
+                turns: 30,
+              ),
+              _withManeuvers(
+                _route(durationS: 3300, distanceM: 61000, points: north),
+                turns: 2,
+              ),
+            ],
+          );
+
+          expect(merged.first.durationS, 3000);
+          expect(merged.first.label, RouteLabel.recommended);
+        },
+      );
+
+      test('pusingan-U dan jalan kecil yang perlahan dihukum', () {
+        final plain = _route(durationS: 3000, distanceM: 60000, points: direct);
+        final uTurns = _withManeuvers(plain, turns: 0, uTurns: 3);
+        expect(routeScore(uTurns), greaterThan(routeScore(plain) + 250));
+
+        final slow = RouteOption(
+          distanceM: 60000,
+          durationS: 3000,
+          hasTolls: false,
+          points: direct,
+          maneuvers: const [
+            // 2 km dalam 600 s = 3.3 m/s (jalan kecil/sesak).
+            Maneuver(
+              type: 8,
+              streetNames: ['Lorong'],
+              lengthM: 2000,
+              timeS: 600,
+              beginShapeIndex: 0,
+            ),
+          ],
+        );
+        expect(routeScore(slow), 3000 + 600 * 0.25);
+      });
+
+      test(
+        'feri dan jalan bersekatan masa dibuang bila ada pilihan bersih',
+        () {
+          final ferry = _route(
+            durationS: 2800,
+            distanceM: 50000,
+            points: south,
+          ).copyWith();
+          final merged = mergeRouteCandidates(
+            standard: [
+              RouteOption(
+                distanceM: 50000,
+                durationS: 2800,
+                hasTolls: false,
+                points: south,
+                hasFerry: true,
+              ),
+              _route(durationS: 3000, distanceM: 60000, points: direct),
+            ],
+          );
+          expect(ferry.hasFerry, isFalse);
+          expect(merged, hasLength(1));
+          expect(merged.single.hasFerry, isFalse);
+
+          // Satu-satunya pilihan: dikekalkan.
+          final only = mergeRouteCandidates(
+            standard: [
+              RouteOption(
+                distanceM: 50000,
+                durationS: 2800,
+                hasTolls: false,
+                points: south,
+                hasFerry: true,
+              ),
+            ],
+          );
+          expect(only.single.hasFerry, isTrue);
+        },
+      );
+
+      test('label paling mudah untuk belokan jauh lebih sedikit', () {
+        final merged = mergeRouteCandidates(
+          standard: [
+            _withManeuvers(
+              _route(durationS: 3000, distanceM: 60000, points: direct),
+              turns: 20,
+            ),
+            _withManeuvers(
+              _route(durationS: 3500, distanceM: 62000, points: north),
+              turns: 5,
+            ),
+          ],
+        );
+        expect(merged[1].label, RouteLabel.simplest);
+      });
+    });
+
+    test('disusun: utama dahulu, selebihnya mengikut masa', () {
       final merged = mergeRouteCandidates(
         standard: [
           _route(durationS: 3000, distanceM: 60000, points: direct),
-          _route(durationS: 4000, distanceM: 70000, points: south),
+          _route(durationS: 3800, distanceM: 70000, points: south),
         ],
         noHighways: [_route(durationS: 3500, distanceM: 66000, points: north)],
       );
 
-      expect(merged.map((r) => r.durationS), [3000, 3500, 4000]);
-      expect(merged.first.label, RouteLabel.fastest);
+      expect(merged.map((r) => r.durationS), [3000, 3500, 3800]);
+      expect(merged.first.label, RouteLabel.recommended);
     });
 
-    test('lencongan melampau dibuang', () {
-      final merged = mergeRouteCandidates(
-        standard: [_route(durationS: 1800, distanceM: 30000, points: direct)],
-        noTolls: [_route(durationS: 7200, distanceM: 90000, points: north)],
-      );
+    group('had lencongan', () {
+      test('lebih 1.4x atau lebih 15 minit dibuang', () {
+        final merged = mergeRouteCandidates(
+          standard: [_route(durationS: 1800, distanceM: 30000, points: direct)],
+          noTolls: [_route(durationS: 7200, distanceM: 90000, points: north)],
+        );
+        expect(merged, hasLength(1));
+      });
 
-      expect(merged, hasLength(1));
+      test('perjalanan panjang: had +15 min (bukan 1.4x)', () {
+        final merged = mergeRouteCandidates(
+          standard: [
+            _route(durationS: 10800, distanceM: 300000, points: direct),
+            _route(durationS: 11500, distanceM: 310000, points: north),
+            _route(durationS: 12000, distanceM: 320000, points: south),
+          ],
+        );
+        expect(merged.map((r) => r.durationS), [10800, 11500]);
+      });
+
+      test('perjalanan sangat pendek mempunyai lantai +3 min', () {
+        final merged = mergeRouteCandidates(
+          standard: [
+            _route(durationS: 120, distanceM: 1500, points: direct),
+            _route(durationS: 290, distanceM: 1900, points: north),
+          ],
+        );
+        expect(merged, hasLength(2));
+      });
     });
 
-    test('dihadkan kepada maxOptions', () {
-      final merged = mergeRouteCandidates(
-        standard: [
-          _route(durationS: 3000, distanceM: 60000, points: direct),
-          _route(durationS: 3100, distanceM: 61000, points: north),
-          _route(durationS: 3200, distanceM: 62000, points: south),
+    test('sehingga 10 pilihan; berlebihan dipotong', () {
+      final routes = [
+        for (var i = 0; i < 14; i++)
           _route(
-            durationS: 3300,
-            distanceM: 63000,
-            points: _path(klcc, klia, bulge: 0.12),
+            durationS: 3000 + i * 20,
+            distanceM: 60000 + i * 100,
+            points: _path(klcc, klia, bulge: (i - 7) * 0.02 + 0.005),
           ),
-          _route(
-            durationS: 3400,
-            distanceM: 64000,
-            points: _path(klcc, klia, bulge: -0.12),
-          ),
-        ],
-      );
+      ];
+      final merged = mergeRouteCandidates(standard: routes);
 
-      expect(merged, hasLength(4));
-      expect(merged.first.durationS, 3000);
+      expect(merged, hasLength(10));
+      expect(merged.first.label, RouteLabel.recommended);
+    });
+
+    test('memo tidak mengubah hasil', () {
+      final standard = [
+        _route(durationS: 3000, distanceM: 60000, points: direct),
+        _route(durationS: 3100, distanceM: 61000, points: north),
+        _route(durationS: 3120, distanceM: 61500, points: north),
+      ];
+      final memo = SameRouteMemo();
+      final a = mergeRouteCandidates(standard: standard, memo: memo);
+      final b = mergeRouteCandidates(standard: standard, memo: memo);
+      expect(a.map((r) => r.durationS), b.map((r) => r.durationS));
+      expect(a, hasLength(2), reason: 'dua laluan utara ialah pendua');
     });
 
     test('tiada calon memulangkan senarai kosong', () {
       expect(mergeRouteCandidates(standard: const []), isEmpty);
+    });
+  });
+
+  group('skor dan kiraan', () {
+    test('turnCountOf mengira belokan sahaja (bukan pusingan-U/teruskan)', () {
+      final r = _withManeuvers(
+        _route(durationS: 100, distanceM: 1000, points: direct),
+        turns: 3,
+        uTurns: 2,
+      );
+      expect(turnCountOf(r), 3);
+      expect(uTurnCountOf(r), 2);
+    });
+  });
+
+  group('planCandidateRequests', () {
+    RouteOption mainRoute({int distanceM = 60000, bool tolls = true}) => _route(
+      durationS: 3000,
+      distanceM: distanceM,
+      points: direct,
+      hasTolls: tolls,
+    );
+    const base = RouteQuery(origin: klcc, destination: klia);
+
+    test(
+      'perjalanan panjang berbayar tol: tanpa tol, elak lebuh raya, terpendek, lencongan',
+      () {
+        final requests = planCandidateRequests(base, [mainRoute()]);
+
+        expect(requests.map((r) => r.origin).take(3), [
+          RouteCandidateOrigin.noTolls,
+          RouteCandidateOrigin.noHighways,
+          RouteCandidateOrigin.shortest,
+        ]);
+        expect(
+          requests,
+          hasLength(8),
+          reason: 'dihadkan 8 permintaan tambahan',
+        );
+        expect(requests.every((r) => r.query.alternates == 0), isTrue);
+
+        final detours = requests
+            .where((r) => r.origin == RouteCandidateOrigin.detour)
+            .toList();
+        expect(detours, hasLength(5));
+        // Bulatan di tengah dahulu; jejari 2% jarak (1200 m), tidak menelan asal/destinasi.
+        final first = detours.first.query.exclusions.single;
+        expect(first.radiusM, 1200);
+        expect(distanceMeters(first.center, klcc), greaterThan(1600));
+        expect(distanceMeters(first.center, klia), greaterThan(1600));
+        expect(
+          distanceMeters(
+            first.center,
+            GeoPoint((klcc.lat + klia.lat) / 2, (klcc.lng + klia.lng) / 2),
+          ),
+          lessThan(2000),
+        );
+      },
+    );
+
+    test('bebas tol: tiada permintaan tanpa tol', () {
+      final requests = planCandidateRequests(base, [mainRoute(tolls: false)]);
+      expect(
+        requests.where((r) => r.origin == RouteCandidateOrigin.noTolls),
+        isEmpty,
+      );
+    });
+
+    test(
+      'perjalanan pendek: tiada lencongan; sangat pendek: tiada langsung',
+      () {
+        final medium = planCandidateRequests(base, [
+          mainRoute(distanceM: 6000, tolls: false),
+        ]);
+        expect(
+          medium.where((r) => r.origin == RouteCandidateOrigin.noHighways),
+          hasLength(1),
+        );
+        expect(
+          medium.where((r) => r.origin == RouteCandidateOrigin.detour).length,
+          lessThanOrEqualTo(3),
+        );
+
+        expect(
+          planCandidateRequests(base, [
+            mainRoute(distanceM: 2000, tolls: false),
+          ]),
+          isEmpty,
+        );
+      },
+    );
+
+    test('jejari bulatan dihadkan 250-1400 m', () {
+      final huge = planCandidateRequests(base, [
+        mainRoute(distanceM: 400000, tolls: false),
+      ]);
+      for (final r in huge.where(
+        (r) => r.origin == RouteCandidateOrigin.detour,
+      )) {
+        expect(r.query.exclusions.single.radiusM, 1400);
+      }
+    });
+
+    test('maxExtra dihormati; tiada laluan asas = tiada permintaan', () {
+      expect(
+        planCandidateRequests(base, [mainRoute()], maxExtra: 2),
+        hasLength(2),
+      );
+      expect(planCandidateRequests(base, const []), isEmpty);
     });
   });
 

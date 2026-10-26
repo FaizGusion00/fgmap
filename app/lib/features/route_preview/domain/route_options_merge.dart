@@ -2,9 +2,10 @@ import 'dart:math' as math;
 
 import '../../../core/utils/geo.dart';
 import 'route_option.dart';
+import 'route_scoring.dart';
 
 /// Daripada permintaan mana satu calon laluan datang.
-enum RouteCandidateOrigin { standard, noTolls, noHighways }
+enum RouteCandidateOrigin { standard, noTolls, noHighways, shortest, detour }
 
 /// Nisbah (0-1) titik [a] yang disampel dan terletak dalam [toleranceM] daripada garis [b].
 double routeCoverage(
@@ -73,32 +74,63 @@ int? nearestRouteIndex(
   return best;
 }
 
+/// Ingatan keputusan [isSameRoute] supaya pasangan yang sama tidak dikira semula setiap kali
+/// calon baharu tiba (penggabungan berlaku berkali-kali semasa laluan tiba berperingkat).
+class SameRouteMemo {
+  final Map<(RouteOption, RouteOption), bool> _cache = {};
+
+  bool isSame(RouteOption a, RouteOption b, double threshold) {
+    final key = identityHashCode(a) <= identityHashCode(b) ? (a, b) : (b, a);
+    return _cache.putIfAbsent(
+      key,
+      () => isSameRoute(a, b, threshold: threshold),
+    );
+  }
+}
+
 class _Candidate {
   _Candidate(this.route, this.origin);
 
   final RouteOption route;
   final RouteCandidateOrigin origin;
+  late final double score = routeScore(route);
+  late final int turns = turnCountOf(route);
 }
 
+/// Had paparan lalai bagi satu senarai pilihan.
+const maxRouteOptions = 10;
+
+/// Dua laluan dianggap pendua jika liputan bersama sekurang-kurangnya ini.
+const routeDuplicateThreshold = 0.75;
+
 /// Menggabungkan laluan daripada beberapa permintaan menjadi senarai pilihan yang bermakna:
-/// membuang pendua dan lencongan melampau, memilih sehingga [maxOptions] yang paling berguna, melabel
-/// setiap satu dan menyusun mengikut masa (yang terpantas dahulu).
+/// membuang pendua dan lencongan melampau, memilih sehingga [maxOptions], melabel setiap satu dan
+/// menyusun: **laluan utama dahulu**, kemudian selebihnya mengikut masa.
 ///
-/// [standard] ialah hasil permintaan biasa (laluan utama + alternatif Valhalla); [noTolls] dan
-/// [noHighways] hasil permintaan yang mengutamakan mengelak tol / lebuh raya. Valhalla menganggap
-/// kedua-duanya keutamaan lembut, jadi hasilnya mungkin sama dengan laluan biasa; ia dibuang sebagai pendua.
+/// Laluan utama BUKAN semestinya yang terpantas: ia ialah skor terbaik ([routeScore]) antara laluan
+/// yang masanya dalam 5% daripada yang terpantas, jadi laluan yang jauh lebih mudah dan selamat
+/// menang ke atas penjimatan beberapa saat melalui lorong kecil.
+///
+/// Penapis: masa dalam [fastest x 1.4] dan [fastest + 15 min] (dengan lantai +3 min untuk perjalanan
+/// pendek); laluan feri / bersekatan masa dibuang jika wujud yang bersih.
 List<RouteOption> mergeRouteCandidates({
   required List<RouteOption> standard,
   List<RouteOption> noTolls = const [],
   List<RouteOption> noHighways = const [],
-  int maxOptions = 4,
+  List<RouteOption> shortest = const [],
+  List<RouteOption> detours = const [],
+  int maxOptions = maxRouteOptions,
+  SameRouteMemo? memo,
 }) {
   final all = <_Candidate>[
     for (final r in standard) _Candidate(r, RouteCandidateOrigin.standard),
     for (final r in noTolls) _Candidate(r, RouteCandidateOrigin.noTolls),
     for (final r in noHighways) _Candidate(r, RouteCandidateOrigin.noHighways),
+    for (final r in shortest) _Candidate(r, RouteCandidateOrigin.shortest),
+    for (final r in detours) _Candidate(r, RouteCandidateOrigin.detour),
   ];
   if (all.isEmpty) return const [];
+  final same = memo ?? SameRouteMemo();
 
   // Susunan stabil mengikut masa: pada masa sama, calon permintaan biasa didahulukan.
   final sorted = [...all]
@@ -108,24 +140,57 @@ List<RouteOption> mergeRouteCandidates({
     });
 
   final fastestS = sorted.first.route.durationS;
-  // Lencongan yang terlalu panjang tidak berguna sebagai pilihan.
-  final limitS = math.max(fastestS * 2, fastestS + 600);
+  final limitS = math.max(
+    math.min(fastestS * 1.4, fastestS + 900),
+    fastestS + 180,
+  );
 
-  final kept = <_Candidate>[];
+  var kept = <_Candidate>[];
   for (final c in sorted) {
     if (c.route.durationS > limitS) continue;
-    if (kept.any((k) => isSameRoute(k.route, c.route))) continue;
+    if (kept.any(
+      (k) => same.isSame(k.route, c.route, routeDuplicateThreshold),
+    )) {
+      continue;
+    }
     kept.add(c);
   }
 
-  final fastest = kept.first;
-  final rest = kept.skip(1).toList();
+  // Feri dan jalan bersekatan masa hanya jika tiada pilihan bersih.
+  bool flagged(_Candidate c) => c.route.hasFerry || c.route.hasTimeRestrictions;
+  if (kept.any((c) => !flagged(c))) {
+    kept = kept.where((c) => !flagged(c)).toList();
+  }
 
-  // Pilih yang paling berguna dahulu: tanpa tol, tanpa lebuh raya, terpendek; kemudian ikut masa.
-  final chosen = <_Candidate, RouteLabel>{fastest: RouteLabel.fastest};
+  final keptFastest = kept.first;
+  // Laluan utama: skor terbaik dalam 5% daripada yang terpantas (sepadan: lebih laju menang).
+  final nearFastest = kept
+      .where((c) => c.route.durationS <= keptFastest.route.durationS * 1.05)
+      .toList();
+  final primary = nearFastest.reduce((best, c) {
+    if (c.score < best.score - 0.5) return c;
+    return best;
+  });
 
-  if (fastest.route.hasTolls) {
-    final tollFree = rest.where((c) => !c.route.hasTolls).firstOrNull;
+  final rest = kept.where((c) => c != primary).toList();
+  final chosen = <_Candidate, RouteLabel>{primary: RouteLabel.recommended};
+
+  // Terpantas, jika jelas lebih laju (>= 1 minit) daripada laluan utama.
+  if (keptFastest != primary &&
+      primary.route.durationS - keptFastest.route.durationS >= 60) {
+    chosen[keptFastest] = RouteLabel.fastest;
+  }
+
+  if (primary.route.hasTolls) {
+    // Utamakan calon daripada permintaan "tanpa tol"; jika tiada, mana-mana yang bebas tol.
+    final tollFreeAll = rest
+        .where((c) => !chosen.containsKey(c) && !c.route.hasTolls)
+        .toList();
+    final tollFree =
+        tollFreeAll
+            .where((c) => c.origin == RouteCandidateOrigin.noTolls)
+            .firstOrNull ??
+        tollFreeAll.firstOrNull;
     if (tollFree != null) chosen[tollFree] = RouteLabel.noTolls;
   }
 
@@ -138,16 +203,27 @@ List<RouteOption> mergeRouteCandidates({
       .firstOrNull;
   if (noHighway != null) chosen[noHighway] = RouteLabel.noHighways;
 
-  final shortest = rest
+  final shortestCand = rest
       .where((c) => !chosen.containsKey(c))
       .fold<_Candidate?>(
         null,
         (best, c) =>
             best == null || c.route.distanceM < best.route.distanceM ? c : best,
       );
-  if (shortest != null &&
-      _clearlyShorter(shortest.route, fastest.route, kept)) {
-    chosen[shortest] = RouteLabel.shortest;
+  if (shortestCand != null &&
+      _clearlyShorter(shortestCand.route, primary.route, kept)) {
+    chosen[shortestCand] = RouteLabel.shortest;
+  }
+
+  // Paling mudah: belokan jauh lebih sedikit daripada laluan utama (yang sendiri banyak belokan).
+  if (primary.turns >= 8) {
+    final simplest = rest
+        .where((c) => !chosen.containsKey(c) && c.turns <= primary.turns * 0.7)
+        .fold<_Candidate?>(
+          null,
+          (best, c) => best == null || c.turns < best.turns ? c : best,
+        );
+    if (simplest != null) chosen[simplest] = RouteLabel.simplest;
   }
 
   for (final c in rest) {
@@ -155,21 +231,22 @@ List<RouteOption> mergeRouteCandidates({
     chosen.putIfAbsent(c, () => RouteLabel.alternative);
   }
 
-  // Sempadan maxOptions untuk label khas (tanpa tol + tanpa lebuh raya + terpendek + terpantas).
-  final picked = chosen.entries.toList()
+  // Utama dahulu; selebihnya mengikut masa. Label khas diutamakan jika melebihi had.
+  final others = chosen.entries.where((e) => e.key != primary).toList()
     ..sort((a, b) => a.key.route.durationS.compareTo(b.key.route.durationS));
   return [
-    for (final e in picked.take(maxOptions)) e.key.route.withLabel(e.value),
+    primary.route.withLabel(RouteLabel.recommended),
+    for (final e in others.take(maxOptions - 1)) e.key.route.withLabel(e.value),
   ];
 }
 
 /// [candidate] ialah yang terpendek dan beza jaraknya cukup bermakna (>= 5% dan >= 500 m).
 bool _clearlyShorter(
   RouteOption candidate,
-  RouteOption fastest,
+  RouteOption primary,
   List<_Candidate> all,
 ) {
   if (all.any((c) => c.route.distanceM < candidate.distanceM)) return false;
-  final saved = fastest.distanceM - candidate.distanceM;
-  return saved >= 500 && saved >= fastest.distanceM * 0.05;
+  final saved = primary.distanceM - candidate.distanceM;
+  return saved >= 500 && saved >= primary.distanceM * 0.05;
 }

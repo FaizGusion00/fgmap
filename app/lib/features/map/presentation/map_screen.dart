@@ -72,6 +72,9 @@ class _MapScreenState extends ConsumerState<MapScreen>
 
   /// Nama destinasi yang sedang dikira mundur untuk navigasi automatik (Rumah/Kerja); null = tiada.
   String? _autoStart;
+
+  /// Bilangan pilihan laluan semasa kamera terakhir dimuatkan (untuk memuat semula selepas alternatif tiba).
+  int _fittedRouteCount = 0;
   bool _startupLocationHandled = false;
   bool _incomingLocationReceived = false;
   bool _locating = false;
@@ -704,10 +707,10 @@ class _MapScreenState extends ConsumerState<MapScreen>
     if (!mounted || _navigationOwnsCamera) return;
     final media = MediaQuery.of(context);
     final sheetHeight =
-        (ready.options.length > 1 ? 420.0 : 360.0) *
+        (ready.visibleOptions.length > 1 ? 440.0 : 360.0) *
         media.textScaler.scale(1).clamp(1.0, 1.4);
     await camera.fitTo(
-      [for (final option in ready.options) ...option.points],
+      [for (final option in ready.visibleOptions) ...option.points],
       padding: EdgeInsets.fromLTRB(
         40,
         media.padding.top + 80,
@@ -727,9 +730,9 @@ class _MapScreenState extends ConsumerState<MapScreen>
       return;
     }
     final state = ref.read(routePreviewControllerProvider);
-    if (state is! RouteReady || state.options.length < 2) return;
+    if (state is! RouteReady || state.visibleOptions.length < 2) return;
     final index = nearestRouteIndex(
-      [for (final o in state.options) o.points],
+      [for (final o in state.visibleOptions) o.points],
       point,
       toleranceM: metersPerPixel(zoom, point.lat) * 28,
     );
@@ -860,11 +863,20 @@ class _MapScreenState extends ConsumerState<MapScreen>
       } else {
         _idle.suspend(_Suspend.route);
       }
-      // Muatkan laluan dalam pandangan hanya bila set pilihan baharu tiba, bukan bila pengguna
-      // sekadar bertukar antara laluan yang sama.
-      if (next is RouteReady &&
-          (prev is! RouteReady || !identical(prev.options, next.options))) {
-        unawaited(_fitRoutes(next));
+      // Muatkan laluan dalam pandangan apabila set pilihan pertama tiba, dan sekali lagi apabila
+      // pencarian alternatif selesai dengan lebih banyak laluan (bukan pada setiap laluan yang tiba
+      // atau bila pengguna sekadar bertukar antara laluan).
+      if (next is RouteReady) {
+        final first = prev is! RouteReady;
+        final finished =
+            prev is RouteReady &&
+            prev.loadingMore &&
+            !next.loadingMore &&
+            next.options.length > _fittedRouteCount;
+        if (first || finished) {
+          _fittedRouteCount = next.options.length;
+          unawaited(_fitRoutes(next));
+        }
       }
     });
 
@@ -1066,6 +1078,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
                               key: const ValueKey('route-sheet'),
                               state: state,
                               onSelect: _selectRoute,
+                              onShowMore: controller.showMore,
                               onVehicleChanged: (v) =>
                                   unawaited(controller.setVehicle(v)),
                               onRetry: controller.retry,
@@ -1309,9 +1322,9 @@ class _MapScreenState extends ConsumerState<MapScreen>
     if (state is! RouteReady) return const [];
     return [
       // Alternatif dahulu, laluan terpilih terakhir (dilukis paling atas).
-      for (var i = 0; i < state.options.length; i++)
+      for (var i = 0; i < state.visibleOptions.length; i++)
         if (i != state.selectedIndex)
-          MapRouteLine(points: state.options[i].points, isMain: false),
+          MapRouteLine(points: state.visibleOptions[i].points, isMain: false),
       MapRouteLine(points: state.selected.points, isMain: true),
     ];
   }

@@ -49,8 +49,14 @@ class Maneuver {
 
 /// Sifat yang membezakan satu pilihan laluan daripada yang lain (dipaparkan sebagai label kad).
 enum RouteLabel {
-  /// Masa perjalanan paling singkat.
+  /// Pilihan utama: skor terbaik (masa, belokan, jalan selamat) dalam lingkungan masa terpantas.
+  recommended,
+
+  /// Masa perjalanan paling singkat (hanya apabila bukan pilihan utama).
   fastest,
+
+  /// Bilangan belokan paling sedikit (mudah diikuti, kurang risiko tersilap lorong).
+  simplest,
 
   /// Jarak paling pendek (dan jelas lebih pendek daripada yang terpantas).
   shortest,
@@ -76,6 +82,9 @@ class RouteOption {
     this.maneuvers = const [],
     this.source = RouteSource.online,
     this.label = RouteLabel.fastest,
+    this.hasHighway = false,
+    this.hasFerry = false,
+    this.hasTimeRestrictions = false,
   });
 
   final int distanceM;
@@ -86,15 +95,29 @@ class RouteOption {
   final RouteSource source;
   final RouteLabel label;
 
-  RouteOption withLabel(RouteLabel label) => RouteOption(
+  /// Melalui lebuh raya / ekspres (daripada ringkasan Valhalla).
+  final bool hasHighway;
+
+  /// Menaiki feri.
+  final bool hasFerry;
+
+  /// Melalui jalan bersekatan masa (cth. dibuka waktu tertentu sahaja).
+  final bool hasTimeRestrictions;
+
+  RouteOption copyWith({RouteLabel? label}) => RouteOption(
     distanceM: distanceM,
     durationS: durationS,
     hasTolls: hasTolls,
     points: points,
     maneuvers: maneuvers,
     source: source,
-    label: label,
+    label: label ?? this.label,
+    hasHighway: hasHighway,
+    hasFerry: hasFerry,
+    hasTimeRestrictions: hasTimeRestrictions,
   );
+
+  RouteOption withLabel(RouteLabel label) => copyWith(label: label);
 
   /// Nama jalan utama laluan ("melalui ..."): jalan bernama dengan jarak terkumpul terpanjang.
   /// Null jika tiada manuver bernama (cth. laluan dibina tanpa arahan).
@@ -131,6 +154,8 @@ class RouteQuery {
     this.destinationLabel,
     this.alternates = 2,
     this.destinationRadiusM,
+    this.shortest = false,
+    this.exclusions = const [],
   });
 
   final GeoPoint origin;
@@ -150,11 +175,20 @@ class RouteQuery {
   /// tengahnya bukan pintu masuk. Null = Valhalla memilih tepi jalan terdekat.
   final double? destinationRadiusM;
 
+  /// Utamakan jarak terpendek (costing `shortest` Valhalla).
+  final bool shortest;
+
+  /// Kawasan bulat yang mesti dielakkan (memaksa lencongan untuk laluan alternatif yang benar-benar
+  /// berbeza). Kosong untuk permintaan biasa.
+  final List<RouteExclusion> exclusions;
+
   RouteQuery copyWith({
     bool? avoidTolls,
     bool? avoidHighways,
     RouteVehicle? vehicle,
     int? alternates,
+    bool? shortest,
+    List<RouteExclusion>? exclusions,
   }) {
     return RouteQuery(
       origin: origin,
@@ -166,6 +200,8 @@ class RouteQuery {
       destinationLabel: destinationLabel,
       alternates: alternates ?? this.alternates,
       destinationRadiusM: destinationRadiusM,
+      shortest: shortest ?? this.shortest,
+      exclusions: exclusions ?? this.exclusions,
     );
   }
 
@@ -182,6 +218,16 @@ class RouteQuery {
       destinationLabel: destinationLabel,
       alternates: 0,
       destinationRadiusM: destinationRadiusM,
+      shortest: shortest,
     );
   }
+}
+
+/// Kawasan bulat [radiusM] di sekitar [center] yang tidak boleh dilalui laluan (lencongan paksa).
+@immutable
+class RouteExclusion {
+  const RouteExclusion(this.center, this.radiusM);
+
+  final GeoPoint center;
+  final double radiusM;
 }

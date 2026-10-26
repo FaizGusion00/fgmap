@@ -954,4 +954,36 @@ class AppLocalizationsEn extends AppLocalizations {
   String autoStartCountdown(String name, int seconds) {
     return 'Starting navigation to $name in $seconds…';
   }
+
+  @override
+  String get routeRecommended => 'Recommended';
+
+  @override
+  String get routeSimplest => 'Simplest';
+
+  @override
+  String get routeSearchingMore => 'Finding other routes…';
+
+  @override
+  String get routeHasHighway => 'Highway';
+
+  @override
+  String get routeHasFerry => 'Ferry';
+
+  @override
+  String routeTurns(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count turns',
+      one: '1 turn',
+      zero: 'No turns',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String routeMore(int count) {
+    return '$count more';
+  }
 }

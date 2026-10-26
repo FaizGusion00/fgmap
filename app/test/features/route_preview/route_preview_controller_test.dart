@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:fgmap/core/location/location_service.dart';
+import 'package:fgmap/core/utils/geo.dart';
 import 'package:fgmap/core/storage/preferences.dart';
 import 'package:fgmap/features/route_preview/domain/routing_failure.dart';
 import 'package:fgmap/features/route_preview/data/route_planner.dart';
@@ -383,4 +384,174 @@ void main() {
       },
     );
   });
+
+  group('pilihan laluan berperingkat', () {
+    late _ProgressivePlanner planner;
+    late ProviderContainer c;
+
+    // Geometri berbeza (bukan const kongsi) supaya padanan laluan terpilih mengikut identiti berfungsi.
+    RouteOption route(int n, {int? durationS}) => sampleOption(
+      durationS: durationS ?? 3000 + n * 100,
+      distanceM: 60000 + n * 1000,
+      points: [klcc, GeoPoint(3.0 + n * 0.01, 101.7), klia],
+    );
+
+    Future<void> settle() => Future<void>.delayed(Duration.zero);
+
+    setUp(() {
+      planner = _ProgressivePlanner();
+      c = ProviderContainer(
+        overrides: [
+          routeOptionsPlannerProvider.overrideWithValue(planner),
+          locationServiceProvider.overrideWithValue(location),
+          sharedPreferencesProvider.overrideWithValue(_prefs),
+        ],
+      );
+      addTearDown(c.dispose);
+      c.listen(routePreviewControllerProvider, (_, _) {});
+    });
+
+    test(
+      'kumpulan pertama: Ready + loadingMore; akhir menamatkan penunjuk',
+      () async {
+        unawaited(_controller(c).planTo(klia));
+        await settle();
+        expect(_state(c), isA<RouteLoading>());
+
+        planner.add(RouteBatch([route(0)], done: false));
+        await settle();
+        var ready = _state(c) as RouteReady;
+        expect(ready.loadingMore, isTrue);
+        expect(ready.options, hasLength(1));
+
+        planner.add(RouteBatch([route(0), route(1)], done: false));
+        await settle();
+        ready = _state(c) as RouteReady;
+        expect(ready.options, hasLength(2));
+        expect(ready.selectedIndex, 0);
+
+        planner.add(RouteBatch([route(0), route(1), route(2)], done: true));
+        await planner.close();
+        await settle();
+        ready = _state(c) as RouteReady;
+        expect(ready.loadingMore, isFalse);
+        expect(ready.options, hasLength(3));
+      },
+    );
+
+    test(
+      'laluan pilihan pengguna kekal terpilih walau susunan berubah',
+      () async {
+        final a = route(0);
+        final b = route(1);
+        final cc = route(2);
+        unawaited(_controller(c).planTo(klia));
+        await settle();
+        planner.add(RouteBatch([a, b, cc], done: false));
+        await settle();
+
+        _controller(c).select(2);
+        expect((_state(c) as RouteReady).selected, same(cc));
+
+        // Laluan utama baharu tiba di hadapan; laluan terpilih beralih ke indeks 3 tetapi kekal.
+        final better = route(5, durationS: 2900);
+        planner.add(RouteBatch([better, a, b, cc], done: true));
+        await planner.close();
+        await settle();
+        final ready = _state(c) as RouteReady;
+        expect(ready.selectedIndex, 3);
+        expect(ready.selected.points, same(cc.points));
+      },
+    );
+
+    test('tanpa pilihan pengguna: sentiasa laluan utama (indeks 0)', () async {
+      unawaited(_controller(c).planTo(klia));
+      await settle();
+      planner.add(RouteBatch([route(1), route(2)], done: false));
+      await settle();
+      planner.add(RouteBatch([route(0), route(1), route(2)], done: true));
+      await planner.close();
+      await settle();
+      expect((_state(c) as RouteReady).selectedIndex, 0);
+    });
+
+    test('hanya 6 dipaparkan; showMore membuka sehingga 10', () async {
+      unawaited(_controller(c).planTo(klia));
+      await settle();
+      planner.add(
+        RouteBatch([for (var i = 0; i < 9; i++) route(i)], done: true),
+      );
+      await planner.close();
+      await settle();
+
+      var ready = _state(c) as RouteReady;
+      expect(ready.visibleOptions, hasLength(6));
+      expect(ready.hiddenCount, 3);
+
+      _controller(c).showMore();
+      ready = _state(c) as RouteReady;
+      expect(ready.visibleOptions, hasLength(9));
+      expect(ready.hiddenCount, 0);
+    });
+
+    test(
+      'memilih laluan di luar 6 membuka semua supaya ia kelihatan',
+      () async {
+        unawaited(_controller(c).planTo(klia));
+        await settle();
+        final options = [for (var i = 0; i < 9; i++) route(i)];
+        planner.add(RouteBatch(options, done: false));
+        await settle();
+        _controller(c).showMore();
+        _controller(c).select(8);
+        // Kumpulan baharu tiba: laluan terpilih (indeks 8) kekal kelihatan.
+        planner.add(RouteBatch(options, done: true));
+        await planner.close();
+        await settle();
+        final ready = _state(c) as RouteReady;
+        expect(ready.selectedIndex, 8);
+        expect(ready.expanded, isTrue);
+      },
+    );
+
+    test(
+      'ralat selepas kumpulan pertama: kekal Ready, penunjuk dimatikan',
+      () async {
+        unawaited(_controller(c).planTo(klia));
+        await settle();
+        planner.add(RouteBatch([route(0)], done: false));
+        await settle();
+        planner.addError(StateError('rosak'));
+        await planner.close();
+        await settle();
+        final ready = _state(c) as RouteReady;
+        expect(ready.loadingMore, isFalse);
+        expect(ready.options, hasLength(1));
+      },
+    );
+
+    test('ralat sebelum kumpulan pertama: RouteFailed', () async {
+      unawaited(_controller(c).planTo(klia));
+      await settle();
+      planner.addError(const RoutingFailure(RoutingFailureKind.noRoute));
+      await planner.close();
+      await settle();
+      expect((_state(c) as RouteFailed).kind, RoutingFailureKind.noRoute);
+    });
+  });
+}
+
+class _ProgressivePlanner implements ProgressiveRoutePlanner {
+  final _controller = StreamController<RouteBatch>();
+
+  void add(RouteBatch batch) => _controller.add(batch);
+  void addError(Object error) => _controller.addError(error);
+  Future<void> close() => _controller.close();
+
+  @override
+  Stream<RouteBatch> watch(RouteQuery query) => _controller.stream;
+
+  @override
+  Future<List<RouteOption>> plan(RouteQuery query) async =>
+      (await watch(query).last).options;
 }

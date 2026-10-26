@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:dio/dio.dart';
 import 'package:fgmap_valhalla/fgmap_valhalla.dart'
     show ValhallaEngineException;
+import 'package:flutter/foundation.dart' show debugPrint, kDebugMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/app_config.dart';
@@ -11,6 +13,7 @@ import '../../../core/network/dio_provider.dart';
 import '../../../core/network/response_text.dart';
 import '../../../core/storage/preferences.dart';
 import '../../offline_maps/data/offline_engine_host.dart';
+import '../domain/route_candidates.dart';
 import '../domain/route_option.dart';
 import '../domain/route_options_merge.dart';
 import '../domain/routing_failure.dart';
@@ -127,15 +130,47 @@ class OfflineRoutePlanner implements RoutePlanner {
   }
 }
 
+/// Satu kumpulan pilihan laluan. [done] benar pada kumpulan terakhir; sebelum itu, laluan lain masih
+/// dicari dan senarai boleh bertambah atau disusun semula.
+class RouteBatch {
+  const RouteBatch(this.options, {required this.done});
+
+  final List<RouteOption> options;
+  final bool done;
+}
+
+/// Perancang yang menghantar pilihan laluan secara berperingkat: laluan biasa dahulu (pantas), kemudian
+/// alternatif apabila setiap permintaan tambahan selesai.
+abstract interface class ProgressiveRoutePlanner implements RoutePlanner {
+  Stream<RouteBatch> watch(RouteQuery query);
+}
+
+/// Aliran kumpulan untuk [planner]: progresif jika disokong, jika tidak satu kumpulan sahaja.
+Stream<RouteBatch> watchRoutes(RoutePlanner planner, RouteQuery query) {
+  if (planner is ProgressiveRoutePlanner) return planner.watch(query);
+  return Stream.fromFuture(
+    planner.plan(query).then((options) => RouteBatch(options, done: true)),
+  );
+}
+
 /// Perancang pilihan laluan untuk pratonton. Selain laluan biasa dan alternatif Valhalla, ia meminta
-/// laluan yang mengelak tol dan lebuh raya supaya SEMUA pilihan yang bermakna terpapar serta-merta,
-/// tanpa pengguna perlu menekan sebarang butang.
+/// (secara dihad dan berperingkat) laluan tanpa tol, elak lebuh raya, jarak terpendek dan beberapa
+/// lencongan paksa, kemudian memilih sehingga 10 pilihan yang berbeza dengan laluan utama yang terbaik
+/// (lihat [mergeRouteCandidates]), bukan sekadar yang terpantas.
 ///
 /// Permintaan tambahan sentiasa menggunakan sumber (online/offline) yang sama dengan laluan biasa,
 /// supaya pilihan tidak bercampur antara data segar dan pek offline. Kegagalan permintaan tambahan
-/// tidak menggagalkan pratonton: laluan biasa tetap dipaparkan.
-class MultiRoutePlanner implements RoutePlanner {
-  MultiRoutePlanner({required this.primary, required this.forSource});
+/// tidak menggagalkan pratonton: laluan biasa tetap dipaparkan. Pelayan awam dilindungi: maksimum
+/// [maxExtra] permintaan tambahan, [maxConcurrent] serentak dengan jeda [stagger], dan semua
+/// permintaan berhenti pada kegagalan sistem pertama (429, 5xx, tamat masa, tiada rangkaian).
+class MultiRoutePlanner implements ProgressiveRoutePlanner {
+  MultiRoutePlanner({
+    required this.primary,
+    required this.forSource,
+    this.maxExtra = 8,
+    this.maxConcurrent = 2,
+    this.stagger = const Duration(milliseconds: 250),
+  });
 
   /// Perancang bagi laluan biasa (dasar online/offline pengguna).
   final RoutePlanner primary;
@@ -143,43 +178,113 @@ class MultiRoutePlanner implements RoutePlanner {
   /// Perancang yang terhad kepada satu sumber, untuk permintaan tambahan.
   final RoutePlanner Function(RouteSource source) forSource;
 
-  /// Perjalanan di bawah jarak ini jarang ada pilihan lebuh raya yang bermakna.
-  static const _minHighwayTripM = 5000;
+  final int maxExtra;
+  final int maxConcurrent;
+  final Duration stagger;
+
+  static const _systemFailures = {
+    RoutingFailureKind.rateLimited,
+    RoutingFailureKind.unavailable,
+    RoutingFailureKind.timeout,
+    RoutingFailureKind.network,
+    RoutingFailureKind.offlineEngine,
+  };
 
   @override
-  Future<List<RouteOption>> plan(RouteQuery query) async {
-    final standard = await primary.plan(query);
-    if (standard.isEmpty) return standard;
+  Future<List<RouteOption>> plan(RouteQuery query) async =>
+      (await watch(query).last).options;
 
-    final planner = forSource(standard.first.source);
-    final wantTolls = standard.any((r) => r.hasTolls);
-    final wantHighways = standard.first.distanceM >= _minHighwayTripM;
-
-    final extra = await Future.wait([
-      if (wantTolls)
-        _tryPlan(planner, query.copyWith(avoidTolls: true, alternates: 0)),
-      if (wantHighways)
-        _tryPlan(planner, query.copyWith(avoidHighways: true, alternates: 0)),
-    ]);
-
-    var next = 0;
-    return mergeRouteCandidates(
-      standard: standard,
-      noTolls: wantTolls ? extra[next++] : const [],
-      noHighways: wantHighways ? extra[next++] : const [],
-    );
+  @override
+  Stream<RouteBatch> watch(RouteQuery query) {
+    final controller = StreamController<RouteBatch>();
+    var cancelled = false;
+    controller.onCancel = () => cancelled = true;
+    unawaited(_run(query, controller, () => cancelled));
+    return controller.stream;
   }
 
-  static Future<List<RouteOption>> _tryPlan(
-    RoutePlanner planner,
+  Future<void> _run(
     RouteQuery query,
+    StreamController<RouteBatch> out,
+    bool Function() isCancelled,
   ) async {
     try {
-      return await planner.plan(query);
-    } on RoutingFailure {
-      return const [];
+      final standard = await primary.plan(query);
+      if (isCancelled()) return;
+      if (standard.isEmpty) {
+        out.add(const RouteBatch([], done: true));
+        return;
+      }
+
+      final memo = SameRouteMemo();
+      final requests = planCandidateRequests(
+        query,
+        standard,
+        maxExtra: maxExtra,
+      );
+      final found = <RouteCandidateOrigin, List<RouteOption>>{};
+      List<RouteOption> merged() => mergeRouteCandidates(
+        standard: standard,
+        noTolls: found[RouteCandidateOrigin.noTolls] ?? const [],
+        noHighways: found[RouteCandidateOrigin.noHighways] ?? const [],
+        shortest: found[RouteCandidateOrigin.shortest] ?? const [],
+        detours: found[RouteCandidateOrigin.detour] ?? const [],
+        memo: memo,
+      );
+
+      var lastSignature = '';
+      void emit({required bool done}) {
+        final options = merged();
+        final signature = _signature(options);
+        if (!done && signature == lastSignature) return;
+        lastSignature = signature;
+        out.add(RouteBatch(options, done: done));
+      }
+
+      emit(done: requests.isEmpty);
+      if (requests.isEmpty) return;
+
+      final planner = forSource(standard.first.source);
+      var next = 0;
+      var stopped = false;
+      Future<void> worker(int index) async {
+        // Mulakan pekerja berperingkat supaya pelayan awam tidak menerima letusan serentak.
+        if (index > 0 && stagger > Duration.zero) {
+          await Future<void>.delayed(stagger * index);
+        }
+        while (!stopped && !isCancelled() && next < requests.length) {
+          final request = requests[next++];
+          try {
+            final routes = await planner.plan(request.query);
+            (found[request.origin] ??= []).addAll(routes);
+          } on RoutingFailure catch (failure) {
+            if (_systemFailures.contains(failure.kind)) stopped = true;
+          } on Object catch (e) {
+            if (kDebugMode) debugPrint('Permintaan laluan tambahan gagal: $e');
+            stopped = true;
+          }
+          if (isCancelled()) return;
+          emit(done: false);
+          if (stagger > Duration.zero && !stopped && next < requests.length) {
+            await Future<void>.delayed(stagger);
+          }
+        }
+      }
+
+      await Future.wait([
+        for (var i = 0; i < math.max(1, maxConcurrent); i++) worker(i),
+      ]);
+      if (!isCancelled()) emit(done: true);
+    } on Object catch (e, st) {
+      if (!out.isClosed) out.addError(e, st);
+    } finally {
+      await out.close();
     }
   }
+
+  static String _signature(List<RouteOption> options) => [
+    for (final o in options) '${o.label.name}:${o.durationS}:${o.distanceM}',
+  ].join('|');
 }
 
 /// Pilihan sumber laluan oleh pengguna.

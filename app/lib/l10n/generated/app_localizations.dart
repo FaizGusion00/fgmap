@@ -1801,6 +1801,48 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'Memulakan navigasi ke {name} dalam {seconds}…'**
   String autoStartCountdown(String name, int seconds);
+
+  /// No description provided for @routeRecommended.
+  ///
+  /// In ms, this message translates to:
+  /// **'Disyorkan'**
+  String get routeRecommended;
+
+  /// No description provided for @routeSimplest.
+  ///
+  /// In ms, this message translates to:
+  /// **'Paling mudah'**
+  String get routeSimplest;
+
+  /// No description provided for @routeSearchingMore.
+  ///
+  /// In ms, this message translates to:
+  /// **'Mencari laluan lain…'**
+  String get routeSearchingMore;
+
+  /// No description provided for @routeHasHighway.
+  ///
+  /// In ms, this message translates to:
+  /// **'Lebuh raya'**
+  String get routeHasHighway;
+
+  /// No description provided for @routeHasFerry.
+  ///
+  /// In ms, this message translates to:
+  /// **'Feri'**
+  String get routeHasFerry;
+
+  /// No description provided for @routeTurns.
+  ///
+  /// In ms, this message translates to:
+  /// **'{count, plural, =0{Tiada belokan} =1{1 belokan} other{{count} belokan}}'**
+  String routeTurns(int count);
+
+  /// No description provided for @routeMore.
+  ///
+  /// In ms, this message translates to:
+  /// **'Lagi {count}'**
+  String routeMore(int count);
 }
 
 class _AppLocalizationsDelegate
