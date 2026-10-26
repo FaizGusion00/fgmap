@@ -75,6 +75,29 @@ void main() {
     },
   );
 
+  test('nudgeZoom: zum dilaras SAMBIL kamera terus mengikut kenderaan', () {
+    var i = 0;
+    void frames(int n) {
+      for (var k = 0; k < n; k++) {
+        clock.advance(const Duration(milliseconds: 16));
+        driver.step(t(16 * i++));
+      }
+    }
+
+    frames(400);
+    final before = camera.moveToCalls.last.zoom;
+    driver.nudgeZoom(1);
+    frames(400);
+    expect(driver.follow.value, NavFollow.following);
+    expect(camera.moveToCalls.last.zoom, closeTo(before + 1, 0.1));
+
+    // Dihad: tekan berkali-kali tidak melarikan zum tanpa had.
+    driver.nudgeZoom(20);
+    expect(driver.zoomBias, 2);
+    driver.nudgeZoom(-20);
+    expect(driver.zoomBias, -3);
+  });
+
   test('tiada lonjakan antara bingkai berturutan (kenderaan dan kamera)', () {
     for (var i = 0; i < 300; i++) {
       clock.advance(const Duration(milliseconds: 16));

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:fgmap/core/location/location_service.dart';
 import 'package:fgmap/core/storage/preferences.dart';
 import 'package:fgmap/features/map/presentation/map_screen.dart';
@@ -225,6 +227,72 @@ void main() {
       await finish(tester);
     },
   );
+
+  testWidgets(
+    'butang zum +/-: kamera terus mengikut kenderaan (tidak dilepaskan)',
+    (tester) async {
+      await pumpScreen(tester);
+      await planRoute(tester);
+      await tester.tap(find.byKey(const ValueKey('nav-simulate')));
+      await tester.pump();
+      for (var i = 0; i < 3; i++) {
+        await tester.pump(const Duration(seconds: 1));
+      }
+      final before = map.camera.moveToCalls.length;
+
+      await tester.tap(find.byIcon(Icons.add_rounded));
+      await tester.pump();
+      await tester.tap(find.byIcon(Icons.remove_rounded));
+      await tester.pump();
+      for (var i = 0; i < 3; i++) {
+        await tester.pump(const Duration(seconds: 1));
+      }
+
+      // Tidak masuk mod bebas: tiada butang Pusatkan, kamera masih dipacu setiap bingkai, dan
+      // zum tidak dilaras terus pada peta (pemacu yang melaraskannya).
+      expect(find.byType(RecenterButton), findsNothing);
+      expect(map.camera.zoomByCalls, isEmpty);
+      expect(map.camera.moveToCalls.length, greaterThan(before));
+      await finish(tester);
+    },
+  );
+
+  testWidgets(
+    'GPS lambat selesai SELEPAS navigasi bermula: kamera tidak diterbangkan ke lokasi sebenar',
+    (tester) async {
+      final slowFix = Completer<void>();
+      location.currentFixGate = slowFix;
+      await pumpScreen(tester);
+      await planRoute(tester);
+      await tester.tap(find.byKey(const ValueKey('nav-simulate')));
+      await tester.pump();
+      for (var i = 0; i < 3; i++) {
+        await tester.pump(const Duration(seconds: 1));
+      }
+      expect(map.camera.flyToCalls, isEmpty);
+
+      slowFix.complete();
+      await tester.pump(const Duration(seconds: 1));
+      expect(
+        map.camera.flyToCalls,
+        isEmpty,
+        reason: 'navigasi memiliki kamera; fix lewat tidak boleh menyentuhnya',
+      );
+      await finish(tester);
+    },
+  );
+
+  testWidgets('kontrol: tanpa navigasi, fix GPS lambat menerbangkan kamera', (
+    tester,
+  ) async {
+    final slowFix = Completer<void>();
+    location.currentFixGate = slowFix;
+    await pumpScreen(tester);
+    expect(map.camera.flyToCalls, isEmpty);
+    slowFix.complete();
+    await tester.pumpAndSettle();
+    expect(map.camera.flyToCalls, isNotEmpty);
+  });
 
   testWidgets('sampai: kad ketibaan, kemudian Selesai menutup navigasi', (
     tester,

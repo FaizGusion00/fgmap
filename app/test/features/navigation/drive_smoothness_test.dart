@@ -105,10 +105,21 @@ void main() {
         final north = (b.car.point.lat - b.cam.center.lat) * 111195;
         final theta = b.cam.bearing * math.pi / 180;
         final mpp = metersPerPixel(b.cam.zoom, b.cam.center.lat);
-        final forwardPx =
+        final groundForwardPx =
             (east * math.sin(theta) + north * math.cos(theta)) / mpp;
         final lateralPx =
             (east * math.cos(theta) - north * math.sin(theta)) / mpp;
+        // Kedudukan SEBENAR pada skrin: jarak di tanah dimampatkan perspektif kamera condong MapLibre
+        // (altitud 1.5 x tinggi, y = A.d.cos(t) / (A - d.sin(t))). Mengukur pada satah rata
+        // menyembunyikan kereta yang terlalu dekat tengah pada condongan kruis.
+        const altitudePx = 1.5 * 844;
+        final tiltRad = b.cam.tilt * math.pi / 180;
+        final groundBehindPx = -groundForwardPx;
+        final forwardPx =
+            -(altitudePx *
+                groundBehindPx *
+                math.cos(tiltRad) /
+                (altitudePx - groundBehindPx * math.sin(tiltRad)));
         if (prevForwardPx != null) {
           maxScreenJump = math.max(
             maxScreenJump,
@@ -151,14 +162,15 @@ void main() {
         lessThan(6),
         reason: 'kenderaan tersasar ke tepi skrin',
       );
+      // Sasaran: 19% tinggi skrin di bawah tengah (carScreenOffset), pada SEMUA condongan.
       expect(
         minForwardFrac,
-        greaterThan(0.03),
+        greaterThan(0.16),
         reason: 'kenderaan terlalu dekat tengah',
       );
       expect(
         maxForwardFrac,
-        lessThan(0.26),
+        lessThan(0.22),
         reason: 'kenderaan terlalu dekat bawah',
       );
       expect(

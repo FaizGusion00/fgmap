@@ -70,6 +70,20 @@ class NavigationFrameDriver {
   /// apabila peta digerakkan di luar kawalan kita (cth. isyarat pengguna).
   static const _heartbeatFrames = 30;
 
+  /// Tambahan zum pilihan pengguna (butang +/-) di atas zum automatik. Kekal sepanjang perjalanan.
+  double _zoomBias = 0;
+  double get zoomBias => _zoomBias;
+
+  static const _minZoomBias = -3.0;
+  static const _maxZoomBias = 2.0;
+
+  /// Laraskan zum SAMBIL terus mengikut kenderaan. Menekan +/- tidak boleh melepaskan kamera:
+  /// dahulu ia dikira sebagai pengguna menggerakkan peta, jadi kamera berhenti mengikut selama 10 s
+  /// dan kenderaan hanyut dari kedudukannya.
+  void nudgeZoom(double amount) {
+    _zoomBias = (_zoomBias + amount).clamp(_minZoomBias, _maxZoomBias);
+  }
+
   /// Pengguna menggerakkan peta.
   void userInteracted() {
     _lastInteraction = clock();
@@ -152,6 +166,7 @@ class NavigationFrameDriver {
       nextKind: pose.onRoute ? next?.kind : null,
       viewportHeightPx: viewportHeight(),
       mode: cameraMode(),
+      zoomBias: _zoomBias,
     );
     if (!_sameCamera(_sentCamera, target) ||
         ++_cameraSkipped >= _heartbeatFrames) {

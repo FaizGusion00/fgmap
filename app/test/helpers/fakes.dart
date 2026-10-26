@@ -39,7 +39,17 @@ class FakeLocationService implements LocationService {
     Duration timeout = const Duration(seconds: 8),
     double maxAccuracyMeters =
         GeolocatorLocationService.defaultMaxAccuracyMeters,
-  }) async => accessValue == LocationAccess.granted ? fix : null;
+  }) async {
+    // GPS lambat: hanya panggilan PERTAMA selepas [currentFixGate] ditetapkan ditahan (cth. fix
+    // permulaan app), supaya panggilan lain (merancang laluan) tidak ikut tersekat.
+    final gate = currentFixGate;
+    currentFixGate = null;
+    await gate?.future;
+    return accessValue == LocationAccess.granted ? fix : null;
+  }
+
+  /// Jika ditetapkan, panggilan [currentFix] seterusnya menunggu sehingga ia selesai.
+  Completer<void>? currentFixGate;
 
   /// Fix terakhir diketahui (boleh lapuk); null = peranti belum pernah ada fix.
   LocationFix? lastKnown;

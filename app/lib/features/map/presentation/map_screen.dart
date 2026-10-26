@@ -136,13 +136,20 @@ class _MapScreenState extends ConsumerState<MapScreen>
     if (mounted && !_incomingLocationReceived) _idle.engage();
   }
 
+  /// Navigasi memiliki kamera sepenuhnya. Semua operasi tak segerak yang menggerakkan kamera
+  /// (menunggu GPS sehingga 12 s, menunggu peta siap) mesti menyemak ini SELEPAS setiap `await`;
+  /// jika tidak, ia boleh menerbangkan kamera ke lokasi sebenar di tengah navigasi dan melawan
+  /// pemacu bingkai.
+  bool get _navigationOwnsCamera =>
+      ref.read(navigationControllerProvider).isActive;
+
   /// Letakkan kamera pada pengguna: lokasi terakhir diketahui dahulu (serta-merta), kemudian fix segar.
   Future<void> _centerOnUser() async {
     final last = await ref.read(locationServiceProvider).lastKnownFix();
-    if (!mounted) return;
+    if (!mounted || _navigationOwnsCamera) return;
     if (last != null && !_incomingLocationReceived) {
       final camera = await _camera.future;
-      if (!mounted) return;
+      if (!mounted || _navigationOwnsCamera) return;
       await camera.flyTo(last.point, zoom: 15);
     }
     await _flyToUser(alreadyAt: last?.point);
@@ -204,7 +211,8 @@ class _MapScreenState extends ConsumerState<MapScreen>
     final fix = await ref
         .read(locationServiceProvider)
         .currentFix(timeout: const Duration(seconds: 12));
-    if (!mounted || (!showFailure && _incomingLocationReceived)) return;
+    if (!mounted || _navigationOwnsCamera) return;
+    if (!showFailure && _incomingLocationReceived) return;
     if (fix != null &&
         alreadyAt != null &&
         distanceMeters(alreadyAt, fix.point) < 30) {
@@ -221,6 +229,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
       return;
     }
     final camera = await _camera.future;
+    if (!mounted || _navigationOwnsCamera) return;
     await camera.flyTo(fix.point, zoom: 15);
     final accuracy = fix.accuracyMeters;
     if (showFailure && mounted && accuracy != null) {
@@ -238,8 +247,14 @@ class _MapScreenState extends ConsumerState<MapScreen>
   Future<void> _zoomMap(double amount) async {
     final camera = await _camera.future;
     if (!mounted) return;
+    final driver = _driver;
+    if (driver != null && driver.follow.value == NavFollow.following) {
+      // Sedang mengikut kenderaan: laras zum dalam pemacu (kamera terus mengikut).
+      driver.nudgeZoom(amount);
+      return;
+    }
     if (ref.read(navigationControllerProvider).isActive) {
-      _driver?.userInteracted();
+      driver?.userInteracted();
     }
     await camera.zoomBy(amount);
   }
@@ -558,7 +573,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
   /// kad pilihan lebih tinggi daripada lembaran satu laluan, dan membesar mengikut saiz teks sistem.
   Future<void> _fitRoutes(RouteReady ready) async {
     final camera = await _camera.future;
-    if (!mounted) return;
+    if (!mounted || _navigationOwnsCamera) return;
     final media = MediaQuery.of(context);
     final sheetHeight =
         (ready.options.length > 1 ? 420.0 : 360.0) *

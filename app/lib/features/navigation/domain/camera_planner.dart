@@ -164,6 +164,30 @@ CameraTarget planCamera(CameraSituation s) {
   }
 }
 
+/// Kedudukan menegak kenderaan di bawah tengah skrin, sebagai pecahan tinggi skrin (0.19 = kenderaan
+/// di 69% dari atas). Cukup rendah untuk melihat jalan di hadapan, cukup tinggi untuk tidak tertutup
+/// panel bawah.
+const carScreenOffset = 0.19;
+
+/// Altitud kamera MapLibre sebagai gandaan tinggi viewport (medan pandang ~36.87 darjah).
+const _cameraAltitude = 1.5;
+
+/// Jarak di atas tanah (piksel pada skala pusat kamera) dari kenderaan ke pusat kamera supaya
+/// kenderaan muncul tepat [carScreenOffset] di bawah tengah skrin pada condongan [tiltDegrees].
+///
+/// Tanpa condongan ia sekadar `offset x tinggi`. Dengan condongan, perspektif memampatkan jarak di
+/// hadapan pusat, jadi jarak di tanah perlu LEBIH besar (bukan lebih kecil) untuk hasil skrin yang
+/// sama. Unjuran kamera condong: y = A.d.cos(t) / (A - d.sin(t)) (A = altitud, d = jarak tanah);
+/// ini ialah songsangannya.
+double groundOffsetPx(double tiltDegrees, double viewportHeightPx) {
+  final t = tiltDegrees.clamp(0.0, 60.0) * math.pi / 180;
+  const f = carScreenOffset;
+  return _cameraAltitude *
+      f *
+      viewportHeightPx /
+      (_cameraAltitude * math.cos(t) + f * math.sin(t));
+}
+
 /// Peredam kritikal tanpa terlajak (SmoothDamp): bebas kadar bingkai dan stabil pada dt besar.
 class _Damped {
   _Damped(this.value);
@@ -246,6 +270,7 @@ class CameraRig {
     required ManeuverKind? nextKind,
     required double viewportHeightPx,
     NavCameraMode mode = NavCameraMode.auto,
+    double zoomBias = 0,
   }) {
     final safeDt = dt.clamp(0.0, 0.25);
 
@@ -266,25 +291,29 @@ class CameraRig {
       ),
     );
 
+    // Pilihan zum pengguna (butang +/-) ditambah pada zum automatik, jadi ia kekal bila kelajuan dan
+    // manuver berubah, dan kamera terus mengikut kenderaan.
+    final goalZoom = (target.zoom + zoomBias).clamp(2.0, 20.0);
+
     final k = responsiveness;
     // Had kelajuan perubahan: zum 1.0 tahap/saat, condongan 24 darjah/saat. Peredam sahaja tidak
     // cukup apabila sasaran melompat (selepas bulatan, tilt sasaran melonjak dari 12 ke 56).
     // Perubahan besar (masuk navigasi, pusatkan semula) dibenarkan lebih pantas.
-    final zoomSpeed = (_zoom.value - target.zoom).abs() > 1.5 ? 4.0 : 1.0;
-    _zoom.update(target.zoom, 0.9 / k, safeDt, maxSpeed: zoomSpeed * k);
+    final zoomSpeed = (_zoom.value - goalZoom).abs() > 1.5 ? 4.0 : 1.0;
+    _zoom.update(goalZoom, 0.9 / k, safeDt, maxSpeed: zoomSpeed * k);
     _tilt.update(target.tilt, 0.9 / k, safeDt, maxSpeed: 24.0 * k);
     // Arah mengikut jalan lebih pantas supaya peta berputar bersama selekoh, tetapi tetap lembut.
     final bearingGoal =
         _bearing.value + angleDelta(_bearing.value, vehicleBearing);
     _bearing.update(bearingGoal, 0.45 / k, safeDt);
 
-    // Kenderaan sekitar 22% tinggi skrin di bawah tengah (kurang apabila condong: perspektif
-    // memampatkan jarak jauh).
-    final fraction = 0.21 - 0.07 * (_tilt.value / 60).clamp(0.0, 1.0);
-    // Ofset ialah fungsi zum dan condongan yang SUDAH dilicinkan, jadi kenderaan kekal pada kedudukan
-    // skrin yang sama walaupun zum berubah; tidak perlu dilicinkan lagi (itu menyebabkan lonjakan).
+    // Pusat kamera diletakkan di hadapan kenderaan supaya kenderaan duduk pada [carScreenOffset]
+    // di bawah tengah skrin pada SEMUA condongan dan zum (lihat [groundOffsetPx]). Ofset ialah fungsi
+    // zum dan condongan yang SUDAH dilicinkan, jadi kenderaan kekal pada kedudukan skrin yang sama
+    // walaupun zum berubah; tidak perlu dilicinkan lagi (itu menyebabkan lonjakan).
     final offsetM =
-        metersPerPixel(_zoom.value, vehicle.lat) * viewportHeightPx * fraction;
+        metersPerPixel(_zoom.value, vehicle.lat) *
+        groundOffsetPx(_tilt.value, viewportHeightPx);
 
     final bearing = normalizeBearing(_bearing.value);
     final navCenter = destinationPoint(vehicle, bearing, offsetM);
