@@ -1,6 +1,7 @@
 @Tags(['golden'])
 library;
 
+import 'package:fgmap/core/location/location_service.dart';
 import 'package:fgmap/core/storage/preferences.dart';
 import 'package:fgmap/core/theme/app_theme.dart';
 import 'package:fgmap/features/settings/presentation/settings_page.dart';
@@ -8,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../helpers/fakes.dart';
 import '../../helpers/pump_app.dart';
 
 void main() {
@@ -28,7 +30,12 @@ void main() {
           tester,
           const SettingsPage(),
           theme: entry.value,
-          overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            locationServiceProvider.overrideWithValue(
+              FakeLocationService(accessValue: LocationAccess.granted),
+            ),
+          ],
         );
         await tester.pumpAndSettle();
         await expectLater(
