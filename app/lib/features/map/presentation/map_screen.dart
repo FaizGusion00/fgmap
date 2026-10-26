@@ -564,7 +564,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        const Expanded(child: _AttributionLabel()),
+                        const Spacer(),
                         const SizedBox(width: 12),
                         Column(
                           mainAxisSize: MainAxisSize.min,
@@ -674,7 +674,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
                   if (progress != null && !arrived)
                     SpeedBubble(speedMps: progress.speedMps),
                   const SizedBox(width: 12),
-                  const Expanded(child: _AttributionLabel()),
+                  const Spacer(),
                   const SizedBox(width: 12),
                   if (!arrived)
                     Column(
@@ -924,54 +924,6 @@ class _SearchPill extends StatelessWidget {
                     ),
                   ),
                 ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Atribusi OpenStreetMap sentiasa boleh dicapai (keperluan lesen ODbL) melalui butang (i) kecil yang
-/// memaparkan teks penuh bila diketuk. Ia tidak bergantung pada butang atribusi asli peta yang boleh
-/// tertutup oleh lembaran bawah, dan tidak lagi memenuhi skrin dengan teks.
-class _AttributionLabel extends StatelessWidget {
-  const _AttributionLabel();
-
-  @override
-  Widget build(BuildContext context) {
-    final fg = context.fg;
-    final theme = Theme.of(context);
-    final text = AppLocalizations.of(context).mapAttribution;
-    return Align(
-      alignment: Alignment.bottomLeft,
-      child: Tooltip(
-        message: text,
-        child: Material(
-          color: fg.glassSurface,
-          shape: CircleBorder(side: BorderSide(color: fg.glassBorder)),
-          child: InkWell(
-            customBorder: const CircleBorder(),
-            onTap: () => showDialog<void>(
-              context: context,
-              builder: (ctx) => AlertDialog(
-                content: Text(text),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(ctx).pop(),
-                    child: Text(MaterialLocalizations.of(ctx).okButtonLabel),
-                  ),
-                ],
-              ),
-            ),
-            child: SizedBox(
-              width: 28,
-              height: 28,
-              child: Icon(
-                Icons.info_outline_rounded,
-                size: 16,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
               ),
             ),
           ),

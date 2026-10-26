@@ -34,9 +34,11 @@ class TripPlannerPage extends ConsumerStatefulWidget {
     String? initialDestinationQuery,
   }) {
     return Navigator.of(context).push<TripSelection>(
-      MaterialPageRoute(
+      PageRouteBuilder<TripSelection>(
         fullscreenDialog: true,
-        builder: (_) => TripPlannerPage(
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+        pageBuilder: (_, _, _) => TripPlannerPage(
           near: near,
           initialDestinationQuery: initialDestinationQuery,
         ),
@@ -62,6 +64,9 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
   void initState() {
     super.initState();
     final initialQuery = widget.initialDestinationQuery?.trim();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _destFocus.requestFocus();
+    });
     if (initialQuery != null && initialQuery.isNotEmpty) {
       _destText.text = initialQuery;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -168,72 +173,81 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-              child: Column(
-                children: [
-                  _FieldBox(
-                    label: l10n.tripFrom,
-                    icon: Icons.my_location_rounded,
-                    child: TextField(
-                      key: const ValueKey('origin-field'),
-                      controller: _originText,
-                      focusNode: _originFocus,
-                      textInputAction: TextInputAction.next,
-                      onChanged: (t) => _onChanged(_Field.origin, t),
-                      decoration: InputDecoration(
-                        hintText: l10n.myLocation,
-                        border: InputBorder.none,
-                        isDense: true,
-                      ),
-                      // "Lokasi saya" ialah nilai lalai, dipaparkan sebagai hint yang jelas.
-                      style: theme.textTheme.bodyLarge,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  _FieldBox(
-                    label: l10n.tripTo,
-                    icon: Icons.place_rounded,
-                    trailing: _destText.text.isEmpty
-                        ? null
-                        : IconButton(
-                            tooltip: l10n.searchClear,
-                            icon: const Icon(Icons.close_rounded),
-                            onPressed: () {
-                              _destText.clear();
-                              _onChanged(_Field.destination, '');
-                            },
+              padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 720),
+                  child: Column(
+                    children: [
+                      _FieldBox(
+                        label: l10n.tripFrom,
+                        icon: Icons.my_location_rounded,
+                        child: TextField(
+                          key: const ValueKey('origin-field'),
+                          controller: _originText,
+                          focusNode: _originFocus,
+                          textInputAction: TextInputAction.next,
+                          onChanged: (t) => _onChanged(_Field.origin, t),
+                          decoration: InputDecoration(
+                            hintText: l10n.myLocation,
+                            border: InputBorder.none,
+                            isDense: true,
                           ),
-                    child: TextField(
-                      key: const ValueKey('destination-field'),
-                      controller: _destText,
-                      focusNode: _destFocus,
-                      autofocus: true,
-                      textInputAction: TextInputAction.search,
-                      onChanged: (t) => _onChanged(_Field.destination, t),
-                      decoration: InputDecoration(
-                        hintText: l10n.searchHint,
-                        border: InputBorder.none,
-                        isDense: true,
+                          style: theme.textTheme.bodyLarge,
+                        ),
                       ),
-                      style: theme.textTheme.bodyLarge,
-                    ),
+                      const SizedBox(height: 8),
+                      _FieldBox(
+                        label: l10n.tripTo,
+                        icon: Icons.place_rounded,
+                        trailing: _destText.text.isEmpty
+                            ? null
+                            : IconButton(
+                                tooltip: l10n.searchClear,
+                                icon: const Icon(Icons.close_rounded),
+                                onPressed: () {
+                                  _destText.clear();
+                                  _onChanged(_Field.destination, '');
+                                },
+                              ),
+                        child: TextField(
+                          key: const ValueKey('destination-field'),
+                          controller: _destText,
+                          focusNode: _destFocus,
+                          textInputAction: TextInputAction.search,
+                          onChanged: (t) => _onChanged(_Field.destination, t),
+                          decoration: InputDecoration(
+                            hintText: l10n.searchHint,
+                            border: InputBorder.none,
+                            isDense: true,
+                          ),
+                          style: theme.textTheme.bodyLarge,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
             const Divider(),
             Expanded(
-              child: _ResultsList(
-                state: search,
-                history: history,
-                showMyLocation: _active == _Field.origin,
-                onMyLocation: _useMyLocation,
-                onPick: _pick,
-                onClearHistory: () =>
-                    ref.read(searchHistoryControllerProvider.notifier).clear(),
-                onRetry: () => ref
-                    .read(placeSearchControllerProvider.notifier)
-                    .retry(near: widget.near),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 720),
+                  child: _ResultsList(
+                    state: search,
+                    history: history,
+                    showMyLocation: _active == _Field.origin,
+                    onMyLocation: _useMyLocation,
+                    onPick: _pick,
+                    onClearHistory: () => ref
+                        .read(searchHistoryControllerProvider.notifier)
+                        .clear(),
+                    onRetry: () => ref
+                        .read(placeSearchControllerProvider.notifier)
+                        .retry(near: widget.near),
+                  ),
+                ),
               ),
             ),
           ],
@@ -269,13 +283,13 @@ class _FieldBox extends StatelessWidget {
           border: Border.all(color: theme.colorScheme.outline),
         ),
         child: Padding(
-          padding: const EdgeInsets.only(left: 14, right: 4),
+          padding: const EdgeInsets.only(left: 12, right: 4),
           child: Row(
             children: [
               Icon(icon, size: 20, color: theme.colorScheme.onSurfaceVariant),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
               SizedBox(
-                width: 44,
+                width: 40,
                 child: Text(
                   label,
                   style: theme.textTheme.labelMedium?.copyWith(
@@ -285,7 +299,7 @@ class _FieldBox extends StatelessWidget {
               ),
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  padding: const EdgeInsets.symmetric(vertical: 11),
                   child: child,
                 ),
               ),

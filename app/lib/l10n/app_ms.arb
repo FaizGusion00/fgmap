@@ -81,6 +81,23 @@
   },
   "appearanceTooltip": "Paparan",
   "appearanceTitle": "Paparan",
+  "aboutTitle": "Tentang FGMap",
+  "aboutDescription": "Aplikasi navigasi komuniti Malaysia",
+  "aboutVersion": "Versi",
+  "aboutVersionLoading": "Memuatkan…",
+  "aboutVersionUnavailable": "Maklumat versi tidak tersedia",
+  "aboutDeveloper": "Dibangunkan oleh",
+  "aboutDeveloperName": "Faiz Nasir",
+  "aboutOwner": "Dimiliki oleh",
+  "aboutOwnerName": "FG Universal Empire Company",
+  "aboutCopyright": "© {year} FG Universal Empire Company. Hak cipta terpelihara.",
+  "@aboutCopyright": {
+    "placeholders": {
+      "year": {
+        "type": "int"
+      }
+    }
+  },
   "themeSystem": "Ikut sistem",
   "themeLight": "Cerah",
   "themeDark": "Gelap",

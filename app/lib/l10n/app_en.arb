@@ -43,6 +43,23 @@
   "durationHoursMinutes": "{hours} h {minutes} min",
   "appearanceTooltip": "Appearance",
   "appearanceTitle": "Appearance",
+  "aboutTitle": "About FGMap",
+  "aboutDescription": "Community navigation for Malaysia",
+  "aboutVersion": "Version",
+  "aboutVersionLoading": "Loading…",
+  "aboutVersionUnavailable": "Version information unavailable",
+  "aboutDeveloper": "Developed by",
+  "aboutDeveloperName": "Faiz Nasir",
+  "aboutOwner": "Owned by",
+  "aboutOwnerName": "FG Universal Empire Company",
+  "aboutCopyright": "© {year} FG Universal Empire Company. All rights reserved.",
+  "@aboutCopyright": {
+    "placeholders": {
+      "year": {
+        "type": "int"
+      }
+    }
+  },
   "themeSystem": "System",
   "themeLight": "Light",
   "themeDark": "Dark",

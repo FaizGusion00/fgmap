@@ -50,7 +50,7 @@ Port hos: API `8080`, Valhalla `8002`, PostGIS `5434` (5432 dan 5433 sering digu
 |---|---|
 | `API_BASE_URL` | `http://10.0.2.2:8080` (Android), `http://localhost:8080` (iOS) |
 | `MAP_STYLE_LIGHT` | `https://tiles.openfreemap.org/styles/liberty` |
-| `MAP_STYLE_DARK` | `https://tiles.openfreemap.org/styles/fiord` |
+| `MAP_STYLE_DARK` | `https://tiles.openfreemap.org/styles/dark` |
 | `OFFLINE_MANIFEST_URL` | `https://github.com/FaizGusion00/fgmap/releases/download/tiles/manifest.json` |
 
 Muat turun peta offline tersedia dalam binaan biasa selepas workflow `tiles` menerbitkan Release `tiles`

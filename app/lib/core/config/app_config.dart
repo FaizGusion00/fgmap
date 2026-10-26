@@ -40,7 +40,7 @@ abstract final class AppConfig {
 
   static const mapStyleDark = String.fromEnvironment(
     'MAP_STYLE_DARK',
-    defaultValue: 'https://tiles.openfreemap.org/styles/fiord',
+    defaultValue: 'https://tiles.openfreemap.org/styles/dark',
   );
 
   /// Pandangan awal: Kuala Lumpur.

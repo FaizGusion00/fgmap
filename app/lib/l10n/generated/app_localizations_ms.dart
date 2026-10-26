@@ -139,6 +139,38 @@ class AppLocalizationsMs extends AppLocalizations {
   String get appearanceTitle => 'Paparan';
 
   @override
+  String get aboutTitle => 'Tentang FGMap';
+
+  @override
+  String get aboutDescription => 'Aplikasi navigasi komuniti Malaysia';
+
+  @override
+  String get aboutVersion => 'Versi';
+
+  @override
+  String get aboutVersionLoading => 'Memuatkan…';
+
+  @override
+  String get aboutVersionUnavailable => 'Maklumat versi tidak tersedia';
+
+  @override
+  String get aboutDeveloper => 'Dibangunkan oleh';
+
+  @override
+  String get aboutDeveloperName => 'Faiz Nasir';
+
+  @override
+  String get aboutOwner => 'Dimiliki oleh';
+
+  @override
+  String get aboutOwnerName => 'FG Universal Empire Company';
+
+  @override
+  String aboutCopyright(int year) {
+    return '© $year FG Universal Empire Company. Hak cipta terpelihara.';
+  }
+
+  @override
   String get themeSystem => 'Ikut sistem';
 
   @override

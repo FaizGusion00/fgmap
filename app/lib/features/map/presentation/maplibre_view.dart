@@ -245,6 +245,8 @@ class _MapLibreViewState extends State<MapLibreView> {
       zoomGesturesEnabled: true,
       compassEnabled: true,
       logoEnabled: false,
+      attributionButtonPosition: AttributionButtonPosition.bottomLeft,
+      attributionButtonColor: cfg.colors.vehicle,
     );
     // Sentiasa dibalut (walaupun tiada pendengar): jika pokok widget berubah bentuk apabila navigasi
     // bermula, peta dicipta semula dan kawalan kamera lama menuding ke saluran platform yang sudah mati.

@@ -16,7 +16,7 @@ Fasa 0 hingga beta menggunakan **OpenFreeMap** (percuma, tanpa API key, tiada ha
 | Tema | Gaya | URL (lalai, boleh ditimpa) |
 |---|---|---|
 | Cerah | liberty | `https://tiles.openfreemap.org/styles/liberty` |
-| Gelap | fiord | `https://tiles.openfreemap.org/styles/fiord` |
+| Gelap | dark | `https://tiles.openfreemap.org/styles/dark` |
 
 Kedua-dua URL datang daripada `AppConfig` (`--dart-define=MAP_STYLE_LIGHT=...`, `MAP_STYLE_DARK=...`).
 **Tiada URL tile di-hard-code di tempat lain.** Beralih hos mesti hanya perubahan konfigurasi.

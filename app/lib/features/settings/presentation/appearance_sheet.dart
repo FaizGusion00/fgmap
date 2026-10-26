@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/theme_controller.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import 'about_page.dart';
 
 Future<void> showAppearanceSheet(BuildContext context) {
   return showModalBottomSheet<void>(
@@ -23,6 +24,7 @@ class AppearanceSheet extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final settings = ref.watch(themeControllerProvider);
     final controller = ref.read(themeControllerProvider.notifier);
+    final navigator = Navigator.of(context);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
@@ -65,6 +67,26 @@ class AppearanceSheet extends ConsumerWidget {
             subtitle: Text(l10n.themeAmoledHint),
             value: settings.amoled,
             onChanged: controller.setAmoled,
+          ),
+          const Divider(height: 16),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.info_outline_rounded),
+            title: Text(l10n.aboutTitle),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () {
+              navigator.pop();
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!navigator.mounted) return;
+                navigator.push<void>(
+                  PageRouteBuilder<void>(
+                    transitionDuration: Duration.zero,
+                    reverseTransitionDuration: Duration.zero,
+                    pageBuilder: (_, _, _) => const AboutPage(),
+                  ),
+                );
+              });
+            },
           ),
         ],
       ),

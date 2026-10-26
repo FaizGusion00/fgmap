@@ -54,38 +54,32 @@ void main() {
     return ProviderScope.containerOf(tester.element(find.byType(MapScreen)));
   }
 
-  testWidgets(
-    'keadaan awal: petunjuk long-press, atribusi OSM dan butang lokasi kelihatan',
-    (tester) async {
-      await pumpScreen(tester);
+  testWidgets('keadaan awal: petunjuk long-press dan kawalan peta kelihatan', (
+    tester,
+  ) async {
+    await pumpScreen(tester);
 
-      expect(find.byKey(const ValueKey('fake-map')), findsOneWidget);
-      expect(
-        find.text('Tekan lama pada peta untuk pilih destinasi'),
-        findsOneWidget,
-      );
-      expect(
-        find.byTooltip('© penyumbang OpenStreetMap · OpenFreeMap'),
-        findsOneWidget,
-        reason: 'atribusi ODbL mesti boleh dicapai',
-      );
-      expect(find.byTooltip('Lokasi saya'), findsOneWidget);
-      expect(find.byTooltip('Zum masuk'), findsOneWidget);
-      expect(find.byTooltip('Zum keluar'), findsOneWidget);
-      expect(find.byTooltip('Paparan'), findsOneWidget);
-      expect(find.text('Mengira laluan…'), findsNothing);
-      // Regresi: chip petunjuk pernah berada di tengah skrin (Center dalam Row setinggi skrin).
-      expect(
-        tester
-            .getTopLeft(find.text('Tekan lama pada peta untuk pilih destinasi'))
-            .dy,
-        lessThan(150),
-        reason: 'petunjuk mesti di bahagian atas skrin',
-      );
-      expect(map.config!.routes, isEmpty);
-      expect(map.config!.destination, isNull);
-    },
-  );
+    expect(find.byKey(const ValueKey('fake-map')), findsOneWidget);
+    expect(
+      find.text('Tekan lama pada peta untuk pilih destinasi'),
+      findsOneWidget,
+    );
+    expect(find.byTooltip('Lokasi saya'), findsOneWidget);
+    expect(find.byTooltip('Zum masuk'), findsOneWidget);
+    expect(find.byTooltip('Zum keluar'), findsOneWidget);
+    expect(find.byTooltip('Paparan'), findsOneWidget);
+    expect(find.text('Mengira laluan…'), findsNothing);
+    // Regresi: chip petunjuk pernah berada di tengah skrin (Center dalam Row setinggi skrin).
+    expect(
+      tester
+          .getTopLeft(find.text('Tekan lama pada peta untuk pilih destinasi'))
+          .dy,
+      lessThan(150),
+      reason: 'petunjuk mesti di bahagian atas skrin',
+    );
+    expect(map.config!.routes, isEmpty);
+    expect(map.config!.destination, isNull);
+  });
 
   testWidgets('butang zum mengubah aras zum kamera', (tester) async {
     await pumpScreen(tester);
@@ -390,6 +384,20 @@ void main() {
   });
 
   group('tetapan paparan', () {
+    testWidgets('halaman About boleh dibuka dari tetapan', (tester) async {
+      await pumpScreen(tester);
+
+      await tester.tap(find.byTooltip('Paparan'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Tentang FGMap'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Dibangunkan oleh'), findsOneWidget);
+      expect(find.text('Faiz Nasir'), findsOneWidget);
+      expect(find.text('Dimiliki oleh'), findsOneWidget);
+      expect(find.text('FG Universal Empire Company'), findsOneWidget);
+    });
+
     testWidgets('memilih Gelap dan AMOLED menukar dan menyimpan tetapan', (
       tester,
     ) async {

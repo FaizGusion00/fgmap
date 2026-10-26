@@ -314,6 +314,66 @@ abstract class AppLocalizations {
   /// **'Paparan'**
   String get appearanceTitle;
 
+  /// No description provided for @aboutTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tentang FGMap'**
+  String get aboutTitle;
+
+  /// No description provided for @aboutDescription.
+  ///
+  /// In ms, this message translates to:
+  /// **'Aplikasi navigasi komuniti Malaysia'**
+  String get aboutDescription;
+
+  /// No description provided for @aboutVersion.
+  ///
+  /// In ms, this message translates to:
+  /// **'Versi'**
+  String get aboutVersion;
+
+  /// No description provided for @aboutVersionLoading.
+  ///
+  /// In ms, this message translates to:
+  /// **'Memuatkan…'**
+  String get aboutVersionLoading;
+
+  /// No description provided for @aboutVersionUnavailable.
+  ///
+  /// In ms, this message translates to:
+  /// **'Maklumat versi tidak tersedia'**
+  String get aboutVersionUnavailable;
+
+  /// No description provided for @aboutDeveloper.
+  ///
+  /// In ms, this message translates to:
+  /// **'Dibangunkan oleh'**
+  String get aboutDeveloper;
+
+  /// No description provided for @aboutDeveloperName.
+  ///
+  /// In ms, this message translates to:
+  /// **'Faiz Nasir'**
+  String get aboutDeveloperName;
+
+  /// No description provided for @aboutOwner.
+  ///
+  /// In ms, this message translates to:
+  /// **'Dimiliki oleh'**
+  String get aboutOwner;
+
+  /// No description provided for @aboutOwnerName.
+  ///
+  /// In ms, this message translates to:
+  /// **'FG Universal Empire Company'**
+  String get aboutOwnerName;
+
+  /// No description provided for @aboutCopyright.
+  ///
+  /// In ms, this message translates to:
+  /// **'© {year} FG Universal Empire Company. Hak cipta terpelihara.'**
+  String aboutCopyright(int year);
+
   /// No description provided for @themeSystem.
   ///
   /// In ms, this message translates to:
