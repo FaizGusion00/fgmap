@@ -15,6 +15,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/fakes.dart';
+import '../../helpers/legal_override.dart';
 import '../../helpers/pump_app.dart';
 
 void main() {
@@ -44,6 +45,7 @@ void main() {
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         locationServiceProvider.overrideWithValue(location),
+        legalTextOverride(),
       ],
     );
     await tester.pumpAndSettle();
@@ -179,4 +181,20 @@ void main() {
       expect(find.byKey(const ValueKey('fake-map')), findsOneWidget);
     });
   });
+
+  testWidgets(
+    'halaman privasi: persetujuan dengan pautan ke Terma dan Dasar Privasi',
+    (tester) async {
+      await pumpPage(tester);
+      await tester.tap(find.byKey(const ValueKey('onboarding-next')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('legal-consent')), findsOneWidget);
+      await tester.ensureVisible(find.byKey(const ValueKey('onb-privacy')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('onb-privacy')));
+      await tester.pumpAndSettle();
+      expect(find.text('Dasar Privasi'), findsWidgets);
+      expect(find.byKey(const ValueKey('legal-scroll')), findsOneWidget);
+    },
+  );
 }

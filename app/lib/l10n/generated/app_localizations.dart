@@ -1903,6 +1903,48 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'Sejarah carian, tempat disimpan, laporan dan data simpanan lokasi pada peranti ini.'**
   String get settingsClearAllHint;
+
+  /// No description provided for @legalPrivacyTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Dasar Privasi'**
+  String get legalPrivacyTitle;
+
+  /// No description provided for @legalTermsTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Terma Penggunaan'**
+  String get legalTermsTitle;
+
+  /// No description provided for @legalLoadFailed.
+  ///
+  /// In ms, this message translates to:
+  /// **'Dokumen tidak dapat dimuatkan.'**
+  String get legalLoadFailed;
+
+  /// No description provided for @legalDraftNotice.
+  ///
+  /// In ms, this message translates to:
+  /// **'Draf: dokumen ini belum disemak oleh peguam dan tidak boleh dianggap nasihat undang-undang.'**
+  String get legalDraftNotice;
+
+  /// No description provided for @legalConsent.
+  ///
+  /// In ms, this message translates to:
+  /// **'Dengan meneruskan, anda bersetuju dengan Terma Penggunaan dan Dasar Privasi.'**
+  String get legalConsent;
+
+  /// No description provided for @legalAttribution.
+  ///
+  /// In ms, this message translates to:
+  /// **'Data peta © penyumbang OpenStreetMap (ODbL). Gaya dan jubin: OpenFreeMap, OpenMapTiles. Laluan: Valhalla. Carian: Photon (komoot) dan Nominatim. Harga petrol: data.gov.my.'**
+  String get legalAttribution;
+
+  /// No description provided for @aboutAttributionTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Sumber data'**
+  String get aboutAttributionTitle;
 }
 
 class _AppLocalizationsDelegate

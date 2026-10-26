@@ -23,6 +23,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/fakes.dart';
+import '../../helpers/legal_override.dart';
 import '../../helpers/pump_app.dart';
 
 const _lotus = Place(
@@ -57,6 +58,7 @@ void main() {
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         locationServiceProvider.overrideWithValue(location),
+        legalTextOverride(),
       ],
     );
     await tester.pumpAndSettle();
@@ -240,6 +242,22 @@ void main() {
       await tester.pumpAndSettle();
       expect(c.read(searchHistoryControllerProvider), isEmpty);
       expect(find.text('Dipadam'), findsOneWidget);
+    });
+
+    testWidgets('Dasar Privasi dan Terma boleh dibuka daripada Tetapan', (
+      tester,
+    ) async {
+      await pumpPage(tester);
+      await openTile(tester, 'privacy-policy');
+      expect(find.byKey(const ValueKey('legal-scroll')), findsOneWidget);
+      expect(find.text('Dasar Privasi FGMaps'), findsOneWidget);
+      Navigator.of(
+        tester.element(find.byKey(const ValueKey('legal-scroll'))),
+      ).pop();
+      await tester.pumpAndSettle();
+
+      await openTile(tester, 'terms-of-use');
+      expect(find.text('Terma Penggunaan FGMaps'), findsOneWidget);
     });
 
     testWidgets(

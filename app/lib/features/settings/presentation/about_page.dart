@@ -112,6 +112,30 @@ class AboutPage extends ConsumerWidget {
                     ],
                   ),
                 ),
+                const SizedBox(height: 16),
+                Card(
+                  margin: EdgeInsets.zero,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      key: const ValueKey('about-attribution'),
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.aboutAttributionTitle,
+                          style: theme.textTheme.titleSmall,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          l10n.legalAttribution,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 20),
                 Text(
                   l10n.aboutCopyright(DateTime.now().year),

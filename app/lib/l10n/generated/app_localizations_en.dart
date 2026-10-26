@@ -1039,4 +1039,28 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsClearAllHint =>
       'Search history, saved places, reports and cached location data on this device.';
+
+  @override
+  String get legalPrivacyTitle => 'Privacy Policy';
+
+  @override
+  String get legalTermsTitle => 'Terms of Use';
+
+  @override
+  String get legalLoadFailed => 'The document could not be loaded.';
+
+  @override
+  String get legalDraftNotice =>
+      'Draft: this document has not been reviewed by a lawyer and is not legal advice.';
+
+  @override
+  String get legalConsent =>
+      'By continuing you agree to the Terms of Use and the Privacy Policy.';
+
+  @override
+  String get legalAttribution =>
+      'Map data © OpenStreetMap contributors (ODbL). Styles and tiles: OpenFreeMap, OpenMapTiles. Routing: Valhalla. Search: Photon (komoot) and Nominatim. Fuel prices: data.gov.my.';
+
+  @override
+  String get aboutAttributionTitle => 'Data sources';
 }

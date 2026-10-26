@@ -44,6 +44,7 @@ flutter:
     - assets/branding/fgmap-app-icon.png
     - assets/fonts/OFL-PlusJakartaSans.txt
     - assets/tolls/my_tolls.json
+    - assets/legal/
 
   fonts:
     # Fon variabel (paksi wght 200-800), dibundel supaya tidak dimuat turun masa jalan.

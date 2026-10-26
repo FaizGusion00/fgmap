@@ -560,5 +560,12 @@
     }
   },
   "settingsClearAll": "Padam semua data saya",
-  "settingsClearAllHint": "Sejarah carian, tempat disimpan, laporan dan data simpanan lokasi pada peranti ini."
+  "settingsClearAllHint": "Sejarah carian, tempat disimpan, laporan dan data simpanan lokasi pada peranti ini.",
+  "legalPrivacyTitle": "Dasar Privasi",
+  "legalTermsTitle": "Terma Penggunaan",
+  "legalLoadFailed": "Dokumen tidak dapat dimuatkan.",
+  "legalDraftNotice": "Draf: dokumen ini belum disemak oleh peguam dan tidak boleh dianggap nasihat undang-undang.",
+  "legalConsent": "Dengan meneruskan, anda bersetuju dengan Terma Penggunaan dan Dasar Privasi.",
+  "legalAttribution": "Data peta © penyumbang OpenStreetMap (ODbL). Gaya dan jubin: OpenFreeMap, OpenMapTiles. Laluan: Valhalla. Carian: Photon (komoot) dan Nominatim. Harga petrol: data.gov.my.",
+  "aboutAttributionTitle": "Sumber data"
 }

@@ -32,6 +32,9 @@ void main() {
     expect(find.text('1.2.3+42'), findsOneWidget);
     expect(find.text('Faiz Nasir'), findsOneWidget);
     expect(find.text('FG Universal Empire Company'), findsOneWidget);
+    expect(find.byKey(const ValueKey('about-attribution')), findsOneWidget);
+    expect(find.textContaining('OpenStreetMap'), findsOneWidget);
+    expect(find.textContaining('data.gov.my'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

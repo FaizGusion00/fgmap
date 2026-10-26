@@ -1040,4 +1040,28 @@ class AppLocalizationsMs extends AppLocalizations {
   @override
   String get settingsClearAllHint =>
       'Sejarah carian, tempat disimpan, laporan dan data simpanan lokasi pada peranti ini.';
+
+  @override
+  String get legalPrivacyTitle => 'Dasar Privasi';
+
+  @override
+  String get legalTermsTitle => 'Terma Penggunaan';
+
+  @override
+  String get legalLoadFailed => 'Dokumen tidak dapat dimuatkan.';
+
+  @override
+  String get legalDraftNotice =>
+      'Draf: dokumen ini belum disemak oleh peguam dan tidak boleh dianggap nasihat undang-undang.';
+
+  @override
+  String get legalConsent =>
+      'Dengan meneruskan, anda bersetuju dengan Terma Penggunaan dan Dasar Privasi.';
+
+  @override
+  String get legalAttribution =>
+      'Data peta © penyumbang OpenStreetMap (ODbL). Gaya dan jubin: OpenFreeMap, OpenMapTiles. Laluan: Valhalla. Carian: Photon (komoot) dan Nominatim. Harga petrol: data.gov.my.';
+
+  @override
+  String get aboutAttributionTitle => 'Sumber data';
 }

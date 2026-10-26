@@ -1,4 +1,4 @@
-.PHONY: help test analyze l10n tiles serve-tiles run-android release-android appbundle
+.PHONY: help test analyze l10n tiles serve-tiles run-android release-android appbundle check-legal
 
 help:
 	@echo "make test           ujian app (tanpa golden)"
@@ -9,6 +9,7 @@ help:
 	@echo "make run-android    jalankan app pada emulator dengan pek tile setempat"
 	@echo "make release-android  bina APK release (arm64 + armv7), dikaburkan, simbol dipisah; tandatangan: app/android/key.properties"
 	@echo "make appbundle      bina AAB untuk Play Store (WAJIB kunci release; gagal tanpanya)"
+	@echo "make check-legal    gagal jika butiran undang-undang masih [DIISI] atau belum disemak peguam"
 
 test:
 	cd app && flutter test --exclude-tags golden
@@ -53,5 +54,18 @@ release-android:
 # AAB untuk Play Store: kod Dart dikaburkan (simpan app/build/symbols untuk menyahobfuskan jejak ranap
 # dan muat naik ke Play Console). FGMAP_STORE_BUILD=1 menjadikan build GAGAL jika kunci release tiada,
 # supaya binari bertandatangan debug tidak pernah tersalah terbit.
-appbundle:
-	cd app && FGMAP_STORE_BUILD=1 flutter build appbundle --release --obfuscate --split-debug-info=build/symbols
+appbundle: check-legal
+	cd app && FGMAP_STORE_BUILD=1 flutter build appbundle --release --obfuscate --split-debug-info=build/symbols \
+		--dart-define=LEGAL_REVIEWED=$(LEGAL_REVIEWED) \
+		--dart-define=LEGAL_EMAIL=$(LEGAL_EMAIL) --dart-define=LEGAL_ADDRESS="$(LEGAL_ADDRESS)" \
+		--dart-define=LEGAL_REG_NO="$(LEGAL_REG_NO)"
+
+# Pintu pelancaran dokumen undang-undang. Isi pemboleh ubah: make appbundle LEGAL_EMAIL=... LEGAL_ADDRESS="..."
+# LEGAL_REG_NO=... LEGAL_REVIEWED=true  (LEGAL_REVIEWED=true HANYA selepas peguam menyemak dokumen).
+check-legal:
+	@missing=""; \
+	[ -n "$(LEGAL_EMAIL)" ] || missing="$$missing LEGAL_EMAIL"; \
+	[ -n "$(LEGAL_ADDRESS)" ] || missing="$$missing LEGAL_ADDRESS"; \
+	[ -n "$(LEGAL_REG_NO)" ] || missing="$$missing LEGAL_REG_NO"; \
+	[ "$(LEGAL_REVIEWED)" = "true" ] || missing="$$missing LEGAL_REVIEWED=true(semakan peguam)"; \
+	if [ -n "$$missing" ]; then echo "Dokumen undang-undang belum siap. Belum diisi:$$missing" >&2; exit 1; fi

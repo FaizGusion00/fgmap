@@ -15,6 +15,7 @@ import '../../offline_maps/presentation/offline_maps_sheet.dart';
 import '../../onboarding/data/onboarding_controller.dart';
 import '../../reports/presentation/reports_controller.dart';
 import '../../saved_places/data/saved_places_controller.dart';
+import '../../legal/presentation/legal_page.dart';
 import '../data/data_eraser.dart';
 import '../../saved_places/domain/saved_place.dart';
 import '../../saved_places/presentation/assign_place_flow.dart';
@@ -475,6 +476,22 @@ class _PrivacyGroup extends ConsumerWidget {
               context,
               ref.read(reportsControllerProvider.notifier).clear,
             ),
+          ),
+          ListTile(
+            key: const ValueKey('privacy-policy'),
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.policy_outlined),
+            title: Text(l10n.legalPrivacyTitle),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => unawaited(showLegalPage(context, LegalDoc.privacy)),
+          ),
+          ListTile(
+            key: const ValueKey('terms-of-use'),
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.gavel_outlined),
+            title: Text(l10n.legalTermsTitle),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => unawaited(showLegalPage(context, LegalDoc.terms)),
           ),
           const Divider(height: 24),
           ListTile(

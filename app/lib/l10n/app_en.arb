@@ -460,5 +460,12 @@
     }
   },
   "settingsClearAll": "Delete all my data",
-  "settingsClearAllHint": "Search history, saved places, reports and cached location data on this device."
+  "settingsClearAllHint": "Search history, saved places, reports and cached location data on this device.",
+  "legalPrivacyTitle": "Privacy Policy",
+  "legalTermsTitle": "Terms of Use",
+  "legalLoadFailed": "The document could not be loaded.",
+  "legalDraftNotice": "Draft: this document has not been reviewed by a lawyer and is not legal advice.",
+  "legalConsent": "By continuing you agree to the Terms of Use and the Privacy Policy.",
+  "legalAttribution": "Map data © OpenStreetMap contributors (ODbL). Styles and tiles: OpenFreeMap, OpenMapTiles. Routing: Valhalla. Search: Photon (komoot) and Nominatim. Fuel prices: data.gov.my.",
+  "aboutAttributionTitle": "Data sources"
 }
