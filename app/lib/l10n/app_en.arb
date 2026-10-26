@@ -222,6 +222,43 @@
   "placeOppositeSide": "opposite side of the road",
   "themeSun": "Sun",
   "themeSunHint": "Dark between sunset and sunrise at your location. Calculated on your device, no internet needed.",
+  "savedHome": "Home",
+  "savedWork": "Work",
+  "savedFavorite": "Favourite",
+  "savedSetHome": "Set home",
+  "savedSetWork": "Set work",
+  "savedSection": "Saved places",
+  "savedSaveTooltip": "Save place",
+  "savedSheetTitle": "Save as",
+  "savedChange": "Change",
+  "savedRemove": "Remove",
+  "savedTapToSet": "Tap to set",
+  "savedFavoriteAdd": "Add to favourites",
+  "savedFavoriteRemove": "Remove from favourites",
+  "savedAssigning": "Search for your {kind} address",
+  "@savedAssigning": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      }
+    }
+  },
+  "savedDone": "Saved as {label}",
+  "@savedDone": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "savedRemoved": "{label} removed",
+  "@savedRemoved": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
   "searchCategories": "Search nearby",
   "reportTitle": "Report here",
   "reportButtonTooltip": "Report",

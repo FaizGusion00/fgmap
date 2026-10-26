@@ -305,6 +305,43 @@
   "placeOppositeSide": "seberang jalan",
   "themeSun": "Matahari",
   "themeSunHint": "Gelap antara matahari terbenam dan terbit di lokasi anda. Dikira dalam peranti, tanpa internet.",
+  "savedHome": "Rumah",
+  "savedWork": "Kerja",
+  "savedFavorite": "Kegemaran",
+  "savedSetHome": "Tetapkan Rumah",
+  "savedSetWork": "Tetapkan Kerja",
+  "savedSection": "Tempat disimpan",
+  "savedSaveTooltip": "Simpan tempat",
+  "savedSheetTitle": "Simpan sebagai",
+  "savedChange": "Tukar",
+  "savedRemove": "Padam",
+  "savedTapToSet": "Ketik untuk tetapkan",
+  "savedFavoriteAdd": "Tambah ke kegemaran",
+  "savedFavoriteRemove": "Buang daripada kegemaran",
+  "savedAssigning": "Cari alamat {kind} anda",
+  "@savedAssigning": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      }
+    }
+  },
+  "savedDone": "Disimpan sebagai {label}",
+  "@savedDone": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "savedRemoved": "{label} dipadam",
+  "@savedRemoved": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
   "searchCategories": "Cari berhampiran",
   "reportTitle": "Laporkan di sini",
   "reportButtonTooltip": "Laporkan",

@@ -595,6 +595,60 @@ class AppLocalizationsEn extends AppLocalizations {
       'Dark between sunset and sunrise at your location. Calculated on your device, no internet needed.';
 
   @override
+  String get savedHome => 'Home';
+
+  @override
+  String get savedWork => 'Work';
+
+  @override
+  String get savedFavorite => 'Favourite';
+
+  @override
+  String get savedSetHome => 'Set home';
+
+  @override
+  String get savedSetWork => 'Set work';
+
+  @override
+  String get savedSection => 'Saved places';
+
+  @override
+  String get savedSaveTooltip => 'Save place';
+
+  @override
+  String get savedSheetTitle => 'Save as';
+
+  @override
+  String get savedChange => 'Change';
+
+  @override
+  String get savedRemove => 'Remove';
+
+  @override
+  String get savedTapToSet => 'Tap to set';
+
+  @override
+  String get savedFavoriteAdd => 'Add to favourites';
+
+  @override
+  String get savedFavoriteRemove => 'Remove from favourites';
+
+  @override
+  String savedAssigning(String kind) {
+    return 'Search for your $kind address';
+  }
+
+  @override
+  String savedDone(String label) {
+    return 'Saved as $label';
+  }
+
+  @override
+  String savedRemoved(String label) {
+    return '$label removed';
+  }
+
+  @override
   String get searchCategories => 'Search nearby';
 
   @override

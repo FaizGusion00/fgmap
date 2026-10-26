@@ -6,6 +6,8 @@ import 'package:fgmap/features/route_preview/domain/routing_failure.dart';
 import 'package:fgmap/core/storage/preferences.dart';
 import 'package:dio/dio.dart';
 import 'package:fgmap/core/utils/geo.dart';
+import 'package:fgmap/features/saved_places/data/saved_places_controller.dart';
+import 'package:fgmap/features/search/domain/place.dart';
 import 'package:fgmap/features/map/data/map_style_loader.dart';
 import 'package:fgmap/core/theme/theme_controller.dart';
 import 'package:fgmap/features/map/presentation/idle_follow.dart';
@@ -774,6 +776,76 @@ void main() {
       await tester.pumpAndSettle();
       expect(map.config!.styleUrl, AppConfig.mapStyleLight);
     });
+  });
+
+  group('Rumah/Kerja', () {
+    testWidgets(
+      'chip dipaparkan; yang belum ditetapkan membuka perancang tetapkan',
+      (tester) async {
+        await pumpScreen(tester);
+        expect(find.byKey(const ValueKey('shortcut-home')), findsOneWidget);
+        expect(find.byKey(const ValueKey('shortcut-work')), findsOneWidget);
+
+        await tester.tap(find.byKey(const ValueKey('shortcut-home')));
+        await tester.pumpAndSettle();
+        expect(find.text('Cari alamat Rumah anda'), findsWidgets);
+      },
+    );
+
+    testWidgets(
+      'Rumah yang ditetapkan terus mengira laluan dengan radius bangunan',
+      (tester) async {
+        final container = await pumpScreen(tester);
+        await container
+            .read(savedPlacesControllerProvider.notifier)
+            .setHome(
+              const Place(
+                name: "Lotus's Puncak Alam",
+                subtitle: '',
+                point: GeoPoint(3.2262, 101.4278),
+                osmType: 'W',
+                extentDiagonalM: 70,
+              ),
+            );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const ValueKey('shortcut-home')));
+        await tester.pumpAndSettle();
+
+        expect(repo.queries, isNotEmpty);
+        final query = repo.queries.first;
+        expect(query.destination, const GeoPoint(3.2262, 101.4278));
+        expect(query.destinationRadiusM, 35);
+        expect(query.destinationLabel, "Lotus's Puncak Alam");
+      },
+    );
+
+    testWidgets(
+      'butang simpan pada lembaran laluan membuka pilihan simpan sebagai',
+      (tester) async {
+        await pumpScreen(tester);
+        map.config!.onLongPress(klia);
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const ValueKey('save-destination')));
+        await tester.pumpAndSettle();
+        expect(find.text('Simpan sebagai'), findsOneWidget);
+        await tester.tap(find.byKey(const ValueKey('save-as-work')));
+        await tester.pumpAndSettle();
+
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(MapScreen)),
+        );
+        expect(
+          container
+              .read(savedPlacesControllerProvider.notifier)
+              .work!
+              .place
+              .point,
+          klia,
+        );
+      },
+    );
   });
 
   testWidgets('mod Matahari: disimpan, petunjuk dipaparkan, peta mengikut jam', (

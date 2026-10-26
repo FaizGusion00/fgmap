@@ -40,6 +40,9 @@ import '../../navigation/presentation/car/vehicle_overlay.dart';
 import '../../navigation/presentation/navigation_settings_sheet.dart';
 import 'idle_follow.dart';
 import 'location_prompt.dart';
+import '../../saved_places/domain/saved_place.dart';
+import '../../search/domain/place.dart';
+import '../../saved_places/presentation/save_place_sheet.dart';
 import '../data/map_style_loader.dart';
 import 'map_view.dart';
 import 'nav_route_line.dart';
@@ -333,12 +336,13 @@ class _MapScreenState extends ConsumerState<MapScreen>
   }
 
   /// Membuka perancang destinasi, kemudian mengira laluan dari lokasi pengguna.
-  Future<void> _openPlanner() async {
+  Future<void> _openPlanner({SavedKind? assign}) async {
     final user = _userPoint();
     final selection = await TripPlannerPage.open(
       context,
       near: user ?? _cameraCenterOrDefault(),
       userLocation: user,
+      assign: assign,
     );
     if (selection == null || !mounted) return;
     await _planSelection(selection);
@@ -623,6 +627,18 @@ class _MapScreenState extends ConsumerState<MapScreen>
     return controller.setCameraMode(next);
   }
 
+  /// Destinasi laluan semasa sebagai [Place] untuk disimpan; nama daripada label carian jika ada.
+  Place _destinationPlace(RouteReady ready) {
+    final point = ready.query.destination;
+    return Place(
+      name:
+          ready.query.destinationLabel ??
+          '${point.lat.toStringAsFixed(5)}, ${point.lng.toStringAsFixed(5)}',
+      subtitle: '',
+      point: point,
+    );
+  }
+
   /// Lokasi GPS yang sah (tidak lapuk), untuk mengutamakan hasil carian berhampiran dan memaparkan jarak.
   GeoPoint? _userPoint() {
     final tracked = _tracker.location.value;
@@ -846,6 +862,8 @@ class _MapScreenState extends ConsumerState<MapScreen>
                         onPick: (place) => unawaited(
                           _planSelection(TripSelection(destination: place)),
                         ),
+                        onAssign: (kind) =>
+                            unawaited(_openPlanner(assign: kind)),
                       ),
                     ],
                   ],
@@ -911,6 +929,14 @@ class _MapScreenState extends ConsumerState<MapScreen>
                                   unawaited(controller.setVehicle(v)),
                               onRetry: controller.retry,
                               onClear: controller.clear,
+                              onSave: state is RouteReady
+                                  ? () => unawaited(
+                                      showSavePlaceSheet(
+                                        context,
+                                        _destinationPlace(state),
+                                      ),
+                                    )
+                                  : null,
                               onOpenOfflineMaps: () =>
                                   showOfflineMapsSheet(context),
                               onStart: state is RouteReady

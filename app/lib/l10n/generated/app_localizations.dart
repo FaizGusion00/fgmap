@@ -1136,6 +1136,102 @@ abstract class AppLocalizations {
   /// **'Gelap antara matahari terbenam dan terbit di lokasi anda. Dikira dalam peranti, tanpa internet.'**
   String get themeSunHint;
 
+  /// No description provided for @savedHome.
+  ///
+  /// In ms, this message translates to:
+  /// **'Rumah'**
+  String get savedHome;
+
+  /// No description provided for @savedWork.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kerja'**
+  String get savedWork;
+
+  /// No description provided for @savedFavorite.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kegemaran'**
+  String get savedFavorite;
+
+  /// No description provided for @savedSetHome.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tetapkan Rumah'**
+  String get savedSetHome;
+
+  /// No description provided for @savedSetWork.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tetapkan Kerja'**
+  String get savedSetWork;
+
+  /// No description provided for @savedSection.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tempat disimpan'**
+  String get savedSection;
+
+  /// No description provided for @savedSaveTooltip.
+  ///
+  /// In ms, this message translates to:
+  /// **'Simpan tempat'**
+  String get savedSaveTooltip;
+
+  /// No description provided for @savedSheetTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Simpan sebagai'**
+  String get savedSheetTitle;
+
+  /// No description provided for @savedChange.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tukar'**
+  String get savedChange;
+
+  /// No description provided for @savedRemove.
+  ///
+  /// In ms, this message translates to:
+  /// **'Padam'**
+  String get savedRemove;
+
+  /// No description provided for @savedTapToSet.
+  ///
+  /// In ms, this message translates to:
+  /// **'Ketik untuk tetapkan'**
+  String get savedTapToSet;
+
+  /// No description provided for @savedFavoriteAdd.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tambah ke kegemaran'**
+  String get savedFavoriteAdd;
+
+  /// No description provided for @savedFavoriteRemove.
+  ///
+  /// In ms, this message translates to:
+  /// **'Buang daripada kegemaran'**
+  String get savedFavoriteRemove;
+
+  /// No description provided for @savedAssigning.
+  ///
+  /// In ms, this message translates to:
+  /// **'Cari alamat {kind} anda'**
+  String savedAssigning(String kind);
+
+  /// No description provided for @savedDone.
+  ///
+  /// In ms, this message translates to:
+  /// **'Disimpan sebagai {label}'**
+  String savedDone(String label);
+
+  /// No description provided for @savedRemoved.
+  ///
+  /// In ms, this message translates to:
+  /// **'{label} dipadam'**
+  String savedRemoved(String label);
+
   /// No description provided for @searchCategories.
   ///
   /// In ms, this message translates to:

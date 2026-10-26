@@ -23,6 +23,7 @@ class RouteSummarySheet extends StatelessWidget {
     this.onOpenOfflineMaps,
     this.onStart,
     this.onSimulate,
+    this.onSave,
     this.now,
   });
 
@@ -38,6 +39,9 @@ class RouteSummarySheet extends StatelessWidget {
   /// Tindakan utama pada laluan siap: mula navigasi dan simulasi. Kedua-duanya tersembunyi jika null.
   final VoidCallback? onStart;
   final VoidCallback? onSimulate;
+
+  /// Simpan destinasi (Rumah/Kerja/Kegemaran); butang bintang tersembunyi jika null.
+  final VoidCallback? onSave;
 
   /// Masa semasa untuk mengira waktu tiba; lalai `DateTime.now()`. Ujian golden menetapkannya.
   final DateTime? now;
@@ -91,6 +95,7 @@ class RouteSummarySheet extends StatelessWidget {
                       onClear: onClear,
                       onStart: onStart,
                       onSimulate: onSimulate,
+                      onSave: onSave,
                       now: now ?? DateTime.now(),
                     ),
                     RouteFailed() => _FailedBody(
@@ -178,6 +183,7 @@ class _ReadyBody extends StatelessWidget {
     required this.now,
     this.onStart,
     this.onSimulate,
+    this.onSave,
   });
 
   final RouteReady state;
@@ -186,6 +192,7 @@ class _ReadyBody extends StatelessWidget {
   final VoidCallback onClear;
   final VoidCallback? onStart;
   final VoidCallback? onSimulate;
+  final VoidCallback? onSave;
   final DateTime now;
 
   @override
@@ -285,6 +292,13 @@ class _ReadyBody extends StatelessWidget {
                 ],
               ),
             ),
+            if (onSave != null)
+              IconButton(
+                key: const ValueKey('save-destination'),
+                tooltip: l10n.savedSaveTooltip,
+                onPressed: onSave,
+                icon: const Icon(Icons.bookmark_add_outlined),
+              ),
             IconButton(
               tooltip: l10n.routeClear,
               onPressed: onClear,

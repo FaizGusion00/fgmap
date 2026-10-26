@@ -594,6 +594,60 @@ class AppLocalizationsMs extends AppLocalizations {
       'Gelap antara matahari terbenam dan terbit di lokasi anda. Dikira dalam peranti, tanpa internet.';
 
   @override
+  String get savedHome => 'Rumah';
+
+  @override
+  String get savedWork => 'Kerja';
+
+  @override
+  String get savedFavorite => 'Kegemaran';
+
+  @override
+  String get savedSetHome => 'Tetapkan Rumah';
+
+  @override
+  String get savedSetWork => 'Tetapkan Kerja';
+
+  @override
+  String get savedSection => 'Tempat disimpan';
+
+  @override
+  String get savedSaveTooltip => 'Simpan tempat';
+
+  @override
+  String get savedSheetTitle => 'Simpan sebagai';
+
+  @override
+  String get savedChange => 'Tukar';
+
+  @override
+  String get savedRemove => 'Padam';
+
+  @override
+  String get savedTapToSet => 'Ketik untuk tetapkan';
+
+  @override
+  String get savedFavoriteAdd => 'Tambah ke kegemaran';
+
+  @override
+  String get savedFavoriteRemove => 'Buang daripada kegemaran';
+
+  @override
+  String savedAssigning(String kind) {
+    return 'Cari alamat $kind anda';
+  }
+
+  @override
+  String savedDone(String label) {
+    return 'Disimpan sebagai $label';
+  }
+
+  @override
+  String savedRemoved(String label) {
+    return '$label dipadam';
+  }
+
+  @override
   String get searchCategories => 'Cari berhampiran';
 
   @override
