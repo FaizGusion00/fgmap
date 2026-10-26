@@ -2,6 +2,7 @@ import 'package:fgmap/app/app.dart';
 import 'package:fgmap/core/location/location_service.dart';
 import 'package:fgmap/core/storage/preferences.dart';
 import 'package:fgmap/features/map/presentation/idle_follow.dart';
+import 'package:fgmap/features/splash/data/splash_controller.dart';
 import 'package:fgmap/features/navigation/domain/instruction_text.dart';
 import 'package:fgmap/features/onboarding/data/onboarding_controller.dart';
 import 'package:fgmap/features/onboarding/presentation/onboarding_page.dart';
@@ -144,6 +145,7 @@ void main() {
         ProviderScope(
           overrides: [
             map.override,
+            splashDoneProvider.overrideWith(SplashAlreadyDone.new),
             sharedPreferencesProvider.overrideWithValue(prefs),
             locationServiceProvider.overrideWithValue(location),
             idleRecenterAfterProvider.overrideWithValue(

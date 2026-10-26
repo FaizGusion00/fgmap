@@ -881,7 +881,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
         children: [
           Positioned.fill(
             child: style == null
-                ? ColoredBox(color: theme.scaffoldBackgroundColor)
+                ? const _MapLoading()
                 : ref.watch(mapViewBuilderProvider)(context, config),
           ),
           if (navigating && _driver != null)
@@ -1446,6 +1446,66 @@ class _SearchPill extends StatelessWidget {
                   ),
                 ),
               ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Pemegang tempat semasa gaya peta dimuat (biasanya sudah siap oleh splash): latar tema dengan logo
+/// yang berdenyut perlahan, bukan skrin kosong.
+class _MapLoading extends StatefulWidget {
+  const _MapLoading();
+
+  @override
+  State<_MapLoading> createState() => _MapLoadingState();
+}
+
+class _MapLoadingState extends State<_MapLoading>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1400),
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _pulse.stop();
+    } else if (!_pulse.isAnimating) {
+      _pulse.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ColoredBox(
+      key: const ValueKey('map-loading'),
+      color: theme.scaffoldBackgroundColor,
+      child: Center(
+        child: AnimatedBuilder(
+          animation: _pulse,
+          builder: (context, child) => Opacity(
+            opacity: 0.55 + 0.45 * Curves.easeInOut.transform(_pulse.value),
+            child: child,
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(18),
+            child: Image.asset(
+              'assets/branding/fgmap-app-icon.png',
+              width: 72,
+              height: 72,
+              cacheWidth: 144,
             ),
           ),
         ),

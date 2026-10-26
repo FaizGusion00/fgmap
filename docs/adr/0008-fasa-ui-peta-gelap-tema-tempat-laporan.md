@@ -42,6 +42,17 @@ kekal tanpa server (ADR 0004), peta gelap yang jelas, Auto-ikut-matahari, Rumah/
 8. **Animasi**: `PressScale` (0.97) pada butang kaca/Mula/pil carian; `Motion.sheet` (pegas redaman kritikal, tanpa lajak)
    untuk lembaran laluan; semua menghormati Reduce Motion (sistem atau tetapan app).
 
+## Tambahan 0.4.1: splash animasi dan peralihan
+
+- **Splash asli** berwarna biru laut jenama (#173B78) untuk cerah dan gelap (`flutter_native_splash`), jadi tiada
+  kilat putih/gelap sebelum splash animasi yang bermula dengan warna sama.
+- **Splash animasi** (`features/splash`, ~1.9 s): laluan teal dilukis dari titik mula (geometri disalin daripada SVG
+  ikon), penanda mendarat dengan gelombang, nama app dan tagline muncul. Ketuk untuk langkau; Reduce Motion: logo
+  statik 0.6 s. Gaya peta dimuat dahulu semasa splash. Dipaparkan sekali setiap permulaan app (bukan disimpan),
+  melalui `redirect` penghala; kemudian pudar ke sambutan atau peta.
+- **Masuk berperingkat** (`FadeSlideIn`) pada senarai perancang, sejarah dan kumpulan tetapan; peralihan skrin penuh
+  `fadeThroughRoute` (Tetapan, Tentang); pemegang tempat peta yang berdenyut (logo) menggantikan skrin kosong.
+
 ## Tidak dibuat dan sebabnya
 
 - **Animasi "draw-in" laluan, Hero, menu jejari laporan:** tidak dapat disahkan lancar tanpa peranti; risiko kelipan

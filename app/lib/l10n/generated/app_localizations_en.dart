@@ -834,6 +834,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsLicences => 'Open-source licences';
 
   @override
+  String get splashTagline => 'Community navigation for Malaysia';
+
+  @override
   String get searchCategories => 'Search nearby';
 
   @override

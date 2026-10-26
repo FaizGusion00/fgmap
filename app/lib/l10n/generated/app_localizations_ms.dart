@@ -834,6 +834,9 @@ class AppLocalizationsMs extends AppLocalizations {
   String get settingsLicences => 'Lesen sumber terbuka';
 
   @override
+  String get splashTagline => 'Navigasi komuniti Malaysia';
+
+  @override
   String get searchCategories => 'Cari berhampiran';
 
   @override

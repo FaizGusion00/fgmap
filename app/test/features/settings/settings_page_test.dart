@@ -7,6 +7,7 @@ import 'package:fgmap/core/utils/haptics.dart';
 import 'package:fgmap/features/map/data/map_style_loader.dart';
 import 'package:fgmap/core/utils/geo.dart';
 import 'package:fgmap/features/map/presentation/idle_follow.dart';
+import 'package:fgmap/features/splash/data/splash_controller.dart';
 import 'package:fgmap/features/map/presentation/map_screen.dart';
 import 'package:fgmap/features/navigation/data/navigation_settings.dart';
 import 'package:fgmap/features/onboarding/data/onboarding_controller.dart';
@@ -266,6 +267,7 @@ void main() {
         ProviderScope(
           overrides: [
             map.override,
+            splashDoneProvider.overrideWith(SplashAlreadyDone.new),
             sharedPreferencesProvider.overrideWithValue(prefs),
             locationServiceProvider.overrideWithValue(location),
             idleRecenterAfterProvider.overrideWithValue(

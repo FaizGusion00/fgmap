@@ -1,3 +1,4 @@
+import 'package:fgmap/features/splash/data/splash_controller.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
@@ -234,4 +235,10 @@ class RecordingPlanner implements RoutePlanner {
     if (failure != null) throw failure;
     return _result!;
   }
+}
+
+/// Splash animasi dianggap sudah selesai (ujian yang bukan tentang splash tidak perlu menunggunya).
+class SplashAlreadyDone extends SplashController {
+  @override
+  bool build() => true;
 }
