@@ -81,6 +81,7 @@ class FakeCamera implements MapCameraController {
   GeoPoint? center = const GeoPoint(3.139, 101.687);
 
   final List<(GeoPoint, double)> flyToCalls = [];
+  final List<double> zoomByCalls = [];
   final List<(List<GeoPoint>, EdgeInsets)> fitToCalls = [];
   final List<CameraPose> moveToCalls = [];
   final List<VehicleMarker?> vehicleCalls = [];
@@ -113,6 +114,20 @@ class FakeCamera implements MapCameraController {
   @override
   Future<void> flyTo(GeoPoint target, {double zoom = 15}) async =>
       flyToCalls.add((target, zoom));
+
+  @override
+  Future<void> zoomBy(double amount) async {
+    zoomByCalls.add(amount);
+    final current = pose;
+    if (current != null) {
+      pose = CameraPose(
+        center: current.center,
+        zoom: current.zoom + amount,
+        tilt: current.tilt,
+        bearing: current.bearing,
+      );
+    }
+  }
 
   @override
   Future<void> fitTo(

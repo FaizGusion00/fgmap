@@ -105,15 +105,47 @@ void main() {
       },
     );
 
-    test('tanpa nama dan alamat -> dibuang', () {
-      expect(
-        parsePhotonResponse(
-          _collection([
-            _feature(props: {'city': 'Kuala Lumpur'}),
-          ]),
-        ),
-        isEmpty,
+    test('nama kawasan digunakan apabila tiada nama atau alamat jalan', () {
+      final places = parsePhotonResponse(
+        _collection([
+          _feature(props: {'city': 'Kuala Lumpur'}),
+        ]),
       );
+      expect(places.single.name, 'Kuala Lumpur');
+    });
+
+    test('butiran alamat penuh termasuk suburb, postcode dan negara', () {
+      final places = parsePhotonResponse(
+        _collection([
+          _feature(
+            props: {
+              'name': 'FG Tower',
+              'street': 'Jalan Ampang',
+              'housenumber': '12',
+              'suburb': 'Kampung Baru',
+              'city': 'Kuala Lumpur',
+              'postcode': '50450',
+              'country': 'Malaysia',
+            },
+          ),
+        ]),
+      );
+
+      expect(
+        places.single.subtitle,
+        '12 Jalan Ampang, Kampung Baru, Kuala Lumpur, 50450, Malaysia',
+      );
+    });
+
+    test('locality boleh menjadi nama hasil', () {
+      final places = parsePhotonResponse(
+        _collection([
+          _feature(props: {'locality': 'Alam Perdana', 'state': 'Selangor'}),
+        ]),
+      );
+
+      expect(places.single.name, 'Alam Perdana');
+      expect(places.single.subtitle, 'Selangor');
     });
 
     final bad = <String, Object?>{
@@ -161,7 +193,7 @@ void main() {
     Dio dioWith(HttpClientAdapter a) => Dio()..httpClientAdapter = a;
 
     test(
-      'menghantar q, bbox Malaysia, lang dan kecenderungan lokasi; menghurai hasil',
+      'menghantar q, carian global, lang dan kecenderungan lokasi; menghurai hasil',
       () async {
         final adapter = StubAdapter(
           (_) => StubAdapter.text(
@@ -184,11 +216,11 @@ void main() {
         final uri = adapter.lastRequest!.uri;
         expect(uri.host, 'photon.test');
         expect(uri.queryParameters['q'], 'petronas', reason: 'dipangkas');
-        expect(uri.queryParameters['bbox'], malaysiaBbox);
+        expect(uri.queryParameters.containsKey('bbox'), isFalse);
         expect(uri.queryParameters['lang'], 'en');
         expect(uri.queryParameters['lat'], '3.14');
         expect(uri.queryParameters['lon'], '101.69');
-        expect(uri.queryParameters['limit'], '8');
+        expect(uri.queryParameters['limit'], '12');
       },
     );
 

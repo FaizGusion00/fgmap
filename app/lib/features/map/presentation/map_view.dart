@@ -13,6 +13,9 @@ abstract interface class MapCameraController {
 
   Future<void> flyTo(GeoPoint target, {double zoom});
 
+  /// Laraskan zum kamera tanpa menukar pusat peta.
+  Future<void> zoomBy(double amount);
+
   /// Muatkan semua [points] dalam pandangan, dengan ruang tambahan [padding] (piksel logikal)
   /// untuk elemen UI yang menutup peta, cth. lembaran bawah.
   Future<void> fitTo(List<GeoPoint> points, {EdgeInsets padding});

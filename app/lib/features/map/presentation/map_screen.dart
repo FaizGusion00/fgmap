@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' show ImageFilter;
 
+import 'package:app_links/app_links.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
@@ -9,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/app_config.dart';
 import '../../../core/location/location_service.dart';
+import '../../../core/network/dio_provider.dart';
 import '../../../core/theme/fgmap_theme_extension.dart';
 import '../../../core/theme/motion.dart';
 import '../../../core/utils/geo.dart';
@@ -16,6 +19,7 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../route_preview/presentation/route_preview_controller.dart';
 import '../../route_preview/presentation/route_summary_sheet.dart';
 import '../../offline_maps/presentation/offline_maps_sheet.dart';
+import '../../search/domain/location_link.dart';
 import '../../search/presentation/trip_planner_page.dart';
 import '../../settings/presentation/appearance_sheet.dart';
 import '../../navigation/data/location_sources.dart';
@@ -41,14 +45,23 @@ class _MapScreenState extends ConsumerState<MapScreen>
     with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   /// Selesai apabila pandangan peta memberi kawalan kamera.
   final Completer<MapCameraController> _camera = Completer();
+  final AppLinks _appLinks = AppLinks();
+  StreamSubscription<Uri>? _linkSubscription;
   bool _hintDismissed = false;
   bool _startupLocationHandled = false;
+  bool _incomingLocationReceived = false;
   bool _locating = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _linkSubscription = _appLinks.uriLinkStream.listen(
+      (uri) => unawaited(_openSharedLocation(uri)),
+      onError: (Object error, StackTrace stackTrace) {
+        debugPrint('Incoming location link failed: $error');
+      },
+    );
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => _handleStartupLocation(),
     );
@@ -58,6 +71,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
   void dispose() {
     _ticker?.dispose();
     _driver?.dispose();
+    unawaited(_linkSubscription?.cancel());
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -67,6 +81,14 @@ class _MapScreenState extends ConsumerState<MapScreen>
     // Pengguna mungkin menukar kebenaran di Tetapan sistem lalu kembali.
     if (state == AppLifecycleState.resumed) {
       ref.read(locationAccessProvider.notifier).refresh();
+      final navigation = ref.read(navigationControllerProvider);
+      if (navigation.phase == NavPhase.active && !navigation.simulated) {
+        unawaited(
+          ref
+              .read(navigationControllerProvider.notifier)
+              .refreshCurrentLocation(),
+        );
+      }
     }
   }
 
@@ -85,7 +107,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
     final fix = await ref
         .read(locationServiceProvider)
         .currentFix(timeout: const Duration(seconds: 12));
-    if (!mounted) return;
+    if (!mounted || (!showFailure && _incomingLocationReceived)) return;
     if (fix == null) {
       if (showFailure) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -109,6 +131,15 @@ class _MapScreenState extends ConsumerState<MapScreen>
         ),
       );
     }
+  }
+
+  Future<void> _zoomMap(double amount) async {
+    final camera = await _camera.future;
+    if (!mounted) return;
+    if (ref.read(navigationControllerProvider).isActive) {
+      _driver?.userInteracted();
+    }
+    await camera.zoomBy(amount);
   }
 
   Future<void> _onMyLocationPressed() async {
@@ -137,6 +168,11 @@ class _MapScreenState extends ConsumerState<MapScreen>
     final near = _cameraCenterOrDefault();
     final selection = await TripPlannerPage.open(context, near: near);
     if (selection == null || !mounted) return;
+    await _planSelection(selection, near);
+  }
+
+  Future<void> _planSelection(TripSelection selection, GeoPoint near) async {
+    if (!mounted) return;
     setState(() => _hintDismissed = true);
     await ref
         .read(routePreviewControllerProvider.notifier)
@@ -148,6 +184,90 @@ class _MapScreenState extends ConsumerState<MapScreen>
           destinationLabel: selection.destination.name,
         );
   }
+
+  Future<void> _openSharedLocation(Uri uri) async {
+    var shared = sharedLocationFromUri(uri);
+    if (shared != null || _isShortMapLink(uri)) {
+      _incomingLocationReceived = true;
+    }
+    if (shared == null && _isShortMapLink(uri)) {
+      try {
+        final response = await ref
+            .read(dioProvider)
+            .headUri<Object?>(
+              uri,
+              options: Options(followRedirects: true, maxRedirects: 5),
+            );
+        final resolved = response.realUri;
+        if (_isSupportedMapLink(resolved)) {
+          shared = sharedLocationFromUri(resolved);
+        }
+      } on DioException catch (error) {
+        debugPrint('Shared map link could not be resolved: ${error.type.name}');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(AppLocalizations.of(context).routeErrorNetwork),
+            ),
+          );
+        }
+        return;
+      }
+    }
+    if (shared == null || !mounted) return;
+    if (ref.read(navigationControllerProvider).isActive) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context).sharedLocationStopNavigation,
+          ),
+        ),
+      );
+      return;
+    }
+
+    final near = _cameraCenterOrDefault();
+    final point = shared.point;
+    if (point != null) {
+      setState(() => _hintDismissed = true);
+      await ref
+          .read(routePreviewControllerProvider.notifier)
+          .planTo(
+            point,
+            mapCenter: near,
+            destinationLabel:
+                shared.label ??
+                '${point.lat.toStringAsFixed(5)}, ${point.lng.toStringAsFixed(5)}',
+          );
+      return;
+    }
+
+    final query = shared.label;
+    if (query == null || query.isEmpty) return;
+    final selection = await TripPlannerPage.open(
+      context,
+      near: near,
+      initialDestinationQuery: query,
+    );
+    if (selection != null) await _planSelection(selection, near);
+  }
+
+  static bool _isShortMapLink(Uri uri) =>
+      uri.scheme == 'https' &&
+      const {'maps.app.goo.gl', 'goo.gl'}.contains(uri.host.toLowerCase());
+
+  static bool _isSupportedMapLink(Uri uri) =>
+      const {'http', 'https'}.contains(uri.scheme) &&
+      const {
+        'google.com',
+        'www.google.com',
+        'maps.google.com',
+        'maps.app.goo.gl',
+        'goo.gl',
+        'waze.com',
+        'www.waze.com',
+        'maps.apple.com',
+      }.contains(uri.host.toLowerCase());
 
   // ---- Navigasi ----
 
@@ -446,11 +566,21 @@ class _MapScreenState extends ConsumerState<MapScreen>
                       children: [
                         const Expanded(child: _AttributionLabel()),
                         const SizedBox(width: 12),
-                        _GlassIconButton(
-                          icon: Icons.my_location_rounded,
-                          tooltip: l10n.myLocation,
-                          onPressed: _onMyLocationPressed,
-                          loading: _locating,
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _MapZoomControls(
+                              onZoomIn: () => unawaited(_zoomMap(1)),
+                              onZoomOut: () => unawaited(_zoomMap(-1)),
+                            ),
+                            const SizedBox(height: 8),
+                            _GlassIconButton(
+                              icon: Icons.my_location_rounded,
+                              tooltip: l10n.myLocation,
+                              onPressed: _onMyLocationPressed,
+                              loading: _locating,
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -554,6 +684,11 @@ class _MapScreenState extends ConsumerState<MapScreen>
                           RecenterButton(onPressed: () => _driver?.recenter()),
                           const SizedBox(height: 12),
                         ],
+                        _MapZoomControls(
+                          onZoomIn: () => unawaited(_zoomMap(1)),
+                          onZoomOut: () => unawaited(_zoomMap(-1)),
+                        ),
+                        const SizedBox(height: 8),
                         NavSideButtons(
                           voiceEnabled: settings.voiceEnabled,
                           cameraMode: settings.cameraMode,
@@ -637,6 +772,57 @@ class _GlassIconButton extends StatelessWidget {
               )
             : Icon(icon),
         color: Theme.of(context).colorScheme.onSurface,
+      ),
+    );
+  }
+}
+
+class _MapZoomControls extends StatelessWidget {
+  const _MapZoomControls({required this.onZoomIn, required this.onZoomOut});
+
+  final VoidCallback onZoomIn;
+  final VoidCallback onZoomOut;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final fg = context.fg;
+    final theme = Theme.of(context);
+    return Material(
+      color: fg.glassSurface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+        side: BorderSide(color: fg.glassBorder),
+      ),
+      elevation: 2,
+      shadowColor: Colors.black.withValues(alpha: 0.16),
+      child: SizedBox(
+        width: 48,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              tooltip: l10n.mapZoomIn,
+              onPressed: onZoomIn,
+              icon: const Icon(Icons.add_rounded),
+              color: theme.colorScheme.onSurface,
+              visualDensity: VisualDensity.compact,
+            ),
+            Divider(
+              height: 1,
+              indent: 10,
+              endIndent: 10,
+              color: fg.glassBorder,
+            ),
+            IconButton(
+              tooltip: l10n.mapZoomOut,
+              onPressed: onZoomOut,
+              icon: const Icon(Icons.remove_rounded),
+              color: theme.colorScheme.onSurface,
+              visualDensity: VisualDensity.compact,
+            ),
+          ],
+        ),
       ),
     );
   }

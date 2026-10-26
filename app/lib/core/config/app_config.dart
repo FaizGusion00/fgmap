@@ -35,12 +35,12 @@ abstract final class AppConfig {
 
   static const mapStyleLight = String.fromEnvironment(
     'MAP_STYLE_LIGHT',
-    defaultValue: 'https://tiles.openfreemap.org/styles/positron',
+    defaultValue: 'https://tiles.openfreemap.org/styles/liberty',
   );
 
   static const mapStyleDark = String.fromEnvironment(
     'MAP_STYLE_DARK',
-    defaultValue: 'https://tiles.openfreemap.org/styles/dark',
+    defaultValue: 'https://tiles.openfreemap.org/styles/fiord',
   );
 
   /// Pandangan awal: Kuala Lumpur.

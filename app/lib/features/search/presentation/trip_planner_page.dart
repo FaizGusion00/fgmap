@@ -6,6 +6,7 @@ import '../../../core/utils/geo.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../domain/place.dart';
 import 'place_search_controller.dart';
+import 'search_history_controller.dart';
 
 /// Keputusan perancang perjalanan. [origin] null bermaksud "lokasi saya".
 @immutable
@@ -21,16 +22,24 @@ enum _Field { origin, destination }
 /// Halaman penuh untuk memilih asal dan destinasi (Bahagian 14.4 pelan, skrin 3). Asal lalai ialah
 /// "Lokasi saya"; keduanya boleh dicari.
 class TripPlannerPage extends ConsumerStatefulWidget {
-  const TripPlannerPage({super.key, this.near});
+  const TripPlannerPage({super.key, this.near, this.initialDestinationQuery});
 
   /// Pusat peta/lokasi semasa, untuk mengutamakan hasil berhampiran.
   final GeoPoint? near;
+  final String? initialDestinationQuery;
 
-  static Future<TripSelection?> open(BuildContext context, {GeoPoint? near}) {
+  static Future<TripSelection?> open(
+    BuildContext context, {
+    GeoPoint? near,
+    String? initialDestinationQuery,
+  }) {
     return Navigator.of(context).push<TripSelection>(
       MaterialPageRoute(
         fullscreenDialog: true,
-        builder: (_) => TripPlannerPage(near: near),
+        builder: (_) => TripPlannerPage(
+          near: near,
+          initialDestinationQuery: initialDestinationQuery,
+        ),
       ),
     );
   }
@@ -52,6 +61,16 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
   @override
   void initState() {
     super.initState();
+    final initialQuery = widget.initialDestinationQuery?.trim();
+    if (initialQuery != null && initialQuery.isNotEmpty) {
+      _destText.text = initialQuery;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ref
+            .read(placeSearchControllerProvider.notifier)
+            .onQueryChanged(initialQuery, near: widget.near);
+      });
+    }
     _originFocus.addListener(() => _onFocus(_Field.origin, _originFocus));
     _destFocus.addListener(() => _onFocus(_Field.destination, _destFocus));
   }
@@ -91,6 +110,7 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
 
   void _pick(Place place) {
     HapticFeedback.selectionClick();
+    ref.read(searchHistoryControllerProvider.notifier).record(place);
     if (_active == _Field.origin) {
       _origin = place;
       _originText.text = place.name;
@@ -136,6 +156,7 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final search = ref.watch(placeSearchControllerProvider);
+    final history = ref.watch(searchHistoryControllerProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -204,9 +225,12 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
             Expanded(
               child: _ResultsList(
                 state: search,
+                history: history,
                 showMyLocation: _active == _Field.origin,
                 onMyLocation: _useMyLocation,
                 onPick: _pick,
+                onClearHistory: () =>
+                    ref.read(searchHistoryControllerProvider.notifier).clear(),
                 onRetry: () => ref
                     .read(placeSearchControllerProvider.notifier)
                     .retry(near: widget.near),
@@ -277,16 +301,20 @@ class _FieldBox extends StatelessWidget {
 class _ResultsList extends StatelessWidget {
   const _ResultsList({
     required this.state,
+    required this.history,
     required this.showMyLocation,
     required this.onMyLocation,
     required this.onPick,
+    required this.onClearHistory,
     required this.onRetry,
   });
 
   final PlaceSearchState state;
+  final List<Place> history;
   final bool showMyLocation;
   final VoidCallback onMyLocation;
   final ValueChanged<Place> onPick;
+  final VoidCallback onClearHistory;
   final VoidCallback onRetry;
 
   @override
@@ -308,10 +336,43 @@ class _ResultsList extends StatelessWidget {
     ];
 
     final Widget body = switch (state.status) {
-      SearchStatus.idle => _Message(
-        icon: Icons.search_rounded,
-        text: l10n.searchPrompt,
-      ),
+      SearchStatus.idle =>
+        history.isEmpty
+            ? _Message(icon: Icons.search_rounded, text: l10n.searchPrompt)
+            : Column(
+                children: [
+                  ListTile(
+                    title: Text(l10n.searchHistory),
+                    trailing: TextButton(
+                      onPressed: onClearHistory,
+                      child: Text(l10n.searchClearHistory),
+                    ),
+                  ),
+                  for (final place in history)
+                    ListTile(
+                      key: ValueKey(
+                        'history-${place.point.lat}-${place.point.lng}',
+                      ),
+                      leading: Icon(
+                        _iconFor(place.category),
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      title: Text(
+                        place.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: place.subtitle.isEmpty
+                          ? null
+                          : Text(
+                              place.subtitle,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                      onTap: () => onPick(place),
+                    ),
+                ],
+              ),
       SearchStatus.loading => const Padding(
         padding: EdgeInsets.only(top: 24),
         child: Center(

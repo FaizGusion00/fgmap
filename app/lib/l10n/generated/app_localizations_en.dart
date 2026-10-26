@@ -15,6 +15,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mapHintLongPress => 'Long-press the map to choose a destination';
 
   @override
+  String get mapZoomIn => 'Zoom in';
+
+  @override
+  String get mapZoomOut => 'Zoom out';
+
+  @override
   String get myLocation => 'My location';
 
   @override
@@ -299,6 +305,16 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get searchPrompt =>
       'Type a place, street or address. You can also long-press the map.';
+
+  @override
+  String get searchHistory => 'Recent places';
+
+  @override
+  String get searchClearHistory => 'Clear history';
+
+  @override
+  String get sharedLocationStopNavigation =>
+      'End the current navigation before opening a shared destination.';
 
   @override
   String searchNoResults(String query) {

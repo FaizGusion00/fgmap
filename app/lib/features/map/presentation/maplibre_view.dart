@@ -242,6 +242,7 @@ class _MapLibreViewState extends State<MapLibreView> {
           cfg.onLongPress(GeoPoint(latLng.latitude, latLng.longitude)),
       myLocationEnabled: cfg.showUserLocation,
       trackCameraPosition: true,
+      zoomGesturesEnabled: true,
       compassEnabled: true,
       logoEnabled: false,
     );
@@ -342,6 +343,17 @@ class _MapLibreCamera implements MapCameraController {
     await _controller.animateCamera(
       CameraUpdate.newLatLngZoom(LatLng(target.lat, target.lng), zoom),
       duration: Motion.emphasized,
+    );
+  }
+
+  @override
+  Future<void> zoomBy(double amount) async {
+    final currentZoom = pose?.zoom ?? 11;
+    final targetZoom = (currentZoom + amount).clamp(2.0, 20.0).toDouble();
+    if (targetZoom == currentZoom) return;
+    await _controller.animateCamera(
+      CameraUpdate.zoomBy(targetZoom - currentZoom),
+      duration: Motion.normal,
     );
   }
 

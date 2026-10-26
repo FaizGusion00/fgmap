@@ -38,6 +38,9 @@ flutter run --dart-define=API_BASE_URL=http://<IP-LAN-MAC>:8080   # peranti fizi
 ```
 
 Tekan lama pada peta untuk memilih destinasi. Laluan dikira dari lokasi anda (atau pusat peta jika lokasi tiada).
+Carian tempat menggunakan Photon di seluruh dunia dan menyimpan sehingga 10 tempat terkini pada peranti.
+Di Android, pautan koordinat `geo:`, Google Maps dan Waze yang dikongsi boleh dibuka dalam FGMap untuk melihat
+pratonton laluan; navigasi hanya bermula selepas pengguna menekan **Mula**.
 
 Port hos: API `8080`, Valhalla `8002`, PostGIS `5434` (5432 dan 5433 sering digunakan oleh projek lain).
 
@@ -46,8 +49,8 @@ Port hos: API `8080`, Valhalla `8002`, PostGIS `5434` (5432 dan 5433 sering digu
 | Nama | Lalai |
 |---|---|
 | `API_BASE_URL` | `http://10.0.2.2:8080` (Android), `http://localhost:8080` (iOS) |
-| `MAP_STYLE_LIGHT` | `https://tiles.openfreemap.org/styles/positron` |
-| `MAP_STYLE_DARK` | `https://tiles.openfreemap.org/styles/dark` |
+| `MAP_STYLE_LIGHT` | `https://tiles.openfreemap.org/styles/liberty` |
+| `MAP_STYLE_DARK` | `https://tiles.openfreemap.org/styles/fiord` |
 | `OFFLINE_MANIFEST_URL` | `https://github.com/FaizGusion00/fgmap/releases/download/tiles/manifest.json` |
 
 Muat turun peta offline tersedia dalam binaan biasa selepas workflow `tiles` menerbitkan Release `tiles`
@@ -93,5 +96,5 @@ Selepas mengubah `api/openapi.yaml` atau fail `.arb`: `make gen`. CI gagal jika 
 
 ## Belum dalam Fasa 0
 
-Auth, laporan komuniti, WebSocket, carian (Photon), navigasi belok demi belok, suara, trafik, peta offline,
-cache laluan, circuit breaker, gaya peta tersuai, Auto-ikut-matahari. Lihat Bahagian 18 pelan.
+Auth, laporan komuniti, WebSocket, trafik, cache laluan, circuit breaker, gaya peta tersuai,
+Auto-ikut-matahari. Lihat Bahagian 18 pelan.

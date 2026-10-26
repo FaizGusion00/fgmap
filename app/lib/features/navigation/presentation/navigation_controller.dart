@@ -100,6 +100,7 @@ class NavigationController extends Notifier<NavigationState> {
   Timer? _ticker;
   int _generation = 0;
   bool _reroutePending = false;
+  bool _refreshingLocation = false;
   VoiceLanguage _uiLanguage = VoiceLanguage.ms;
 
   @override
@@ -222,8 +223,34 @@ class NavigationController extends Notifier<NavigationState> {
       unawaited(ref.read(screenAwakeProvider).disable());
       return;
     }
+
     final request = update.reroute;
     if (request != null) unawaited(_reroute(request));
+  }
+
+  /// Resume the current route from a fresh fix when the app returns to foreground.
+  /// The live location stream remains authoritative; duplicate fixes are filtered by the session.
+  Future<void> refreshCurrentLocation() async {
+    if (_refreshingLocation ||
+        state.phase != NavPhase.active ||
+        state.simulated) {
+      return;
+    }
+    _refreshingLocation = true;
+    final generation = _generation;
+    try {
+      final fix = await ref
+          .read(locationServiceProvider)
+          .currentFix(
+            timeout: const Duration(seconds: 5),
+            maxAccuracyMeters: 35,
+          );
+      if (fix != null && generation == _generation && ref.mounted) {
+        _onFix(fix);
+      }
+    } finally {
+      _refreshingLocation = false;
+    }
   }
 
   Future<void> _reroute(RerouteRequest request) async {

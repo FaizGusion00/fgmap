@@ -9,11 +9,6 @@ import '../../../core/network/response_text.dart';
 import '../../../core/utils/geo.dart';
 import '../domain/place.dart';
 
-/// Kotak sempadan Malaysia (barat, selatan, timur, utara) supaya hasil dihadkan kepada Malaysia
-/// (cukup luas untuk Semenanjung, Sabah dan Sarawak; sedikit termasuk Singapura dan Brunei, yang
-/// juga dalam data peta).
-const malaysiaBbox = '99.6,0.8,119.3,7.4';
-
 abstract interface class Geocoder {
   /// Mencari tempat. [near] memberi keutamaan kepada hasil yang hampir (bukan penapis).
   Future<List<Place>> search(
@@ -26,7 +21,7 @@ abstract interface class Geocoder {
 /// Carian tempat melalui Photon awam (komoot). Dasar penggunaan wajar: tiada had keras diterbitkan,
 /// tetapi pengguna diminta tidak membanjiri; pemanggil mesti debounce dan membatalkan permintaan lapuk.
 class PhotonGeocoder implements Geocoder {
-  PhotonGeocoder(this._dio, this._url, {this.limit = 8});
+  PhotonGeocoder(this._dio, this._url, {this.limit = 12});
 
   final Dio _dio;
   final String _url;
@@ -50,7 +45,6 @@ class PhotonGeocoder implements Geocoder {
           'limit': limit,
           // Photon hanya menyokong default/en/de/fr/it; "en" memberi nama tempatan jika tiada terjemahan.
           'lang': 'en',
-          'bbox': malaysiaBbox,
           if (near != null) ...{'lat': near.lat, 'lon': near.lng},
         },
         options: Options(
@@ -136,16 +130,32 @@ Place? _placeOf(Object? feature) {
   final streetLine = street == null
       ? null
       : (house == null ? street : '$house $street');
-  final name = s('name') ?? streetLine;
+  final name =
+      s('name') ??
+      streetLine ??
+      s('locality') ??
+      s('suburb') ??
+      s('district') ??
+      s('city') ??
+      s('county') ??
+      s('state');
   if (name == null) return null;
 
-  final subtitle = <String>[
-    // Jalan hanya jika nama bukan jalan itu sendiri.
-    if (s('name') != null && streetLine != null) streetLine,
+  final subtitleParts = <String>[
+    if (s('name') != null) ?streetLine,
+    ?s('suburb'),
+    ?s('locality'),
     ?s('district'),
     ?s('city'),
+    ?s('county'),
     ?s('state'),
-  ].where((p) => p != name).toSet().join(', ');
+    ?s('postcode'),
+    ?s('country'),
+  ];
+  final seen = {name.toLowerCase()};
+  final subtitle = subtitleParts
+      .where((part) => seen.add(part.toLowerCase()))
+      .join(', ');
 
   return Place(
     name: name,

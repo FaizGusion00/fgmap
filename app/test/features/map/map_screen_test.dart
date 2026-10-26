@@ -70,6 +70,8 @@ void main() {
         reason: 'atribusi ODbL mesti boleh dicapai',
       );
       expect(find.byTooltip('Lokasi saya'), findsOneWidget);
+      expect(find.byTooltip('Zum masuk'), findsOneWidget);
+      expect(find.byTooltip('Zum keluar'), findsOneWidget);
       expect(find.byTooltip('Paparan'), findsOneWidget);
       expect(find.text('Mengira laluan…'), findsNothing);
       // Regresi: chip petunjuk pernah berada di tengah skrin (Center dalam Row setinggi skrin).
@@ -84,6 +86,17 @@ void main() {
       expect(map.config!.destination, isNull);
     },
   );
+
+  testWidgets('butang zum mengubah aras zum kamera', (tester) async {
+    await pumpScreen(tester);
+
+    await tester.tap(find.byTooltip('Zum masuk'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Zum keluar'));
+    await tester.pumpAndSettle();
+
+    expect(map.camera.zoomByCalls, [1, -1]);
+  });
 
   testWidgets(
     'long-press -> laluan dikira, lembaran dipaparkan, peta menerima laluan dan destinasi',

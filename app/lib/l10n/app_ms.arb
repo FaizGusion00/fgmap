@@ -2,6 +2,8 @@
   "@@locale": "ms",
   "appName": "FGMap",
   "mapHintLongPress": "Tekan lama pada peta untuk pilih destinasi",
+  "mapZoomIn": "Zum masuk",
+  "mapZoomOut": "Zum keluar",
   "myLocation": "Lokasi saya",
   "locationFixUnavailable": "GPS belum dapat lokasi yang cukup tepat. Pergi ke kawasan terbuka dan cuba lagi.",
   "locationAccuracy": "Anggaran ketepatan lokasi ±{meters} m",
@@ -162,6 +164,9 @@
   "searchPillHint": "Cari destinasi",
   "searchClear": "Kosongkan",
   "searchPrompt": "Taip nama tempat, jalan atau alamat. Anda juga boleh tekan lama pada peta.",
+  "searchHistory": "Tempat terkini",
+  "searchClearHistory": "Padam sejarah",
+  "sharedLocationStopNavigation": "Tamatkan navigasi semasa sebelum membuka destinasi yang dikongsi.",
   "searchNoResults": "Tiada hasil untuk “{query}”.",
   "@searchNoResults": {
     "placeholders": {

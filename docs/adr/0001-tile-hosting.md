@@ -15,14 +15,14 @@ Fasa 0 hingga beta menggunakan **OpenFreeMap** (percuma, tanpa API key, tiada ha
 
 | Tema | Gaya | URL (lalai, boleh ditimpa) |
 |---|---|---|
-| Cerah | positron | `https://tiles.openfreemap.org/styles/positron` |
-| Gelap | dark | `https://tiles.openfreemap.org/styles/dark` |
+| Cerah | liberty | `https://tiles.openfreemap.org/styles/liberty` |
+| Gelap | fiord | `https://tiles.openfreemap.org/styles/fiord` |
 
 Kedua-dua URL datang daripada `AppConfig` (`--dart-define=MAP_STYLE_LIGHT=...`, `MAP_STYLE_DARK=...`).
 **Tiada URL tile di-hard-code di tempat lain.** Beralih hos mesti hanya perubahan konfigurasi.
 
-Gaya sebenar disahkan wujud dan sah (positron 55 layer, dark 47 layer, kedua-duanya dengan sumber `openmaptiles`
-dan `glyphs`), bukan hanya dijangka daripada kod status HTTP.
+Gaya sebenar disahkan wujud dan sah, dengan sumber `openmaptiles` dan `glyphs`, bukan hanya dijangka
+daripada kod status HTTP.
 
 Gaya tersuai FGMap (cerah, gelap, "navigasi malam", Bahagian 8.1 dan 14.6) ditangguh ke Fasa 3.
 

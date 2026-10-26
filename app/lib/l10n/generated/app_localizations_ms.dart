@@ -15,6 +15,12 @@ class AppLocalizationsMs extends AppLocalizations {
   String get mapHintLongPress => 'Tekan lama pada peta untuk pilih destinasi';
 
   @override
+  String get mapZoomIn => 'Zum masuk';
+
+  @override
+  String get mapZoomOut => 'Zum keluar';
+
+  @override
   String get myLocation => 'Lokasi saya';
 
   @override
@@ -297,6 +303,16 @@ class AppLocalizationsMs extends AppLocalizations {
   @override
   String get searchPrompt =>
       'Taip nama tempat, jalan atau alamat. Anda juga boleh tekan lama pada peta.';
+
+  @override
+  String get searchHistory => 'Tempat terkini';
+
+  @override
+  String get searchClearHistory => 'Padam sejarah';
+
+  @override
+  String get sharedLocationStopNavigation =>
+      'Tamatkan navigasi semasa sebelum membuka destinasi yang dikongsi.';
 
   @override
   String searchNoResults(String query) {

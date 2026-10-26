@@ -110,6 +110,18 @@ abstract class AppLocalizations {
   /// **'Tekan lama pada peta untuk pilih destinasi'**
   String get mapHintLongPress;
 
+  /// No description provided for @mapZoomIn.
+  ///
+  /// In ms, this message translates to:
+  /// **'Zum masuk'**
+  String get mapZoomIn;
+
+  /// No description provided for @mapZoomOut.
+  ///
+  /// In ms, this message translates to:
+  /// **'Zum keluar'**
+  String get mapZoomOut;
+
   /// No description provided for @myLocation.
   ///
   /// In ms, this message translates to:
@@ -589,6 +601,24 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'Taip nama tempat, jalan atau alamat. Anda juga boleh tekan lama pada peta.'**
   String get searchPrompt;
+
+  /// No description provided for @searchHistory.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tempat terkini'**
+  String get searchHistory;
+
+  /// No description provided for @searchClearHistory.
+  ///
+  /// In ms, this message translates to:
+  /// **'Padam sejarah'**
+  String get searchClearHistory;
+
+  /// No description provided for @sharedLocationStopNavigation.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tamatkan navigasi semasa sebelum membuka destinasi yang dikongsi.'**
+  String get sharedLocationStopNavigation;
 
   /// No description provided for @searchNoResults.
   ///

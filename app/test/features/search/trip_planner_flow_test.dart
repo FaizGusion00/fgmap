@@ -68,7 +68,10 @@ void main() {
   ];
 
   /// Memaparkan butang yang membuka perancang dan menyimpan keputusannya.
-  Future<ValueNotifier<Object?>> pumpHost(WidgetTester tester) async {
+  Future<ValueNotifier<Object?>> pumpHost(
+    WidgetTester tester, {
+    String? initialDestinationQuery,
+  }) async {
     usePhoneSurface(tester);
     reduceMotion(tester);
     final result = ValueNotifier<Object?>('belum');
@@ -78,8 +81,10 @@ void main() {
         builder: (context) => Scaffold(
           body: Center(
             child: ElevatedButton(
-              onPressed: () async =>
-                  result.value = await TripPlannerPage.open(context),
+              onPressed: () async => result.value = await TripPlannerPage.open(
+                context,
+                initialDestinationQuery: initialDestinationQuery,
+              ),
               child: const Text('buka'),
             ),
           ),
@@ -128,6 +133,36 @@ void main() {
         final sel = result.value! as TripSelection;
         expect(sel.origin, isNull);
         expect(sel.destination, klia1);
+      },
+    );
+
+    testWidgets('destinasi daripada pautan dikongsi terus dicari', (
+      tester,
+    ) async {
+      await pumpHost(tester, initialDestinationQuery: 'klia');
+
+      await tester.pump(_debounce * 3);
+      await tester.pump();
+      expect(geocoder.queries, ['klia']);
+      expect(find.text('KLIA'), findsOneWidget);
+    });
+
+    testWidgets(
+      'tempat pilihan muncul dalam sejarah apabila planner dibuka semula',
+      (tester) async {
+        await pumpHost(tester);
+        await type(tester, 'destination-field', 'klia');
+        await tester.tap(find.text('KLIA'));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('buka'));
+        await tester.pumpAndSettle();
+        expect(find.text('Tempat terkini'), findsOneWidget);
+        expect(find.text('KLIA'), findsOneWidget);
+
+        await tester.tap(find.text('Padam sejarah'));
+        await tester.pump();
+        expect(find.text('Tempat terkini'), findsNothing);
       },
     );
 
