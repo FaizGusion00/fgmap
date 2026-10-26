@@ -53,6 +53,8 @@ void main() {
         voiceGuideProvider.overrideWithValue(voice),
         speedLimitServiceProvider.overrideWithValue(FakeSpeedLimitService()),
         screenAwakeProvider.overrideWithValue(awake),
+        // Jam mengikut masa palsu ujian: cap masa fix dan penapis GPS maju bersama setiap pump.
+        navClockProvider.overrideWithValue(() => tester.binding.clock.now()),
       ],
     );
     await tester.pumpAndSettle();
@@ -121,10 +123,18 @@ void main() {
       final cam = map.camera.moveToCalls.last;
       expect(cam.tilt, greaterThan(20));
       expect(cam.bearing, closeTo(90, 25));
-      // Lapisan laluan peta hanya laluan baki (satu garisan utama), tiada alternatif.
-      final lines = map.config!.routes;
-      expect(lines.length, 1);
-      expect(lines.single.isMain, isTrue);
+      // Laluan navigasi dihantar sebagai SATU geometri penuh dan dipangkas oleh peta mengikut kedudukan
+      // kenderaan; tiada laluan biasa/alternatif dilukis semasa navigasi.
+      expect(map.config!.routes, isEmpty);
+      final navRoute = map.config!.navRoute!;
+      expect(navRoute.version, 1);
+      expect(navRoute.points.length, greaterThan(10));
+      final along = map.config!.navAlong!;
+      expect(along.value, isNotNull);
+      // Destinasi sebenar berjauhan daripada hujung laluan: sambungan akhir bertitik dilukis.
+      expect(map.config!.finalLeg, hasLength(2));
+      expect(map.config!.finalLeg.first, navRoute.points.last);
+      expect(map.config!.finalLeg.last, klia);
       expect(map.config!.showUserLocation, isFalse);
 
       // Pengumuman suara pembukaan disebut.

@@ -23,6 +23,16 @@ class MapFramePump {
   final Future<void> Function(VehicleMarker? marker) sendVehicle;
   final Future<void> Function(CameraPose pose) sendCamera;
 
+  /// Diagnostik (`--dart-define=FG_DIAG=true`): kadar hantaran kamera dan masa pergi-balik ke peta, dicetak
+  /// setiap 5 s. Jika peta terasa lambat pada zum tertentu, angka ini menunjukkan sama ada platform
+  /// (peta) atau app yang menjadi punca.
+  static const diagnostics = bool.fromEnvironment('FG_DIAG');
+  final Stopwatch _diagClock = Stopwatch()..start();
+  int _diagSends = 0;
+  int _diagRttUs = 0;
+  int _diagMaxRttUs = 0;
+  int _diagReportedAtMs = 0;
+
   VehicleMarker? _vehicle;
   bool _vehicleDirty = false;
   CameraPose? _camera;
@@ -71,12 +81,35 @@ class MapFramePump {
         final camera = _camera;
         if (camera != null) {
           _camera = null;
-          sends.add(_guard(() => sendCamera(camera), 'Gerak kamera'));
+          sends.add(_guard(() => _timedCamera(camera), 'Gerak kamera'));
         }
         await Future.wait(sends);
       }
     } finally {
       _running = false;
+    }
+  }
+
+  Future<void> _timedCamera(CameraPose pose) async {
+    if (!diagnostics) return sendCamera(pose);
+    final started = _diagClock.elapsedMicroseconds;
+    await sendCamera(pose);
+    final rtt = _diagClock.elapsedMicroseconds - started;
+    _diagSends++;
+    _diagRttUs += rtt;
+    if (rtt > _diagMaxRttUs) _diagMaxRttUs = rtt;
+    final nowMs = _diagClock.elapsedMilliseconds;
+    if (nowMs - _diagReportedAtMs >= 5000) {
+      final seconds = (nowMs - _diagReportedAtMs) / 1000;
+      debugPrint(
+        'FGDIAG kamera: ${(_diagSends / seconds).toStringAsFixed(1)}/s, '
+        'RTT purata ${(_diagRttUs / _diagSends / 1000).toStringAsFixed(1)} ms, '
+        'maks ${(_diagMaxRttUs / 1000).toStringAsFixed(1)} ms',
+      );
+      _diagSends = 0;
+      _diagRttUs = 0;
+      _diagMaxRttUs = 0;
+      _diagReportedAtMs = nowMs;
     }
   }
 

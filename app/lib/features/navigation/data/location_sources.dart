@@ -138,8 +138,10 @@ NavLocationSource routeSimulation(
   double speedMultiplier = 1,
   double startM = 0,
   Sleep? sleep,
+  DateTime Function()? clock,
 }) => ReplayLocationSource(
   simulateDrive(route, startM: startM),
   speedMultiplier: speedMultiplier,
   sleep: sleep,
+  clock: clock,
 );

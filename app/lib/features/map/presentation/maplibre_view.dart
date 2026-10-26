@@ -10,11 +10,14 @@ import '../../../core/utils/geo.dart';
 import '../../navigation/domain/camera_planner.dart' show CameraPose;
 import 'map_frame_pump.dart';
 import 'map_view.dart';
+import 'nav_route_line.dart';
 import 'vehicle_icon.dart';
 
 const _altSource = 'fg-route-alt-src';
 const _mainSource = 'fg-route-main-src';
 const _destSource = 'fg-destination-src';
+const _legSource = 'fg-route-leg-src';
+const _legLayer = 'fg-route-leg';
 const _vehicleSource = 'fg-vehicle-src';
 const _vehicleLayer = 'fg-vehicle';
 const _vehicleImage = 'fg-vehicle-icon';
@@ -67,6 +70,14 @@ class _MapLibreViewState extends State<MapLibreView> {
   List<MapRouteLine> _sentAlt = const [];
   List<MapRouteLine> _sentMain = const [];
   GeoPoint? _sentDestination;
+  List<GeoPoint> _sentLeg = const [];
+
+  // Pemangkasan laluan navigasi. `line-gradient` memangkas bahagian yang telah dilalui tanpa menjana
+  // semula geometri; jika platform menolaknya, jatuh balik ke menghantar baki laluan (jarang-jarang).
+  bool _gradientOk = true;
+  NavRouteLine? _sentNav;
+  double? _trimAlong;
+  bool _trimQueued = false;
 
   /// Titik lokasi asli peta bertukar kelabu ("lapuk") jika tiada kemas kini selama 30 saat. Pengguna
   /// yang pegun memang tidak menerima fix baharu (penapis jarak), jadi kedudukan semasa dihantar semula
@@ -80,6 +91,7 @@ class _MapLibreViewState extends State<MapLibreView> {
     _initialStyleUrl = widget.config.styleUrl;
     _activeStyleUrl = _initialStyleUrl;
     widget.config.userLocation?.addListener(_pushUserLocation);
+    widget.config.navAlong?.addListener(_onNavAlong);
     _userLocationHeartbeat = Timer.periodic(
       _userLocationHeartbeatEvery,
       (_) => _pushUserLocation(),
@@ -98,6 +110,10 @@ class _MapLibreViewState extends State<MapLibreView> {
     final old = oldWidget.config;
     final cfg = widget.config;
 
+    if (!identical(old.navAlong, cfg.navAlong)) {
+      old.navAlong?.removeListener(_onNavAlong);
+      cfg.navAlong?.addListener(_onNavAlong);
+    }
     if (!identical(old.userLocation, cfg.userLocation)) {
       old.userLocation?.removeListener(_pushUserLocation);
       cfg.userLocation?.addListener(_pushUserLocation);
@@ -121,6 +137,8 @@ class _MapLibreViewState extends State<MapLibreView> {
     }
     if (_overlaysReady &&
         (!_sameRoutes(old.routes, cfg.routes) ||
+            !identical(old.navRoute, cfg.navRoute) ||
+            !_sameLeg(old.finalLeg, cfg.finalLeg) ||
             old.destination != cfg.destination ||
             old.colors != cfg.colors)) {
       _enqueue(_pushData);
@@ -147,6 +165,7 @@ class _MapLibreViewState extends State<MapLibreView> {
   @override
   void dispose() {
     _userLocationHeartbeat?.cancel();
+    widget.config.navAlong?.removeListener(_onNavAlong);
     widget.config.userLocation?.removeListener(_pushUserLocation);
     _pump.dispose();
     super.dispose();
@@ -220,6 +239,7 @@ class _MapLibreViewState extends State<MapLibreView> {
     for (final layer in [
       _vehicleLayer,
       _destLayer,
+      _legLayer,
       _mainLayer,
       _casingLayer,
       _altLayer,
@@ -229,6 +249,7 @@ class _MapLibreViewState extends State<MapLibreView> {
     for (final source in [
       _vehicleSource,
       _destSource,
+      _legSource,
       _mainSource,
       _altSource,
     ]) {
@@ -236,14 +257,19 @@ class _MapLibreViewState extends State<MapLibreView> {
     }
 
     await c.addGeoJsonSource(_altSource, _emptyCollection);
-    await c.addGeoJsonSource(_mainSource, _emptyCollection);
+    await _addMainSource(c);
+    await c.addGeoJsonSource(_legSource, _emptyCollection);
     await c.addGeoJsonSource(_destSource, _emptyCollection);
     // Sumber baharu kosong: tiada apa yang dihantar lagi.
     _sentAlt = const [];
     _sentMain = const [];
+    _sentNav = null;
+    _sentLeg = const [];
+    _trimAlong = null;
     _sentDestination = null;
 
-    // Urutan penting: alternatif di bawah, kemudian tepi laluan utama, laluan utama, destinasi.
+    // Urutan penting: alternatif di bawah, kemudian tepi laluan utama, laluan utama, sambungan akhir,
+    // destinasi.
     await c.addLineLayer(
       _altSource,
       _altLayer,
@@ -256,25 +282,16 @@ class _MapLibreViewState extends State<MapLibreView> {
       ),
       enableInteraction: false,
     );
+    await _addMainLayers(c, colors);
     await c.addLineLayer(
-      _mainSource,
-      _casingLayer,
+      _legSource,
+      _legLayer,
       LineLayerProperties(
-        lineColor: _hex(colors.routeCasing),
-        lineWidth: 10,
-        lineCap: 'round',
+        lineColor: _hex(colors.destination),
+        lineWidth: 4,
+        lineCap: 'butt',
         lineJoin: 'round',
-      ),
-      enableInteraction: false,
-    );
-    await c.addLineLayer(
-      _mainSource,
-      _mainLayer,
-      LineLayerProperties(
-        lineColor: _hex(colors.mainRoute),
-        lineWidth: 6,
-        lineCap: 'round',
-        lineJoin: 'round',
+        lineDasharray: const [1.2, 1.6],
       ),
       enableInteraction: false,
     );
@@ -320,6 +337,150 @@ class _MapLibreViewState extends State<MapLibreView> {
     await _pushData();
   }
 
+  /// Sumber laluan utama dengan `lineMetrics` (diperlukan oleh `line-gradient`). Jika platform
+  /// menolaknya, sumber biasa digunakan dan laluan dipangkas dengan menghantar baki (sandaran).
+  Future<void> _addMainSource(MapLibreMapController c) async {
+    _gradientOk = true;
+    try {
+      await c.addSource(
+        _mainSource,
+        const GeojsonSourceProperties(
+          data: _emptyCollection,
+          lineMetrics: true,
+        ),
+      );
+    } on Object catch (e) {
+      debugPrint('Sumber lineMetrics tidak disokong, guna sandaran: $e');
+      _gradientOk = false;
+      await _tryRemoveSource(c, _mainSource);
+      await c.addGeoJsonSource(_mainSource, _emptyCollection);
+    }
+  }
+
+  Future<void> _addMainLayers(
+    MapLibreMapController c,
+    MapOverlayColors colors,
+  ) async {
+    Future<void> add(bool gradient) async {
+      await c.addLineLayer(
+        _mainSource,
+        _casingLayer,
+        _casingProps(colors, gradient ? 1.0 : null, gradient: gradient),
+        enableInteraction: false,
+      );
+      await c.addLineLayer(
+        _mainSource,
+        _mainLayer,
+        _mainProps(colors, gradient ? 1.0 : null, gradient: gradient),
+        enableInteraction: false,
+      );
+    }
+
+    try {
+      await add(_gradientOk);
+    } on Object catch (e) {
+      if (!_gradientOk) rethrow;
+      debugPrint('line-gradient ditolak, guna sandaran: $e');
+      _gradientOk = false;
+      await _tryRemoveLayer(c, _mainLayer);
+      await _tryRemoveLayer(c, _casingLayer);
+      await _tryRemoveSource(c, _mainSource);
+      await c.addGeoJsonSource(_mainSource, _emptyCollection);
+      await add(false);
+    }
+  }
+
+  LineLayerProperties _mainProps(
+    MapOverlayColors colors,
+    double? fraction, {
+    required bool gradient,
+  }) {
+    final hex = _hex(colors.mainRoute);
+    return LineLayerProperties(
+      lineColor: hex,
+      lineWidth: 6,
+      lineCap: 'round',
+      lineJoin: 'round',
+      lineGradient: !gradient
+          ? null
+          : (fraction == null || fraction >= 1
+                ? solidGradient(hex)
+                : trimGradient(fraction, hex)),
+    );
+  }
+
+  LineLayerProperties _casingProps(
+    MapOverlayColors colors,
+    double? fraction, {
+    required bool gradient,
+  }) {
+    final hex = _hex(colors.routeCasing);
+    return LineLayerProperties(
+      lineColor: hex,
+      lineWidth: 10,
+      lineCap: 'round',
+      lineJoin: 'round',
+      lineGradient: !gradient
+          ? null
+          : (fraction == null || fraction >= 1
+                ? solidGradient(hex)
+                : trimGradient(fraction, hex)),
+    );
+  }
+
+  void _onNavAlong() {
+    if (_trimQueued) return;
+    _trimQueued = true;
+    _enqueue(() async {
+      _trimQueued = false;
+      await _applyTrim();
+    });
+  }
+
+  /// Memangkas laluan navigasi pada kedudukan kenderaan semasa. Dikumpulkan: banyak perubahan kecil
+  /// menghasilkan satu panggilan yang membaca nilai terkini.
+  Future<void> _applyTrim() async {
+    final c = _controller;
+    final nav = widget.config.navRoute;
+    if (c == null ||
+        !_overlaysReady ||
+        nav == null ||
+        !identical(_sentNav, nav)) {
+      return;
+    }
+    final along = widget.config.navAlong?.value ?? 0;
+    final last = _trimAlong;
+    if (last != null && (along - last).abs() < (_gradientOk ? 0.5 : 5)) return;
+    _trimAlong = along;
+    if (_gradientOk) {
+      try {
+        await _setTrim(c, nav.fractionAt(along));
+        return;
+      } on Object catch (e) {
+        debugPrint('Pemangkasan line-gradient gagal, guna sandaran: $e');
+        _gradientOk = false;
+      }
+    }
+    await c.setGeoJsonSource(
+      _mainSource,
+      _lines([MapRouteLine(points: nav.remainingFrom(along), isMain: true)]),
+    );
+  }
+
+  /// Menetapkan pemangkasan pada lapisan laluan dan tepinya. Plugin menghantar semua sifat (termasuk
+  /// yang null, yang menetapkannya semula), jadi sifat garisan dihantar lengkap setiap kali.
+  Future<void> _setTrim(MapLibreMapController c, double? fraction) async {
+    final colors = widget.config.colors;
+    await c.setLayerProperties(
+      _casingLayer,
+      _casingProps(colors, fraction, gradient: true),
+    );
+    await c.setLayerProperties(
+      _mainLayer,
+      _mainProps(colors, fraction, gradient: true),
+    );
+  }
+
   Future<void> _pushData() async {
     final c = _controller;
     if (c == null || !_overlaysReady) return;
@@ -331,9 +492,42 @@ class _MapLibreViewState extends State<MapLibreView> {
       _sentAlt = alt;
       await c.setGeoJsonSource(_altSource, _lines(alt));
     }
-    if (!_sameRoutes(_sentMain, main)) {
-      _sentMain = main;
-      await c.setGeoJsonSource(_mainSource, _lines(main));
+    final nav = cfg.navRoute;
+    if (nav != null) {
+      // Geometri penuh dihantar SEKALI setiap laluan; selepas itu hanya pemangkasan berubah.
+      if (!identical(_sentNav, nav)) {
+        _sentNav = nav;
+        _sentMain = const [];
+        _trimAlong = null;
+        final along = cfg.navAlong?.value ?? 0;
+        await c.setGeoJsonSource(
+          _mainSource,
+          _lines([
+            MapRouteLine(
+              points: _gradientOk ? nav.points : nav.remainingFrom(along),
+              isMain: true,
+            ),
+          ]),
+        );
+      }
+      await _applyTrim();
+    } else {
+      if (_sentNav != null) {
+        // Navigasi tamat: kosongkan laluan dan pulihkan warna penuh (tanpa pemangkasan).
+        _sentNav = null;
+        _sentMain = const [];
+        _trimAlong = null;
+        await c.setGeoJsonSource(_mainSource, _emptyCollection);
+        if (_gradientOk) await _setTrim(c, null);
+      }
+      if (!_sameRoutes(_sentMain, main)) {
+        _sentMain = main;
+        await c.setGeoJsonSource(_mainSource, _lines(main));
+      }
+    }
+    if (!_sameLeg(_sentLeg, cfg.finalLeg)) {
+      _sentLeg = cfg.finalLeg;
+      await c.setGeoJsonSource(_legSource, _legLine(cfg.finalLeg));
     }
     if (_sentDestination != cfg.destination) {
       _sentDestination = cfg.destination;
@@ -527,6 +721,18 @@ bool _sameRoutes(List<MapRouteLine> a, List<MapRouteLine> b) {
   }
   return true;
 }
+
+bool _sameLeg(List<GeoPoint> a, List<GeoPoint> b) {
+  if (identical(a, b)) return true;
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
+}
+
+Map<String, dynamic> _legLine(List<GeoPoint> leg) =>
+    _lines([if (leg.length >= 2) MapRouteLine(points: leg, isMain: false)]);
 
 Future<void> _tryRemoveLayer(MapLibreMapController c, String id) async {
   try {

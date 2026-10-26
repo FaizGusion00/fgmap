@@ -63,6 +63,31 @@ class NavProgress {
 
   /// Isyarat GPS lemah atau hilang.
   final bool gpsWeak;
+
+  /// Salinan dengan kemajuan dikemas kini (digunakan oleh kemas kini langsung antara dua fix).
+  NavProgress withLive({
+    required double alongM,
+    required double remainingM,
+    required double remainingS,
+    required NavManeuver? next,
+    required NavManeuver? following,
+    required double? distanceToNextM,
+  }) => NavProgress(
+    status: status,
+    alongM: alongM,
+    remainingM: remainingM,
+    remainingS: remainingS,
+    next: next,
+    distanceToNextM: distanceToNextM,
+    following: following,
+    position: position,
+    bearing: bearing,
+    speedMps: speedMps,
+    accuracyM: accuracyM,
+    crossTrackM: crossTrackM,
+    street: street,
+    gpsWeak: gpsWeak,
+  );
 }
 
 @immutable
@@ -131,6 +156,12 @@ class NavigationSession {
   bool _arrived = false;
   bool _gpsLostAnnounced = false;
   bool _startPending = true;
+  double _etaFactor = 1;
+  double _liveAlong = 0;
+
+  // Keadaan untuk menentukan ketibaan.
+  double _minEndDistanceM = double.infinity;
+  DateTime? _stoppedSince;
 
   set language(VoiceLanguage l) => _planner.language = l;
 
@@ -173,12 +204,13 @@ class NavigationSession {
 
     if (onRoute) {
       _along = math.max(_along, match.alongM);
+      _liveAlong = math.max(_liveAlong, _along);
       _offRouteRequested = false;
       _offRoute.reset();
       vehicle.onRouteFix(
         alongM: _along,
         speedMps: fix.speedMps,
-        time: clockNow,
+        time: _measuredAt(fix, clockNow),
       );
       _lastBearing = match.routeBearing;
     } else {
@@ -187,7 +219,7 @@ class NavigationSession {
         point: fix.point,
         bearing: fix.headingDegrees ?? _lastBearing,
         speedMps: fix.speedMps,
-        time: clockNow,
+        time: _measuredAt(fix, clockNow),
       );
       if (fix.headingDegrees != null) _lastBearing = fix.headingDegrees!;
       if (request) {
@@ -207,8 +239,7 @@ class NavigationSession {
     }
 
     final remaining = math.max(0.0, route.totalM - _along);
-    final arrivalThreshold = (fix.accuracyM * 1.2).clamp(25.0, 50.0);
-    if (onRoute && remaining <= arrivalThreshold) {
+    if (onRoute && _hasArrived(fix, remaining)) {
       _arrived = true;
       final arrival = _planner.arrival();
       if (arrival != null) announcements = [...announcements, arrival];
@@ -231,6 +262,98 @@ class NavigationSession {
       announcements: announcements,
       reroute: reroute,
     );
+  }
+
+  /// Berapa awal (meter) manuver dianggap "dilalui" dan arahan seterusnya dipaparkan. Pemandu sudah
+  /// bertindak sebelum titik manuver, dan paparan + suara sentiasa ketinggalan sedikit; tanpa ini banner
+  /// bertukar 1-2 s selepas simpang, dan dua simpang berturutan terasa terlewat.
+  static double leadFor(double speedMps) => (speedMps * 0.7).clamp(3.0, 14.0);
+
+  /// Masa fix DIUKUR, dinyatakan pada jam sesi. Fix tiba lewat (latensi GPS, hantaran platform); model
+  /// kenderaan mengunjur dari masa ukuran supaya kereta tidak ketinggalan sebanyak latensi x kelajuan.
+  static DateTime _measuredAtClock(DateTime fixTime, DateTime now) {
+    final latency = now.difference(fixTime);
+    const maxLatency = Duration(milliseconds: 2500);
+    final clamped = latency.isNegative
+        ? Duration.zero
+        : (latency > maxLatency ? maxLatency : latency);
+    return now.subtract(clamped);
+  }
+
+  DateTime _measuredAt(FilteredFix fix, DateTime now) =>
+      _measuredAtClock(fix.time, now);
+
+  /// Ketibaan. Ukuran ialah hujung laluan (titik jalan yang disnap), tetapi tiba terlalu awal di simpang
+  /// besar lebih teruk daripada tiba beberapa meter lewat, jadi syaratnya ketat:
+  ///  - dalam radius kecil (mengikut ketepatan GPS, 12-25 m) dari hujung laluan; ATAU
+  ///  - sudah melepasi titik terdekat dengan hujung laluan (mula menjauh) dan masih dekat; ATAU
+  ///  - berhenti dekat hujung laluan selama beberapa saat.
+  bool _hasArrived(FilteredFix fix, double remaining) {
+    final end = route.points.last;
+    final distanceToEnd = distanceMeters(fix.point, end);
+    _minEndDistanceM = math.min(_minEndDistanceM, distanceToEnd);
+
+    final radius = (fix.accuracyM * 0.8).clamp(12.0, 25.0);
+    if (remaining <= radius) return true;
+
+    if (remaining <= 60 &&
+        distanceToEnd <= 45 &&
+        distanceToEnd > _minEndDistanceM + 8 &&
+        fix.speedMps > 1.5) {
+      return true;
+    }
+
+    if (remaining <= 40 && fix.speedMps < 1) {
+      _stoppedSince ??= fix.time;
+      if (fix.time.difference(_stoppedSince!) >= const Duration(seconds: 3)) {
+        return true;
+      }
+    } else {
+      _stoppedSince = null;
+    }
+    return false;
+  }
+
+  /// Kemas kini kemajuan ANTARA dua fix GPS (dipanggil beberapa kali sesaat). Kedudukan diambil daripada
+  /// model kenderaan yang diunjur (sama seperti kereta yang dilukis), bukan fix 1 Hz, supaya banner,
+  /// jarak dan pengumuman suara bertukar tepat apabila pemandu sampai ke simpang.
+  ///
+  /// Memulangkan null jika tiada apa yang perlu dikemas kini (manuver sama dan jarak berubah < 10 m).
+  SessionUpdate? refreshLive() {
+    final p = _progress;
+    if (p == null || _arrived || p.status != NavStatus.onRoute) return null;
+    final pose = vehicle.poseAt(_clock());
+    if (!pose.onRoute) return null;
+
+    _liveAlong = math.max(_liveAlong, math.max(_along, pose.alongM));
+    final live = math.min(_liveAlong, route.totalM);
+    final lead = leadFor(pose.speedMps);
+
+    final announcements = _planner.update(
+      alongM: live + lead,
+      speedMps: pose.speedMps,
+    );
+
+    var next = route.nextActionable(live + lead);
+    // Selepas manuver terakhir (ketibaan) dilepasi, kekalkan paparan sebelumnya.
+    next ??= p.next;
+    final following = next == null ? null : route.actionableAfter(next);
+    final remaining = math.max(0.0, route.totalM - live);
+
+    final indexChanged = next?.index != p.next?.index;
+    final movedEnough = (p.remainingM - remaining).abs() >= 10;
+    if (!indexChanged && !movedEnough && announcements.isEmpty) return null;
+
+    final progress = p.withLive(
+      alongM: live,
+      remainingM: remaining,
+      remainingS: route.plannedRemainingTime(live) * _etaFactor,
+      next: next,
+      following: following,
+      distanceToNextM: next == null ? null : math.max(0.0, next.startM - live),
+    );
+    _progress = progress;
+    return SessionUpdate(progress: progress, announcements: announcements);
   }
 
   /// Dipanggil secara berkala (cth. 1 Hz) untuk perkara yang berlaku TANPA fix baharu, iaitu isyarat
@@ -274,7 +397,7 @@ class NavigationSession {
     required bool onRoute,
     required double remaining,
   }) {
-    final next = route.nextActionable(_along);
+    final next = route.nextActionable(_along + leadFor(fix.speedMps));
     final following = next == null ? null : route.actionableAfter(next);
 
     // Faktor ETA: bandingkan masa sebenar dengan masa anggaran laluan untuk jarak yang sudah dilalui.
@@ -288,6 +411,7 @@ class NavigationSession {
       final weight = (plannedElapsed / 600).clamp(0.0, 1.0);
       etaFactor = 1 + (ratio - 1) * weight;
     }
+    _etaFactor = etaFactor;
 
     String? street;
     for (var i = (route.maneuverAt(_along)?.index ?? 0); i >= 0; i--) {
