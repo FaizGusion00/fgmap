@@ -1,109 +1,115 @@
 import 'dart:async';
 
-import 'package:fgmap/core/location/location_service.dart';
 import 'package:fgmap/core/utils/geo.dart';
 import 'package:fgmap/features/map/presentation/idle_follow.dart';
+import 'package:fgmap/features/map/presentation/user_location.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  late StreamController<LocationFix> stream;
+  late StreamController<UserLocation> stream;
   late int listens;
   late int cancels;
-  late List<LocationFix> received;
+  late List<UserLocation> received;
   late IdleFollow follow;
 
-  LocationFix fix(double lat, {double? accuracy = 8}) =>
-      LocationFix(point: GeoPoint(lat, 101.7), accuracyMeters: accuracy);
+  UserLocation at(double lat, {bool stale = false}) => UserLocation(
+    point: GeoPoint(lat, 101.7),
+    accuracyM: 8,
+    time: DateTime(2026, 10, 26, 10),
+    stale: stale,
+  );
 
   setUp(() {
     listens = 0;
     cancels = 0;
     received = [];
-    stream = StreamController<LocationFix>.broadcast(
+    stream = StreamController<UserLocation>.broadcast(
       onListen: () => listens++,
       onCancel: () => cancels++,
     );
-    follow = IdleFollow(fixes: () => stream.stream, onFix: received.add);
+    follow = IdleFollow(updates: stream.stream, onLocation: received.add);
     addTearDown(() {
       follow.dispose();
       stream.close();
     });
   });
 
-  test('belum engage: strim tidak dilanggan (tiada GPS dipakai)', () {
+  test('belum engage: kamera tidak mengikut', () async {
     expect(follow.following, isFalse);
-    expect(follow.listening, isFalse);
+    expect(follow.active, isFalse);
+    stream.add(at(3.1));
+    await Future<void>.delayed(Duration.zero);
+    expect(received, isEmpty);
     expect(listens, 0);
   });
 
-  test('engage: melanggan dan meneruskan fix', () async {
+  test('engage: meneruskan kedudukan ke kamera', () async {
     follow.engage();
-    stream.add(fix(3.1));
+    stream.add(at(3.1));
     await Future<void>.delayed(Duration.zero);
 
     expect(follow.following, isTrue);
-    expect(follow.listening, isTrue);
-    expect(received.map((f) => f.point.lat), [3.1]);
+    expect(follow.active, isTrue);
+    expect(received.map((l) => l.point.lat), [3.1]);
   });
 
-  test('release: berhenti mengikut dan melepaskan GPS', () async {
+  test('release: berhenti mengikut', () async {
     follow.engage();
     follow.release();
     await Future<void>.delayed(Duration.zero);
 
     expect(follow.following, isFalse);
-    expect(follow.listening, isFalse);
+    expect(follow.active, isFalse);
     expect(cancels, 1);
-    stream.add(fix(3.2));
+    stream.add(at(3.2));
     await Future<void>.delayed(Duration.zero);
     expect(received, isEmpty);
   });
 
-  test(
-    'suspend: GPS dilepaskan tetapi niat mengikut diingat; resume menyambung',
-    () async {
-      follow.engage();
-      follow.suspend('background');
-      await Future<void>.delayed(Duration.zero);
-      expect(follow.following, isTrue, reason: 'pengguna masih mahu mengikut');
-      expect(follow.listening, isFalse);
+  test('suspend: niat mengikut diingat; resume menyambung', () async {
+    follow.engage();
+    follow.suspend('route');
+    await Future<void>.delayed(Duration.zero);
+    expect(follow.following, isTrue, reason: 'pengguna masih mahu mengikut');
+    expect(follow.active, isFalse);
+    stream.add(at(3.1));
+    await Future<void>.delayed(Duration.zero);
+    expect(received, isEmpty);
 
-      follow.resume('background');
-      expect(follow.listening, isTrue);
-      expect(listens, 2);
-    },
-  );
+    follow.resume('route');
+    expect(follow.active, isTrue);
+    stream.add(at(3.2));
+    await Future<void>.delayed(Duration.zero);
+    expect(received.map((l) => l.point.lat), [3.2]);
+  });
 
   test(
-    'beberapa sebab gantungan: hanya hidup semula apabila semuanya dibatalkan',
+    'beberapa sebab gantungan: hanya aktif semula apabila semuanya dibatalkan',
     () {
       follow.engage();
       follow.suspend('navigation');
-      follow.suspend('background');
+      follow.suspend('route');
 
       follow.resume('navigation');
-      expect(follow.listening, isFalse);
-      follow.resume('background');
-      expect(follow.listening, isTrue);
+      expect(follow.active, isFalse);
+      follow.resume('route');
+      expect(follow.active, isTrue);
     },
   );
 
-  test(
-    'suspend tanpa engage: resume tidak melanggan (pengguna tidak mahu mengikut)',
-    () {
-      follow.suspend('background');
-      follow.resume('background');
-      expect(follow.listening, isFalse);
-      expect(listens, 0);
-    },
-  );
+  test('suspend tanpa engage: resume tidak mula mengikut', () {
+    follow.suspend('route');
+    follow.resume('route');
+    expect(follow.active, isFalse);
+    expect(listens, 0);
+  });
 
-  test('release semasa digantung: resume tidak menghidupkan GPS semula', () {
+  test('release semasa digantung: resume tidak mengikut semula', () {
     follow.engage();
     follow.suspend('route');
     follow.release();
     follow.resume('route');
-    expect(follow.listening, isFalse);
+    expect(follow.active, isFalse);
   });
 
   test('engage berulang tidak menggandakan langganan', () {
@@ -114,34 +120,21 @@ void main() {
   });
 
   test(
-    'fix terlalu kasar diabaikan; fix tanpa maklumat ketepatan diterima',
+    'kedudukan lapuk (ditinggalkan semasa latar belakang) tidak menyentak kamera',
     () async {
       follow.engage();
-      stream.add(fix(3.1, accuracy: 500));
-      stream.add(fix(3.2, accuracy: null));
-      stream.add(fix(3.3, accuracy: 30));
+      stream.add(at(3.1, stale: true));
+      stream.add(at(3.2));
       await Future<void>.delayed(Duration.zero);
 
-      expect(received.map((f) => f.point.lat), [3.2, 3.3]);
-    },
-  );
-
-  test(
-    'ralat strim (kebenaran ditarik balik): berhenti mengikut tanpa ranap',
-    () async {
-      follow.engage();
-      stream.addError(StateError('permission revoked'));
-      await Future<void>.delayed(Duration.zero);
-
-      expect(follow.following, isFalse);
-      expect(follow.listening, isFalse);
+      expect(received.map((l) => l.point.lat), [3.2]);
     },
   );
 
   test('dispose: melepaskan semuanya', () {
     follow.engage();
     follow.dispose();
-    expect(follow.listening, isFalse);
+    expect(follow.active, isFalse);
     expect(follow.following, isFalse);
   });
 }

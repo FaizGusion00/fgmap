@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' show Size;
 
 import 'package:flutter/foundation.dart';
 
@@ -169,6 +170,23 @@ CameraTarget planCamera(CameraSituation s) {
 /// panel bawah.
 const carScreenOffset = 0.19;
 
+/// Mendatar (telefon landscape): tinggi skrin pendek, jadi kenderaan dinaikkan sedikit supaya tidak
+/// terlindung panel maklumat di bawah dan masih ada jalan kelihatan di hadapan.
+const carScreenOffsetLandscape = 0.12;
+
+/// Ofset kenderaan yang sesuai untuk saiz paparan [size].
+double carScreenOffsetFor(Size size) =>
+    size.width > size.height ? carScreenOffsetLandscape : carScreenOffset;
+
+/// Pelarasan zum untuk paparan yang pendek (landscape): dengan tinggi lebih kecil, jarak jalan di
+/// hadapan yang muat pada skrin mengecil, jadi zum dikurangkan sedikit. Paparan tinggi tidak diubah.
+double viewportZoomAdjust(double viewportHeightPx) {
+  const referenceHeightPx = 640.0;
+  if (viewportHeightPx >= referenceHeightPx || viewportHeightPx <= 0) return 0;
+  return (-0.5 * math.log(referenceHeightPx / viewportHeightPx) / math.ln2)
+      .clamp(-0.6, 0.0);
+}
+
 /// Altitud kamera MapLibre sebagai gandaan tinggi viewport (medan pandang ~36.87 darjah).
 const _cameraAltitude = 1.5;
 
@@ -179,9 +197,13 @@ const _cameraAltitude = 1.5;
 /// hadapan pusat, jadi jarak di tanah perlu LEBIH besar (bukan lebih kecil) untuk hasil skrin yang
 /// sama. Unjuran kamera condong: y = A.d.cos(t) / (A - d.sin(t)) (A = altitud, d = jarak tanah);
 /// ini ialah songsangannya.
-double groundOffsetPx(double tiltDegrees, double viewportHeightPx) {
+double groundOffsetPx(
+  double tiltDegrees,
+  double viewportHeightPx, {
+  double screenOffset = carScreenOffset,
+}) {
   final t = tiltDegrees.clamp(0.0, 60.0) * math.pi / 180;
-  const f = carScreenOffset;
+  final f = screenOffset;
   return _cameraAltitude *
       f *
       viewportHeightPx /
@@ -238,6 +260,7 @@ class CameraRig {
   }) : _zoom = _Damped(entry.zoom),
        _tilt = _Damped(entry.tilt),
        _bearing = _Damped(entry.bearing),
+       _offset = _Damped(carScreenOffset),
        _entry = entry;
 
   /// Pengali kelajuan tindak balas; > 1 lebih pantas (cth. Reduce Motion: peralihan lebih ringkas).
@@ -249,6 +272,10 @@ class CameraRig {
   final _Damped _tilt;
   final _Damped _bearing;
 
+  /// Ofset skrin kenderaan yang dilicinkan: berubah lembut apabila telefon diputar.
+  final _Damped _offset;
+  bool _offsetPrimed = false;
+
   double _smoothedSpeed = 0;
   bool _speedPrimed = false;
   double _entryElapsed = 0;
@@ -256,6 +283,19 @@ class CameraRig {
   /// Kelajuan dilicinkan (pemalar masa ~3 s) sebelum menentukan zum, supaya zum tidak bergoyang
   /// mengikut turun naik kelajuan kecil.
   double get smoothedSpeed => _smoothedSpeed;
+
+  /// Kedudukan menegak kenderaan di bawah tengah skrin (pecahan tinggi) yang SEDANG digunakan kamera.
+  /// Kereta di atas peta dilukis tepat di sini, jadi ia sentiasa di atas laluan.
+  double get screenOffset => _offset.value;
+
+  /// Kemajuan peralihan masuk 0..1 (1 = kamera sudah mengikut kenderaan sepenuhnya).
+  double get entryProgress {
+    if (entryDuration == Duration.zero) return 1;
+    return (_entryElapsed / (entryDuration.inMilliseconds / 1000)).clamp(
+      0.0,
+      1.0,
+    );
+  }
 
   /// Majukan kamera sebanyak [dt] saat. Memulangkan pose baharu.
   ///
@@ -271,8 +311,16 @@ class CameraRig {
     required double viewportHeightPx,
     NavCameraMode mode = NavCameraMode.auto,
     double zoomBias = 0,
+    double screenOffset = carScreenOffset,
   }) {
     final safeDt = dt.clamp(0.0, 0.25);
+
+    if (!_offsetPrimed) {
+      _offset.snap(screenOffset);
+      _offsetPrimed = true;
+    } else {
+      _offset.update(screenOffset, 0.35, safeDt);
+    }
 
     if (!_speedPrimed) {
       _smoothedSpeed = speedMps;
@@ -293,7 +341,11 @@ class CameraRig {
 
     // Pilihan zum pengguna (butang +/-) ditambah pada zum automatik, jadi ia kekal bila kelajuan dan
     // manuver berubah, dan kamera terus mengikut kenderaan.
-    final goalZoom = (target.zoom + zoomBias).clamp(2.0, 20.0);
+    final goalZoom =
+        (target.zoom + zoomBias + viewportZoomAdjust(viewportHeightPx)).clamp(
+          2.0,
+          20.0,
+        );
 
     final k = responsiveness;
     // Had kelajuan perubahan: zum 1.0 tahap/saat, condongan 24 darjah/saat. Peredam sahaja tidak
@@ -313,7 +365,11 @@ class CameraRig {
     // walaupun zum berubah; tidak perlu dilicinkan lagi (itu menyebabkan lonjakan).
     final offsetM =
         metersPerPixel(_zoom.value, vehicle.lat) *
-        groundOffsetPx(_tilt.value, viewportHeightPx);
+        groundOffsetPx(
+          _tilt.value,
+          viewportHeightPx,
+          screenOffset: _offset.value,
+        );
 
     final bearing = normalizeBearing(_bearing.value);
     final navCenter = destinationPoint(vehicle, bearing, offsetM);

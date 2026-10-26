@@ -1,9 +1,11 @@
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/utils/geo.dart';
 import '../../navigation/domain/camera_planner.dart' show CameraPose;
 import 'maplibre_view.dart';
+import 'user_location.dart';
 
 /// Kawalan kamera yang didedahkan oleh pandangan peta kepada skrin. Antara muka (bukan kelas
 /// MapLibre) supaya skrin boleh diuji dengan peta palsu.
@@ -100,6 +102,8 @@ class MapViewConfig {
     required this.colors,
     required this.onLongPress,
     required this.onReady,
+    this.userLocation,
+    this.showCompass = true,
     this.onUserGesture,
     this.onTap,
   });
@@ -110,6 +114,15 @@ class MapViewConfig {
   final List<MapRouteLine> routes;
   final GeoPoint? destination;
   final bool showUserLocation;
+
+  /// Kedudukan pengguna yang telah ditapis untuk titik lokasi. Titik lokasi peta disuap daripadanya
+  /// (bukan enjin GPS asli peta yang berasingan) supaya titik dan kamera "ikut saya" tidak berselisih.
+  /// Null = tiada kedudukan untuk dipaparkan.
+  final ValueListenable<UserLocation?>? userLocation;
+
+  /// Butang kompas asli peta. Dimatikan semasa navigasi: ia muncul dan hilang setiap kali arah peta
+  /// melintasi utara dan kelihatan berkelip.
+  final bool showCompass;
   final MapOverlayColors colors;
   final ValueChanged<GeoPoint> onLongPress;
 

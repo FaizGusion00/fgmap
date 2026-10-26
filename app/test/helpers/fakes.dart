@@ -39,6 +39,7 @@ class FakeLocationService implements LocationService {
     Duration timeout = const Duration(seconds: 8),
     double maxAccuracyMeters =
         GeolocatorLocationService.defaultMaxAccuracyMeters,
+    double? fallbackAccuracyMeters,
   }) async {
     // GPS lambat: hanya panggilan PERTAMA selepas [currentFixGate] ditetapkan ditahan (cth. fix
     // permulaan app), supaya panggilan lain (merancang laluan) tidak ikut tersekat.

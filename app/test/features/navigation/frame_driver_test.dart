@@ -70,7 +70,7 @@ void main() {
       expect(last.tilt, greaterThan(40));
       expect(last.zoom, greaterThan(15));
       // Pusat kamera di hadapan kenderaan (kenderaan di bahagian bawah skrin).
-      final car = camera.vehicleCalls.last!.point;
+      final car = session.poseAt(clock.now).point;
       expect(distanceMeters(car, last.center), greaterThan(10));
     },
   );
@@ -99,24 +99,17 @@ void main() {
   });
 
   test('tiada lonjakan antara bingkai berturutan (kenderaan dan kamera)', () {
+    final cars = <GeoPoint>[];
     for (var i = 0; i < 300; i++) {
       clock.advance(const Duration(milliseconds: 16));
       driver.step(t(16 * i));
+      cars.add(session.poseAt(clock.now).point);
     }
     var maxCarStep = 0.0;
     var maxCamStep = 0.0;
     for (var i = 260; i < camera.moveToCalls.length; i++) {
-      maxCarStep =
-          maxCarStep >
-              distanceMeters(
-                camera.vehicleCalls[i]!.point,
-                camera.vehicleCalls[i - 1]!.point,
-              )
-          ? maxCarStep
-          : distanceMeters(
-              camera.vehicleCalls[i]!.point,
-              camera.vehicleCalls[i - 1]!.point,
-            );
+      final step = distanceMeters(cars[i], cars[i - 1]);
+      maxCarStep = maxCarStep > step ? maxCarStep : step;
       final d = distanceMeters(
         camera.moveToCalls[i].center,
         camera.moveToCalls[i - 1].center,
@@ -143,7 +136,14 @@ void main() {
         driver.step(t(16 * i));
       }
       expect(camera.moveToCalls.length, moves);
+      // Kamera dilepaskan: kereta dilukis pada koordinatnya di lapisan peta, setiap bingkai.
       expect(camera.vehicleCalls.length, cars + 10);
+      expect(camera.vehicleCalls.last, isNotNull);
+      expect(
+        driver.car.value,
+        isNull,
+        reason: 'kereta 3D hanya semasa mengikut',
+      );
     },
   );
 
@@ -303,10 +303,88 @@ void main() {
       addTearDown(d.dispose);
       run(d, 100);
       moving = true;
-      final cars = camera.vehicleCalls.length;
+      final moves = camera.moveToCalls.length;
       run(d, 30, from: 100);
-      expect(camera.vehicleCalls.length, cars + 30);
+      expect(camera.moveToCalls.length, moves + 30);
     });
+  });
+
+  group('kereta 3D di atas peta dan kereta lapisan peta', () {
+    void frames(NavigationFrameDriver d, int count, {int from = 0}) {
+      for (var i = from; i < from + count; i++) {
+        clock.advance(const Duration(milliseconds: 16));
+        d.step(t(16 * i));
+      }
+    }
+
+    test(
+      'semasa peralihan masuk: kereta lapisan peta kelihatan, kereta 3D belum',
+      () {
+        frames(driver, 20);
+        expect(camera.vehicleCalls.last, isNotNull);
+        expect(driver.car.value!.opacity, 0);
+      },
+    );
+
+    test(
+      'selepas peralihan masuk: kereta 3D penuh dan lapisan peta disembunyikan',
+      () {
+        frames(driver, 200);
+        final car = driver.car.value!;
+        expect(car.opacity, closeTo(1, 1e-6));
+        expect(camera.vehicleCalls.last, isNull);
+        // Dilukis tepat di tempat kamera meletakkan kenderaan, dan condong sama seperti kamera.
+        expect(car.anchorY, closeTo(0.5 + carScreenOffset, 0.001));
+        expect(car.tiltDeg, closeTo(camera.moveToCalls.last.tilt, 0.01));
+        // Jalan lurus: kereta menghadap hampir tepat ke atas skrin.
+        expect(car.yawDeg.abs(), lessThan(3));
+      },
+    );
+
+    test('lapisan peta disembunyikan sekali sahaja, bukan setiap bingkai', () {
+      frames(driver, 200);
+      final calls = camera.vehicleCalls.length;
+      frames(driver, 20, from: 200);
+      // Hanya degupan jarang-jarang (marker tidak berubah), tiada panggilan setiap bingkai.
+      expect(camera.vehicleCalls.length - calls, lessThanOrEqualTo(1));
+    });
+
+    test('mendatar: kereta dinaikkan supaya tidak terlindung panel bawah', () {
+      final landscape = NavigationFrameDriver(
+        camera: camera,
+        poseAt: session.poseAt,
+        progress: () => session.progress,
+        viewportHeight: () => 390,
+        screenOffset: () => carScreenOffsetLandscape,
+        cameraMode: () => NavCameraMode.auto,
+        clock: clock.call,
+      );
+      addTearDown(landscape.dispose);
+      frames(landscape, 200);
+      expect(
+        landscape.car.value!.anchorY,
+        closeTo(0.5 + carScreenOffsetLandscape, 0.001),
+      );
+      expect(landscape.car.value!.anchorY, lessThan(0.69));
+    });
+
+    test(
+      'pengguna menggeser peta: kereta 3D diganti kereta lapisan peta; pusat semula memulangkannya',
+      () {
+        frames(driver, 200);
+        expect(driver.car.value, isNotNull);
+
+        driver.userInteracted();
+        frames(driver, 5, from: 200);
+        expect(driver.car.value, isNull);
+        expect(camera.vehicleCalls.last, isNotNull);
+
+        driver.recenter();
+        frames(driver, 200, from: 205);
+        expect(driver.car.value!.opacity, closeTo(1, 1e-6));
+        expect(camera.vehicleCalls.last, isNull);
+      },
+    );
   });
 
   test('tiada pose (navigasi belum bermula): tidak berbuat apa-apa', () {
