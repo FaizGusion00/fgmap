@@ -44,8 +44,83 @@ IconData maneuverIcon(ManeuverKind kind) => switch (kind) {
 InstructionText instructionTextFor(AppLocalizations l10n) =>
     InstructionText(VoiceLanguage.fromCode(l10n.localeName));
 
-/// Kad manuver di atas skrin: ikon besar, jarak ke manuver, tindakan dan nama jalan, serta "kemudian"
-/// untuk manuver rapat berikutnya. Beranimasi (slaid + skala) bila manuver bertukar.
+/// Saiz elemen HUD mengikut paparan. Telefon mendatar hanya ada kira-kira 390 px tinggi: kad yang
+/// selesa dalam potret akan menelan separuh skrin dan menutup kereta. Semua elemen HUD membaca saiz
+/// daripada sini supaya mengecil bersama dan serentak.
+@immutable
+class NavHudMetrics {
+  const NavHudMetrics._({
+    required this.landscape,
+    required this.bannerIcon,
+    required this.distanceSize,
+    required this.padH,
+    required this.padV,
+    required this.radius,
+    required this.button,
+    required this.speedSize,
+    required this.limitSize,
+    required this.bannerMaxWidth,
+  });
+
+  factory NavHudMetrics.of(BuildContext context) =>
+      NavHudMetrics.forSize(MediaQuery.sizeOf(context));
+
+  factory NavHudMetrics.forSize(Size size) {
+    final landscape = size.width > size.height;
+    final narrow = size.width < 360;
+    if (landscape) {
+      return NavHudMetrics._(
+        landscape: true,
+        bannerIcon: 34,
+        distanceSize: 26,
+        padH: 10,
+        padV: 8,
+        radius: 16,
+        button: 42,
+        speedSize: 54,
+        limitSize: 42,
+        bannerMaxWidth: (size.width * 0.4).clamp(250.0, 330.0),
+      );
+    }
+    return NavHudMetrics._(
+      landscape: false,
+      bannerIcon: narrow ? 38 : 44,
+      distanceSize: narrow ? 26 : 30,
+      padH: narrow ? 12 : 14,
+      padV: 10,
+      radius: 18,
+      button: 46,
+      speedSize: 58,
+      limitSize: 46,
+      bannerMaxWidth: 440,
+    );
+  }
+
+  final bool landscape;
+  final double bannerIcon;
+  final double distanceSize;
+  final double padH;
+  final double padV;
+  final double radius;
+
+  /// Sisi minimum butang bulat sisi.
+  final double button;
+  final double speedSize;
+  final double limitSize;
+  final double bannerMaxWidth;
+}
+
+/// Mengekang penskalaan teks sistem pada HUD: teks yang membesar tanpa had menolak kad manuver sehingga
+/// menutup jalan. Sedikit pembesaran (115%) masih dihormati.
+Widget _clampTextScale(Widget child) => MediaQuery.withClampedTextScaling(
+  minScaleFactor: 1,
+  maxScaleFactor: 1.15,
+  child: child,
+);
+
+/// Kad manuver di atas skrin: ikon, jarak ke manuver, tindakan dan nama jalan, serta "kemudian" untuk
+/// manuver rapat berikutnya. Padat (potret) dan lebih kecil lagi (mendatar). Beranimasi (slaid + skala)
+/// bila manuver bertukar.
 class ManeuverBanner extends StatelessWidget {
   const ManeuverBanner({super.key, required this.progress, this.liveAlongM});
 
@@ -62,6 +137,7 @@ class ManeuverBanner extends StatelessWidget {
     final theme = Theme.of(context);
     final text = instructionTextFor(l10n);
     final fg = context.fg;
+    final metrics = NavHudMetrics.of(context);
 
     final child = next == null
         ? const SizedBox.shrink(key: ValueKey('none'))
@@ -78,45 +154,48 @@ class ManeuverBanner extends StatelessWidget {
                 following: then,
                 thenGapM: then == null ? null : then.startM - next.startM,
                 text: text,
+                metrics: metrics,
               );
             },
           );
 
     // Bukan liveRegion di sini: jarak berubah setiap saat dan TalkBack akan membacanya terus,
     // bertindih dengan suara arahan. Hanya teks tindakan (berubah bila manuver bertukar) yang live.
-    return Semantics(
-      container: true,
-      child: Material(
-        color: theme.colorScheme.primary,
-        elevation: 6,
-        shadowColor: Colors.black,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-          side: BorderSide(color: fg.glassBorder.withValues(alpha: 0.4)),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: AnimatedSwitcher(
-          duration: Motion.of(context, Motion.normal),
-          switchInCurve: Motion.enter,
-          switchOutCurve: Motion.exit,
-          transitionBuilder: (child, animation) => FadeTransition(
-            opacity: animation,
-            child: ScaleTransition(
-              scale: Tween(begin: 0.94, end: 1.0).animate(animation),
-              child: SlideTransition(
-                position: Tween(
-                  begin: const Offset(0, -0.25),
-                  end: Offset.zero,
-                ).animate(animation),
-                child: child,
+    return _clampTextScale(
+      Semantics(
+        container: true,
+        child: Material(
+          color: theme.colorScheme.primary,
+          elevation: 4,
+          shadowColor: Colors.black54,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(metrics.radius),
+            side: BorderSide(color: fg.glassBorder.withValues(alpha: 0.4)),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: AnimatedSwitcher(
+            duration: Motion.of(context, Motion.normal),
+            switchInCurve: Motion.enter,
+            switchOutCurve: Motion.exit,
+            transitionBuilder: (child, animation) => FadeTransition(
+              opacity: animation,
+              child: ScaleTransition(
+                scale: Tween(begin: 0.96, end: 1.0).animate(animation),
+                child: SlideTransition(
+                  position: Tween(
+                    begin: const Offset(0, -0.2),
+                    end: Offset.zero,
+                  ).animate(animation),
+                  child: child,
+                ),
               ),
             ),
+            layoutBuilder: (current, previous) => Stack(
+              alignment: Alignment.topLeft,
+              children: [...previous, ?current],
+            ),
+            child: child,
           ),
-          layoutBuilder: (current, previous) => Stack(
-            alignment: Alignment.topLeft,
-            children: [...previous, ?current],
-          ),
-          child: child,
         ),
       ),
     );
@@ -148,6 +227,7 @@ class _BannerContent extends StatelessWidget {
     required this.following,
     required this.thenGapM,
     required this.text,
+    required this.metrics,
   });
 
   /// Dalam jarak ini bar "bersedia" muncul dan memenuh sehingga manuver.
@@ -160,6 +240,7 @@ class _BannerContent extends StatelessWidget {
   /// Jarak antara manuver ini dan [following]; null jika tiada "Kemudian".
   final double? thenGapM;
   final InstructionText text;
+  final NavHudMetrics metrics;
 
   @override
   Widget build(BuildContext context) {
@@ -169,26 +250,43 @@ class _BannerContent extends StatelessWidget {
     final street = maneuver.isArrival ? null : maneuver.street;
     final followingStreet = following?.street;
     final ready = distanceM <= readyWithinM && !maneuver.isArrival;
+    final thenIcon = metrics.landscape ? 18.0 : 22.0;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          padding: EdgeInsets.symmetric(
+            horizontal: metrics.padH,
+            vertical: metrics.padV,
+          ),
           child: Row(
             children: [
-              Icon(maneuverIcon(maneuver.kind), size: 72, color: onPrimary),
-              const SizedBox(width: 14),
+              Icon(
+                maneuverIcon(maneuver.kind),
+                size: metrics.bannerIcon,
+                color: onPrimary,
+              ),
+              SizedBox(width: metrics.landscape ? 10 : 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      formatDistance(l10n, distanceM.round()),
-                      style: FgTypography.metricLarge.copyWith(
-                        color: onPrimary,
-                        fontSize: 42,
+                    // Jarak mengecil sendiri jika rentetan panjang atau teks sistem besar, bukan
+                    // melimpah keluar kad.
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        formatDistance(l10n, distanceM.round()),
+                        maxLines: 1,
+                        style: FgTypography.metricLarge.copyWith(
+                          color: onPrimary,
+                          fontSize: metrics.distanceSize,
+                          height: 1.05,
+                        ),
                       ),
                     ),
                     // container: nod sendiri (tidak digabung ke kad), supaya bendera live tidak
@@ -198,11 +296,12 @@ class _BannerContent extends StatelessWidget {
                       liveRegion: true,
                       child: Text(
                         text.action(maneuver),
-                        maxLines: 2,
+                        maxLines: metrics.landscape ? 1 : 2,
                         overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.titleMedium?.copyWith(
+                        style: theme.textTheme.titleSmall?.copyWith(
                           color: onPrimary,
                           fontWeight: FontWeight.w700,
+                          height: 1.25,
                         ),
                       ),
                     ),
@@ -211,8 +310,9 @@ class _BannerContent extends StatelessWidget {
                         street,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodyMedium?.copyWith(
+                        style: theme.textTheme.bodySmall?.copyWith(
                           color: onPrimary.withValues(alpha: 0.85),
+                          height: 1.3,
                         ),
                       ),
                   ],
@@ -225,7 +325,7 @@ class _BannerContent extends StatelessWidget {
           // Bar "bersedia": kosong pada 300 m, penuh di titik belok.
           LinearProgressIndicator(
             value: (1 - distanceM / readyWithinM).clamp(0.0, 1.0),
-            minHeight: 5,
+            minHeight: 3,
             color: onPrimary,
             backgroundColor: onPrimary.withValues(alpha: 0.2),
           ),
@@ -233,37 +333,40 @@ class _BannerContent extends StatelessWidget {
           ColoredBox(
             color: Colors.black.withValues(alpha: 0.22),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding: EdgeInsets.symmetric(
+                horizontal: metrics.padH,
+                vertical: metrics.landscape ? 4 : 6,
+              ),
               child: Row(
                 children: [
                   Text(
                     l10n.navThen,
-                    style: theme.textTheme.labelLarge?.copyWith(
+                    style: theme.textTheme.labelMedium?.copyWith(
                       color: onPrimary.withValues(alpha: 0.85),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
                   Icon(
                     maneuverIcon(following!.kind),
-                    size: 30,
+                    size: thenIcon,
                     color: onPrimary,
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
                   Text(
                     formatDistance(l10n, thenGapM!.round()),
-                    style: theme.textTheme.titleMedium?.copyWith(
+                    style: theme.textTheme.labelLarge?.copyWith(
                       color: onPrimary,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   if (followingStreet != null) ...[
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         followingStreet,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodyMedium?.copyWith(
+                        style: theme.textTheme.bodySmall?.copyWith(
                           color: onPrimary.withValues(alpha: 0.85),
                         ),
                       ),
@@ -286,12 +389,16 @@ class NavBottomPanel extends StatelessWidget {
     required this.now,
     required this.onEnd,
     this.simulated = false,
+    this.floating = false,
   });
 
   final NavProgress progress;
   final DateTime now;
   final bool simulated;
   final VoidCallback onEnd;
+
+  /// Kad terapung bulat penuh (mendatar), bukan lembaran yang melekat pada tepi bawah.
+  final bool floating;
 
   @override
   Widget build(BuildContext context) {
@@ -302,69 +409,86 @@ class NavBottomPanel extends StatelessWidget {
       context,
     ).formatTimeOfDay(TimeOfDay.fromDateTime(eta));
 
-    return Material(
-      color: theme.colorScheme.surface,
-      elevation: 8,
-      shadowColor: Colors.black,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 12, 8),
-          child: Row(
-            children: [
-              Expanded(
-                child: Semantics(
-                  container: true,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              formatDuration(l10n, progress.remainingS.round()),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: FgTypography.metricMedium.copyWith(
-                                color: theme.colorScheme.onSurface,
+    final metrics = NavHudMetrics.of(context);
+    return _clampTextScale(
+      Material(
+        color: theme.colorScheme.surface,
+        elevation: floating ? 4 : 8,
+        shadowColor: Colors.black54,
+        shape: RoundedRectangleBorder(
+          borderRadius: floating
+              ? BorderRadius.circular(metrics.radius)
+              : const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: SafeArea(
+          top: false,
+          bottom: !floating,
+          left: !floating,
+          right: !floating,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              floating ? 14 : 18,
+              floating ? 8 : 10,
+              floating ? 8 : 10,
+              floating ? 8 : 6,
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Semantics(
+                    container: true,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                formatDuration(
+                                  l10n,
+                                  progress.remainingS.round(),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: FgTypography.metricMedium.copyWith(
+                                  color: theme.colorScheme.onSurface,
+                                  fontSize: 20,
+                                ),
                               ),
                             ),
-                          ),
-                          if (simulated) ...[
-                            const SizedBox(width: 8),
-                            _Badge(label: l10n.navSimulatedBadge),
+                            if (simulated) ...[
+                              const SizedBox(width: 8),
+                              _Badge(label: l10n.navSimulatedBadge),
+                            ],
                           ],
-                        ],
-                      ),
-                      Text(
-                        '${formatDistance(l10n, progress.remainingM.round())} · ${l10n.navEta(etaText)}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
                         ),
-                      ),
-                    ],
+                        Text(
+                          '${formatDistance(l10n, progress.remainingM.round())} · ${l10n.navEta(etaText)}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 4),
-              IconButton.filled(
-                tooltip: l10n.navEnd,
-                onPressed: onEnd,
-                style: IconButton.styleFrom(
-                  backgroundColor: theme.colorScheme.error,
-                  foregroundColor: theme.colorScheme.onError,
-                  minimumSize: const Size(52, 52),
+                const SizedBox(width: 4),
+                IconButton.filled(
+                  tooltip: l10n.navEnd,
+                  onPressed: onEnd,
+                  style: IconButton.styleFrom(
+                    backgroundColor: theme.colorScheme.error,
+                    foregroundColor: theme.colorScheme.onError,
+                    minimumSize: Size.square(metrics.button),
+                  ),
+                  icon: const Icon(Icons.close_rounded),
                 ),
-                icon: const Icon(Icons.close_rounded),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -402,7 +526,7 @@ class NavSideButtons extends StatelessWidget {
           tooltip: l10n.navOverview,
           onPressed: onOverview,
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         _GlassButton(
           icon: switch (cameraMode) {
             NavCameraMode.auto => Icons.auto_mode_rounded,
@@ -416,7 +540,7 @@ class NavSideButtons extends StatelessWidget {
           },
           onPressed: onCycleCamera,
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         _GlassButton(
           icon: voiceEnabled
               ? Icons.volume_up_rounded
@@ -424,7 +548,7 @@ class NavSideButtons extends StatelessWidget {
           tooltip: voiceEnabled ? l10n.navMute : l10n.navUnmute,
           onPressed: onToggleVoice,
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         _GlassButton(
           icon: Icons.tune_rounded,
           tooltip: l10n.navSettingsOpen,
@@ -449,6 +573,7 @@ class _GlassButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fg = context.fg;
+    final side = NavHudMetrics.of(context).button;
     return Material(
       color: fg.glassSurface,
       elevation: 3,
@@ -456,9 +581,9 @@ class _GlassButton extends StatelessWidget {
       child: IconButton(
         tooltip: tooltip,
         onPressed: onPressed,
-        icon: Icon(icon),
+        icon: Icon(icon, size: 22),
         color: Theme.of(context).colorScheme.onSurface,
-        constraints: const BoxConstraints(minWidth: 52, minHeight: 52),
+        constraints: BoxConstraints(minWidth: side, minHeight: side),
       ),
     );
   }
@@ -504,6 +629,7 @@ class SpeedBubble extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final fg = context.fg;
+    final metrics = NavHudMetrics.of(context);
     final kmh = (speedMps * 3.6).round();
     final limit = limitKmh;
     final background = overspeed ? theme.colorScheme.error : fg.glassSurface;
@@ -511,56 +637,61 @@ class SpeedBubble extends StatelessWidget {
         ? theme.colorScheme.onError
         : theme.colorScheme.onSurface;
 
-    return Semantics(
-      label:
-          '${l10n.navSpeedLabel}: $kmh ${l10n.navSpeedUnit}'
-          '${limit == null ? '' : ', ${l10n.navSpeedLimit}: $limit'}',
-      liveRegion: overspeed,
-      excludeSemantics: true,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (limit != null) ...[
-            _SpeedLimitSign(limitKmh: limit),
-            const SizedBox(height: 8),
-          ],
-          Material(
-            type: MaterialType.transparency,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                color: background,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: overspeed ? theme.colorScheme.error : fg.glassBorder,
+    // Lingkaran bersaiz tetap: teks sistem yang besar tidak boleh melimpahkannya.
+    return _clampTextScale(
+      Semantics(
+        label:
+            '${l10n.navSpeedLabel}: $kmh ${l10n.navSpeedUnit}'
+            '${limit == null ? '' : ', ${l10n.navSpeedLimit}: $limit'}',
+        liveRegion: overspeed,
+        excludeSemantics: true,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (limit != null) ...[
+              _SpeedLimitSign(limitKmh: limit, size: metrics.limitSize),
+              const SizedBox(height: 6),
+            ],
+            Material(
+              type: MaterialType.transparency,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: metrics.speedSize,
+                height: metrics.speedSize,
+                decoration: BoxDecoration(
+                  color: background,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: overspeed ? theme.colorScheme.error : fg.glassBorder,
+                  ),
+                  boxShadow: const [
+                    BoxShadow(color: Color(0x33000000), blurRadius: 6),
+                  ],
                 ),
-                boxShadow: const [
-                  BoxShadow(color: Color(0x33000000), blurRadius: 6),
-                ],
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    '$kmh',
-                    style: FgTypography.metricMedium.copyWith(
-                      color: foreground,
-                      height: 1,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '$kmh',
+                      style: FgTypography.metricMedium.copyWith(
+                        color: foreground,
+                        fontSize: 20,
+                        height: 1,
+                      ),
                     ),
-                  ),
-                  Text(
-                    l10n.navSpeedUnit,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: foreground,
+                    Text(
+                      l10n.navSpeedUnit,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: foreground,
+                        fontSize: 10,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -568,9 +699,10 @@ class SpeedBubble extends StatelessWidget {
 
 /// Tanda had laju gaya Malaysia/Eropah: bulatan putih bergelang merah.
 class _SpeedLimitSign extends StatelessWidget {
-  const _SpeedLimitSign({required this.limitKmh});
+  const _SpeedLimitSign({required this.limitKmh, required this.size});
 
   final int limitKmh;
+  final double size;
 
   @override
   Widget build(BuildContext context) {
@@ -581,19 +713,19 @@ class _SpeedLimitSign extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           shape: BoxShape.circle,
-          border: Border.all(color: const Color(0xFFD62828), width: 5),
+          border: Border.all(color: const Color(0xFFD62828), width: 4.5),
           boxShadow: const [BoxShadow(color: Color(0x33000000), blurRadius: 6)],
         ),
         child: SizedBox(
-          width: 52,
-          height: 52,
+          width: size,
+          height: size,
           child: Center(
             child: Text(
               '$limitKmh',
               style: FgTypography.metricMedium.copyWith(
                 // Sentiasa hitam di atas putih, tidak mengikut tema (tanda jalan sebenar).
                 color: Colors.black,
-                fontSize: limitKmh >= 100 ? 18 : 22,
+                fontSize: limitKmh >= 100 ? 16 : 19,
                 height: 1,
               ),
             ),
@@ -639,116 +771,130 @@ class NavStatusChip extends StatelessWidget {
       tint = fg.warning;
     }
 
-    return AnimatedSwitcher(
-      duration: Motion.of(context, Motion.normal),
-      switchInCurve: Motion.enter,
-      switchOutCurve: Motion.exit,
-      transitionBuilder: (child, animation) => FadeTransition(
-        opacity: animation,
-        child: SizeTransition(sizeFactor: animation, child: child),
-      ),
-      child: message == null
-          ? const SizedBox.shrink(key: ValueKey('no-status'))
-          : Padding(
-              key: ValueKey(message),
-              padding: const EdgeInsets.only(top: 8),
-              child: Semantics(
-                liveRegion: true,
-                child: Material(
-                  // Tanpa bayang: SizeTransition memotong bayang di tepi dan kelihatan tersilap.
-                  color: fg.glassSurface,
-                  elevation: 0,
-                  shape: StadiumBorder(side: BorderSide(color: fg.glassBorder)),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 8,
+    return _clampTextScale(
+      AnimatedSwitcher(
+        duration: Motion.of(context, Motion.normal),
+        switchInCurve: Motion.enter,
+        switchOutCurve: Motion.exit,
+        transitionBuilder: (child, animation) => FadeTransition(
+          opacity: animation,
+          child: SizeTransition(sizeFactor: animation, child: child),
+        ),
+        child: message == null
+            ? const SizedBox.shrink(key: ValueKey('no-status'))
+            : Padding(
+                key: ValueKey(message),
+                padding: const EdgeInsets.only(top: 8),
+                child: Semantics(
+                  liveRegion: true,
+                  child: Material(
+                    // Tanpa bayang: SizeTransition memotong bayang di tepi dan kelihatan tersilap.
+                    color: fg.glassSurface,
+                    elevation: 0,
+                    shape: StadiumBorder(
+                      side: BorderSide(color: fg.glassBorder),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (state.rerouting || state.progress == null)
-                          const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        else
-                          Icon(icon, size: 18, color: tint),
-                        const SizedBox(width: 8),
-                        Flexible(
-                          child: Text(
-                            message,
-                            style: Theme.of(context).textTheme.labelLarge,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (state.rerouting || state.progress == null)
+                            const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          else
+                            Icon(icon, size: 18, color: tint),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              message,
+                              style: Theme.of(context).textTheme.labelLarge,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
+      ),
     );
   }
 }
 
 /// Kad ketibaan: dipaparkan di tengah bawah apabila destinasi dicapai.
 class ArrivalCard extends StatelessWidget {
-  const ArrivalCard({super.key, required this.onDone});
+  const ArrivalCard({super.key, required this.onDone, this.floating = false});
 
   final VoidCallback onDone;
+
+  /// Kad terapung bulat penuh (mendatar), bukan lembaran yang melekat pada tepi bawah.
+  final bool floating;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    return Semantics(
-      liveRegion: true,
-      container: true,
-      child: Material(
-        color: theme.colorScheme.surface,
-        elevation: 8,
-        shadowColor: Colors.black,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.flag_rounded,
-                  size: 44,
-                  color: context.fg.destination,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  l10n.navArrived,
-                  style: theme.textTheme.headlineSmall,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  l10n.navArrivalSub,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+    return _clampTextScale(
+      Semantics(
+        liveRegion: true,
+        container: true,
+        child: Material(
+          color: theme.colorScheme.surface,
+          elevation: 8,
+          shadowColor: Colors.black54,
+          shape: RoundedRectangleBorder(
+            borderRadius: floating
+                ? BorderRadius.circular(20)
+                : const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: SafeArea(
+            top: false,
+            bottom: !floating,
+            left: !floating,
+            right: !floating,
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(20, floating ? 12 : 20, 20, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.flag_rounded,
+                    size: floating ? 32 : 44,
+                    color: context.fg.destination,
                   ),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: onDone,
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size.fromHeight(52),
+                  const SizedBox(height: 6),
+                  Text(
+                    l10n.navArrived,
+                    style: theme.textTheme.headlineSmall,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    l10n.navArrivalSub,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
-                    child: Text(l10n.navDone),
                   ),
-                ),
-              ],
+                  SizedBox(height: floating ? 10 : 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: onDone,
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size.fromHeight(48),
+                      ),
+                      child: Text(l10n.navDone),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -767,13 +913,18 @@ class RecenterButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    return FloatingActionButton(
-      heroTag: null,
+    final side = NavHudMetrics.of(context).button + 4;
+    return IconButton.filled(
       tooltip: l10n.navRecenter,
       onPressed: onPressed,
-      backgroundColor: theme.colorScheme.primary,
-      foregroundColor: theme.colorScheme.onPrimary,
-      child: const Icon(Icons.navigation_rounded),
+      style: IconButton.styleFrom(
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: theme.colorScheme.onPrimary,
+        minimumSize: Size.square(side),
+        elevation: 4,
+        shadowColor: Colors.black54,
+      ),
+      icon: const Icon(Icons.navigation_rounded),
     );
   }
 }

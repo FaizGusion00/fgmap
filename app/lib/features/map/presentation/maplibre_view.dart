@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
@@ -60,11 +61,29 @@ class _MapLibreViewState extends State<MapLibreView> {
   double _gestureTravel = 0;
   bool _gestureReported = false;
 
+  // Data terakhir yang SUDAH dihantar ke setiap sumber, supaya hanya yang berubah ditulis semula.
+  // Dahulu satu perubahan kecil (cth. laluan baki bertambah pendek setiap 15 m) menulis semula ketiga-tiga
+  // sumber, termasuk yang kosong, dan setiap tulisan menyebabkan peta menjana jubin semula.
+  List<MapRouteLine> _sentAlt = const [];
+  List<MapRouteLine> _sentMain = const [];
+  GeoPoint? _sentDestination;
+
+  /// Titik lokasi asli peta bertukar kelabu ("lapuk") jika tiada kemas kini selama 30 saat. Pengguna
+  /// yang pegun memang tidak menerima fix baharu (penapis jarak), jadi kedudukan semasa dihantar semula
+  /// secara berkala supaya titik kekal berwarna selagi kedudukannya sah.
+  Timer? _userLocationHeartbeat;
+  static const _userLocationHeartbeatEvery = Duration(seconds: 15);
+
   @override
   void initState() {
     super.initState();
     _initialStyleUrl = widget.config.styleUrl;
     _activeStyleUrl = _initialStyleUrl;
+    widget.config.userLocation?.addListener(_pushUserLocation);
+    _userLocationHeartbeat = Timer.periodic(
+      _userLocationHeartbeatEvery,
+      (_) => _pushUserLocation(),
+    );
   }
 
   @override
@@ -78,6 +97,17 @@ class _MapLibreViewState extends State<MapLibreView> {
     super.didUpdateWidget(oldWidget);
     final old = oldWidget.config;
     final cfg = widget.config;
+
+    if (!identical(old.userLocation, cfg.userLocation)) {
+      old.userLocation?.removeListener(_pushUserLocation);
+      cfg.userLocation?.addListener(_pushUserLocation);
+    }
+    if (!old.showUserLocation && cfg.showUserLocation) {
+      // Komponen lokasi asli diaktifkan selepas bingkai ini; hantar kedudukan sebaik ia sedia.
+      Future<void>.delayed(const Duration(milliseconds: 300), () {
+        if (mounted) _pushUserLocation();
+      });
+    }
 
     if (old.styleUrl != cfg.styleUrl) {
       final styleUrl = cfg.styleUrl;
@@ -114,8 +144,39 @@ class _MapLibreViewState extends State<MapLibreView> {
 
   @override
   void dispose() {
+    _userLocationHeartbeat?.cancel();
+    widget.config.userLocation?.removeListener(_pushUserLocation);
     _pump.dispose();
     super.dispose();
+  }
+
+  /// Menyuap titik lokasi peta daripada kedudukan yang telah ditapis (bukan enjin GPS asli peta yang
+  /// berasingan dan boleh menunjukkan lokasi lapuk sebaik app dibuka semula).
+  void _pushUserLocation() {
+    final c = _controller;
+    final cfg = widget.config;
+    final location = cfg.userLocation?.value;
+    if (c == null || location == null || !cfg.showUserLocation) return;
+    // Kedudukan lapuk dipaparkan dengan cincin ketidakpastian yang luas sehingga fix segar tiba.
+    final accuracy = location.stale
+        ? math.max(location.accuracyM, 120.0)
+        : location.accuracyM;
+    unawaited(
+      c
+          .updateManualLocation(
+            ManualLocationUpdate(
+              target: LatLng(location.point.lat, location.point.lng),
+              horizontalAccuracy: accuracy,
+              bearing: location.headingDegrees,
+              speed: location.speedMps,
+              timestamp: location.time,
+            ),
+          )
+          .catchError((Object e) {
+            // Komponen belum aktif (peta/gaya baru dimuat): kemas kini seterusnya akan berjaya.
+            debugPrint('Titik lokasi belum sedia: $e');
+          }),
+    );
   }
 
   Future<void> _sendVehicle(VehicleMarker? marker) async {
@@ -140,7 +201,13 @@ class _MapLibreViewState extends State<MapLibreView> {
     );
   }
 
-  void _onStyleLoaded() => _enqueue(_initOverlays);
+  void _onStyleLoaded() {
+    _enqueue(_initOverlays);
+    // Menukar gaya mengaktifkan semula komponen lokasi tanpa kedudukan: hantar semula yang terkini.
+    Future<void>.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) _pushUserLocation();
+    });
+  }
 
   Future<void> _initOverlays() async {
     final c = _controller;
@@ -169,6 +236,10 @@ class _MapLibreViewState extends State<MapLibreView> {
     await c.addGeoJsonSource(_altSource, _emptyCollection);
     await c.addGeoJsonSource(_mainSource, _emptyCollection);
     await c.addGeoJsonSource(_destSource, _emptyCollection);
+    // Sumber baharu kosong: tiada apa yang dihantar lagi.
+    _sentAlt = const [];
+    _sentMain = const [];
+    _sentDestination = null;
 
     // Urutan penting: alternatif di bawah, kemudian tepi laluan utama, laluan utama, destinasi.
     await c.addLineLayer(
@@ -252,15 +323,20 @@ class _MapLibreViewState extends State<MapLibreView> {
     if (c == null || !_overlaysReady) return;
     final cfg = widget.config;
 
-    await c.setGeoJsonSource(
-      _altSource,
-      _lines(cfg.routes.where((r) => !r.isMain)),
-    );
-    await c.setGeoJsonSource(
-      _mainSource,
-      _lines(cfg.routes.where((r) => r.isMain)),
-    );
-    await c.setGeoJsonSource(_destSource, _point(cfg.destination));
+    final alt = cfg.routes.where((r) => !r.isMain).toList(growable: false);
+    final main = cfg.routes.where((r) => r.isMain).toList(growable: false);
+    if (!_sameRoutes(_sentAlt, alt)) {
+      _sentAlt = alt;
+      await c.setGeoJsonSource(_altSource, _lines(alt));
+    }
+    if (!_sameRoutes(_sentMain, main)) {
+      _sentMain = main;
+      await c.setGeoJsonSource(_mainSource, _lines(main));
+    }
+    if (_sentDestination != cfg.destination) {
+      _sentDestination = cfg.destination;
+      await c.setGeoJsonSource(_destSource, _point(cfg.destination));
+    }
   }
 
   @override
@@ -281,10 +357,13 @@ class _MapLibreViewState extends State<MapLibreView> {
           ? null
           : (_, latLng) =>
                 cfg.onTap!(GeoPoint(latLng.latitude, latLng.longitude)),
+      // Titik lokasi disuap oleh kita sendiri (kedudukan tertapis yang sama dengan kamera), bukan enjin
+      // GPS asli peta.
       myLocationEnabled: cfg.showUserLocation,
+      locationSource: const ManualLocationSource(),
       trackCameraPosition: true,
       zoomGesturesEnabled: true,
-      compassEnabled: true,
+      compassEnabled: cfg.showCompass,
       logoEnabled: false,
       attributionButtonPosition: AttributionButtonPosition.bottomLeft,
       attributionButtonColor: cfg.colors.vehicle,

@@ -53,6 +53,9 @@ class FixFilter {
   /// Fix tersimpan yang dihantar semula apabila aliran GPS bermula bukan lokasi semasa.
   final Duration maxFixAge;
 
+  /// Berapa jauh cap masa fix dibenarkan mendahului jam sistem (jam condong beberapa ratus ms).
+  static const clockSkewTolerance = Duration(seconds: 2);
+
   GeoPoint? _origin;
   double _x = 0, _y = 0; // meter ke timur / utara dari _origin
   double _variance = 0;
@@ -66,7 +69,8 @@ class FixFilter {
   FilteredFix? accept(LocationFix raw, {required DateTime now}) {
     final time = raw.timestamp ?? now;
     final age = now.difference(time);
-    if (age.isNegative || age > maxFixAge) return null;
+    // Masa GPS boleh mendahului jam sistem sedikit; hanya cap masa yang jauh di hadapan itu mustahil.
+    if (age < -clockSkewTolerance || age > maxFixAge) return null;
     final last = _lastTime;
     if (last != null && !time.isAfter(last)) return null;
 

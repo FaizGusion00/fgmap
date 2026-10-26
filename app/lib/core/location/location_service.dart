@@ -49,9 +49,14 @@ abstract interface class LocationService {
 
   /// Kedudukan semasa, atau null jika kebenaran tiada / GPS tidak memberi fix dalam [timeout].
   /// Tidak pernah memaparkan dialog kebenaran.
+  ///
+  /// Jika tiada fix setepat [maxAccuracyMeters] dalam [timeout] tetapi ada fix segar yang lebih kasar
+  /// (sehingga [fallbackAccuracyMeters]), fix terbaik itu dipulangkan dan bukannya null. Untuk
+  /// meletakkan kamera sahaja: jangan gunakannya sebagai asal laluan.
   Future<LocationFix?> currentFix({
     Duration timeout = const Duration(seconds: 8),
     double maxAccuracyMeters = 20,
+    double? fallbackAccuracyMeters,
   });
 
   /// Kedudukan terakhir yang diketahui peranti, TANPA had umur atau ketepatan, atau null jika
@@ -102,6 +107,7 @@ class GeolocatorLocationService implements LocationService {
   Future<LocationFix?> currentFix({
     Duration timeout = const Duration(seconds: 8),
     double maxAccuracyMeters = defaultMaxAccuracyMeters,
+    double? fallbackAccuracyMeters,
   }) async {
     if (await access() != LocationAccess.granted) return null;
     final now = DateTime.now();
@@ -126,13 +132,11 @@ class GeolocatorLocationService implements LocationService {
       }
     }
 
-    final current = await _awaitAccurateFix(
+    return _awaitAccurateFix(
       timeout: timeout,
       maxAccuracyMeters: maxAccuracyMeters,
+      fallbackAccuracyMeters: fallbackAccuracyMeters,
     );
-    if (current != null) return current;
-
-    return null;
   }
 
   @override
@@ -151,11 +155,16 @@ class GeolocatorLocationService implements LocationService {
   Future<LocationFix?> _awaitAccurateFix({
     required Duration timeout,
     required double maxAccuracyMeters,
+    double? fallbackAccuracyMeters,
   }) async {
     final result = Completer<LocationFix?>();
     StreamSubscription<Position>? subscription;
+    // Fix segar terbaik yang kurang tepat; dipulangkan jika yang tepat tidak kunjung tiba (dalam
+    // bangunan, lembah bangunan). Lebih baik kedudukan kasar yang segar daripada kamera tersangkut di
+    // tempat lapuk.
+    LocationFix? best;
     final timer = Timer(timeout, () {
-      if (!result.isCompleted) result.complete(null);
+      if (!result.isCompleted) result.complete(best);
     });
 
     try {
@@ -168,14 +177,26 @@ class GeolocatorLocationService implements LocationService {
           ).listen(
             (position) {
               final fix = _toFix(position);
+              final now = DateTime.now();
               final usable = isUsableFix(
                 fix,
-                DateTime.now(),
+                now,
                 maxAccuracyMeters: maxAccuracyMeters,
               );
               if (usable) _recentFix = fix;
               if (usable && !result.isCompleted) {
                 result.complete(fix);
+                return;
+              }
+              if (fallbackAccuracyMeters != null &&
+                  isUsableFix(
+                    fix,
+                    now,
+                    maxAccuracyMeters: fallbackAccuracyMeters,
+                  ) &&
+                  (best == null ||
+                      fix.accuracyMeters! < best!.accuracyMeters!)) {
+                best = fix;
               }
             },
             onError: (Object error) {
@@ -231,11 +252,43 @@ class GeolocatorLocationService implements LocationService {
   @override
   Stream<LocationFix> trackingFixes() {
     return Geolocator.getPositionStream(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 10,
-      ),
-    ).map(_toFix);
+      locationSettings: trackingSettings(defaultTargetPlatform),
+    ).map((position) {
+      final fix = _toFix(position);
+      // Strim yang sedang hidup juga memberi `currentFix` (asal laluan) jawapan serta-merta.
+      if (isUsableFix(fix, DateTime.now())) _recentFix = fix;
+      return fix;
+    });
+  }
+
+  /// Tetapan aliran "ikut saya" di peta: sampel kerap secukupnya untuk titik lokasi yang licin, tanpa
+  /// notifikasi latar depan dan tanpa kemas kini latar belakang (peta tidak kelihatan di sana).
+  @visibleForTesting
+  static LocationSettings trackingSettings(TargetPlatform platform) {
+    switch (platform) {
+      case TargetPlatform.android:
+        return AndroidSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 5,
+          intervalDuration: const Duration(seconds: 2),
+        );
+      case TargetPlatform.iOS:
+      case TargetPlatform.macOS:
+        return AppleSettings(
+          accuracy: LocationAccuracy.best,
+          activityType: ActivityType.otherNavigation,
+          distanceFilter: 5,
+          pauseLocationUpdatesAutomatically: false,
+          // Peta tidak kelihatan di latar belakang; navigasi sahaja yang berhak berbuat demikian.
+          allowBackgroundLocationUpdates: false,
+          showBackgroundLocationIndicator: false,
+        );
+      default:
+        return const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 5,
+        );
+    }
   }
 
   @override

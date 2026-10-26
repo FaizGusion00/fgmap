@@ -372,7 +372,7 @@ void main() {
     });
 
     testWidgets(
-      'pengguna menggerakkan peta: berhenti mengikut dan GPS dilepaskan',
+      'pengguna menggerakkan peta: kamera berhenti mengikut, titik lokasi terus hidup',
       (tester) async {
         await pumpScreen(tester);
         expect(location.trackingController.hasListener, isTrue);
@@ -380,9 +380,11 @@ void main() {
         map.config!.onUserGesture!();
         await tester.pump();
 
-        expect(location.trackingController.hasListener, isFalse);
+        // GPS kekal untuk titik lokasi; hanya kamera yang dilepaskan.
+        expect(location.trackingController.hasListener, isTrue);
         await moveTo(tester, farAway);
         expect(map.camera.animateToCalls, isEmpty);
+        expect(map.config!.userLocation!.value!.point, farAway);
       },
     );
 
@@ -392,14 +394,19 @@ void main() {
       await pumpScreen(tester);
       map.config!.onUserGesture!();
       await tester.pump();
-      expect(location.trackingController.hasListener, isFalse);
+      await moveTo(tester, farAway);
+      expect(map.camera.animateToCalls, isEmpty);
 
       await tester.tap(find.byTooltip('Lokasi saya'));
       await tester.pumpAndSettle();
 
-      expect(location.trackingController.hasListener, isTrue);
-      await moveTo(tester, farAway);
-      expect(map.camera.animateToCalls.single.center, farAway);
+      // ~100 m lebih jauh: cukup untuk menggerakkan kamera tanpa dianggap lompatan GPS yang mustahil.
+      final next = GeoPoint(farAway.lat + 0.0009, farAway.lng);
+      await moveTo(tester, next);
+      // Kedudukan dilicinkan penapis: kamera menuju ke arah titik baharu, bukan fix mentah.
+      final target = map.camera.animateToCalls.single.center;
+      expect(target.lat, greaterThan(farAway.lat));
+      expect(distanceMeters(target, next), lessThan(100));
     });
 
     testWidgets('kebenaran tiada: tiada strim GPS dibuka', (tester) async {
@@ -415,10 +422,11 @@ void main() {
         map.config!.onLongPress(klia);
         await tester.pumpAndSettle();
 
-        expect(location.trackingController.hasListener, isFalse);
         map.camera.animateToCalls.clear();
         await moveTo(tester, farAway);
         expect(map.camera.animateToCalls, isEmpty);
+        // Titik lokasi kekal mengikut GPS walaupun kamera dipegang oleh paparan laluan.
+        expect(map.config!.userLocation!.value!.point, farAway);
       },
     );
 
@@ -437,6 +445,69 @@ void main() {
         );
         await tester.pumpAndSettle();
         expect(location.trackingController.hasListener, isTrue);
+      },
+    );
+
+    testWidgets(
+      'fix lapuk (cache platform) tidak menggerakkan kamera atau titik lokasi',
+      (tester) async {
+        await pumpScreen(tester);
+        location.trackingController.add(
+          LocationFix(
+            point: farAway,
+            accuracyMeters: 6,
+            timestamp: DateTime.now().subtract(const Duration(minutes: 3)),
+          ),
+        );
+        await tester.pump();
+
+        expect(map.camera.animateToCalls, isEmpty);
+        expect(map.config!.userLocation!.value, isNull);
+      },
+    );
+
+    testWidgets(
+      'kembali dari latar belakang: titik lapuk ditandakan sehingga fix segar tiba',
+      (tester) async {
+        await pumpScreen(tester);
+        await moveTo(tester, farAway);
+        expect(map.config!.userLocation!.value!.stale, isFalse);
+
+        tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+        tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.resumed,
+        );
+        await tester.pumpAndSettle();
+        expect(map.config!.userLocation!.value!.stale, isTrue);
+
+        await moveTo(tester, GeoPoint(farAway.lat + 0.0005, farAway.lng));
+        expect(map.config!.userLocation!.value!.stale, isFalse);
+      },
+    );
+
+    testWidgets(
+      'kembali dari latar belakang lama: tidak terbang ke lokasi terakhir yang lapuk',
+      (tester) async {
+        await pumpScreen(tester, recenterAfter: Duration.zero);
+        map.camera.flyToCalls.clear();
+        // Peranti masih menyimpan lokasi lama di tempat lain; fix segar ada di Batu Caves.
+        location.lastKnown = const LocationFix(
+          point: farAway,
+          accuracyMeters: 50,
+        );
+        location.fix = LocationFix(
+          point: batuCaves,
+          accuracyMeters: 6,
+          timestamp: DateTime.now(),
+        );
+
+        tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+        tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.resumed,
+        );
+        await tester.pumpAndSettle();
+
+        expect(map.camera.flyToCalls.map((c) => c.$1), [batuCaves]);
       },
     );
 

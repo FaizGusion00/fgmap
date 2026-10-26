@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:fgmap/core/utils/geo.dart';
 import 'package:fgmap/features/navigation/domain/camera_planner.dart';
 import 'package:fgmap/features/navigation/domain/nav_route.dart';
+import 'package:flutter/painting.dart' show Size;
 import 'package:flutter_test/flutter_test.dart';
 
 /// Model kamera MapLibre (altitud 1.5 x tinggi viewport, medan pandang ~36.87 darjah): di mana
@@ -147,6 +148,153 @@ void main() {
         }
         expect(minY, greaterThan(0.64));
         expect(maxY, lessThan(0.74));
+      },
+    );
+  });
+
+  group('mendatar (landscape)', () {
+    test('ofset ikut orientasi: kenderaan dinaikkan pada paparan lebar', () {
+      expect(carScreenOffsetFor(const Size(390, 844)), carScreenOffset);
+      expect(
+        carScreenOffsetFor(const Size(844, 390)),
+        carScreenOffsetLandscape,
+      );
+      expect(carScreenOffsetLandscape, lessThan(carScreenOffset));
+    });
+
+    test('groundOffsetPx dengan ofset mendatar: kenderaan pada ~62% skrin', () {
+      for (var tilt = 0.0; tilt <= 60; tilt += 10) {
+        final y = carScreenY(
+          groundPx: groundOffsetPx(
+            tilt,
+            390,
+            screenOffset: carScreenOffsetLandscape,
+          ),
+          tiltDegrees: tilt,
+          viewportPx: 390,
+        );
+        expect(y, closeTo(0.5 + carScreenOffsetLandscape, 1e-9));
+      }
+    });
+
+    test(
+      'zum dikurangkan sedikit pada paparan pendek, tidak pada paparan tinggi',
+      () {
+        expect(viewportZoomAdjust(844), 0);
+        expect(viewportZoomAdjust(640), 0);
+        expect(viewportZoomAdjust(390), inInclusiveRange(-0.6, -0.2));
+        expect(viewportZoomAdjust(200), -0.6, reason: 'dihad');
+        expect(viewportZoomAdjust(0), 0, reason: 'saiz tidak sah diabaikan');
+      },
+    );
+
+    test(
+      'CameraRig: kenderaan kekal pada ofset mendatar dan zum lebih rendah',
+      () {
+        const car = GeoPoint(3.1, 101.7);
+        CameraPose run(double height, double offset) {
+          final rig = CameraRig(
+            entry: const CameraPose(
+              center: car,
+              zoom: 16,
+              tilt: 50,
+              bearing: 90,
+            ),
+            entryDuration: Duration.zero,
+          );
+          late CameraPose pose;
+          for (var t = 0.0; t < 12; t += 1 / 60) {
+            pose = rig.step(
+              dt: 1 / 60,
+              vehicle: car,
+              vehicleBearing: 90,
+              speedMps: 14,
+              distanceToNextM: null,
+              nextKind: null,
+              viewportHeightPx: height,
+              screenOffset: offset,
+            );
+          }
+          return pose;
+        }
+
+        final tall = run(844, carScreenOffset);
+        final wide = run(390, carScreenOffsetLandscape);
+        expect(wide.zoom, lessThan(tall.zoom));
+        final groundM = distanceMeters(car, wide.center);
+        final px = groundM / metersPerPixel(wide.zoom, car.lat);
+        final y = carScreenY(
+          groundPx: px,
+          tiltDegrees: wide.tilt,
+          viewportPx: 390,
+        );
+        expect(y, closeTo(0.5 + carScreenOffsetLandscape, 0.01));
+      },
+    );
+
+    test('putaran telefon: ofset berubah lembut, bukan melompat', () {
+      const car = GeoPoint(3.1, 101.7);
+      final rig = CameraRig(
+        entry: const CameraPose(center: car, zoom: 17, tilt: 50, bearing: 90),
+        entryDuration: Duration.zero,
+      );
+      void run(double offset, double seconds) {
+        for (var t = 0.0; t < seconds; t += 1 / 60) {
+          rig.step(
+            dt: 1 / 60,
+            vehicle: car,
+            vehicleBearing: 90,
+            speedMps: 14,
+            distanceToNextM: null,
+            nextKind: null,
+            viewportHeightPx: 600,
+            screenOffset: offset,
+          );
+        }
+      }
+
+      run(carScreenOffset, 1);
+      expect(rig.screenOffset, closeTo(carScreenOffset, 1e-6));
+      var previous = rig.screenOffset;
+      var maxStep = 0.0;
+      for (var i = 0; i < 120; i++) {
+        run(carScreenOffsetLandscape, 1 / 60);
+        maxStep = math.max(maxStep, (previous - rig.screenOffset).abs());
+        previous = rig.screenOffset;
+      }
+      expect(maxStep, lessThan(0.01));
+      expect(rig.screenOffset, closeTo(carScreenOffsetLandscape, 0.005));
+    });
+
+    test(
+      'entryProgress: 0 -> 1 sepanjang tempoh masuk; sentiasa 1 tanpa gerakan',
+      () {
+        const car = GeoPoint(3.1, 101.7);
+        CameraRig rig(Duration d) => CameraRig(
+          entry: const CameraPose(center: car, zoom: 14, tilt: 0, bearing: 0),
+          entryDuration: d,
+        );
+        double step(CameraRig r) {
+          r.step(
+            dt: 0.1,
+            vehicle: car,
+            vehicleBearing: 0,
+            speedMps: 10,
+            distanceToNextM: null,
+            nextKind: null,
+            viewportHeightPx: 800,
+          );
+          return r.entryProgress;
+        }
+
+        final slow = rig(const Duration(seconds: 1));
+        expect(slow.entryProgress, 0);
+        expect(step(slow), closeTo(0.1, 1e-9));
+        for (var i = 0; i < 20; i++) {
+          step(slow);
+        }
+        expect(slow.entryProgress, 1);
+        expect(rig(Duration.zero).entryProgress, 1);
       },
     );
   });

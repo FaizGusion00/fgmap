@@ -2,38 +2,32 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/location/location_service.dart';
+import 'user_location.dart';
 
 /// "Ikut saya" di peta apabila TIDAK bernavigasi (gaya Waze): kamera mengikut pengguna bergerak
 /// sehingga pengguna menggerakkan peta sendiri, dan kembali apabila mereka menekan "Lokasi saya".
 ///
-/// Strim lokasi hanya hidup ketika benar-benar diperlukan: pengguna mahu mengikut DAN tiada sebab
-/// untuk menggantung (app di latar belakang, laluan sedang dipratonton, navigasi berjalan, dll.).
-/// Peta yang sudah dilepaskan pengguna tidak menggunakan GPS atau bateri langsung.
+/// Ini hanya NIAT mengikut. Strim lokasi dimiliki oleh [UserLocationTracker] (satu langganan GPS untuk
+/// titik lokasi DAN kamera); kelas ini sekadar meneruskan kedudukan segar ke kamera selagi pengguna
+/// mahu mengikut dan tiada sebab untuk menggantung (laluan sedang dipratonton, navigasi berjalan).
 ///
-/// Sengaja tidak bergantung pada Flutter atau peta: [fixes] dan [onFix] disuntik supaya mudah diuji.
+/// Sengaja tidak bergantung pada Flutter atau peta: [updates] dan [onLocation] disuntik supaya mudah
+/// diuji.
 class IdleFollow {
-  IdleFollow({
-    required this.fixes,
-    required this.onFix,
-    this.maxAccuracyMeters = 100,
-  });
+  IdleFollow({required this.updates, required this.onLocation});
 
-  final Stream<LocationFix> Function() fixes;
-  final void Function(LocationFix fix) onFix;
+  final Stream<UserLocation> updates;
+  final void Function(UserLocation location) onLocation;
 
-  /// Fix yang lebih kasar daripada ini (cth. dari menara sel) tidak patut menyentak kamera.
-  final double maxAccuracyMeters;
-
-  StreamSubscription<LocationFix>? _subscription;
+  StreamSubscription<UserLocation>? _subscription;
   bool _wanted = false;
   final Set<Object> _suspensions = {};
 
-  /// Pengguna mahu kamera mengikut mereka (walaupun strim sedang digantung sementara).
+  /// Pengguna mahu kamera mengikut mereka (walaupun sedang digantung sementara).
   bool get following => _wanted;
 
-  /// Strim lokasi sedang dilanggan.
-  bool get listening => _subscription != null;
+  /// Kedudukan sedang diteruskan ke kamera.
+  bool get active => _subscription != null;
 
   /// Mula mengikut (cth. "Lokasi saya" ditekan, atau lokasi dijumpai semasa pelancaran).
   void engage() {
@@ -41,7 +35,7 @@ class IdleFollow {
     _sync();
   }
 
-  /// Pengguna menggerakkan peta: berhenti mengikut dan lepaskan GPS.
+  /// Pengguna menggerakkan peta: berhenti mengikut.
   void release() {
     if (!_wanted) return;
     _wanted = false;
@@ -53,7 +47,7 @@ class IdleFollow {
     if (_suspensions.add(reason)) _sync();
   }
 
-  /// Batalkan gantungan [reason]; strim hidup semula apabila tiada gantungan lain.
+  /// Batalkan gantungan [reason]; kamera mengikut semula apabila tiada gantungan lain.
   void resume(Object reason) {
     if (_suspensions.remove(reason)) _sync();
   }
@@ -65,24 +59,19 @@ class IdleFollow {
   }
 
   void _sync() {
-    final shouldListen = _wanted && _suspensions.isEmpty;
-    if (shouldListen && _subscription == null) {
-      _subscription = fixes().listen(
-        _handle,
-        // Kebenaran ditarik balik / perkhidmatan dimatikan: berhenti senyap, jangan ranap.
-        onError: (Object _) => release(),
-        cancelOnError: true,
-      );
-    } else if (!shouldListen && _subscription != null) {
+    final shouldFollow = _wanted && _suspensions.isEmpty;
+    if (shouldFollow && _subscription == null) {
+      _subscription = updates.listen(_handle);
+    } else if (!shouldFollow && _subscription != null) {
       unawaited(_subscription!.cancel());
       _subscription = null;
     }
   }
 
-  void _handle(LocationFix fix) {
-    final accuracy = fix.accuracyMeters;
-    if (accuracy != null && accuracy > maxAccuracyMeters) return;
-    onFix(fix);
+  void _handle(UserLocation location) {
+    // Kedudukan lapuk (ditinggalkan semasa latar belakang) tidak patut menyentak kamera.
+    if (location.stale) return;
+    onLocation(location);
   }
 }
 

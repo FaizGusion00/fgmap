@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/widgets.dart' show EdgeInsets;
 import 'package:flutter/foundation.dart' show ValueNotifier;
 
@@ -6,6 +8,7 @@ import '../../map/presentation/map_view.dart';
 import '../domain/camera_planner.dart';
 import '../domain/navigation_session.dart';
 import '../domain/vehicle_model.dart';
+import 'car/vehicle_overlay.dart';
 
 /// Bagaimana kamera berkaitan dengan kenderaan.
 enum NavFollow {
@@ -30,6 +33,7 @@ class NavigationFrameDriver {
     required this.viewportHeight,
     required this.cameraMode,
     required this.clock,
+    this.screenOffset = _defaultScreenOffset,
     this.reduceMotion = false,
     this.autoRecenter = const Duration(seconds: 10),
   });
@@ -40,7 +44,12 @@ class NavigationFrameDriver {
   final double Function() viewportHeight;
   final NavCameraMode Function() cameraMode;
   final DateTime Function() clock;
+
+  /// Kedudukan menegak kenderaan di bawah tengah skrin (pecahan tinggi) untuk orientasi semasa.
+  final double Function() screenOffset;
   final bool reduceMotion;
+
+  static double _defaultScreenOffset() => carScreenOffset;
 
   /// Selepas tempoh ini tanpa sentuhan, kamera kembali mengikut kenderaan.
   final Duration autoRecenter;
@@ -53,6 +62,11 @@ class NavigationFrameDriver {
   /// jarak turun lancar. Dibundar supaya pendengar tidak dibina semula setiap bingkai.
   final ValueNotifier<double?> alongM = ValueNotifier(null);
 
+  /// Di mana kereta 3D dilukis di skrin; null apabila kamera tidak mengikut kenderaan (kereta lapisan
+  /// peta digunakan, kerana ketika itu kereta mesti terletak pada koordinat geografi) atau semasa
+  /// peralihan masuk kamera.
+  final ValueNotifier<CarPlacement?> car = ValueNotifier(null);
+
   CameraRig? _rig;
   Duration? _lastElapsed;
   DateTime? _lastInteraction;
@@ -61,6 +75,13 @@ class NavigationFrameDriver {
   // apabila kenderaan berhenti (lampu isyarat, jam) nilainya sama 60 kali sesaat, jadi bingkai yang
   // tidak mengubah apa-apa tidak dihantar. Peranti lemah dan bateri menanggung kos setiap panggilan itu.
   VehicleMarker? _sentMarker;
+  bool _markerSent = false;
+
+  /// Arah kereta relatif kepada kamera yang dilicinkan untuk lukisan. Arah kenderaan diukur sebagai
+  /// kord ke hadapan di sepanjang laluan, dan di selekoh/ramp tajam ia boleh berubah belasan darjah
+  /// dalam satu bingkai; kamera sudah melicinkannya, tetapi kereta mesti juga.
+  double? _yaw;
+  static const _yawSmoothing = 0.12;
   CameraPose? _sentCamera;
   int _markerSkipped = 0;
   int _cameraSkipped = 0;
@@ -93,6 +114,7 @@ class NavigationFrameDriver {
   /// Kembali mengikut kenderaan dengan peralihan lembut dari pandangan semasa.
   void recenter() {
     _rig = null; // dibina semula daripada pose peta semasa => terbang masuk
+    _yaw = null;
     _lastInteraction = null;
     // Peta mungkin telah digerakkan pengguna: pose "terakhir dihantar" tidak lagi menggambarkannya.
     _sentCamera = null;
@@ -121,20 +143,17 @@ class NavigationFrameDriver {
     if (alongM.value != liveAlong) alongM.value = liveAlong;
 
     final marker = VehicleMarker(point: pose.point, bearing: pose.bearing);
-    if (!_sameMarker(_sentMarker, marker) ||
-        ++_markerSkipped >= _heartbeatFrames) {
-      camera.showVehicle(marker);
-      _sentMarker = marker;
-      _markerSkipped = 0;
-    }
 
     if (follow.value == NavFollow.free) {
       final last = _lastInteraction;
       if (last != null && now.difference(last) >= autoRecenter) recenter();
     }
     if (follow.value != NavFollow.following) {
-      // Kamera dilepaskan (pengguna/ikhtisar): ia tidak lagi di tempat yang terakhir kita hantar.
+      // Kamera dilepaskan (pengguna/ikhtisar): ia tidak lagi di tempat yang terakhir kita hantar, dan
+      // kereta mesti dilukis pada koordinatnya di peta.
       _sentCamera = null;
+      _showMapMarker(marker);
+      if (car.value != null) car.value = null;
       return;
     }
 
@@ -167,6 +186,7 @@ class NavigationFrameDriver {
       viewportHeightPx: viewportHeight(),
       mode: cameraMode(),
       zoomBias: _zoomBias,
+      screenOffset: screenOffset(),
     );
     if (!_sameCamera(_sentCamera, target) ||
         ++_cameraSkipped >= _heartbeatFrames) {
@@ -174,6 +194,48 @@ class NavigationFrameDriver {
       _sentCamera = target;
       _cameraSkipped = 0;
     }
+
+    // Kereta 3D di atas peta hanya apabila kamera sudah tiba di kenderaan: semasa peralihan masuk peta
+    // masih meluncur, jadi kereta lapisan peta (terikat koordinat) yang kelihatan dahulu, dan kereta 3D
+    // muncul perlahan menjelang akhir. Selepas itu lapisan peta disembunyikan; kedua-duanya terletak di
+    // titik skrin yang sama.
+    final progressIn = rig.entryProgress;
+    final opacity = ((progressIn - 0.8) / 0.2).clamp(0.0, 1.0);
+    final yawGoal = angleDelta(target.bearing, pose.bearing).clamp(-80.0, 80.0);
+    final yaw = _yaw == null
+        ? yawGoal
+        : _yaw! + (yawGoal - _yaw!) * (1 - math.exp(-dt / _yawSmoothing));
+    _yaw = yaw;
+    final placement = CarPlacement(
+      yawDeg: yaw,
+      tiltDeg: target.tilt,
+      anchorY: 0.5 + rig.screenOffset,
+      opacity: opacity,
+    );
+    if (!placement.isVisiblySameAs(car.value)) car.value = placement;
+    if (progressIn >= 1) {
+      _hideMapMarker();
+    } else {
+      _showMapMarker(marker);
+    }
+  }
+
+  void _showMapMarker(VehicleMarker marker) {
+    if (!_sameMarker(_sentMarker, marker) ||
+        ++_markerSkipped >= _heartbeatFrames) {
+      camera.showVehicle(marker);
+      _sentMarker = marker;
+      _markerSent = true;
+      _markerSkipped = 0;
+    }
+  }
+
+  void _hideMapMarker() {
+    if (_markerSent && _sentMarker == null) return;
+    camera.showVehicle(null);
+    _sentMarker = null;
+    _markerSent = true;
+    _markerSkipped = 0;
   }
 
   // Ambang jauh di bawah apa-apa yang boleh dilihat: 1e-8 darjah ~ 1 mm; 1e-3 darjah/zum.
@@ -194,5 +256,6 @@ class NavigationFrameDriver {
   void dispose() {
     follow.dispose();
     alongM.dispose();
+    car.dispose();
   }
 }

@@ -5,6 +5,7 @@ import 'package:fgmap/features/navigation/data/location_sources.dart';
 import 'package:fgmap/features/navigation/domain/camera_planner.dart';
 import 'package:fgmap/features/navigation/domain/instruction_text.dart';
 import 'package:fgmap/features/navigation/domain/navigation_session.dart';
+import 'package:fgmap/features/navigation/presentation/car/vehicle_overlay.dart';
 import 'package:fgmap/features/navigation/presentation/navigation_frame_driver.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -46,7 +47,8 @@ void main() {
       var elapsed = Duration.zero;
       clock.now = start;
 
-      final frames = <({CameraPose cam, VehicleMarker car, double speed})>[];
+      final frames =
+          <({CameraPose cam, VehicleMarker car, CarPlacement? placement})>[];
       final end = fixes.last.timestamp!;
       var fixedAlong = 0.0;
       while (clock.now.isBefore(end.add(const Duration(seconds: 2)))) {
@@ -57,10 +59,12 @@ void main() {
           if (u != null) fixedAlong = u.progress.alongM;
         }
         driver.step(elapsed);
+        // Kereta 3D dilukis di skrin; kedudukan geografinya sentiasa daripada model kenderaan.
+        final pose = session.poseAt(clock.now);
         frames.add((
           cam: camera.moveToCalls.last,
-          car: camera.vehicleCalls.last!,
-          speed: session.progress?.speedMps ?? 0,
+          car: VehicleMarker(point: pose.point, bearing: pose.bearing),
+          placement: driver.car.value,
         ));
         clock.advance(frameDt);
         elapsed += frameDt;
@@ -84,9 +88,21 @@ void main() {
       var lastZoomDir = 0;
       var tiltTurnFrames = 0;
       var tiltCruiseFrames = 0;
+      var maxYawStep = 0.0;
+      var maxYaw = 0.0;
       for (var i = 1; i < settled.length; i++) {
         final a = settled[i - 1];
         final b = settled[i];
+        // Kereta 3D: tapak tetap pada skrin, arah relatif kepada kamera licin dan tidak melampau.
+        final pa = a.placement, pb = b.placement;
+        expect(pb, isNotNull, reason: 'kereta 3D hilang');
+        expect(pb!.opacity, closeTo(1, 1e-6));
+        expect(pb.anchorY, closeTo(0.5 + carScreenOffset, 0.002));
+        expect(pb.tiltDeg, closeTo(b.cam.tilt, 0.06));
+        if (pa != null) {
+          maxYawStep = math.max(maxYawStep, (pb.yawDeg - pa.yawDeg).abs());
+        }
+        maxYaw = math.max(maxYaw, pb.yawDeg.abs());
         maxBearingStep = math.max(
           maxBearingStep,
           angleDelta(a.cam.bearing, b.cam.bearing).abs(),
@@ -154,6 +170,8 @@ void main() {
       expect(maxBearingStep, lessThan(2.5), reason: 'arah tersentak');
       expect(maxZoomStep, lessThan(0.02), reason: 'zum tersentak');
       expect(maxTiltStep, lessThan(0.45), reason: 'condongan tersentak');
+      expect(maxYawStep, lessThan(2.5), reason: 'kereta 3D tersentak');
+      expect(maxYaw, lessThan(60), reason: 'kereta 3D terlalu serong');
       // Kenderaan: tidak lebih 33 m/s x 16.7 ms = 0.55 m + sedikit pembetulan.
       expect(maxCarStep, lessThan(1.2), reason: 'kenderaan melompat');
       // Kenderaan kekal di bahagian bawah skrin, di tengah secara mendatar, dan tidak berayun-ayun.

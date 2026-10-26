@@ -1,6 +1,8 @@
 import 'package:fgmap/core/location/location_service.dart';
 import 'package:fgmap/core/utils/geo.dart';
+import 'package:flutter/foundation.dart' show TargetPlatform;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:geolocator/geolocator.dart';
 
 void main() {
   final now = DateTime(2026, 10, 26, 10, 30);
@@ -105,5 +107,45 @@ void main() {
         isFalse,
       );
     });
+  });
+
+  group('GeolocatorLocationService.trackingSettings', () {
+    test('Android: ketepatan tinggi, tanpa notifikasi latar depan', () {
+      final settings = GeolocatorLocationService.trackingSettings(
+        TargetPlatform.android,
+      );
+      expect(settings, isA<AndroidSettings>());
+      expect(
+        (settings as AndroidSettings).foregroundNotificationConfig,
+        isNull,
+      );
+      expect(settings.distanceFilter, lessThanOrEqualTo(10));
+      expect(settings.accuracy, LocationAccuracy.high);
+    });
+
+    test('iOS: tiada kemas kini latar belakang untuk peta idle', () {
+      final settings = GeolocatorLocationService.trackingSettings(
+        TargetPlatform.iOS,
+      );
+      expect(settings, isA<AppleSettings>());
+      expect(
+        (settings as AppleSettings).allowBackgroundLocationUpdates,
+        isFalse,
+      );
+    });
+
+    test(
+      'navigasi kekal berketepatan tertinggi dan hidup di latar belakang',
+      () {
+        final nav = GeolocatorLocationService.navigationSettings(
+          TargetPlatform.android,
+        );
+        expect(nav.accuracy, LocationAccuracy.bestForNavigation);
+        expect(
+          (nav as AndroidSettings).foregroundNotificationConfig,
+          isNotNull,
+        );
+      },
+    );
   });
 }
