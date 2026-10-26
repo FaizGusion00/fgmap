@@ -107,6 +107,7 @@ class MapOverlayColors {
 class MapViewConfig {
   const MapViewConfig({
     required this.styleUrl,
+    this.styleKey,
     required this.initialCenter,
     required this.initialZoom,
     required this.routes,
@@ -125,7 +126,12 @@ class MapViewConfig {
     this.onTap,
   });
 
+  /// URL gaya, atau JSON gaya lengkap (gaya malam yang diwarnakan semula).
   final String styleUrl;
+
+  /// Pengenal stabil untuk membandingkan gaya (JSON panjang tidak sesuai dibanding). Lalai: [styleUrl].
+  final String? styleKey;
+  String get styleId => styleKey ?? styleUrl;
   final GeoPoint initialCenter;
   final double initialZoom;
   final List<MapRouteLine> routes;

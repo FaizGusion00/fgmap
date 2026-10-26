@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show defaultTargetPlatform;
@@ -130,7 +131,7 @@ class _MapLibreViewState extends State<MapLibreView> {
       _enqueue(_initOverlays);
     }
 
-    if (old.styleUrl != cfg.styleUrl) {
+    if (old.styleId != cfg.styleId) {
       final styleUrl = cfg.styleUrl;
       _activeStyleUrl = styleUrl;
       _overlaysReady = false;
@@ -239,6 +240,7 @@ class _MapLibreViewState extends State<MapLibreView> {
     final c = _controller;
     if (c == null) return;
     final colors = widget.config.colors;
+    _labelAnchor = firstSymbolLayerId(widget.config.styleUrl);
     if (MapFramePump.diagnostics) {
       // Untuk menala gaya peta (cth. kontras mod gelap) tanpa meneka id lapisan.
       debugPrint('FGDIAG lapisan gaya: ${(await c.getLayerIds()).join(', ')}');
@@ -289,6 +291,7 @@ class _MapLibreViewState extends State<MapLibreView> {
         lineJoin: 'round',
         lineOpacity: 0.9,
       ),
+      belowLayerId: _labelAnchor,
       enableInteraction: false,
     );
     await _addMainLayers(c, colors);
@@ -302,6 +305,7 @@ class _MapLibreViewState extends State<MapLibreView> {
         lineJoin: 'round',
         lineDasharray: const [1.2, 1.6],
       ),
+      belowLayerId: _labelAnchor,
       enableInteraction: false,
     );
     await c.addCircleLayer(
@@ -370,6 +374,10 @@ class _MapLibreViewState extends State<MapLibreView> {
     }
   }
 
+  /// Lapisan simbol pertama dalam gaya JSON: garisan laluan dipasang DI BAWAHNYA supaya label jalan dan
+  /// tempat kekal terbaca di atas laluan. Null untuk gaya URL (id tidak diketahui): di atas semua.
+  String? _labelAnchor;
+
   Future<void> _addMainLayers(
     MapLibreMapController c,
     MapOverlayColors colors,
@@ -379,12 +387,14 @@ class _MapLibreViewState extends State<MapLibreView> {
         _mainSource,
         _casingLayer,
         _casingProps(colors, gradient ? 1.0 : null, gradient: gradient),
+        belowLayerId: _labelAnchor,
         enableInteraction: false,
       );
       await c.addLineLayer(
         _mainSource,
         _mainLayer,
         _mainProps(colors, gradient ? 1.0 : null, gradient: gradient),
+        belowLayerId: _labelAnchor,
         enableInteraction: false,
       );
     }
@@ -818,4 +828,23 @@ Map<String, dynamic> _point(GeoPoint? p) {
         },
     ],
   };
+}
+
+/// Id lapisan simbol pertama dalam gaya JSON, atau null jika [style] ialah URL/tidak dapat dihuraikan.
+@visibleForTesting
+String? firstSymbolLayerId(String style) {
+  if (!style.trimLeft().startsWith('{')) return null;
+  try {
+    final decoded = jsonDecode(style);
+    final layers = decoded is Map ? decoded['layers'] : null;
+    if (layers is! List) return null;
+    for (final l in layers) {
+      if (l is Map && l['type'] == 'symbol' && l['id'] is String) {
+        return l['id'] as String;
+      }
+    }
+  } on FormatException {
+    return null;
+  }
+  return null;
 }

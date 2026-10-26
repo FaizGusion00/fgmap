@@ -40,6 +40,7 @@ import '../../navigation/presentation/car/vehicle_overlay.dart';
 import '../../navigation/presentation/navigation_settings_sheet.dart';
 import 'idle_follow.dart';
 import 'location_prompt.dart';
+import '../data/map_style_loader.dart';
 import 'map_view.dart';
 import 'nav_route_line.dart';
 import 'user_location.dart';
@@ -625,6 +626,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
   }
 
   MapCameraController? _readyCamera;
+  ResolvedMapStyle? _lastStyle;
 
   void _onMapReady(MapCameraController controller) {
     _readyCamera = controller;
@@ -731,8 +733,17 @@ class _MapScreenState extends ConsumerState<MapScreen>
     final sheetVisible = state is! RouteIdle;
     final bottomSafe = MediaQuery.paddingOf(context).bottom;
 
+    // Gaya peta (gaya malam diwarnakan semula; lihat NightStyle). Gaya sebelumnya dikekalkan semasa
+    // gaya baharu dimuat supaya peta tidak berkelip; peta pertama menunggu paling lama beberapa saat.
+    final resolved = ref.watch(mapStyleProvider(mapIsDark)).value;
+    if (resolved != null) _lastStyle = resolved;
+    final style = resolved ?? _lastStyle;
+
     final config = MapViewConfig(
-      styleUrl: mapIsDark ? AppConfig.mapStyleDark : AppConfig.mapStyleLight,
+      styleUrl:
+          style?.style ??
+          (mapIsDark ? AppConfig.mapStyleDark : AppConfig.mapStyleLight),
+      styleKey: style?.key,
       initialCenter: AppConfig.initialCenter,
       initialZoom: AppConfig.initialZoom,
       routes: navigating ? const [] : _routeLines(state),
@@ -767,7 +778,9 @@ class _MapScreenState extends ConsumerState<MapScreen>
       body: Stack(
         children: [
           Positioned.fill(
-            child: ref.watch(mapViewBuilderProvider)(context, config),
+            child: style == null
+                ? ColoredBox(color: theme.scaffoldBackgroundColor)
+                : ref.watch(mapViewBuilderProvider)(context, config),
           ),
           if (navigating && _driver != null)
             Positioned.fill(

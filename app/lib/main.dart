@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'app/app.dart';
 import 'core/licenses.dart';
 import 'core/storage/preferences.dart';
+import 'features/map/data/map_style_loader.dart';
 import 'features/offline_maps/data/offline_engine_host.dart';
 import 'features/offline_maps/data/offline_map_store.dart';
 import 'features/reports/data/reports_repository.dart';
@@ -35,10 +36,14 @@ Future<void> main() async {
     Directory(p.join(support.path, 'offline_maps')),
   );
 
+  final styleCache = Directory(p.join(support.path, 'map_styles'))
+    ..createSync(recursive: true);
+
   runApp(
     ProviderScope(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
+        mapStyleCacheDirProvider.overrideWithValue(styleCache),
         offlineMapStoreProvider.overrideWithValue(offlineStore),
         // Laporan komuniti: simpanan tempatan pada peranti ini (belum dikongsi; lihat ADR 0005).
         reportsRepositoryProvider.overrideWithValue(

@@ -4,7 +4,9 @@ import 'package:fgmap/core/config/app_config.dart';
 import 'package:fgmap/core/location/location_service.dart';
 import 'package:fgmap/features/route_preview/domain/routing_failure.dart';
 import 'package:fgmap/core/storage/preferences.dart';
+import 'package:dio/dio.dart';
 import 'package:fgmap/core/utils/geo.dart';
+import 'package:fgmap/features/map/data/map_style_loader.dart';
 import 'package:fgmap/core/theme/theme_controller.dart';
 import 'package:fgmap/features/map/presentation/idle_follow.dart';
 import 'package:fgmap/features/map/presentation/map_screen.dart';
@@ -19,6 +21,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/fakes.dart';
 import '../../helpers/pump_app.dart';
+
+class _NightLoader extends MapStyleLoader {
+  _NightLoader() : super(Dio(), null);
+
+  @override
+  Future<ResolvedMapStyle> resolve({required bool dark}) async => dark
+      ? const ResolvedMapStyle('{"version":8,"layers":[]}', 'night:test')
+      : light();
+}
 
 void main() {
   late FakeMapHarness map;
@@ -763,6 +774,29 @@ void main() {
       await tester.pumpAndSettle();
       expect(map.config!.styleUrl, AppConfig.mapStyleLight);
     });
+  });
+
+  testWidgets('mod gelap menghantar gaya malam JSON; kunci stabil', (
+    tester,
+  ) async {
+    await prefs.setString('theme.mode', 'dark');
+    usePhoneSurface(tester);
+    reduceMotion(tester);
+    await pumpApp(
+      tester,
+      const MapScreen(),
+      overrides: [
+        map.override,
+        locationServiceProvider.overrideWithValue(location),
+        routeOptionsPlannerProvider.overrideWithValue(repo),
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        idleRecenterAfterProvider.overrideWithValue(const Duration(hours: 1)),
+        mapStyleLoaderProvider.overrideWithValue(_NightLoader()),
+      ],
+    );
+    await tester.pumpAndSettle();
+    expect(map.config!.styleUrl, startsWith('{'));
+    expect(map.config!.styleId, 'night:test');
   });
 
   testWidgets(
