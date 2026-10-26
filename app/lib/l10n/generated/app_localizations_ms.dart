@@ -538,6 +538,42 @@ class AppLocalizationsMs extends AppLocalizations {
   String get searchCatHospital => 'Hospital';
 
   @override
+  String get placeKindShopping => 'Beli-belah';
+
+  @override
+  String get placeKindFuel => 'Stesen minyak';
+
+  @override
+  String get placeKindFood => 'Makan';
+
+  @override
+  String get placeKindWorship => 'Tempat ibadat';
+
+  @override
+  String get placeKindHealth => 'Kesihatan';
+
+  @override
+  String get placeKindParking => 'Parkir';
+
+  @override
+  String get placeKindTransit => 'Perhentian atau stesen';
+
+  @override
+  String get placeKindRoad => 'Jalan';
+
+  @override
+  String get placeKindArea => 'Kawasan';
+
+  @override
+  String get placeKindAddress => 'Alamat';
+
+  @override
+  String get placeKindPlace => 'Tempat';
+
+  @override
+  String get placeOppositeSide => 'seberang jalan';
+
+  @override
   String get searchCategories => 'Cari berhampiran';
 
   @override

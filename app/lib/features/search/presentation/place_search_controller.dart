@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/utils/geo.dart';
 import '../data/photon_geocoder.dart';
 import '../domain/place.dart';
+import '../domain/place_ranker.dart';
 
 enum SearchStatus { idle, loading, results, empty, failed }
 
@@ -32,6 +33,8 @@ class PlaceSearchState {
 final searchDebounceProvider = Provider<Duration>(
   (ref) => const Duration(milliseconds: 350),
 );
+
+final placeRankerProvider = Provider<PlaceRanker>((ref) => const PlaceRanker());
 
 /// Carian tempat dengan debounce, pembatalan permintaan lapuk, dan cache hasil dalam sesi.
 class PlaceSearchController extends Notifier<PlaceSearchState> {
@@ -101,8 +104,11 @@ class PlaceSearchController extends Notifier<PlaceSearchState> {
           .read(geocoderProvider)
           .search(query, near: near, cancel: cancel);
       if (seq != _seq || !ref.mounted) return;
-      _cache[_key(query, near)] = results;
-      state = _ready(query, results);
+      final ranked = ref
+          .read(placeRankerProvider)
+          .rank(results, query, near: near);
+      _cache[_key(query, near)] = ranked;
+      state = _ready(query, ranked);
     } on GeocodeFailure catch (f) {
       if (seq != _seq || !ref.mounted) return;
       state = PlaceSearchState(

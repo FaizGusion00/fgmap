@@ -72,6 +72,7 @@ void main() {
   Future<ValueNotifier<Object?>> pumpHost(
     WidgetTester tester, {
     String? initialDestinationQuery,
+    GeoPoint? userLocation,
   }) async {
     usePhoneSurface(tester);
     reduceMotion(tester);
@@ -84,6 +85,7 @@ void main() {
             child: ElevatedButton(
               onPressed: () async => result.value = await TripPlannerPage.open(
                 context,
+                userLocation: userLocation,
                 initialDestinationQuery: initialDestinationQuery,
               ),
               child: const Text('buka'),
@@ -134,6 +136,42 @@ void main() {
       final sel = result.value! as TripSelection;
       expect(sel.destination, klia1);
     });
+
+    testWidgets(
+      'hasil memaparkan jenis dan jarak; perhentian seberang jalan dilabel',
+      (tester) async {
+        geocoder.handler = (_) async => [
+          const Place(
+            name: "Lotus's Puncak Alam",
+            subtitle: 'Puncak Alam, Selangor',
+            point: GeoPoint(3.2262, 101.4278),
+            category: 'supermarket',
+            osmKey: 'shop',
+            osmType: 'W',
+          ),
+          const Place(
+            name: 'Lotus Puncak Alam (Opp)',
+            subtitle: 'Puncak Alam, Selangor',
+            point: GeoPoint(3.2295, 101.4262),
+            category: 'bus_stop',
+            osmKey: 'highway',
+            osmType: 'N',
+          ),
+        ];
+        await pumpHost(tester, userLocation: const GeoPoint(3.2290, 101.4260));
+        await type(tester, 'destination-field', 'lotus puncak alam');
+
+        expect(find.text('Beli-belah · 370 m'), findsOneWidget);
+        expect(
+          find.textContaining('Perhentian atau stesen (seberang jalan)'),
+          findsOneWidget,
+        );
+        // Kedai di atas walaupun perhentian "(Opp)" lebih dekat.
+        final shop = tester.getTopLeft(find.text("Lotus's Puncak Alam")).dy;
+        final stop = tester.getTopLeft(find.text('Lotus Puncak Alam (Opp)')).dy;
+        expect(shop, lessThan(stop));
+      },
+    );
 
     testWidgets('destinasi daripada pautan dikongsi terus dicari', (
       tester,

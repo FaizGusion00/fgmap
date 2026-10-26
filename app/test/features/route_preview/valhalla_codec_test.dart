@@ -269,6 +269,34 @@ void routingOptionsTests() {
       });
     });
 
+    test('radius destinasi dihantar pada lokasi terakhir sahaja', () {
+      final json = buildRouteRequest(
+        const RouteQuery(
+          origin: klcc,
+          destination: klia,
+          destinationRadiusM: 38.6,
+        ),
+      );
+      final l = locs(json).cast<Map<String, Object?>>();
+      expect(l.first.containsKey('radius'), isFalse);
+      expect(l.last['radius'], 39);
+    });
+
+    test('tanpa radius: tiada kunci radius; re-route mengekalkannya', () {
+      const plain = RouteQuery(origin: klcc, destination: klia);
+      expect(
+        (locs(buildRouteRequest(plain)).last as Map).containsKey('radius'),
+        isFalse,
+      );
+      const withRadius = RouteQuery(
+        origin: klcc,
+        destination: klia,
+        destinationRadiusM: 25,
+      );
+      final reroute = withRadius.rerouteFrom(batuCaves);
+      expect((locs(buildRouteRequest(reroute)).last as Map)['radius'], 25);
+    });
+
     test('kereta tidak menerima pilihan khusus motosikal', () {
       final json = buildRouteRequest(
         const RouteQuery(origin: klcc, destination: klia, avoidTolls: true),

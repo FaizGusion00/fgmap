@@ -24,6 +24,13 @@ abstract final class AppConfig {
     defaultValue: 'https://photon.komoot.io/api/',
   );
 
+  /// Fallback carian (Nominatim awam). Hanya apabila Photon gagal atau tiada hasil: dasar Nominatim
+  /// melarang autocomplete dan mengehadkan 1 permintaan sesaat. Boleh ditimpa dengan hos sendiri.
+  static const nominatimUrl = String.fromEnvironment(
+    'NOMINATIM_URL',
+    defaultValue: 'https://nominatim.openstreetmap.org/search',
+  );
+
   /// URL manifest peta offline yang diterbitkan oleh workflow tiles. Boleh ditukar untuk pelayan
   /// pembangunan setempat atau hos sendiri dengan `--dart-define=OFFLINE_MANIFEST_URL=...`.
   static const offlineManifestUrl = String.fromEnvironment(

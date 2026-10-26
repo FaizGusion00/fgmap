@@ -539,6 +539,42 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchCatHospital => 'Hospital';
 
   @override
+  String get placeKindShopping => 'Shopping';
+
+  @override
+  String get placeKindFuel => 'Petrol station';
+
+  @override
+  String get placeKindFood => 'Food';
+
+  @override
+  String get placeKindWorship => 'Place of worship';
+
+  @override
+  String get placeKindHealth => 'Health';
+
+  @override
+  String get placeKindParking => 'Parking';
+
+  @override
+  String get placeKindTransit => 'Bus stop or station';
+
+  @override
+  String get placeKindRoad => 'Road';
+
+  @override
+  String get placeKindArea => 'Area';
+
+  @override
+  String get placeKindAddress => 'Address';
+
+  @override
+  String get placeKindPlace => 'Place';
+
+  @override
+  String get placeOppositeSide => 'opposite side of the road';
+
+  @override
   String get searchCategories => 'Search nearby';
 
   @override

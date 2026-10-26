@@ -74,6 +74,7 @@ class RoutePreviewController extends Notifier<RoutePreviewState> {
   /// Nombor permintaan terkini. Keputusan permintaan lama dibuang supaya tidak menimpa yang baharu
   /// (cth. pengguna menukar destinasi atau memadam laluan semasa menunggu).
   int _seq = 0;
+  double? _radiusM;
 
   @override
   RoutePreviewState build() => const RouteIdle();
@@ -81,8 +82,13 @@ class RoutePreviewController extends Notifier<RoutePreviewState> {
   /// Kira laluan ke [destination].
   ///
   /// Asal sentiasa GPS semasa; laluan tidak dikira jika GPS tiada fix yang boleh digunakan.
-  Future<void> planTo(GeoPoint destination, {String? destinationLabel}) async {
+  Future<void> planTo(
+    GeoPoint destination, {
+    String? destinationLabel,
+    double? radiusM,
+  }) async {
     final seq = ++_seq;
+    _radiusM = radiusM;
     state = RouteLoading(
       destination: destination,
       destinationLabel: destinationLabel,
@@ -106,6 +112,7 @@ class RoutePreviewController extends Notifier<RoutePreviewState> {
       headingDegrees: fix.headingDegrees,
       vehicle: ref.read(routeVehicleProvider),
       destinationLabel: destinationLabel,
+      destinationRadiusM: radiusM,
     );
     await _fetch(query, seq);
   }
@@ -124,6 +131,7 @@ class RoutePreviewController extends Notifier<RoutePreviewState> {
       await planTo(
         current.destination,
         destinationLabel: current.destinationLabel,
+        radiusM: _radiusM,
       );
       return;
     }

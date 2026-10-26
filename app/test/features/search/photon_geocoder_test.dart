@@ -220,7 +220,7 @@ void main() {
         expect(uri.queryParameters['lang'], 'en');
         expect(uri.queryParameters['lat'], '3.14');
         expect(uri.queryParameters['lon'], '101.69');
-        expect(uri.queryParameters['limit'], '12');
+        expect(uri.queryParameters['limit'], '20');
       },
     );
 

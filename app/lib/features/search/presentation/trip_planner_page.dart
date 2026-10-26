@@ -7,6 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/utils/geo.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../domain/place.dart';
+import '../../route_preview/presentation/route_format.dart';
+import '../domain/place_ranker.dart';
 import 'place_search_controller.dart';
 import 'search_history_controller.dart';
 
@@ -21,15 +23,24 @@ class TripSelection {
 /// Halaman penuh untuk memilih destinasi. Asal lalai ialah
 /// "Lokasi saya" dan tidak boleh diubah.
 class TripPlannerPage extends ConsumerStatefulWidget {
-  const TripPlannerPage({super.key, this.near, this.initialDestinationQuery});
+  const TripPlannerPage({
+    super.key,
+    this.near,
+    this.userLocation,
+    this.initialDestinationQuery,
+  });
 
-  /// Pusat peta/lokasi semasa, untuk mengutamakan hasil berhampiran.
+  /// Lokasi pengguna (jika diketahui) atau pusat peta, untuk mengutamakan hasil berhampiran.
   final GeoPoint? near;
+
+  /// Lokasi GPS pengguna sahaja; jika ada, setiap hasil memaparkan jaraknya dari sini.
+  final GeoPoint? userLocation;
   final String? initialDestinationQuery;
 
   static Future<TripSelection?> open(
     BuildContext context, {
     GeoPoint? near,
+    GeoPoint? userLocation,
     String? initialDestinationQuery,
   }) {
     return Navigator.of(context).push<TripSelection>(
@@ -39,6 +50,7 @@ class TripPlannerPage extends ConsumerStatefulWidget {
         reverseTransitionDuration: const Duration(milliseconds: 180),
         pageBuilder: (_, _, _) => TripPlannerPage(
           near: near,
+          userLocation: userLocation,
           initialDestinationQuery: initialDestinationQuery,
         ),
         // Naik dari bawah sambil pudar masuk; menghormati Reduce Motion (tempoh sifar).
@@ -205,6 +217,7 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
                   child: _ResultsList(
                     state: search,
                     history: history,
+                    userLocation: widget.userLocation,
                     onPick: _pick,
                     onCategory: _searchCategory,
                     onClearHistory: () => ref
@@ -283,6 +296,7 @@ class _ResultsList extends StatelessWidget {
   const _ResultsList({
     required this.state,
     required this.history,
+    required this.userLocation,
     required this.onPick,
     required this.onCategory,
     required this.onClearHistory,
@@ -291,6 +305,7 @@ class _ResultsList extends StatelessWidget {
 
   final PlaceSearchState state;
   final List<Place> history;
+  final GeoPoint? userLocation;
   final ValueChanged<Place> onPick;
   final ValueChanged<String> onCategory;
   final VoidCallback onClearHistory;
@@ -367,13 +382,7 @@ class _ResultsList extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              subtitle: place.subtitle.isEmpty
-                  ? null
-                  : Text(
-                      place.subtitle,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+              subtitle: _ResultSubtitle(place: place, from: userLocation),
               onTap: () => onPick(place),
             ),
         ],
@@ -383,6 +392,60 @@ class _ResultsList extends StatelessWidget {
     return ListView(
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       children: [body],
+    );
+  }
+}
+
+/// Baris kedua hasil carian: "Jenis · jarak" (menjelaskan kedai vs perhentian bas bernama sama),
+/// kemudian alamat.
+class _ResultSubtitle extends StatelessWidget {
+  const _ResultSubtitle({required this.place, required this.from});
+
+  final Place place;
+  final GeoPoint? from;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final kind = placeKindOf(place);
+    final kindLabel = switch (kind) {
+      PlaceKind.shopping => l10n.placeKindShopping,
+      PlaceKind.fuel => l10n.placeKindFuel,
+      PlaceKind.food => l10n.placeKindFood,
+      PlaceKind.worship => l10n.placeKindWorship,
+      PlaceKind.health => l10n.placeKindHealth,
+      PlaceKind.parking => l10n.placeKindParking,
+      PlaceKind.transit => l10n.placeKindTransit,
+      PlaceKind.road => l10n.placeKindRoad,
+      PlaceKind.area => l10n.placeKindArea,
+      PlaceKind.address => l10n.placeKindAddress,
+      PlaceKind.place => l10n.placeKindPlace,
+    };
+    final origin = from;
+    final parts = <String>[
+      if (kind == PlaceKind.transit && PlaceRanker.isOppositeSide(place.name))
+        '$kindLabel (${l10n.placeOppositeSide})'
+      else
+        kindLabel,
+      if (origin != null)
+        formatDistance(l10n, distanceMeters(origin, place.point).round()),
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          parts.join(' · '),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: theme.colorScheme.primary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        if (place.subtitle.isNotEmpty)
+          Text(place.subtitle, maxLines: 2, overflow: TextOverflow.ellipsis),
+      ],
     );
   }
 }
@@ -555,6 +618,8 @@ IconData _iconFor(String? category) {
       return Icons.local_parking_rounded;
     case 'toilets':
       return Icons.wc_rounded;
+    case 'bus_stop' || 'platform':
+      return Icons.directions_bus_rounded;
     case 'station' || 'bus_station' || 'halt' || 'subway_entrance':
       return Icons.train_rounded;
     case 'mall' || 'supermarket' || 'convenience' || 'department_store':
