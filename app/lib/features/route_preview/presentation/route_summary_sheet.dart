@@ -62,46 +62,51 @@ class RouteSummarySheet extends StatelessWidget {
           top: false,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 20, 12, 16),
-            child: _AnimatedHeight(
-              child: AnimatedSwitcher(
-                duration: Motion.of(context, Motion.fast),
-                switchInCurve: Motion.enter,
-                switchOutCurve: Motion.exit,
-                // Lalai AnimatedSwitcher memusatkan kandungan; lembaran mesti rata kiri-atas.
-                layoutBuilder: (current, previous) => Stack(
-                  alignment: Alignment.topLeft,
-                  children: [...previous, ?current],
+            // Skrin pendek (telefon mendatar): kandungan digulung, bukan melimpah. Pada skrin tinggi
+            // kandungan muat dan tiada apa yang berubah.
+            child: SingleChildScrollView(
+              child: _AnimatedHeight(
+                child: AnimatedSwitcher(
+                  duration: Motion.of(context, Motion.fast),
+                  switchInCurve: Motion.enter,
+                  switchOutCurve: Motion.exit,
+                  // Lalai AnimatedSwitcher memusatkan kandungan; lembaran mesti rata kiri-atas.
+                  layoutBuilder: (current, previous) => Stack(
+                    alignment: Alignment.topLeft,
+                    children: [...previous, ?current],
+                  ),
+                  child: switch (state) {
+                    RouteIdle() => const SizedBox.shrink(key: ValueKey('idle')),
+                    RouteLoading() => _LoadingBody(
+                      key: const ValueKey('loading'),
+                      destinationLabel:
+                          (state as RouteLoading).destinationLabel,
+                      onClear: onClear,
+                    ),
+                    RouteReady() => _ReadyBody(
+                      key: const ValueKey('ready'),
+                      state: state as RouteReady,
+                      onSelect: onSelect,
+                      onVehicleChanged: onVehicleChanged,
+                      onClear: onClear,
+                      onStart: onStart,
+                      onSimulate: onSimulate,
+                      now: now ?? DateTime.now(),
+                    ),
+                    RouteFailed() => _FailedBody(
+                      key: const ValueKey('failed'),
+                      state: state as RouteFailed,
+                      onRetry: onRetry,
+                      onClear: onClear,
+                      onOpenOfflineMaps: onOpenOfflineMaps,
+                    ),
+                    RouteLocationUnavailable() => _LocationUnavailableBody(
+                      key: const ValueKey('location-unavailable'),
+                      onRetry: onRetry,
+                      onClear: onClear,
+                    ),
+                  },
                 ),
-                child: switch (state) {
-                  RouteIdle() => const SizedBox.shrink(key: ValueKey('idle')),
-                  RouteLoading() => _LoadingBody(
-                    key: const ValueKey('loading'),
-                    destinationLabel: (state as RouteLoading).destinationLabel,
-                    onClear: onClear,
-                  ),
-                  RouteReady() => _ReadyBody(
-                    key: const ValueKey('ready'),
-                    state: state as RouteReady,
-                    onSelect: onSelect,
-                    onVehicleChanged: onVehicleChanged,
-                    onClear: onClear,
-                    onStart: onStart,
-                    onSimulate: onSimulate,
-                    now: now ?? DateTime.now(),
-                  ),
-                  RouteFailed() => _FailedBody(
-                    key: const ValueKey('failed'),
-                    state: state as RouteFailed,
-                    onRetry: onRetry,
-                    onClear: onClear,
-                    onOpenOfflineMaps: onOpenOfflineMaps,
-                  ),
-                  RouteLocationUnavailable() => _LocationUnavailableBody(
-                    key: const ValueKey('location-unavailable'),
-                    onRetry: onRetry,
-                    onClear: onClear,
-                  ),
-                },
               ),
             ),
           ),

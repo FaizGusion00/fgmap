@@ -827,36 +827,40 @@ class _MapScreenState extends ConsumerState<MapScreen>
                       ],
                     ),
                   ),
-                  AnimatedSwitcher(
-                    duration: Motion.of(context, Motion.normal),
-                    switchInCurve: Motion.enter,
-                    switchOutCurve: Motion.exit,
-                    transitionBuilder: (child, animation) => SlideTransition(
-                      position: Tween(
-                        begin: const Offset(0, 1),
-                        end: Offset.zero,
-                      ).animate(animation),
-                      child: child,
+                  Flexible(
+                    child: AnimatedSwitcher(
+                      duration: Motion.of(context, Motion.normal),
+                      switchInCurve: Motion.enter,
+                      switchOutCurve: Motion.exit,
+                      transitionBuilder: (child, animation) => SlideTransition(
+                        position: Tween(
+                          begin: const Offset(0, 1),
+                          end: Offset.zero,
+                        ).animate(animation),
+                        child: child,
+                      ),
+                      child: sheetVisible
+                          ? RouteSummarySheet(
+                              key: const ValueKey('route-sheet'),
+                              state: state,
+                              onSelect: _selectRoute,
+                              onVehicleChanged: (v) =>
+                                  unawaited(controller.setVehicle(v)),
+                              onRetry: controller.retry,
+                              onClear: controller.clear,
+                              onOpenOfflineMaps: () =>
+                                  showOfflineMapsSheet(context),
+                              onStart: state is RouteReady
+                                  ? () =>
+                                        _startNavigation(state, simulate: false)
+                                  : null,
+                              onSimulate: state is RouteReady
+                                  ? () =>
+                                        _startNavigation(state, simulate: true)
+                                  : null,
+                            )
+                          : const SizedBox.shrink(key: ValueKey('no-sheet')),
                     ),
-                    child: sheetVisible
-                        ? RouteSummarySheet(
-                            key: const ValueKey('route-sheet'),
-                            state: state,
-                            onSelect: _selectRoute,
-                            onVehicleChanged: (v) =>
-                                unawaited(controller.setVehicle(v)),
-                            onRetry: controller.retry,
-                            onClear: controller.clear,
-                            onOpenOfflineMaps: () =>
-                                showOfflineMapsSheet(context),
-                            onStart: state is RouteReady
-                                ? () => _startNavigation(state, simulate: false)
-                                : null,
-                            onSimulate: state is RouteReady
-                                ? () => _startNavigation(state, simulate: true)
-                                : null,
-                          )
-                        : const SizedBox.shrink(key: ValueKey('no-sheet')),
                   ),
                 ],
               ),

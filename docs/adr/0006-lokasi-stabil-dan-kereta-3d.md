@@ -51,7 +51,9 @@ Punca yang dijumpai dalam kod:
    skrin mendatar; panel perjalanan terapung di kiri bawah; butang di kanan bawah; bahagian tengah dibiarkan kosong.
    Kamera menaikkan kereta pada skrin mendatar (`carScreenOffsetLandscape`) dan mengurangkan zum sedikit pada paparan
    pendek. Penskalaan teks sistem dihad 115% pada HUD (lingkaran dan kad bersaiz tetap).
-5. **Kurangkan kerja platform dan kelipan.** Kompas asli dimatikan semasa navigasi; hanya sumber GeoJSON yang berubah
+5. **Lembaran ringkasan laluan boleh digulung** dan tingginya dihad pada skrin pendek (mendatar), kerana dahulu ia
+   melimpah di bawah ~420 px.
+6. **Kurangkan kerja platform dan kelipan.** Kompas asli dimatikan semasa navigasi; hanya sumber GeoJSON yang berubah
    ditulis semula.
 
 ## Tidak dibuat dan sebabnya
@@ -60,8 +62,6 @@ Punca yang dijumpai dalam kod:
   `fill-extrusion` tidak dapat disahkan secara visual tanpa peranti; lukisan Flutter boleh diuji dan dirender di sini.
 - **Mematikan `trackCameraPosition` semasa mengikut kenderaan** (menjimatkan satu mesej platform setiap bingkai): mematikannya
   menjadikan `cameraPosition` null, yang memutuskan peralihan masuk. Perlu dinilai dengan profil pada peranti.
-- **Lembaran ringkasan laluan pada paparan mendatar yang sangat pendek (< ~420 px):** kandungannya tidak boleh
-  digulung dan melimpah. Bukan sebahagian daripada HUD navigasi; dicatat untuk kerja lanjut.
 
 ## Akibat
 
