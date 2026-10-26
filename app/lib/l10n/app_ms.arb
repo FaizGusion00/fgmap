@@ -494,5 +494,69 @@
         "type": "int"
       }
     }
+  },
+  "routeTollRm": "RM {amount}",
+  "@routeTollRm": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "routeTollRmPartial": "RM {amount}+",
+  "@routeTollRmPartial": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "routeTollPlazaCount": "{count} plaza",
+  "@routeTollPlazaCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "routeTollEstimateExact": "Tol RM {amount}",
+  "@routeTollEstimateExact": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "routeTollEstimatePartial": "Tol RM {amount}+ (sebahagian)",
+  "@routeTollEstimatePartial": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "routeTollPlazasUnknown": "{count, plural, =1{1 plaza tol} other{{count} plaza tol}}, harga tidak diketahui",
+  "@routeTollPlazasUnknown": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "routeTollOn": "Tol: {roads}",
+  "@routeTollOn": {
+    "placeholders": {
+      "roads": {
+        "type": "String"
+      }
+    }
+  },
+  "routeTollDisclaimer": "Anggaran sahaja (kelas {cls}); semak harga di plaza.",
+  "@routeTollDisclaimer": {
+    "placeholders": {
+      "cls": {
+        "type": "String"
+      }
+    }
   }
 }

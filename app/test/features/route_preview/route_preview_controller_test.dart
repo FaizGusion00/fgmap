@@ -1,10 +1,13 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:fgmap/core/location/location_service.dart';
 import 'package:fgmap/core/utils/geo.dart';
 import 'package:fgmap/core/storage/preferences.dart';
 import 'package:fgmap/features/route_preview/domain/routing_failure.dart';
 import 'package:fgmap/features/route_preview/data/route_planner.dart';
+import 'package:fgmap/features/route_preview/data/toll_finder.dart';
+import 'package:fgmap/features/route_preview/domain/toll.dart';
 import 'package:fgmap/features/route_preview/domain/route_option.dart';
 import 'package:fgmap/features/route_preview/presentation/route_preview_controller.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -539,6 +542,141 @@ void main() {
       expect((_state(c) as RouteFailed).kind, RoutingFailureKind.noRoute);
     });
   });
+
+  group('anggaran tol di latar', () {
+    late _FakeTollFinder finder;
+    late ProviderContainer c;
+
+    RouteOption tolled(int n) => sampleOption(
+      durationS: 3000 + n * 100,
+      distanceM: 60000 + n * 1000,
+      points: [klcc, GeoPoint(3.0 + n * 0.01, 101.7), klia],
+    );
+
+    ProviderContainer build(
+      FakeRoutePlanner repo, {
+      TollRates rates = TollRates.empty,
+    }) {
+      final container = ProviderContainer(
+        overrides: [
+          routeOptionsPlannerProvider.overrideWithValue(repo),
+          locationServiceProvider.overrideWithValue(location),
+          sharedPreferencesProvider.overrideWithValue(_prefs),
+          tollPlazaFinderProvider.overrideWithValue(finder),
+          tollRatesProvider.overrideWith((ref) async => rates),
+        ],
+      );
+      addTearDown(container.dispose);
+      container.listen(routePreviewControllerProvider, (_, _) {});
+      return container;
+    }
+
+    Future<void> settle() async {
+      for (var i = 0; i < 4; i++) {
+        await Future<void>.delayed(Duration.zero);
+      }
+    }
+
+    setUp(() => finder = _FakeTollFinder());
+
+    test(
+      'plaza dikesan selepas laluan siap; terpilih dahulu; tanpa dataset harga tidak diketahui',
+      () async {
+        finder.plazas = const [
+          TollPlaza(id: '1', point: GeoPoint(3.05, 101.7), alongM: 100),
+          TollPlaza(id: '2', point: GeoPoint(3.06, 101.7), alongM: 900),
+        ];
+        c = build(FakeRoutePlanner((_) async => [tolled(0), tolled(1)]));
+        await _controller(c).planTo(klia);
+        await settle();
+
+        final ready = _state(c) as RouteReady;
+        expect(finder.calls, hasLength(2));
+        expect(finder.calls.first, same(ready.options.first.points));
+        final est = ready.tollOf(ready.options.first)!;
+        expect(est.plazaCount, 2);
+        expect(
+          est.isUnknown,
+          isTrue,
+          reason: 'dataset kosong: tiada harga direka',
+        );
+      },
+    );
+
+    test('dengan dataset disahkan: harga dijumlahkan', () async {
+      finder.plazas = const [
+        TollPlaza(id: '1', point: GeoPoint(3.05, 101.7), alongM: 100),
+      ];
+      final rates = TollRates.parse(
+        jsonEncode({
+          'version': 1,
+          'plazas': [
+            {
+              'id': 'p',
+              'type': 'open',
+              'lat': 3.05,
+              'lng': 101.7,
+              'ratesRm': {'1': 4.2},
+              'source': 'https://contoh.example',
+              'verifiedOn': '2026-10-01',
+            },
+          ],
+        }),
+      );
+      c = build(FakeRoutePlanner((_) async => [tolled(0)]), rates: rates);
+      await _controller(c).planTo(klia);
+      await settle();
+
+      final ready = _state(c) as RouteReady;
+      expect(ready.tollOf(ready.selected)!.knownRm, 4.2);
+      expect(ready.tollOf(ready.selected)!.isExact, isTrue);
+    });
+
+    test(
+      'kegagalan carian plaza senyap: laluan kekal, tiada anggaran',
+      () async {
+        finder.fail = true;
+        c = build(FakeRoutePlanner((_) async => [tolled(0)]));
+        await _controller(c).planTo(klia);
+        await settle();
+        final ready = _state(c) as RouteReady;
+        expect(ready.tolls, isEmpty);
+        expect(ready.loadingMore, isFalse);
+      },
+    );
+
+    test('laluan tanpa tol tidak menyoal plaza', () async {
+      c = build(
+        FakeRoutePlanner(
+          (_) async => [
+            sampleOption(hasTolls: false, points: [klcc, klia]),
+          ],
+        ),
+      );
+      await _controller(c).planTo(klia);
+      await settle();
+      expect(finder.calls, isEmpty);
+    });
+
+    test('dimatikan: tiada carian', () async {
+      c = ProviderContainer(
+        overrides: [
+          routeOptionsPlannerProvider.overrideWithValue(
+            FakeRoutePlanner((_) async => [tolled(0)]),
+          ),
+          locationServiceProvider.overrideWithValue(location),
+          sharedPreferencesProvider.overrideWithValue(_prefs),
+          tollPlazaFinderProvider.overrideWithValue(finder),
+          tollLookupEnabledProvider.overrideWithValue(false),
+        ],
+      );
+      addTearDown(c.dispose);
+      c.listen(routePreviewControllerProvider, (_, _) {});
+      await _controller(c).planTo(klia);
+      await settle();
+      expect(finder.calls, isEmpty);
+    });
+  });
 }
 
 class _ProgressivePlanner implements ProgressiveRoutePlanner {
@@ -554,4 +692,17 @@ class _ProgressivePlanner implements ProgressiveRoutePlanner {
   @override
   Future<List<RouteOption>> plan(RouteQuery query) async =>
       (await watch(query).last).options;
+}
+
+class _FakeTollFinder implements TollPlazaFinder {
+  List<TollPlaza> plazas = const [];
+  bool fail = false;
+  final List<List<GeoPoint>> calls = [];
+
+  @override
+  Future<List<TollPlaza>> find(RouteOption route) async {
+    calls.add(route.points);
+    if (fail) throw const TollLookupFailure('x');
+    return plazas;
+  }
 }

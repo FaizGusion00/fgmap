@@ -1,10 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/location/location_service.dart';
 import '../../../core/utils/geo.dart';
 import '../data/route_planner.dart';
+import '../data/toll_finder.dart';
 import '../domain/route_option.dart';
+import '../domain/toll.dart';
 import '../domain/route_options_merge.dart' show isSameRoute;
 import '../domain/routing_failure.dart';
 
@@ -37,6 +41,7 @@ class RouteReady extends RoutePreviewState {
     this.selectedIndex = 0,
     this.loadingMore = false,
     this.expanded = false,
+    this.tolls = const {},
   });
 
   final RouteQuery query;
@@ -48,6 +53,12 @@ class RouteReady extends RoutePreviewState {
 
   /// Pengguna menekan "Lagi": semua pilihan (sehingga 10) dipaparkan, bukan [collapsedCount] sahaja.
   final bool expanded;
+
+  /// Anggaran tol mengikut [routeKey]; diisi di latar selepas laluan dipaparkan. Kosong = belum/
+  /// tidak diketahui (kegagalan carian plaza tidak menghalang laluan).
+  final Map<String, TollEstimate> tolls;
+
+  TollEstimate? tollOf(RouteOption option) => tolls[routeKey(option)];
 
   /// Bilangan kad yang dipaparkan sebelum pengguna menekan "Lagi".
   static const collapsedCount = 6;
@@ -76,12 +87,14 @@ class RouteReady extends RoutePreviewState {
     int? selectedIndex,
     bool? loadingMore,
     bool? expanded,
+    Map<String, TollEstimate>? tolls,
   }) => RouteReady(
     query: query,
     options: options ?? this.options,
     selectedIndex: selectedIndex ?? this.selectedIndex,
     loadingMore: loadingMore ?? this.loadingMore,
     expanded: expanded ?? this.expanded,
+    tolls: tolls ?? this.tolls,
   );
 
   RouteReady withSelected(int index) => copyWith(selectedIndex: index);
@@ -238,7 +251,49 @@ class RoutePreviewController extends Notifier<RoutePreviewState> {
       if (received) return _finishLoading();
       state = RouteFailed(query: query, kind: RoutingFailureKind.generic);
     }
-    if (seq == _seq && state is RouteReady) _finishLoading();
+    if (seq == _seq && state is RouteReady) {
+      _finishLoading();
+      unawaited(_loadTolls(seq));
+    }
+  }
+
+  /// Mengesan plaza tol dan menganggar harga untuk laluan bertol yang dipaparkan (terpilih dahulu).
+  /// Berjalan di latar dan senyap: kegagalan hanya bermakna anggaran tidak dipaparkan.
+  Future<void> _loadTolls(int seq) async {
+    if (!ref.read(tollLookupEnabledProvider)) return;
+    final first = state;
+    if (first is! RouteReady) return;
+    final order = [
+      first.selected,
+      for (final o in first.visibleOptions)
+        if (!identical(o, first.selected)) o,
+    ].where((o) => o.hasTolls).toList();
+    if (order.isEmpty) return;
+
+    final TollRates rates;
+    try {
+      rates = await ref.read(tollRatesProvider.future);
+    } on Object {
+      return;
+    }
+    if (!ref.mounted || seq != _seq) return;
+    final finder = ref.read(tollPlazaFinderProvider);
+    for (final option in order) {
+      try {
+        final plazas = await finder.find(option);
+        if (!ref.mounted || seq != _seq) return;
+        final current = state;
+        if (current is! RouteReady) return;
+        state = current.copyWith(
+          tolls: {
+            ...current.tolls,
+            routeKey(option): rates.estimate(plazas, current.query.vehicle),
+          },
+        );
+      } on TollLookupFailure {
+        if (!ref.mounted || seq != _seq) return;
+      }
+    }
   }
 
   /// Tamatkan penunjuk "mencari laluan lain" (aliran tamat atau gagal selepas pilihan sedia ada).
@@ -289,3 +344,6 @@ final routePreviewControllerProvider =
     NotifierProvider<RoutePreviewController, RoutePreviewState>(
       RoutePreviewController.new,
     );
+
+/// Pencarian plaza tol dan anggaran harga di latar. Dimatikan dalam ujian yang tidak menguji tol.
+final tollLookupEnabledProvider = Provider<bool>((ref) => true);

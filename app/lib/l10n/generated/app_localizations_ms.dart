@@ -987,4 +987,50 @@ class AppLocalizationsMs extends AppLocalizations {
   String routeMore(int count) {
     return 'Lagi $count';
   }
+
+  @override
+  String routeTollRm(String amount) {
+    return 'RM $amount';
+  }
+
+  @override
+  String routeTollRmPartial(String amount) {
+    return 'RM $amount+';
+  }
+
+  @override
+  String routeTollPlazaCount(int count) {
+    return '$count plaza';
+  }
+
+  @override
+  String routeTollEstimateExact(String amount) {
+    return 'Tol RM $amount';
+  }
+
+  @override
+  String routeTollEstimatePartial(String amount) {
+    return 'Tol RM $amount+ (sebahagian)';
+  }
+
+  @override
+  String routeTollPlazasUnknown(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count plaza tol',
+      one: '1 plaza tol',
+    );
+    return '$_temp0, harga tidak diketahui';
+  }
+
+  @override
+  String routeTollOn(String roads) {
+    return 'Tol: $roads';
+  }
+
+  @override
+  String routeTollDisclaimer(String cls) {
+    return 'Anggaran sahaja (kelas $cls); semak harga di plaza.';
+  }
 }

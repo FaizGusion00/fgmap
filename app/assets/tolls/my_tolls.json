@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "currency": "MYR",
+  "lastVerified": null,
+  "note": "Dataset kadar tol. SENGAJA KOSONG sehingga kadar disahkan daripada sumber rasmi (LLM / pengendali lebuh raya). Tiada angka direka: sumber pihak ketiga bercanggah. Isi 'plazas' mengikut docs/tolls-data.md; plaza yang tiada dalam fail dipaparkan 'harga tidak diketahui'.",
+  "plazas": []
+}

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/theme/fgmap_theme_extension.dart';
 import '../../../core/theme/motion.dart';
@@ -8,6 +9,7 @@ import '../../../core/widgets/skeleton.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../domain/route_option.dart';
 import '../domain/route_scoring.dart';
+import '../domain/toll.dart';
 import '../domain/routing_failure.dart';
 import 'route_format.dart';
 import 'route_preview_controller.dart';
@@ -273,28 +275,10 @@ class _ReadyBody extends StatelessWidget {
                       ),
                       if (route.source == RouteSource.offline)
                         _SourceBadge(label: l10n.routeSourceOffline),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.toll_rounded,
-                            size: 18,
-                            // Ikon sahaja berwarna amaran; teks kekal neutral kerana warna amaran
-                            // tidak lulus kontras AA sebagai teks di atas permukaan cerah.
-                            color: route.hasTolls
-                                ? fg.warning
-                                : theme.colorScheme.onSurfaceVariant,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            route.hasTolls
-                                ? l10n.routeHasTolls
-                                : l10n.routeNoTolls,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
+                      _TollSummary(
+                        route: route,
+                        estimate: state.tollOf(route),
+                        vehicle: state.query.vehicle,
                       ),
                     ],
                   ),
@@ -322,6 +306,7 @@ class _ReadyBody extends StatelessWidget {
             fastestS: fastestS,
             selectedIndex: state.selectedIndex,
             onSelect: onSelect,
+            tolls: state.tolls,
             hiddenCount: state.hiddenCount,
             onShowMore: onShowMore,
           ),
@@ -435,9 +420,12 @@ class _RouteOptionCards extends StatelessWidget {
     required this.fastestS,
     required this.selectedIndex,
     required this.onSelect,
+    this.tolls = const {},
     this.hiddenCount = 0,
     this.onShowMore,
   });
+
+  final Map<String, TollEstimate> tolls;
 
   final List<RouteOption> options;
   final int fastestS;
@@ -465,6 +453,7 @@ class _RouteOptionCards extends StatelessWidget {
         Widget card(int i) => _RouteOptionCard(
           key: ValueKey('route-option-$i'),
           option: options[i],
+          toll: tolls[routeKey(options[i])],
           slowerByS: options[i].durationS - fastestS,
           selected: i == selectedIndex,
           onTap: () => onSelect(i),
@@ -549,9 +538,13 @@ class _RouteOptionCard extends StatelessWidget {
     required this.slowerByS,
     required this.selected,
     required this.onTap,
+    this.toll,
   });
 
   final RouteOption option;
+
+  /// Anggaran tol jika sudah diketahui.
+  final TollEstimate? toll;
 
   /// Beza masa berbanding laluan terpantas (0 untuk yang terpantas sendiri).
   final int slowerByS;
@@ -584,7 +577,7 @@ class _RouteOptionCard extends StatelessWidget {
         ?slower,
         distance,
         turnsText,
-        tollText,
+        _tollLong(l10n, toll) ?? tollText,
         if (option.hasHighway) l10n.routeHasHighway,
         if (option.hasFerry) l10n.routeHasFerry,
       ].join(', '),
@@ -666,12 +659,17 @@ class _RouteOptionCard extends StatelessWidget {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          if (option.hasTolls)
+                          if (option.hasTolls) ...[
                             Icon(
                               Icons.toll_rounded,
                               size: 14,
                               color: fg.warning,
                             ),
+                            if (_tollShort(l10n, toll) case final text?) ...[
+                              const SizedBox(width: 3),
+                              Text(text, style: theme.textTheme.labelSmall),
+                            ],
+                          ],
                           if (option.hasHighway) ...[
                             const SizedBox(width: 6),
                             Icon(
@@ -964,6 +962,109 @@ class _SourceBadge extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+String _money(AppLocalizations l10n, double rm) =>
+    NumberFormat.decimalPatternDigits(
+      locale: l10n.localeName,
+      decimalDigits: 2,
+    ).format(rm);
+
+/// Teks pendek untuk kad: "RM 12.50", "RM 12.50+" atau "3 plaza"; null jika belum diketahui.
+String? _tollShort(AppLocalizations l10n, TollEstimate? e) {
+  if (e == null || e.plazaCount == 0) return null;
+  if (e.isExact) return l10n.routeTollRm(_money(l10n, e.knownRm));
+  if (e.isPartial) return l10n.routeTollRmPartial(_money(l10n, e.knownRm));
+  return l10n.routeTollPlazaCount(e.plazaCount);
+}
+
+/// Teks penuh untuk bacaan skrin.
+String? _tollLong(AppLocalizations l10n, TollEstimate? e) {
+  if (e == null || e.plazaCount == 0) return null;
+  if (e.isExact) return l10n.routeTollEstimateExact(_money(l10n, e.knownRm));
+  if (e.isPartial) {
+    return l10n.routeTollEstimatePartial(_money(l10n, e.knownRm));
+  }
+  return l10n.routeTollPlazasUnknown(e.plazaCount);
+}
+
+/// Baris tol pada tajuk lembaran: ikon, jalan bertol sebenar (daripada Valhalla), anggaran harga jika
+/// ada, dan penafian. Tanpa tol: "Tiada tol".
+class _TollSummary extends StatelessWidget {
+  const _TollSummary({
+    required this.route,
+    required this.estimate,
+    required this.vehicle,
+  });
+
+  final RouteOption route;
+  final TollEstimate? estimate;
+  final RouteVehicle vehicle;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final fg = context.fg;
+    final style = theme.textTheme.bodyMedium?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
+    final roads = route.tollRoads
+        .map((r) => r.label)
+        .where((l) => l.isNotEmpty);
+    final priced = _tollLong(l10n, estimate);
+    final text = route.hasTolls
+        ? [
+            if (roads.isNotEmpty) l10n.routeTollOn(roads.take(3).join(', ')),
+            ?priced,
+          ].join(' · ')
+        : l10n.routeNoTolls;
+    return Column(
+      key: const ValueKey('toll-summary'),
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.toll_rounded,
+              size: 18,
+              // Ikon sahaja berwarna amaran; teks kekal neutral kerana warna amaran
+              // tidak lulus kontras AA sebagai teks di atas permukaan cerah.
+              color: route.hasTolls
+                  ? fg.warning
+                  : theme.colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 4),
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.sizeOf(context).width * 0.6,
+              ),
+              child: Text(
+                text.isEmpty ? l10n.routeHasTolls : text,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: style,
+              ),
+            ),
+          ],
+        ),
+        if (estimate != null &&
+            estimate!.plazaCount > 0 &&
+            !estimate!.isUnknown)
+          Padding(
+            padding: const EdgeInsets.only(left: 22, top: 2),
+            child: Text(
+              l10n.routeTollDisclaimer(tollClassOf(vehicle)),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

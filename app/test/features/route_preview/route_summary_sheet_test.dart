@@ -1,5 +1,6 @@
 import 'package:fgmap/core/utils/geo.dart';
 import 'package:fgmap/features/route_preview/domain/route_option.dart';
+import 'package:fgmap/features/route_preview/domain/toll.dart';
 import 'package:fgmap/features/route_preview/presentation/route_preview_controller.dart';
 import 'package:fgmap/features/route_preview/presentation/route_summary_sheet.dart';
 import 'package:flutter/material.dart';
@@ -171,5 +172,112 @@ void main() {
     await pumpSheet(tester, state, onSelect: (i) => picked = i);
     await tester.tap(find.byKey(const ValueKey('route-option-1')));
     expect(picked, 1);
+  });
+
+  group('tol', () {
+    RouteOption tolled() => const RouteOption(
+      distanceM: 60000,
+      durationS: 3000,
+      hasTolls: true,
+      points: [klcc, GeoPoint(3.0, 101.7), klia],
+      maneuvers: [
+        Maneuver(
+          type: 8,
+          streetNames: ['E20', 'Lebuhraya Maju'],
+          lengthM: 20000,
+          timeS: 700,
+          beginShapeIndex: 0,
+          toll: true,
+        ),
+        Maneuver(
+          type: 8,
+          streetNames: ['E6'],
+          lengthM: 9000,
+          timeS: 300,
+          beginShapeIndex: 1,
+          toll: true,
+        ),
+      ],
+    );
+
+    RouteReady ready(Map<String, TollEstimate> tolls) {
+      final route = tolled();
+      return RouteReady(
+        query: _query,
+        options: [route, _route(1)],
+        tolls: {for (final e in tolls.entries) routeKey(route): e.value},
+      );
+    }
+
+    testWidgets(
+      'tanpa anggaran: jalan bertol sebenar dipaparkan, tiada harga direka',
+      (tester) async {
+        await pumpSheet(tester, ready(const {}));
+        expect(find.text('Tol: Lebuhraya Maju (E20), E6'), findsOneWidget);
+        expect(find.textContaining('RM'), findsNothing);
+      },
+    );
+
+    testWidgets('anggaran tepat: harga dan penafian kelas', (tester) async {
+      await pumpSheet(
+        tester,
+        ready({
+          'x': const TollEstimate(plazaCount: 2, unknownCount: 0, knownRm: 5.5),
+        }),
+      );
+      expect(find.textContaining('Tol RM 5.50'), findsWidgets);
+      expect(
+        find.text('Anggaran sahaja (kelas 1); semak harga di plaza.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('sebahagian: RM x+ dengan penanda sebahagian', (tester) async {
+      await pumpSheet(
+        tester,
+        ready({
+          'x': const TollEstimate(plazaCount: 3, unknownCount: 1, knownRm: 4),
+        }),
+      );
+      expect(find.textContaining('Tol RM 4.00+ (sebahagian)'), findsOneWidget);
+      expect(find.text('RM 4.00+'), findsOneWidget, reason: 'ringkas pada kad');
+    });
+
+    testWidgets(
+      'harga tidak diketahui: bilangan plaza sahaja, tiada RM dan tiada penafian',
+      (tester) async {
+        await pumpSheet(
+          tester,
+          ready({
+            'x': const TollEstimate(plazaCount: 2, unknownCount: 2, knownRm: 0),
+          }),
+        );
+        expect(
+          find.textContaining('2 plaza tol, harga tidak diketahui'),
+          findsOneWidget,
+        );
+        expect(find.text('2 plaza'), findsOneWidget);
+        expect(find.textContaining('Anggaran sahaja'), findsNothing);
+        expect(find.text('RM 0.00'), findsNothing);
+      },
+    );
+
+    testWidgets('laluan bebas tol: "Tiada tol"', (tester) async {
+      await pumpSheet(
+        tester,
+        const RouteReady(
+          query: _query,
+          options: [
+            RouteOption(
+              distanceM: 1000,
+              durationS: 60,
+              hasTolls: false,
+              points: [klcc, klia],
+            ),
+          ],
+        ),
+      );
+      expect(find.text('Tiada tol'), findsOneWidget);
+    });
   });
 }

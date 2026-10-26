@@ -986,4 +986,50 @@ class AppLocalizationsEn extends AppLocalizations {
   String routeMore(int count) {
     return '$count more';
   }
+
+  @override
+  String routeTollRm(String amount) {
+    return 'RM $amount';
+  }
+
+  @override
+  String routeTollRmPartial(String amount) {
+    return 'RM $amount+';
+  }
+
+  @override
+  String routeTollPlazaCount(int count) {
+    return '$count plazas';
+  }
+
+  @override
+  String routeTollEstimateExact(String amount) {
+    return 'Toll RM $amount';
+  }
+
+  @override
+  String routeTollEstimatePartial(String amount) {
+    return 'Toll RM $amount+ (partial)';
+  }
+
+  @override
+  String routeTollPlazasUnknown(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count toll plazas',
+      one: '1 toll plaza',
+    );
+    return '$_temp0, price unknown';
+  }
+
+  @override
+  String routeTollOn(String roads) {
+    return 'Toll: $roads';
+  }
+
+  @override
+  String routeTollDisclaimer(String cls) {
+    return 'Estimate only (class $cls); check the price at the plaza.';
+  }
 }

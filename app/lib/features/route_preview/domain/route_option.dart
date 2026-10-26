@@ -33,6 +33,7 @@ class Maneuver {
     required this.timeS,
     required this.beginShapeIndex,
     this.roundaboutExitCount,
+    this.toll = false,
   });
 
   final int type;
@@ -45,7 +46,26 @@ class Maneuver {
 
   /// Keluar ke berapa pada bulatan (hanya untuk manuver masuk bulatan).
   final int? roundaboutExitCount;
+
+  /// Manuver ini berada di jalan bertol (bendera `toll` Valhalla, daripada data OSM).
+  final bool toll;
 }
+
+/// Jalan bertol yang dilalui satu laluan (cth. "Lebuhraya Maju" / "E20"), dengan jarak terkumpul.
+@immutable
+class TollRoad {
+  const TollRoad({this.name, this.ref, required this.lengthM});
+
+  final String? name;
+  final String? ref;
+  final int lengthM;
+
+  /// "Lebuhraya Maju (E20)", "E20" atau "Lebuhraya Maju".
+  String get label =>
+      name == null ? (ref ?? '') : (ref == null ? name! : '$name ($ref)');
+}
+
+final _roadRef = RegExp(r'^[A-Z]{1,3}\d{1,3}$');
 
 /// Sifat yang membezakan satu pilihan laluan daripada yang lain (dipaparkan sebagai label kad).
 enum RouteLabel {
@@ -103,6 +123,35 @@ class RouteOption {
 
   /// Melalui jalan bersekatan masa (cth. dibuka waktu tertentu sahaja).
   final bool hasTimeRestrictions;
+
+  /// Jalan bertol mengikut susunan perjalanan, daripada manuver bertanda `toll`. Kosong jika laluan
+  /// tiada tol atau arahan tidak membawa nama jalan.
+  List<TollRoad> get tollRoads {
+    final order = <String>[];
+    final names = <String, String?>{};
+    final refs = <String, String?>{};
+    final lengths = <String, int>{};
+    for (final m in maneuvers) {
+      if (!m.toll || m.streetNames.isEmpty) continue;
+      final ref = m.streetNames.where(_roadRef.hasMatch).firstOrNull;
+      final name = m.streetNames
+          .where((n) => !_roadRef.hasMatch(n))
+          .firstOrNull;
+      final key = (name ?? ref)!;
+      if (!lengths.containsKey(key)) order.add(key);
+      names[key] = name;
+      refs[key] = ref;
+      lengths[key] = (lengths[key] ?? 0) + m.lengthM;
+    }
+    return [
+      for (final k in order)
+        TollRoad(name: names[k], ref: refs[k], lengthM: lengths[k]!),
+    ];
+  }
+
+  /// Jumlah jarak (meter) di jalan bertol.
+  int get tollLengthM =>
+      maneuvers.where((m) => m.toll).fold(0, (sum, m) => sum + m.lengthM);
 
   RouteOption copyWith({RouteLabel? label}) => RouteOption(
     distanceM: distanceM,

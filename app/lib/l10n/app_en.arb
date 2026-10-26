@@ -394,5 +394,69 @@
         "type": "int"
       }
     }
+  },
+  "routeTollRm": "RM {amount}",
+  "@routeTollRm": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "routeTollRmPartial": "RM {amount}+",
+  "@routeTollRmPartial": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "routeTollPlazaCount": "{count} plazas",
+  "@routeTollPlazaCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "routeTollEstimateExact": "Toll RM {amount}",
+  "@routeTollEstimateExact": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "routeTollEstimatePartial": "Toll RM {amount}+ (partial)",
+  "@routeTollEstimatePartial": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "routeTollPlazasUnknown": "{count, plural, =1{1 toll plaza} other{{count} toll plazas}}, price unknown",
+  "@routeTollPlazasUnknown": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "routeTollOn": "Toll: {roads}",
+  "@routeTollOn": {
+    "placeholders": {
+      "roads": {
+        "type": "String"
+      }
+    }
+  },
+  "routeTollDisclaimer": "Estimate only (class {cls}); check the price at the plaza.",
+  "@routeTollDisclaimer": {
+    "placeholders": {
+      "cls": {
+        "type": "String"
+      }
+    }
   }
 }

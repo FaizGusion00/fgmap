@@ -1843,6 +1843,54 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'Lagi {count}'**
   String routeMore(int count);
+
+  /// No description provided for @routeTollRm.
+  ///
+  /// In ms, this message translates to:
+  /// **'RM {amount}'**
+  String routeTollRm(String amount);
+
+  /// No description provided for @routeTollRmPartial.
+  ///
+  /// In ms, this message translates to:
+  /// **'RM {amount}+'**
+  String routeTollRmPartial(String amount);
+
+  /// No description provided for @routeTollPlazaCount.
+  ///
+  /// In ms, this message translates to:
+  /// **'{count} plaza'**
+  String routeTollPlazaCount(int count);
+
+  /// No description provided for @routeTollEstimateExact.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tol RM {amount}'**
+  String routeTollEstimateExact(String amount);
+
+  /// No description provided for @routeTollEstimatePartial.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tol RM {amount}+ (sebahagian)'**
+  String routeTollEstimatePartial(String amount);
+
+  /// No description provided for @routeTollPlazasUnknown.
+  ///
+  /// In ms, this message translates to:
+  /// **'{count, plural, =1{1 plaza tol} other{{count} plaza tol}}, harga tidak diketahui'**
+  String routeTollPlazasUnknown(int count);
+
+  /// No description provided for @routeTollOn.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tol: {roads}'**
+  String routeTollOn(String roads);
+
+  /// No description provided for @routeTollDisclaimer.
+  ///
+  /// In ms, this message translates to:
+  /// **'Anggaran sahaja (kelas {cls}); semak harga di plaza.'**
+  String routeTollDisclaimer(String cls);
 }
 
 class _AppLocalizationsDelegate

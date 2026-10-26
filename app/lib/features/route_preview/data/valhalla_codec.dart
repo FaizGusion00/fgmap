@@ -159,6 +159,7 @@ RouteOption _parseTrip(Map<String, dynamic> trip, RouteSource source) {
           timeS: (m['time'] as num).round(),
           beginShapeIndex: m['begin_shape_index'] as int,
           roundaboutExitCount: m['roundabout_exit_count'] as int?,
+          toll: m['toll'] == true,
         ),
     ],
   );
