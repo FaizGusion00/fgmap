@@ -1064,4 +1064,124 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get aboutAttributionTitle => 'Sumber data';
+
+  @override
+  String get settingsFuel => 'Kos minyak';
+
+  @override
+  String get fuelTypeRon95 => 'RON95';
+
+  @override
+  String get fuelTypeRon97 => 'RON97';
+
+  @override
+  String get fuelTypeDiesel => 'Diesel';
+
+  @override
+  String get fuelConsumptionCar => 'Penggunaan kereta (L/100 km)';
+
+  @override
+  String get fuelConsumptionMoto => 'Penggunaan motosikal (L/100 km)';
+
+  @override
+  String get fuelManualPrice => 'Harga seliter saya (RM)';
+
+  @override
+  String get fuelManualPriceHint =>
+      'Kosongkan untuk guna harga data.gov.my. Isi jika harga yang anda bayar berbeza (cth. RON95 subsidi).';
+
+  @override
+  String get fuelPriceUnavailable =>
+      'Harga terkini tidak dapat diambil. Isi harga sendiri untuk melihat anggaran kos minyak.';
+
+  @override
+  String get fuelEstimateNote =>
+      'Anggaran kos minyak berdasarkan jarak, penggunaan dan harga di atas.';
+
+  @override
+  String get shareDestinationTooltip => 'Kongsi destinasi';
+
+  @override
+  String get shareEtaAction => 'Kongsi masa tiba';
+
+  @override
+  String get shareFailed => 'Tidak dapat membuka lembaran kongsi.';
+
+  @override
+  String get emergencyTooltip => 'Kecemasan';
+
+  @override
+  String get emergencyTitle => 'Kecemasan';
+
+  @override
+  String get emergencyBody =>
+      'Dalam kecemasan, hubungi terus. Butang ini hanya jalan pintas dan tidak menjamin panggilan, ketepatan lokasi atau bantuan tiba.';
+
+  @override
+  String get emergencyCall999 => 'Hubungi 999';
+
+  @override
+  String get emergencyCall999Hint => 'Polis, bomba, ambulans';
+
+  @override
+  String get emergencyCall112 => 'Hubungi 112';
+
+  @override
+  String get emergencyCall112Hint =>
+      'Nombor kecemasan antarabangsa untuk telefon bimbit';
+
+  @override
+  String get emergencyConfirmCall => 'Hubungi';
+
+  @override
+  String get emergencyConfirmBody =>
+      'Papan nombor akan dibuka. Tekan butang panggil untuk menyambung.';
+
+  @override
+  String get emergencyShareLocation => 'Kongsi lokasi tepat saya';
+
+  @override
+  String get emergencyNoLocation =>
+      'Lokasi anda belum diketahui. Cuba di tempat terbuka atau hidupkan lokasi.';
+
+  @override
+  String routeFuelCost(String amount) {
+    return '≈ RM $amount minyak';
+  }
+
+  @override
+  String fuelPriceSource(String price, String date) {
+    return 'Harga data.gov.my: RM $price/L ($date)';
+  }
+
+  @override
+  String emergencyConfirmTitle(String number) {
+    return 'Hubungi $number sekarang?';
+  }
+
+  @override
+  String shareDestinationText(
+    String name,
+    String eta,
+    String duration,
+    String distance,
+    String link,
+  ) {
+    return 'Saya menuju ke $name. Anggaran tiba $eta ($duration, $distance).\n$link';
+  }
+
+  @override
+  String shareEtaText(String name, String eta, String distance, String link) {
+    return 'Saya sedang menuju ke $name. Anggaran tiba $eta, baki $distance.\n$link';
+  }
+
+  @override
+  String emergencyShareText(String coords, String link) {
+    return 'Saya memerlukan bantuan. Lokasi saya: $coords\n$link';
+  }
+
+  @override
+  String emergencyDialFailed(String number) {
+    return 'Papan nombor tidak dapat dibuka. Dail $number secara manual.';
+  }
 }

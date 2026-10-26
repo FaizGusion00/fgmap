@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:fgmap/core/location/location_service.dart';
+import 'package:fgmap/core/platform/external_actions.dart';
 import 'package:fgmap/core/storage/preferences.dart';
 import 'package:fgmap/features/map/presentation/map_screen.dart';
 import 'package:fgmap/features/navigation/data/navigation_settings.dart';
@@ -28,7 +29,12 @@ void main() {
   late FakeLocationService location;
   late SharedPreferences prefs;
 
+  late FakeShareService share;
+  late FakePhoneDialer dialer;
+
   setUp(() async {
+    share = FakeShareService();
+    dialer = FakePhoneDialer();
     map = FakeMapHarness();
     voice = FakeVoice();
     awake = FakeAwake();
@@ -53,6 +59,8 @@ void main() {
         voiceGuideProvider.overrideWithValue(voice),
         speedLimitServiceProvider.overrideWithValue(FakeSpeedLimitService()),
         screenAwakeProvider.overrideWithValue(awake),
+        shareServiceProvider.overrideWithValue(share),
+        phoneDialerProvider.overrideWithValue(dialer),
         // Jam mengikut masa palsu ujian: cap masa fix dan penapis GPS maju bersama setiap pump.
         navClockProvider.overrideWithValue(() => tester.binding.clock.now()),
       ],
@@ -178,6 +186,58 @@ void main() {
       await finish(tester);
     },
   );
+
+  testWidgets(
+    'tetapan navigasi: kongsi masa tiba menghantar nama, masa tiba dan baki jarak',
+    (tester) async {
+      await pumpScreen(tester);
+      await planRoute(tester);
+      await tester.tap(find.byKey(const ValueKey('nav-simulate')));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 2));
+
+      await tester.tap(find.byTooltip('Tetapan navigasi'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.tap(find.byKey(const ValueKey('nav-share-eta')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+
+      expect(share.shared, hasLength(1));
+      final text = share.shared.single;
+      expect(text, contains('Saya sedang menuju ke'));
+      expect(text, contains('Anggaran tiba'));
+      expect(text, contains('openstreetmap.org/?mlat='));
+      await finish(tester);
+    },
+  );
+
+  testWidgets('tetapan navigasi: kecemasan membuka lembaran 999/112', (
+    tester,
+  ) async {
+    await pumpScreen(tester);
+    await planRoute(tester);
+    await tester.tap(find.byKey(const ValueKey('nav-simulate')));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 2));
+
+    await tester.tap(find.byTooltip('Tetapan navigasi'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.tap(find.byKey(const ValueKey('nav-emergency')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.byKey(const ValueKey('emergency-999')), findsOneWidget);
+    expect(dialer.dialed, isEmpty);
+    await tester.tap(find.byKey(const ValueKey('emergency-999')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.tap(find.byKey(const ValueKey('emergency-confirm')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(dialer.dialed, ['999']);
+    await finish(tester);
+  });
 
   testWidgets('butang mute dan kamera menukar tetapan dan disimpan', (
     tester,

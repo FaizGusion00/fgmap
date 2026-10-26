@@ -467,5 +467,112 @@
   "legalDraftNotice": "Draft: this document has not been reviewed by a lawyer and is not legal advice.",
   "legalConsent": "By continuing you agree to the Terms of Use and the Privacy Policy.",
   "legalAttribution": "Map data © OpenStreetMap contributors (ODbL). Styles and tiles: OpenFreeMap, OpenMapTiles. Routing: Valhalla. Search: Photon (komoot) and Nominatim. Fuel prices: data.gov.my.",
-  "aboutAttributionTitle": "Data sources"
+  "aboutAttributionTitle": "Data sources",
+  "settingsFuel": "Fuel cost",
+  "fuelTypeRon95": "RON95",
+  "fuelTypeRon97": "RON97",
+  "fuelTypeDiesel": "Diesel",
+  "fuelConsumptionCar": "Car consumption (L/100 km)",
+  "fuelConsumptionMoto": "Motorcycle consumption (L/100 km)",
+  "fuelManualPrice": "My price per litre (RM)",
+  "fuelManualPriceHint": "Leave empty to use the data.gov.my price. Fill it in if you pay a different price (e.g. subsidised RON95).",
+  "fuelPriceUnavailable": "The latest price could not be fetched. Enter your own price to see a fuel cost estimate.",
+  "fuelEstimateNote": "Fuel cost estimate based on distance, consumption and the price above.",
+  "shareDestinationTooltip": "Share destination",
+  "shareEtaAction": "Share arrival time",
+  "shareFailed": "Couldn't open the share sheet.",
+  "emergencyTooltip": "Emergency",
+  "emergencyTitle": "Emergency",
+  "emergencyBody": "In an emergency, call directly. This button is only a shortcut and does not guarantee a call, an accurate location or that help arrives.",
+  "emergencyCall999": "Call 999",
+  "emergencyCall999Hint": "Police, fire, ambulance",
+  "emergencyCall112": "Call 112",
+  "emergencyCall112Hint": "International emergency number for mobile phones",
+  "emergencyConfirmCall": "Call",
+  "emergencyConfirmBody": "The dialler will open. Press the call button to connect.",
+  "emergencyShareLocation": "Share my exact location",
+  "emergencyNoLocation": "Your location isn't known yet. Try somewhere open or turn on location.",
+  "routeFuelCost": "≈ RM {amount} fuel",
+  "@routeFuelCost": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "fuelPriceSource": "data.gov.my price: RM {price}/L ({date})",
+  "@fuelPriceSource": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "emergencyConfirmTitle": "Call {number} now?",
+  "@emergencyConfirmTitle": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "shareDestinationText": "I'm heading to {name}. Estimated arrival {eta} ({duration}, {distance}).\n{link}",
+  "@shareDestinationText": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "eta": {
+        "type": "String"
+      },
+      "duration": {
+        "type": "String"
+      },
+      "distance": {
+        "type": "String"
+      },
+      "link": {
+        "type": "String"
+      }
+    }
+  },
+  "shareEtaText": "I'm on my way to {name}. Estimated arrival {eta}, {distance} to go.\n{link}",
+  "@shareEtaText": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "eta": {
+        "type": "String"
+      },
+      "distance": {
+        "type": "String"
+      },
+      "link": {
+        "type": "String"
+      }
+    }
+  },
+  "emergencyShareText": "I need help. My location: {coords}\n{link}",
+  "@emergencyShareText": {
+    "placeholders": {
+      "coords": {
+        "type": "String"
+      },
+      "link": {
+        "type": "String"
+      }
+    }
+  },
+  "emergencyDialFailed": "Couldn't open the dialler. Dial {number} manually.",
+  "@emergencyDialFailed": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  }
 }

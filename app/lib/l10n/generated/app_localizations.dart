@@ -1945,6 +1945,198 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'Sumber data'**
   String get aboutAttributionTitle;
+
+  /// No description provided for @settingsFuel.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kos minyak'**
+  String get settingsFuel;
+
+  /// No description provided for @fuelTypeRon95.
+  ///
+  /// In ms, this message translates to:
+  /// **'RON95'**
+  String get fuelTypeRon95;
+
+  /// No description provided for @fuelTypeRon97.
+  ///
+  /// In ms, this message translates to:
+  /// **'RON97'**
+  String get fuelTypeRon97;
+
+  /// No description provided for @fuelTypeDiesel.
+  ///
+  /// In ms, this message translates to:
+  /// **'Diesel'**
+  String get fuelTypeDiesel;
+
+  /// No description provided for @fuelConsumptionCar.
+  ///
+  /// In ms, this message translates to:
+  /// **'Penggunaan kereta (L/100 km)'**
+  String get fuelConsumptionCar;
+
+  /// No description provided for @fuelConsumptionMoto.
+  ///
+  /// In ms, this message translates to:
+  /// **'Penggunaan motosikal (L/100 km)'**
+  String get fuelConsumptionMoto;
+
+  /// No description provided for @fuelManualPrice.
+  ///
+  /// In ms, this message translates to:
+  /// **'Harga seliter saya (RM)'**
+  String get fuelManualPrice;
+
+  /// No description provided for @fuelManualPriceHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kosongkan untuk guna harga data.gov.my. Isi jika harga yang anda bayar berbeza (cth. RON95 subsidi).'**
+  String get fuelManualPriceHint;
+
+  /// No description provided for @fuelPriceUnavailable.
+  ///
+  /// In ms, this message translates to:
+  /// **'Harga terkini tidak dapat diambil. Isi harga sendiri untuk melihat anggaran kos minyak.'**
+  String get fuelPriceUnavailable;
+
+  /// No description provided for @fuelEstimateNote.
+  ///
+  /// In ms, this message translates to:
+  /// **'Anggaran kos minyak berdasarkan jarak, penggunaan dan harga di atas.'**
+  String get fuelEstimateNote;
+
+  /// No description provided for @shareDestinationTooltip.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kongsi destinasi'**
+  String get shareDestinationTooltip;
+
+  /// No description provided for @shareEtaAction.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kongsi masa tiba'**
+  String get shareEtaAction;
+
+  /// No description provided for @shareFailed.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tidak dapat membuka lembaran kongsi.'**
+  String get shareFailed;
+
+  /// No description provided for @emergencyTooltip.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kecemasan'**
+  String get emergencyTooltip;
+
+  /// No description provided for @emergencyTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kecemasan'**
+  String get emergencyTitle;
+
+  /// No description provided for @emergencyBody.
+  ///
+  /// In ms, this message translates to:
+  /// **'Dalam kecemasan, hubungi terus. Butang ini hanya jalan pintas dan tidak menjamin panggilan, ketepatan lokasi atau bantuan tiba.'**
+  String get emergencyBody;
+
+  /// No description provided for @emergencyCall999.
+  ///
+  /// In ms, this message translates to:
+  /// **'Hubungi 999'**
+  String get emergencyCall999;
+
+  /// No description provided for @emergencyCall999Hint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Polis, bomba, ambulans'**
+  String get emergencyCall999Hint;
+
+  /// No description provided for @emergencyCall112.
+  ///
+  /// In ms, this message translates to:
+  /// **'Hubungi 112'**
+  String get emergencyCall112;
+
+  /// No description provided for @emergencyCall112Hint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Nombor kecemasan antarabangsa untuk telefon bimbit'**
+  String get emergencyCall112Hint;
+
+  /// No description provided for @emergencyConfirmCall.
+  ///
+  /// In ms, this message translates to:
+  /// **'Hubungi'**
+  String get emergencyConfirmCall;
+
+  /// No description provided for @emergencyConfirmBody.
+  ///
+  /// In ms, this message translates to:
+  /// **'Papan nombor akan dibuka. Tekan butang panggil untuk menyambung.'**
+  String get emergencyConfirmBody;
+
+  /// No description provided for @emergencyShareLocation.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kongsi lokasi tepat saya'**
+  String get emergencyShareLocation;
+
+  /// No description provided for @emergencyNoLocation.
+  ///
+  /// In ms, this message translates to:
+  /// **'Lokasi anda belum diketahui. Cuba di tempat terbuka atau hidupkan lokasi.'**
+  String get emergencyNoLocation;
+
+  /// No description provided for @routeFuelCost.
+  ///
+  /// In ms, this message translates to:
+  /// **'≈ RM {amount} minyak'**
+  String routeFuelCost(String amount);
+
+  /// No description provided for @fuelPriceSource.
+  ///
+  /// In ms, this message translates to:
+  /// **'Harga data.gov.my: RM {price}/L ({date})'**
+  String fuelPriceSource(String price, String date);
+
+  /// No description provided for @emergencyConfirmTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Hubungi {number} sekarang?'**
+  String emergencyConfirmTitle(String number);
+
+  /// No description provided for @shareDestinationText.
+  ///
+  /// In ms, this message translates to:
+  /// **'Saya menuju ke {name}. Anggaran tiba {eta} ({duration}, {distance}).\n{link}'**
+  String shareDestinationText(
+    String name,
+    String eta,
+    String duration,
+    String distance,
+    String link,
+  );
+
+  /// No description provided for @shareEtaText.
+  ///
+  /// In ms, this message translates to:
+  /// **'Saya sedang menuju ke {name}. Anggaran tiba {eta}, baki {distance}.\n{link}'**
+  String shareEtaText(String name, String eta, String distance, String link);
+
+  /// No description provided for @emergencyShareText.
+  ///
+  /// In ms, this message translates to:
+  /// **'Saya memerlukan bantuan. Lokasi saya: {coords}\n{link}'**
+  String emergencyShareText(String coords, String link);
+
+  /// No description provided for @emergencyDialFailed.
+  ///
+  /// In ms, this message translates to:
+  /// **'Papan nombor tidak dapat dibuka. Dail {number} secara manual.'**
+  String emergencyDialFailed(String number);
 }
 
 class _AppLocalizationsDelegate

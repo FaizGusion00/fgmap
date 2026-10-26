@@ -58,6 +58,55 @@ void main() {
     },
   );
 
+  testWidgets(
+    'tindakan pantas: kongsi masa tiba dan kecemasan menutup lembaran dahulu',
+    (tester) async {
+      var shared = 0;
+      var emergency = 0;
+      usePhoneSurface(tester);
+      reduceMotion(tester);
+      await pumpApp(
+        tester,
+        Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: ElevatedButton(
+                onPressed: () => showNavigationSettingsSheet(
+                  context,
+                  onShareEta: () => shared++,
+                  onEmergency: () => emergency++,
+                ),
+                child: const Text('buka'),
+              ),
+            ),
+          ),
+        ),
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      );
+      await tester.tap(find.text('buka'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('nav-share-eta')));
+      await tester.pumpAndSettle();
+      expect(shared, 1);
+      expect(find.byType(NavigationSettingsSheet), findsNothing);
+
+      await tester.tap(find.text('buka'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('nav-emergency')));
+      await tester.pumpAndSettle();
+      expect(emergency, 1);
+    },
+  );
+
+  testWidgets('tanpa panggilan balik: tiada baris tindakan pantas', (
+    tester,
+  ) async {
+    await pumpSheet(tester);
+    expect(find.byKey(const ValueKey('nav-share-eta')), findsNothing);
+    expect(find.byKey(const ValueKey('nav-emergency')), findsNothing);
+  });
+
   test('isDarkTheme: sumber tunggal cerah/gelap untuk app dan peta', () {
     expect(isDarkTheme(ThemeMode.dark, Brightness.light), isTrue);
     expect(isDarkTheme(ThemeMode.light, Brightness.dark), isFalse);

@@ -43,6 +43,8 @@ void main() {
     RouteReady state, {
     VoidCallback? onShowMore,
     ValueChanged<int>? onSelect,
+    VoidCallback? onShare,
+    double? fuelCostRm,
     double textScale = 1.0,
     bool settle = true,
   }) async {
@@ -61,6 +63,8 @@ void main() {
           onRetry: () {},
           onClear: () {},
           onShowMore: onShowMore,
+          onShare: onShare,
+          fuelCostRm: fuelCostRm,
           now: DateTime(2026, 10, 26, 9),
         ),
       ),
@@ -278,6 +282,47 @@ void main() {
         ),
       );
       expect(find.text('Tiada tol'), findsOneWidget);
+    });
+  });
+
+  group('kongsi dan minyak', () {
+    testWidgets('butang kongsi dipaparkan hanya jika ada panggilan balik', (
+      tester,
+    ) async {
+      var shared = 0;
+      final state = RouteReady(query: _query, options: [_route(0)]);
+      await pumpSheet(tester, state, onShare: () => shared++);
+      await tester.tap(find.byKey(const ValueKey('share-destination')));
+      expect(shared, 1);
+
+      await pumpSheet(tester, state);
+      expect(find.byKey(const ValueKey('share-destination')), findsNothing);
+    });
+
+    testWidgets('kos minyak dipaparkan bila diketahui; tiada bila null', (
+      tester,
+    ) async {
+      final state = RouteReady(query: _query, options: [_route(0)]);
+      await pumpSheet(tester, state, fuelCostRm: 12.345);
+      expect(find.byKey(const ValueKey('fuel-cost')), findsOneWidget);
+      expect(find.text('≈ RM 12.35 minyak'), findsOneWidget);
+
+      await pumpSheet(tester, state);
+      expect(find.byKey(const ValueKey('fuel-cost')), findsNothing);
+    });
+
+    testWidgets('teks 2x dengan tol, minyak dan kongsi: tiada limpahan', (
+      tester,
+    ) async {
+      final state = RouteReady(query: _query, options: [_route(0), _route(1)]);
+      await pumpSheet(
+        tester,
+        state,
+        fuelCostRm: 123.45,
+        onShare: () {},
+        textScale: 2,
+      );
+      expect(tester.takeException(), isNull);
     });
   });
 }

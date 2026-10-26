@@ -567,5 +567,112 @@
   "legalDraftNotice": "Draf: dokumen ini belum disemak oleh peguam dan tidak boleh dianggap nasihat undang-undang.",
   "legalConsent": "Dengan meneruskan, anda bersetuju dengan Terma Penggunaan dan Dasar Privasi.",
   "legalAttribution": "Data peta © penyumbang OpenStreetMap (ODbL). Gaya dan jubin: OpenFreeMap, OpenMapTiles. Laluan: Valhalla. Carian: Photon (komoot) dan Nominatim. Harga petrol: data.gov.my.",
-  "aboutAttributionTitle": "Sumber data"
+  "aboutAttributionTitle": "Sumber data",
+  "settingsFuel": "Kos minyak",
+  "fuelTypeRon95": "RON95",
+  "fuelTypeRon97": "RON97",
+  "fuelTypeDiesel": "Diesel",
+  "fuelConsumptionCar": "Penggunaan kereta (L/100 km)",
+  "fuelConsumptionMoto": "Penggunaan motosikal (L/100 km)",
+  "fuelManualPrice": "Harga seliter saya (RM)",
+  "fuelManualPriceHint": "Kosongkan untuk guna harga data.gov.my. Isi jika harga yang anda bayar berbeza (cth. RON95 subsidi).",
+  "fuelPriceUnavailable": "Harga terkini tidak dapat diambil. Isi harga sendiri untuk melihat anggaran kos minyak.",
+  "fuelEstimateNote": "Anggaran kos minyak berdasarkan jarak, penggunaan dan harga di atas.",
+  "shareDestinationTooltip": "Kongsi destinasi",
+  "shareEtaAction": "Kongsi masa tiba",
+  "shareFailed": "Tidak dapat membuka lembaran kongsi.",
+  "emergencyTooltip": "Kecemasan",
+  "emergencyTitle": "Kecemasan",
+  "emergencyBody": "Dalam kecemasan, hubungi terus. Butang ini hanya jalan pintas dan tidak menjamin panggilan, ketepatan lokasi atau bantuan tiba.",
+  "emergencyCall999": "Hubungi 999",
+  "emergencyCall999Hint": "Polis, bomba, ambulans",
+  "emergencyCall112": "Hubungi 112",
+  "emergencyCall112Hint": "Nombor kecemasan antarabangsa untuk telefon bimbit",
+  "emergencyConfirmCall": "Hubungi",
+  "emergencyConfirmBody": "Papan nombor akan dibuka. Tekan butang panggil untuk menyambung.",
+  "emergencyShareLocation": "Kongsi lokasi tepat saya",
+  "emergencyNoLocation": "Lokasi anda belum diketahui. Cuba di tempat terbuka atau hidupkan lokasi.",
+  "routeFuelCost": "≈ RM {amount} minyak",
+  "@routeFuelCost": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "fuelPriceSource": "Harga data.gov.my: RM {price}/L ({date})",
+  "@fuelPriceSource": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "emergencyConfirmTitle": "Hubungi {number} sekarang?",
+  "@emergencyConfirmTitle": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "shareDestinationText": "Saya menuju ke {name}. Anggaran tiba {eta} ({duration}, {distance}).\n{link}",
+  "@shareDestinationText": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "eta": {
+        "type": "String"
+      },
+      "duration": {
+        "type": "String"
+      },
+      "distance": {
+        "type": "String"
+      },
+      "link": {
+        "type": "String"
+      }
+    }
+  },
+  "shareEtaText": "Saya sedang menuju ke {name}. Anggaran tiba {eta}, baki {distance}.\n{link}",
+  "@shareEtaText": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "eta": {
+        "type": "String"
+      },
+      "distance": {
+        "type": "String"
+      },
+      "link": {
+        "type": "String"
+      }
+    }
+  },
+  "emergencyShareText": "Saya memerlukan bantuan. Lokasi saya: {coords}\n{link}",
+  "@emergencyShareText": {
+    "placeholders": {
+      "coords": {
+        "type": "String"
+      },
+      "link": {
+        "type": "String"
+      }
+    }
+  },
+  "emergencyDialFailed": "Papan nombor tidak dapat dibuka. Dail {number} secara manual.",
+  "@emergencyDialFailed": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  }
 }

@@ -2,9 +2,11 @@ import 'package:fgmap/features/splash/data/splash_controller.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
+import 'dart:ui' show Rect;
 
 import 'package:dio/dio.dart';
 import 'package:fgmap/core/location/location_service.dart';
+import 'package:fgmap/core/platform/external_actions.dart';
 import 'package:fgmap/core/utils/geo.dart';
 import 'package:fgmap/features/route_preview/data/route_planner.dart';
 import 'package:fgmap/features/route_preview/domain/route_option.dart';
@@ -254,4 +256,29 @@ class RecordingPlanner implements RoutePlanner {
 class SplashAlreadyDone extends SplashController {
   @override
   bool build() => true;
+}
+
+/// Perkongsian palsu: merekod teks yang akan dikongsi tanpa membuka UI sistem.
+class FakeShareService implements ShareService {
+  final List<String> shared = [];
+  bool fail = false;
+
+  @override
+  Future<void> shareText(String text, {String? subject, Rect? origin}) async {
+    if (fail) throw StateError('tiada lembaran kongsi');
+    shared.add(text);
+  }
+}
+
+/// Papan nombor palsu: merekod nombor yang dibuka.
+class FakePhoneDialer implements PhoneDialer {
+  final List<String> dialed = [];
+  bool succeed = true;
+
+  @override
+  Future<bool> dial(String number) async {
+    if (!succeed) return false;
+    dialed.add(number);
+    return true;
+  }
 }

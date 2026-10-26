@@ -11,6 +11,13 @@ import '../../../core/config/app_config.dart';
 import '../../../core/location/location_service.dart';
 import '../../../core/network/dio_provider.dart';
 import '../../../core/theme/fgmap_theme_extension.dart';
+import '../../../core/platform/external_actions.dart';
+import '../../../core/utils/map_links.dart';
+import '../../fuel/data/fuel_settings.dart';
+import '../../fuel/domain/fuel.dart';
+import '../../route_preview/presentation/route_format.dart';
+import '../../safety/presentation/emergency_sheet.dart';
+
 import '../../../core/theme/motion.dart';
 import '../../../core/widgets/press_scale.dart';
 import '../../../core/theme/theme_controller.dart';
@@ -798,6 +805,75 @@ class _MapScreenState extends ConsumerState<MapScreen>
     await ref.read(reportAlertsProvider.notifier).answer(confirm: answer);
   }
 
+  /// Kedudukan semasa untuk kecemasan: penjejak jika ada, jika tidak GPS (lebih lambat).
+  Future<GeoPoint?> _emergencyLocate() async {
+    final known = _userPoint();
+    if (known != null) return known;
+    return (await _freshFix())?.point;
+  }
+
+  void _openEmergency() {
+    Haptics.medium();
+    unawaited(showEmergencySheet(context, locate: _emergencyLocate));
+  }
+
+  Rect? _shareOrigin() {
+    final box = context.findRenderObject() as RenderBox?;
+    return box == null ? null : box.localToGlobal(Offset.zero) & box.size;
+  }
+
+  Future<void> _share(String text) async {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    final failed = AppLocalizations.of(context).shareFailed;
+    try {
+      await ref
+          .read(shareServiceProvider)
+          .shareText(text, origin: _shareOrigin());
+    } on Object {
+      messenger?.showSnackBar(SnackBar(content: Text(failed)));
+    }
+  }
+
+  String _etaText(Duration remaining) =>
+      MaterialLocalizations.of(context).formatTimeOfDay(
+        TimeOfDay.fromDateTime(ref.read(navClockProvider)().add(remaining)),
+      );
+
+  /// Kongsi destinasi dan masa tiba laluan terpilih (teks + pautan OpenStreetMap; tiada pengesanan langsung).
+  Future<void> _shareDestination(RouteReady ready) {
+    final l10n = AppLocalizations.of(context);
+    final route = ready.selected;
+    final name =
+        ready.query.destinationLabel ?? coordinateText(ready.query.destination);
+    return _share(
+      l10n.shareDestinationText(
+        name,
+        _etaText(Duration(seconds: route.durationS)),
+        formatDuration(l10n, route.durationS),
+        formatDistance(l10n, route.distanceM),
+        osmPointLink(ready.query.destination),
+      ),
+    );
+  }
+
+  /// Semasa navigasi: kongsi masa tiba yang dikemas kini dan baki jarak.
+  Future<void> _shareEta() {
+    final l10n = AppLocalizations.of(context);
+    final nav = ref.read(navigationControllerProvider);
+    final query = nav.query;
+    final progress = nav.progress;
+    if (query == null || progress == null) return Future.value();
+    final name = query.destinationLabel ?? coordinateText(query.destination);
+    return _share(
+      l10n.shareEtaText(
+        name,
+        _etaText(Duration(seconds: progress.remainingS.round())),
+        formatDistance(l10n, progress.remainingM.round()),
+        osmPointLink(query.destination),
+      ),
+    );
+  }
+
   void _selectRoute(int index) {
     Haptics.selection();
     ref.read(routePreviewControllerProvider.notifier).select(index);
@@ -813,6 +889,11 @@ class _MapScreenState extends ConsumerState<MapScreen>
     final controller = ref.read(routePreviewControllerProvider.notifier);
     final nav = ref.watch(navigationControllerProvider);
     final navSettings = ref.watch(navigationSettingsProvider);
+    // Harga minyak hanya diambil (rangkaian) apabila laluan sedia, bukan semasa app dibuka.
+    final fuelSettings = ref.watch(fuelSettingsProvider);
+    final fuelPrice = state is RouteReady
+        ? ref.watch(effectiveFuelPriceProvider)
+        : null;
     final navigating = nav.isActive;
     // Kenderaan yang dipilih (kereta/motosikal): sama dengan yang digunakan untuk mengira laluan.
     final vehicle = navigating
@@ -1039,6 +1120,12 @@ class _MapScreenState extends ConsumerState<MapScreen>
                               const SizedBox(height: 8),
                             ],
                             _GlassIconButton(
+                              icon: Icons.emergency_rounded,
+                              tooltip: l10n.emergencyTooltip,
+                              onPressed: _openEmergency,
+                            ),
+                            const SizedBox(height: 8),
+                            _GlassIconButton(
                               icon: Icons.add_alert_rounded,
                               tooltip: l10n.reportButtonTooltip,
                               onPressed: _openReport,
@@ -1080,6 +1167,17 @@ class _MapScreenState extends ConsumerState<MapScreen>
                               state: state,
                               onSelect: _selectRoute,
                               onShowMore: controller.showMore,
+                              onShare: state is RouteReady
+                                  ? () => unawaited(_shareDestination(state))
+                                  : null,
+                              fuelCostRm: state is RouteReady
+                                  ? estimateFuelCostRm(
+                                      distanceM: state.selected.distanceM,
+                                      litersPer100Km: fuelSettings
+                                          .litersPer100Km(state.query.vehicle),
+                                      pricePerLiter: fuelPrice,
+                                    )
+                                  : null,
                               onVehicleChanged: (v) =>
                                   unawaited(controller.setVehicle(v)),
                               onRetry: controller.retry,
@@ -1182,7 +1280,11 @@ class _MapScreenState extends ConsumerState<MapScreen>
           .setVoiceEnabled(!settings.voiceEnabled),
       onCycleCamera: _cycleCameraMode,
       onOverview: _showOverview,
-      onSettings: () => showNavigationSettingsSheet(context),
+      onSettings: () => showNavigationSettingsSheet(
+        context,
+        onShareEta: () => unawaited(_shareEta()),
+        onEmergency: _openEmergency,
+      ),
       onReport: _openReport,
     );
 

@@ -4,6 +4,8 @@ import 'package:fgmap/core/location/location_service.dart';
 import 'package:fgmap/core/settings/app_preferences.dart';
 import 'package:fgmap/core/storage/preferences.dart';
 import 'package:fgmap/core/utils/haptics.dart';
+import 'package:fgmap/features/fuel/data/fuel_settings.dart';
+import 'package:fgmap/features/fuel/domain/fuel.dart';
 import 'package:fgmap/features/map/data/map_style_loader.dart';
 import 'package:fgmap/core/utils/geo.dart';
 import 'package:fgmap/features/map/presentation/idle_follow.dart';
@@ -242,6 +244,51 @@ void main() {
       await tester.pumpAndSettle();
       expect(c.read(searchHistoryControllerProvider), isEmpty);
       expect(find.text('Dipadam'), findsOneWidget);
+    });
+
+    testWidgets('kos minyak: jenis, penggunaan, harga sendiri disimpan', (
+      tester,
+    ) async {
+      final c = await pumpPage(tester);
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('fuel-type')),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.ensureVisible(find.byKey(const ValueKey('fuel-type')));
+      await tester.pumpAndSettle();
+      // Tiada harga data.gov.my dalam ujian: mesej jelas, tiada harga direka.
+      expect(find.byKey(const ValueKey('fuel-unavailable')), findsOneWidget);
+
+      await tester.tap(find.text('Diesel'));
+      await tester.pumpAndSettle();
+      expect(c.read(fuelSettingsProvider).type, FuelType.diesel);
+
+      await tester.ensureVisible(find.byKey(const ValueKey('fuel-car-plus')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('fuel-car-plus')));
+      await tester.pumpAndSettle();
+      expect(c.read(fuelSettingsProvider).carLitersPer100Km, 8.5);
+      expect(find.text('8.5'), findsOneWidget);
+      expect(prefs.getDouble('fuel.lper100.car'), 8.5);
+
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('fuel-manual-price')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('fuel-manual-price')),
+        '1,99',
+      );
+      await tester.pump();
+      expect(c.read(fuelSettingsProvider).manualPrice, 1.99);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('fuel-manual-price')),
+        '',
+      );
+      await tester.pump();
+      expect(c.read(fuelSettingsProvider).manualPrice, isNull);
     });
 
     testWidgets('Dasar Privasi dan Terma boleh dibuka daripada Tetapan', (

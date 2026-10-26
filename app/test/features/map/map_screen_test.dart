@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:fgmap/core/config/app_config.dart';
 import 'package:fgmap/core/location/location_service.dart';
+import 'package:fgmap/core/platform/external_actions.dart';
 import 'package:fgmap/features/route_preview/domain/routing_failure.dart';
 import 'package:fgmap/core/storage/preferences.dart';
 import 'package:dio/dio.dart';
@@ -67,6 +68,8 @@ class _Reverse implements ReverseGeocoder {
 
 void main() {
   late _Reverse reverse;
+  late FakeShareService share;
+  late FakePhoneDialer dialer;
   late FakeMapHarness map;
   late FakeLocationService location;
   late FakeRoutePlanner repo;
@@ -74,6 +77,8 @@ void main() {
 
   setUp(() async {
     reverse = _Reverse();
+    share = FakeShareService();
+    dialer = FakePhoneDialer();
     map = FakeMapHarness();
     location = FakeLocationService(fix: const LocationFix(point: klcc));
     repo = FakeRoutePlanner(
@@ -109,6 +114,8 @@ void main() {
         idleRecenterAfterProvider.overrideWithValue(recenterAfter),
         mapStyleLoaderProvider.overrideWithValue(_UrlLoader()),
         reverseGeocoderProvider.overrideWithValue(reverse),
+        shareServiceProvider.overrideWithValue(share),
+        phoneDialerProvider.overrideWithValue(dialer),
       ],
     );
     await tester.pumpAndSettle();
@@ -912,6 +919,96 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Polis masih ada?'), findsNothing);
       expect(container.read(reportsControllerProvider).single.confirms, 0);
+    });
+  });
+
+  group('kongsi, kecemasan dan kos minyak', () {
+    testWidgets(
+      'kongsi destinasi: nama, masa tiba, tempoh, jarak dan pautan OSM',
+      (tester) async {
+        await pumpScreen(tester);
+        map.config!.onLongPress(klia);
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const ValueKey('share-destination')));
+        await tester.pumpAndSettle();
+
+        expect(share.shared, hasLength(1));
+        final text = share.shared.single;
+        expect(text, contains('Saya menuju ke'));
+        expect(text, contains('Anggaran tiba'));
+        expect(text, contains('58 min'));
+        expect(
+          text,
+          contains(
+            'https://www.openstreetmap.org/?mlat=2.74560&mlon=101.70720',
+          ),
+        );
+      },
+    );
+
+    testWidgets('lembaran kongsi gagal: mesej, tiada ranap', (tester) async {
+      share.fail = true;
+      await pumpScreen(tester);
+      map.config!.onLongPress(klia);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('share-destination')));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('lembaran kongsi'), findsOneWidget);
+    });
+
+    testWidgets(
+      'butang kecemasan di peta: sahkan dahulu sebelum papan nombor',
+      (tester) async {
+        await pumpScreen(tester);
+        await tester.tap(find.byTooltip('Kecemasan'));
+        await tester.pumpAndSettle();
+        expect(find.text('Hubungi 999'), findsOneWidget);
+        await tester.tap(find.byKey(const ValueKey('emergency-112')));
+        await tester.pumpAndSettle();
+        expect(dialer.dialed, isEmpty);
+        await tester.tap(find.byKey(const ValueKey('emergency-confirm')));
+        await tester.pumpAndSettle();
+        expect(dialer.dialed, ['112']);
+      },
+    );
+
+    testWidgets('kecemasan: kongsi lokasi tepat guna lokasi pengguna', (
+      tester,
+    ) async {
+      await pumpScreen(tester);
+      await tester.tap(find.byTooltip('Kecemasan'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('emergency-share')));
+      await tester.pumpAndSettle();
+      expect(share.shared.single, contains('3.15790, 101.71160'));
+    });
+
+    testWidgets(
+      'tanpa harga minyak: tiada anggaran kos minyak (tidak direka)',
+      (tester) async {
+        await pumpScreen(tester);
+        map.config!.onLongPress(klia);
+        await tester.pumpAndSettle();
+        expect(find.byKey(const ValueKey('fuel-cost')), findsNothing);
+      },
+    );
+
+    testWidgets('dengan harga sendiri: anggaran = jarak x penggunaan x harga', (
+      tester,
+    ) async {
+      await prefs.setDouble('fuel.price.manual', 2.0);
+      await pumpScreen(tester);
+      map.config!.onLongPress(klia);
+      await tester.pumpAndSettle();
+      // 67.049 km x 8.0 / 100 x RM2.00 = RM10.73.
+      expect(find.byKey(const ValueKey('fuel-cost')), findsOneWidget);
+      expect(find.text('≈ RM 10.73 minyak'), findsOneWidget);
+
+      // Motosikal: penggunaan 3.5 L/100 km -> RM4.69.
+      await tester.tap(find.byTooltip('Motosikal'));
+      await tester.pumpAndSettle();
+      expect(find.text('≈ RM 4.69 minyak'), findsOneWidget);
     });
   });
 

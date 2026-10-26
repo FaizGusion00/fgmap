@@ -7,18 +7,30 @@ import '../data/navigation_settings.dart';
 import '../domain/camera_planner.dart';
 import '../domain/instruction_text.dart';
 
-Future<void> showNavigationSettingsSheet(BuildContext context) {
+Future<void> showNavigationSettingsSheet(
+  BuildContext context, {
+  VoidCallback? onShareEta,
+  VoidCallback? onEmergency,
+}) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    builder: (_) => const NavigationSettingsSheet(),
+    builder: (_) => NavigationSettingsSheet(
+      onShareEta: onShareEta,
+      onEmergency: onEmergency,
+    ),
   );
 }
 
 /// Tetapan navigasi sebagai lembaran sendiri (dibuka dari butang sisi semasa memandu).
 class NavigationSettingsSheet extends StatelessWidget {
-  const NavigationSettingsSheet({super.key});
+  const NavigationSettingsSheet({super.key, this.onShareEta, this.onEmergency});
+
+  /// Tindakan pantas di bahagian atas (kongsi masa tiba, kecemasan); tersembunyi jika null. Lembaran
+  /// ditutup dahulu, kemudian tindakan dijalankan.
+  final VoidCallback? onShareEta;
+  final VoidCallback? onEmergency;
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +45,40 @@ class NavigationSettingsSheet extends StatelessWidget {
             l10n.navSettingsTitle,
             style: Theme.of(context).textTheme.titleLarge,
           ),
-          const SizedBox(height: 8),
+          if (onShareEta != null || onEmergency != null) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (onShareEta != null)
+                  ActionChip(
+                    key: const ValueKey('nav-share-eta'),
+                    avatar: const Icon(Icons.ios_share_rounded, size: 18),
+                    label: Text(l10n.shareEtaAction),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      onShareEta!();
+                    },
+                  ),
+                if (onEmergency != null)
+                  ActionChip(
+                    key: const ValueKey('nav-emergency'),
+                    avatar: Icon(
+                      Icons.emergency_rounded,
+                      size: 18,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                    label: Text(l10n.emergencyTitle),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      onEmergency!();
+                    },
+                  ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 12),
           const NavigationSettingsSection(showTheme: true),
         ],
       ),

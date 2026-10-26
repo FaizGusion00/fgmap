@@ -29,6 +29,8 @@ class RouteSummarySheet extends StatelessWidget {
     this.onSimulate,
     this.onSave,
     this.onShowMore,
+    this.onShare,
+    this.fuelCostRm,
     this.now,
   });
 
@@ -50,6 +52,12 @@ class RouteSummarySheet extends StatelessWidget {
 
   /// Papar semua pilihan laluan (sehingga 10) apabila ada yang tersembunyi.
   final VoidCallback? onShowMore;
+
+  /// Kongsi destinasi dan masa tiba; butang tersembunyi jika null.
+  final VoidCallback? onShare;
+
+  /// Anggaran kos minyak (RM) laluan terpilih; null = harga/penggunaan tidak diketahui (tiada paparan).
+  final double? fuelCostRm;
 
   /// Masa semasa untuk mengira waktu tiba; lalai `DateTime.now()`. Ujian golden menetapkannya.
   final DateTime? now;
@@ -105,6 +113,8 @@ class RouteSummarySheet extends StatelessWidget {
                       onSimulate: onSimulate,
                       onSave: onSave,
                       onShowMore: onShowMore,
+                      onShare: onShare,
+                      fuelCostRm: fuelCostRm,
                       now: now ?? DateTime.now(),
                     ),
                     RouteFailed() => _FailedBody(
@@ -194,6 +204,8 @@ class _ReadyBody extends StatelessWidget {
     this.onSimulate,
     this.onSave,
     this.onShowMore,
+    this.onShare,
+    this.fuelCostRm,
   });
 
   final RouteReady state;
@@ -204,6 +216,8 @@ class _ReadyBody extends StatelessWidget {
   final VoidCallback? onSimulate;
   final VoidCallback? onSave;
   final VoidCallback? onShowMore;
+  final VoidCallback? onShare;
+  final double? fuelCostRm;
   final DateTime now;
 
   @override
@@ -280,11 +294,40 @@ class _ReadyBody extends StatelessWidget {
                         estimate: state.tollOf(route),
                         vehicle: state.query.vehicle,
                       ),
+                      if (fuelCostRm != null)
+                        Row(
+                          key: const ValueKey('fuel-cost'),
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.local_gas_station_rounded,
+                              size: 18,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                l10n.routeFuelCost(_money(l10n, fuelCostRm!)),
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                     ],
                   ),
                 ],
               ),
             ),
+            if (onShare != null)
+              IconButton(
+                key: const ValueKey('share-destination'),
+                tooltip: l10n.shareDestinationTooltip,
+                onPressed: onShare,
+                icon: const Icon(Icons.ios_share_rounded),
+              ),
             if (onSave != null)
               IconButton(
                 key: const ValueKey('save-destination'),
@@ -1039,10 +1082,7 @@ class _TollSummary extends StatelessWidget {
                   : theme.colorScheme.onSurfaceVariant,
             ),
             const SizedBox(width: 4),
-            ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: MediaQuery.sizeOf(context).width * 0.6,
-              ),
+            Flexible(
               child: Text(
                 text.isEmpty ? l10n.routeHasTolls : text,
                 maxLines: 2,

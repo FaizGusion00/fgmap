@@ -1063,4 +1063,124 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutAttributionTitle => 'Data sources';
+
+  @override
+  String get settingsFuel => 'Fuel cost';
+
+  @override
+  String get fuelTypeRon95 => 'RON95';
+
+  @override
+  String get fuelTypeRon97 => 'RON97';
+
+  @override
+  String get fuelTypeDiesel => 'Diesel';
+
+  @override
+  String get fuelConsumptionCar => 'Car consumption (L/100 km)';
+
+  @override
+  String get fuelConsumptionMoto => 'Motorcycle consumption (L/100 km)';
+
+  @override
+  String get fuelManualPrice => 'My price per litre (RM)';
+
+  @override
+  String get fuelManualPriceHint =>
+      'Leave empty to use the data.gov.my price. Fill it in if you pay a different price (e.g. subsidised RON95).';
+
+  @override
+  String get fuelPriceUnavailable =>
+      'The latest price could not be fetched. Enter your own price to see a fuel cost estimate.';
+
+  @override
+  String get fuelEstimateNote =>
+      'Fuel cost estimate based on distance, consumption and the price above.';
+
+  @override
+  String get shareDestinationTooltip => 'Share destination';
+
+  @override
+  String get shareEtaAction => 'Share arrival time';
+
+  @override
+  String get shareFailed => 'Couldn\'t open the share sheet.';
+
+  @override
+  String get emergencyTooltip => 'Emergency';
+
+  @override
+  String get emergencyTitle => 'Emergency';
+
+  @override
+  String get emergencyBody =>
+      'In an emergency, call directly. This button is only a shortcut and does not guarantee a call, an accurate location or that help arrives.';
+
+  @override
+  String get emergencyCall999 => 'Call 999';
+
+  @override
+  String get emergencyCall999Hint => 'Police, fire, ambulance';
+
+  @override
+  String get emergencyCall112 => 'Call 112';
+
+  @override
+  String get emergencyCall112Hint =>
+      'International emergency number for mobile phones';
+
+  @override
+  String get emergencyConfirmCall => 'Call';
+
+  @override
+  String get emergencyConfirmBody =>
+      'The dialler will open. Press the call button to connect.';
+
+  @override
+  String get emergencyShareLocation => 'Share my exact location';
+
+  @override
+  String get emergencyNoLocation =>
+      'Your location isn\'t known yet. Try somewhere open or turn on location.';
+
+  @override
+  String routeFuelCost(String amount) {
+    return '≈ RM $amount fuel';
+  }
+
+  @override
+  String fuelPriceSource(String price, String date) {
+    return 'data.gov.my price: RM $price/L ($date)';
+  }
+
+  @override
+  String emergencyConfirmTitle(String number) {
+    return 'Call $number now?';
+  }
+
+  @override
+  String shareDestinationText(
+    String name,
+    String eta,
+    String duration,
+    String distance,
+    String link,
+  ) {
+    return 'I\'m heading to $name. Estimated arrival $eta ($duration, $distance).\n$link';
+  }
+
+  @override
+  String shareEtaText(String name, String eta, String distance, String link) {
+    return 'I\'m on my way to $name. Estimated arrival $eta, $distance to go.\n$link';
+  }
+
+  @override
+  String emergencyShareText(String coords, String link) {
+    return 'I need help. My location: $coords\n$link';
+  }
+
+  @override
+  String emergencyDialFailed(String number) {
+    return 'Couldn\'t open the dialler. Dial $number manually.';
+  }
 }

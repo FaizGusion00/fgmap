@@ -15,6 +15,7 @@ import '../../offline_maps/presentation/offline_maps_sheet.dart';
 import '../../onboarding/data/onboarding_controller.dart';
 import '../../reports/presentation/reports_controller.dart';
 import '../../saved_places/data/saved_places_controller.dart';
+import '../../fuel/presentation/fuel_settings_group.dart';
 import '../../legal/presentation/legal_page.dart';
 import '../data/data_eraser.dart';
 import '../../saved_places/domain/saved_place.dart';
@@ -51,10 +52,11 @@ class SettingsPage extends ConsumerWidget {
                 FadeSlideIn(index: 0, child: _AppearanceGroup()),
                 FadeSlideIn(index: 1, child: _SavedPlacesGroup()),
                 FadeSlideIn(index: 2, child: _NavigationGroup()),
-                FadeSlideIn(index: 3, child: _ReportsGroup()),
-                FadeSlideIn(index: 4, child: _MapsGroup()),
-                FadeSlideIn(index: 5, child: _PrivacyGroup()),
-                FadeSlideIn(index: 6, child: _HelpGroup()),
+                FadeSlideIn(index: 3, child: _FuelGroup()),
+                FadeSlideIn(index: 4, child: _ReportsGroup()),
+                FadeSlideIn(index: 5, child: _MapsGroup()),
+                FadeSlideIn(index: 6, child: _PrivacyGroup()),
+                FadeSlideIn(index: 7, child: _HelpGroup()),
               ],
             ),
           ),
@@ -323,6 +325,20 @@ class _SavedPlacesGroup extends ConsumerWidget {
           row(SavedKind.work, SavedPlace.workId),
         ],
       ),
+    );
+  }
+}
+
+class _FuelGroup extends StatelessWidget {
+  const _FuelGroup();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return _Group(
+      icon: Icons.local_gas_station_outlined,
+      title: l10n.settingsFuel,
+      child: const FuelSettingsSection(),
     );
   }
 }
