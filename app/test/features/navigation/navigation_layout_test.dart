@@ -214,6 +214,39 @@ void main() {
     },
   );
 
+  testWidgets(
+    'lembaran laluan pada telefon mendatar pendek (640x360): tiada limpahan, boleh digulung',
+    (tester) async {
+      usePhoneSurface(tester, size: const Size(640, 360));
+      reduceMotion(tester);
+      await pumpApp(
+        tester,
+        const MapScreen(),
+        overrides: [
+          map.override,
+          locationServiceProvider.overrideWithValue(
+            FakeLocationService(fix: const LocationFix(point: klcc)),
+          ),
+          routePlannerProvider.overrideWithValue(
+            FakeRoutePlanner((_) async => [lShapedRoute(legM: 1500)]),
+          ),
+          sharedPreferencesProvider.overrideWithValue(prefs),
+        ],
+      );
+      await tester.pumpAndSettle();
+      map.config!.onLongPress(klia);
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.byKey(const ValueKey('nav-simulate')), findsOneWidget);
+      await tester.ensureVisible(find.byKey(const ValueKey('nav-simulate')));
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+      final rect = tester.getRect(find.byKey(const ValueKey('nav-simulate')));
+      expect(rect.bottom, lessThanOrEqualTo(360));
+    },
+  );
+
   testWidgets('tamat navigasi: kereta 3D dibuang', (tester) async {
     final container = await pumpNavigating(tester, const Size(390, 844));
     expect(find.byType(VehicleOverlay), findsOneWidget);
