@@ -3,6 +3,7 @@ import 'package:fgmap/core/storage/preferences.dart';
 import 'package:fgmap/features/map/presentation/map_screen.dart';
 import 'package:fgmap/features/navigation/data/screen_awake.dart';
 import 'package:fgmap/features/navigation/domain/camera_planner.dart';
+import 'package:fgmap/features/navigation/presentation/car/car_mesh.dart';
 import 'package:fgmap/features/navigation/presentation/car/vehicle_overlay.dart';
 import 'package:fgmap/features/navigation/presentation/navigation_controller.dart';
 import 'package:fgmap/features/navigation/presentation/navigation_hud.dart';
@@ -244,6 +245,63 @@ void main() {
       expect(tester.takeException(), isNull);
       final rect = tester.getRect(find.byKey(const ValueKey('nav-simulate')));
       expect(rect.bottom, lessThanOrEqualTo(360));
+    },
+  );
+
+  testWidgets(
+    'motosikal dipilih: ikon motor di peta dan panel, kereta bila dipilih semula',
+    (tester) async {
+      usePhoneSurface(tester);
+      reduceMotion(tester);
+      await pumpApp(
+        tester,
+        const MapScreen(),
+        overrides: [
+          map.override,
+          locationServiceProvider.overrideWithValue(
+            FakeLocationService(fix: const LocationFix(point: klcc)),
+          ),
+          routePlannerProvider.overrideWithValue(
+            FakeRoutePlanner((_) async => [lShapedRoute(legM: 1500)]),
+          ),
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          voiceGuideProvider.overrideWithValue(FakeVoice()),
+          speedLimitServiceProvider.overrideWithValue(FakeSpeedLimitService()),
+          screenAwakeProvider.overrideWithValue(FakeAwake()),
+        ],
+      );
+      await tester.pumpAndSettle();
+      expect(map.config!.vehicleKind, VehicleKind.car);
+      map.config!.onLongPress(klia);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.two_wheeler_rounded));
+      await tester.pumpAndSettle();
+      expect(map.config!.vehicleKind, VehicleKind.motorcycle);
+
+      await tester.tap(find.byKey(const ValueKey('nav-simulate')));
+      await tester.pump();
+      for (var i = 0; i < 4; i++) {
+        await tester.pump(const Duration(seconds: 1));
+      }
+      expect(map.config!.vehicleKind, VehicleKind.motorcycle);
+      expect(
+        tester.widget<VehicleOverlay>(find.byType(VehicleOverlay)).kind,
+        VehicleKind.motorcycle,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(NavBottomPanel),
+          matching: find.byIcon(Icons.two_wheeler_rounded),
+        ),
+        findsOneWidget,
+      );
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(MapScreen)),
+      );
+      await container.read(navigationControllerProvider.notifier).stop();
+      await tester.pump(const Duration(seconds: 3));
     },
   );
 

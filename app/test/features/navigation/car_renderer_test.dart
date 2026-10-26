@@ -42,11 +42,12 @@ Future<_Render> _render({
   double length = 200,
   double brake = 0,
   CarPalette? palette,
+  VehicleKind kind = VehicleKind.car,
 }) async {
   const size = 480;
   final recorder = ui.PictureRecorder();
   final canvas = Canvas(recorder);
-  CarRenderer().paint(
+  CarRenderer(kind.mesh).paint(
     canvas,
     anchor: const Offset(size / 2, size / 2),
     lengthPx: length,
@@ -272,6 +273,80 @@ void main() {
         HSLColor.fromColor(a.bodyTop).lightness,
         greaterThan(HSLColor.fromColor(a.body).lightness),
       );
+    });
+  });
+
+  group('motosikal', () {
+    final mesh = VehicleKind.motorcycle.mesh;
+
+    test('model sah dan ukuran seperti motosikal dengan penunggang', () {
+      expect(mesh.faces.length, greaterThan(100));
+      expect(mesh.positions.every((v) => v.isFinite), isTrue);
+      for (final face in mesh.faces) {
+        for (final v in face.vertices) {
+          expect(v, inInclusiveRange(0, mesh.vertexCount - 1));
+        }
+        final len = math.sqrt(
+          face.nx * face.nx + face.ny * face.ny + face.nz * face.nz,
+        );
+        expect(len, closeTo(1, 1e-9));
+      }
+      var minX = 1e9, maxX = -1e9, minY = 1e9, maxY = -1e9, maxZ = 0.0;
+      for (var i = 0; i < mesh.vertexCount; i++) {
+        minX = math.min(minX, mesh.positions[i * 3]);
+        maxX = math.max(maxX, mesh.positions[i * 3]);
+        minY = math.min(minY, mesh.positions[i * 3 + 1]);
+        maxY = math.max(maxY, mesh.positions[i * 3 + 1]);
+        maxZ = math.max(maxZ, mesh.positions[i * 3 + 2]);
+      }
+      expect(maxY - minY, closeTo(mesh.lengthM, 0.15));
+      expect(maxX - minX, lessThan(0.9), reason: 'sempit berbanding kereta');
+      expect(maxZ, closeTo(mesh.heightM, 0.05));
+      expect(mesh.lengthM, lessThan(CarMesh.standard.lengthM));
+      expect(mesh.tailLights, isNotEmpty);
+    });
+
+    test(
+      'lebih sempit dan lebih kecil daripada kereta pada saiz skrin yang sama',
+      () async {
+        final car = await _render(tilt: 0);
+        final moto = await _render(tilt: 0, kind: VehicleKind.motorcycle);
+        expect(moto.width, lessThan(car.width * 0.65));
+      },
+    );
+
+    test('lampu brek dan lampu belakang kelihatan dari belakang', () async {
+      final rear = await _render(tilt: 56, kind: VehicleKind.motorcycle);
+      expect(rear.count(_isTaillight), greaterThan(8));
+      final braking = await _render(
+        tilt: 56,
+        brake: 1,
+        kind: VehicleKind.motorcycle,
+      );
+      bool reddish(int r, int g, int b, int a) =>
+          a > 20 && r > 200 && g < 150 && b < 160;
+      expect(braking.count(reddish), greaterThan(rear.count(reddish)));
+    });
+
+    test('semua sudut dilukis tanpa ralat', () async {
+      for (var yaw = -180.0; yaw <= 180; yaw += 45) {
+        for (final tilt in [0.0, 30.0, 60.0]) {
+          final r = await _render(
+            yaw: yaw,
+            tilt: tilt,
+            length: 120,
+            kind: VehicleKind.motorcycle,
+          );
+          expect(r.width, greaterThan(8), reason: 'yaw $yaw tilt $tilt');
+          expect(r.height, greaterThan(20), reason: 'yaw $yaw tilt $tilt');
+        }
+      }
+    });
+
+    test('jenis kenderaan memilih model dan skala skrin', () {
+      expect(VehicleKind.car.mesh, same(CarMesh.standard));
+      expect(VehicleKind.motorcycle.mesh, same(CarMesh.motorcycle));
+      expect(VehicleKind.motorcycle.screenScale, lessThan(1));
     });
   });
 }

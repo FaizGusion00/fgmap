@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/utils/geo.dart';
 import '../../navigation/domain/camera_planner.dart' show CameraPose;
 import 'maplibre_view.dart';
+import '../../navigation/presentation/car/car_mesh.dart' show VehicleKind;
 import 'nav_route_line.dart';
 import 'user_location.dart';
 
@@ -114,6 +115,7 @@ class MapViewConfig {
     this.navAlong,
     this.finalLeg = const [],
     this.showCompass = true,
+    this.vehicleKind = VehicleKind.car,
     this.onUserGesture,
     this.onTap,
   });
@@ -140,6 +142,9 @@ class MapViewConfig {
   /// Sambungan akhir bertitik dari hujung laluan (titik jalan) ke destinasi sebenar bila ia berjauhan;
   /// kosong jika tiada.
   final List<GeoPoint> finalLeg;
+
+  /// Jenis kenderaan untuk sprite kenderaan di lapisan peta (kereta atau motosikal).
+  final VehicleKind vehicleKind;
 
   /// Butang kompas asli peta. Dimatikan semasa navigasi: ia muncul dan hilang setiap kali arah peta
   /// melintasi utara dan kelihatan berkelip.

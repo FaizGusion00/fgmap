@@ -263,6 +263,35 @@ void routingOptionsTests() {
       );
       expect(json['costing'], 'motorcycle');
       expect(locs(json), hasLength(2));
+      // Motosikal tidak melalui denai/trek (eksplisit), walaupun tiada pilihan elak lain.
+      expect(json['costing_options'], {
+        'motorcycle': {'use_trails': 0},
+      });
+    });
+
+    test('kereta tidak menerima pilihan khusus motosikal', () {
+      final json = buildRouteRequest(
+        const RouteQuery(origin: klcc, destination: klia, avoidTolls: true),
+      );
+      expect(json['costing_options'], {
+        'auto': {'use_tolls': 0},
+      });
+    });
+
+    test('kenderaan kekal semasa re-route (motosikal kekal motosikal)', () {
+      const query = RouteQuery(
+        origin: klcc,
+        destination: klia,
+        vehicle: RouteVehicle.motorcycle,
+        avoidHighways: true,
+      );
+      final reroute = query.rerouteFrom(batuCaves);
+      expect(reroute.vehicle, RouteVehicle.motorcycle);
+      final json = buildRouteRequest(reroute);
+      expect(json['costing'], 'motorcycle');
+      expect(json['costing_options'], {
+        'motorcycle': {'use_highways': 0, 'use_trails': 0},
+      });
     });
 
     test(
@@ -278,7 +307,7 @@ void routingOptionsTests() {
           ),
         );
         expect(json['costing_options'], {
-          'motorcycle': {'use_tolls': 0, 'use_highways': 0},
+          'motorcycle': {'use_tolls': 0, 'use_highways': 0, 'use_trails': 0},
         });
       },
     );

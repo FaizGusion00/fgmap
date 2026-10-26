@@ -125,6 +125,11 @@ class _MapLibreViewState extends State<MapLibreView> {
       });
     }
 
+    if (_overlaysReady && old.vehicleKind != cfg.vehicleKind) {
+      // Sprite kenderaan baharu (kereta <-> motosikal): bina semula overlay dengan imej yang betul.
+      _enqueue(_initOverlays);
+    }
+
     if (old.styleUrl != cfg.styleUrl) {
       final styleUrl = cfg.styleUrl;
       _activeStyleUrl = styleUrl;
@@ -311,7 +316,10 @@ class _MapLibreViewState extends State<MapLibreView> {
     // condong 3D memberi perspektif sebenar, dan berputar mengikut arah peta, bukan skrin.
     await c.addImage(
       _vehicleImage,
-      await renderVehicleIcon(fill: colors.vehicle),
+      await renderVehicleIcon(
+        fill: colors.vehicle,
+        kind: widget.config.vehicleKind,
+      ),
     );
     await c.addGeoJsonSource(_vehicleSource, _vehiclePoint(_pump.vehicle));
     await c.addSymbolLayer(

@@ -26,11 +26,16 @@ Map<String, Object?> buildRouteRequest(RouteQuery query) {
     'costing': query.vehicle.costing,
     // use_tolls / use_highways = 0 ialah keutamaan lembut untuk mengelak, bukan larangan mutlak (disahkan:
     // elak lebuh raya KLCC-KLIA = 74 km/123 min tanpa tol, dan masih mungkin ada segmen lebuh raya).
-    if (query.avoidTolls || query.avoidHighways)
+    // Motosikal: `use_trails: 0` secara eksplisit supaya tidak melalui denai/trek; larangan motor di
+    // lebuh raya mengikut tag OSM yang dihormati costing `motorcycle`.
+    if (query.avoidTolls ||
+        query.avoidHighways ||
+        query.vehicle == RouteVehicle.motorcycle)
       'costing_options': {
         query.vehicle.costing: {
           if (query.avoidTolls) 'use_tolls': 0,
           if (query.avoidHighways) 'use_highways': 0,
+          if (query.vehicle == RouteVehicle.motorcycle) 'use_trails': 0,
         },
       },
     'alternates': query.alternates,

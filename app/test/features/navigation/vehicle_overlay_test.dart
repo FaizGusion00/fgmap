@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:fgmap/features/navigation/presentation/car/car_mesh.dart';
 import 'package:fgmap/features/navigation/presentation/car/car_renderer.dart';
 import 'package:fgmap/features/navigation/presentation/car/vehicle_overlay.dart';
 import 'package:flutter/foundation.dart';
@@ -72,6 +73,13 @@ void main() {
         isFalse,
       );
     });
+  });
+
+  test('motosikal lebih kecil daripada kereta pada paparan yang sama', () {
+    final car = VehicleOverlay.lengthFor(844);
+    final moto = VehicleOverlay.lengthFor(844, kind: VehicleKind.motorcycle);
+    expect(moto, lessThan(car));
+    expect(moto, greaterThan(car * 0.5));
   });
 
   test('panjang kereta mengikut tinggi paparan dan dihad', () {

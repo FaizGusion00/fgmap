@@ -16,6 +16,8 @@ class CarPalette {
     required this.bodyTop,
     this.glass = const Color(0xFF14233A),
     this.tire = const Color(0xFF151922),
+    this.rider = const Color(0xFF51617A),
+    this.metal = const Color(0xFF4B5361),
     this.headlight = const Color(0xFFFFF4C9),
     this.taillight = const Color(0xFFFF4D5E),
     this.halo,
@@ -39,6 +41,8 @@ class CarPalette {
   final Color bodyTop;
   final Color glass;
   final Color tire;
+  final Color rider;
+  final Color metal;
   final Color headlight;
   final Color taillight;
 
@@ -50,6 +54,8 @@ class CarPalette {
     bodyTop: bodyTop,
     glass: glass,
     tire: tire,
+    rider: rider,
+    metal: metal,
     headlight: headlight,
     taillight: taillight,
   );
@@ -59,6 +65,8 @@ class CarPalette {
     CarMaterial.bodyTop => bodyTop,
     CarMaterial.glass => glass,
     CarMaterial.tire => tire,
+    CarMaterial.rider => rider,
+    CarMaterial.metal => metal,
     CarMaterial.headlight => headlight,
     CarMaterial.taillight => taillight,
   };
@@ -70,13 +78,24 @@ class CarPalette {
       other.bodyTop == bodyTop &&
       other.glass == glass &&
       other.tire == tire &&
+      other.rider == rider &&
+      other.metal == metal &&
       other.headlight == headlight &&
       other.taillight == taillight &&
       other.halo == halo;
 
   @override
-  int get hashCode =>
-      Object.hash(body, bodyTop, glass, tire, headlight, taillight, halo);
+  int get hashCode => Object.hashAll([
+    body,
+    bodyTop,
+    glass,
+    tire,
+    rider,
+    metal,
+    headlight,
+    taillight,
+    halo,
+  ]);
 }
 
 /// Melukis [CarMesh] sebagai kereta 3D sebenar pada kanvas 2D, diputar dan dicondongkan mengikut
@@ -123,7 +142,7 @@ class CarRenderer {
     double brake = 0,
     bool shadow = true,
   }) {
-    final ppm = lengthPx / CarMesh.length;
+    final ppm = lengthPx / mesh.lengthM;
     final yaw = yawDeg * math.pi / 180;
     final tilt = tiltDeg.clamp(0.0, 75.0) * math.pi / 180;
     final cy = math.cos(yaw), sy = math.sin(yaw);
@@ -310,16 +329,14 @@ class CarRenderer {
     double brake,
     CarPalette palette,
   ) {
-    for (final sx in const [-1.0, 1.0]) {
-      const x0 = 0.0, y0 = -2.2, z0 = 0.7;
-      final x = x0 + sx * 0.52;
+    for (final (x, y0, z0) in mesh.tailLights) {
       final xr = x * cy + y0 * sy;
       final yr = -x * sy + y0 * cy;
       final c = Offset(
         anchor.dx + xr * ppm,
         anchor.dy - (yr * ct + z0 * st) * ppm,
       );
-      final r = ppm * 0.9;
+      final r = ppm * 0.9 * (mesh.lengthM / 4.5).clamp(0.5, 1.0);
       canvas.drawCircle(
         c,
         r,

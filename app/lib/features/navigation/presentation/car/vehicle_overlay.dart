@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart' show ValueListenable, immutable;
 import 'package:flutter/material.dart';
 
+import 'car_mesh.dart';
 import 'car_renderer.dart';
 
 /// Di mana dan bagaimana kereta dilukis pada skrin semasa kamera mengikut kenderaan.
@@ -54,21 +55,34 @@ class VehicleOverlay extends StatefulWidget {
     super.key,
     required this.placement,
     required this.palette,
+    this.kind = VehicleKind.car,
   });
 
   final ValueListenable<CarPlacement?> placement;
   final CarPalette palette;
+  final VehicleKind kind;
 
   /// Panjang kereta pada skrin untuk tinggi paparan [height]: cukup besar untuk dibaca sebagai kereta,
   /// cukup kecil untuk tidak menutup jalan di hadapan, termasuk pada telefon mendatar.
-  static double lengthFor(double height) => (height * 0.088).clamp(44.0, 80.0);
+  static double lengthFor(
+    double height, {
+    VehicleKind kind = VehicleKind.car,
+  }) => (height * 0.088).clamp(44.0, 80.0) * kind.screenScale;
 
   @override
   State<VehicleOverlay> createState() => _VehicleOverlayState();
 }
 
 class _VehicleOverlayState extends State<VehicleOverlay> {
-  final CarRenderer _renderer = CarRenderer();
+  late CarRenderer _renderer = CarRenderer(widget.kind.mesh);
+
+  @override
+  void didUpdateWidget(VehicleOverlay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.kind != widget.kind) {
+      _renderer = CarRenderer(widget.kind.mesh);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -82,6 +96,7 @@ class _VehicleOverlayState extends State<VehicleOverlay> {
               placement: widget.placement,
               palette: widget.palette,
               renderer: _renderer,
+              kind: widget.kind,
             ),
           ),
         ),
@@ -95,18 +110,20 @@ class _OverlayPainter extends CustomPainter {
     required this.placement,
     required this.palette,
     required this.renderer,
+    required this.kind,
   }) : super(repaint: placement);
 
   final ValueListenable<CarPlacement?> placement;
   final CarPalette palette;
   final CarRenderer renderer;
+  final VehicleKind kind;
 
   @override
   void paint(Canvas canvas, Size size) {
     final p = placement.value;
     if (p == null || p.opacity <= 0.01) return;
     final anchor = Offset(size.width * p.anchorX, size.height * p.anchorY);
-    final length = VehicleOverlay.lengthFor(size.height);
+    final length = VehicleOverlay.lengthFor(size.height, kind: kind);
     final faded = p.opacity < 0.99;
     if (faded) {
       canvas.saveLayer(
@@ -128,5 +145,5 @@ class _OverlayPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_OverlayPainter old) =>
-      old.palette != palette || old.placement != placement;
+      old.palette != palette || old.placement != placement || old.kind != kind;
 }

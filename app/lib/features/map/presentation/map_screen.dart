@@ -16,6 +16,8 @@ import '../../../core/theme/motion.dart';
 import '../../../core/theme/theme_controller.dart';
 import '../../../core/utils/geo.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../route_preview/data/route_planner.dart' show routeVehicleProvider;
+import '../../route_preview/domain/route_option.dart' show RouteVehicle;
 import '../../route_preview/domain/route_options_merge.dart';
 import '../../route_preview/presentation/route_preview_controller.dart';
 import '../../route_preview/presentation/route_summary_sheet.dart';
@@ -32,6 +34,7 @@ import '../../navigation/domain/nav_route.dart';
 import '../../navigation/presentation/navigation_controller.dart';
 import '../../navigation/presentation/navigation_frame_driver.dart';
 import '../../navigation/presentation/navigation_hud.dart';
+import '../../navigation/presentation/car/car_mesh.dart' show VehicleKind;
 import '../../navigation/presentation/car/car_renderer.dart';
 import '../../navigation/presentation/car/vehicle_overlay.dart';
 import '../../navigation/presentation/navigation_settings_sheet.dart';
@@ -667,6 +670,13 @@ class _MapScreenState extends ConsumerState<MapScreen>
     final nav = ref.watch(navigationControllerProvider);
     final navSettings = ref.watch(navigationSettingsProvider);
     final navigating = nav.isActive;
+    // Kenderaan yang dipilih (kereta/motosikal): sama dengan yang digunakan untuk mengira laluan.
+    final vehicle = navigating
+        ? (nav.query?.vehicle ?? ref.watch(routeVehicleProvider))
+        : ref.watch(routeVehicleProvider);
+    final vehicleKind = vehicle == RouteVehicle.motorcycle
+        ? VehicleKind.motorcycle
+        : VehicleKind.car;
     final mapIsDark = switch (themeSettings.mode) {
       ThemeMode.light => false,
       ThemeMode.dark => true,
@@ -725,6 +735,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
       showUserLocation: access == LocationAccess.granted && !navigating,
       userLocation: _tracker.location,
       showCompass: !navigating,
+      vehicleKind: vehicleKind,
       colors: MapOverlayColors(
         mainRoute: fg.routeMain,
         routeCasing: fg.routeCasing,
@@ -749,6 +760,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
               child: VehicleOverlay(
                 placement: _driver!.car,
                 palette: CarPalette.fromPrimary(theme.colorScheme.primary),
+                kind: vehicleKind,
               ),
             ),
           if (!navigating)
@@ -922,6 +934,9 @@ class _MapScreenState extends ConsumerState<MapScreen>
             now: ref.read(navClockProvider)(),
             simulated: nav.simulated,
             floating: landscape,
+            vehicleIcon: nav.query?.vehicle == RouteVehicle.motorcycle
+                ? Icons.two_wheeler_rounded
+                : Icons.directions_car_rounded,
             onEnd: _confirmEnd,
           );
 

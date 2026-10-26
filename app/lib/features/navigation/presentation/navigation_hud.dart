@@ -390,7 +390,11 @@ class NavBottomPanel extends StatelessWidget {
     required this.onEnd,
     this.simulated = false,
     this.floating = false,
+    this.vehicleIcon,
   });
+
+  /// Ikon jenis kenderaan (kereta/motosikal) di sebelah masa baki; null = tiada.
+  final IconData? vehicleIcon;
 
   final NavProgress progress;
   final DateTime now;
@@ -435,6 +439,16 @@ class NavBottomPanel extends StatelessWidget {
             ),
             child: Row(
               children: [
+                if (vehicleIcon != null) ...[
+                  ExcludeSemantics(
+                    child: Icon(
+                      vehicleIcon,
+                      size: 22,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                ],
                 Expanded(
                   child: Semantics(
                     container: true,
