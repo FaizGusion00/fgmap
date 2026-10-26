@@ -101,13 +101,48 @@ void main() {
       expect(out.point, const GeoPoint(3, 101));
     });
 
+    test('fix GPS cache ditolak sehingga fix segar tiba', () {
+      final f = FixFilter();
+      expect(
+        f.accept(fix(3, 101, 0), now: t0.add(const Duration(seconds: 11))),
+        isNull,
+      );
+      final fresh = f.accept(
+        fix(3, 101, 12),
+        now: t0.add(const Duration(seconds: 12)),
+      );
+      expect(fresh, isNotNull);
+      expect(fresh!.point, const GeoPoint(3, 101));
+    });
+
+    test('fix awal yang lemah atau tiada ukuran ketepatan tidak digunakan', () {
+      final filter = FixFilter();
+      expect(filter.accept(fix(3, 101, 0, acc: 200), now: t0), isNull);
+      expect(
+        filter.accept(
+          LocationFix(point: const GeoPoint(3, 101), timestamp: t0),
+          now: t0,
+        ),
+        isNull,
+      );
+      final accurate = filter.accept(
+        fix(3, 101, 1),
+        now: t0.add(const Duration(seconds: 1)),
+      );
+      expect(accurate, isNotNull);
+      expect(accurate!.degraded, isFalse);
+    });
+
     test(
       'menolak ketepatan rendah, tetapi menerimanya jika sudah lama tiada fix baik',
       () {
         final f = FixFilter();
         f.accept(fix(3, 101, 0), now: t0);
         expect(f.accept(fix(3, 101, 2, acc: 200), now: t0), isNull);
-        final late = f.accept(fix(3, 101, 12, acc: 200), now: t0);
+        final late = f.accept(
+          fix(3, 101, 12, acc: 200),
+          now: t0.add(const Duration(seconds: 12)),
+        );
         expect(late, isNotNull);
         expect(late!.degraded, isTrue);
       },
@@ -115,9 +150,15 @@ void main() {
 
     test('menolak fix berulang / tidak tertib', () {
       final f = FixFilter();
-      f.accept(fix(3, 101, 5), now: t0);
-      expect(f.accept(fix(3, 101, 5), now: t0), isNull);
-      expect(f.accept(fix(3, 101, 4), now: t0), isNull);
+      f.accept(fix(3, 101, 5), now: t0.add(const Duration(seconds: 5)));
+      expect(
+        f.accept(fix(3, 101, 5), now: t0.add(const Duration(seconds: 5))),
+        isNull,
+      );
+      expect(
+        f.accept(fix(3, 101, 4), now: t0.add(const Duration(seconds: 4))),
+        isNull,
+      );
     });
 
     test(
@@ -125,9 +166,18 @@ void main() {
       () {
         final f = FixFilter();
         f.accept(fix(3, 101, 0), now: t0);
-        expect(f.accept(fix(3.5, 101, 1), now: t0), isNull);
-        expect(f.accept(fix(3.5, 101, 2), now: t0), isNull);
-        final third = f.accept(fix(3.5, 101, 3), now: t0);
+        expect(
+          f.accept(fix(3.5, 101, 1), now: t0.add(const Duration(seconds: 1))),
+          isNull,
+        );
+        expect(
+          f.accept(fix(3.5, 101, 2), now: t0.add(const Duration(seconds: 2))),
+          isNull,
+        );
+        final third = f.accept(
+          fix(3.5, 101, 3),
+          now: t0.add(const Duration(seconds: 3)),
+        );
         expect(third, isNotNull);
         expect(third!.point.lat, closeTo(3.5, 0.001));
       },
@@ -156,7 +206,7 @@ void main() {
         for (var i = 0; i < noise.length; i++) {
           final out = f.accept(
             fix(3 + noise[i] / mPerDegLat, 101, i, acc: 8, speed: 0),
-            now: t0,
+            now: t0.add(Duration(seconds: i)),
           )!;
           outputs.add((out.point.lat - 3) * mPerDegLat);
         }
@@ -175,7 +225,7 @@ void main() {
         for (var i = 0; i < 10; i++) {
           last = f.accept(
             fix(3 + i * 25 / mPerDegLat, 101, i, acc: 5, speed: 25, heading: 0),
-            now: t0,
+            now: t0.add(Duration(seconds: i)),
           );
         }
         const truthLat = 3 + 9 * 25 / mPerDegLat;
@@ -191,7 +241,7 @@ void main() {
       for (var i = 0; i < 6; i++) {
         last = f.accept(
           fix(3, 101 + i * 15 / mPerDegLng, i, speed: 15),
-          now: t0,
+          now: t0.add(Duration(seconds: i)),
         );
       }
       expect(last!.headingDegrees, isNotNull);

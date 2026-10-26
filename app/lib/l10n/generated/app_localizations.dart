@@ -116,6 +116,18 @@ abstract class AppLocalizations {
   /// **'Lokasi saya'**
   String get myLocation;
 
+  /// No description provided for @locationFixUnavailable.
+  ///
+  /// In ms, this message translates to:
+  /// **'GPS belum dapat lokasi yang cukup tepat. Pergi ke kawasan terbuka dan cuba lagi.'**
+  String get locationFixUnavailable;
+
+  /// No description provided for @locationAccuracy.
+  ///
+  /// In ms, this message translates to:
+  /// **'Anggaran ketepatan lokasi ±{meters} m'**
+  String locationAccuracy(int meters);
+
   /// No description provided for @mapAttribution.
   ///
   /// In ms, this message translates to:
@@ -398,6 +410,12 @@ abstract class AppLocalizations {
   /// **'Muat turun'**
   String get offlineMapsDownload;
 
+  /// No description provided for @offlineMapsRetry.
+  ///
+  /// In ms, this message translates to:
+  /// **'Cuba lagi'**
+  String get offlineMapsRetry;
+
   /// No description provided for @offlineMapsUpdate.
   ///
   /// In ms, this message translates to:
@@ -467,7 +485,7 @@ abstract class AppLocalizations {
   /// No description provided for @offlineMapsErrorNetwork.
   ///
   /// In ms, this message translates to:
-  /// **'Muat turun terputus. Semak internet dan cuba lagi; ia akan disambung.'**
+  /// **'Tidak dapat menyambung ke pelayan peta offline. Semak internet dan cuba lagi.'**
   String get offlineMapsErrorNetwork;
 
   /// No description provided for @offlineMapsErrorStorage.

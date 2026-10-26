@@ -14,13 +14,17 @@ abstract final class AppConfig {
 
   /// Carian tempat (Photon). Pelayan awam komoot: percuma dan tanpa kunci, tetapi tertakluk kepada
   /// penggunaan wajar dan tiada SLA. Nominatim awam sengaja TIDAK digunakan: ia melarang autocomplete.
-  static const photonUrl = String.fromEnvironment('PHOTON_URL', defaultValue: 'https://photon.komoot.io/api/');
+  static const photonUrl = String.fromEnvironment(
+    'PHOTON_URL',
+    defaultValue: 'https://photon.komoot.io/api/',
+  );
 
-  /// URL `manifest.json` pek peta offline (lihat tools/tiles). Sengaja TIADA lalai: manifest
-  /// menentukan fail yang dipetakan oleh enjin natif, jadi hos mesti dipilih secara sedar (hos sendiri
-  /// pada GitHub Releases atau Cloudflare R2). Kosong = ciri muat turun peta offline dimatikan.
+  /// URL manifest peta offline yang diterbitkan oleh workflow tiles. Boleh ditukar untuk pelayan
+  /// pembangunan setempat atau hos sendiri dengan `--dart-define=OFFLINE_MANIFEST_URL=...`.
   static const offlineManifestUrl = String.fromEnvironment(
     'OFFLINE_MANIFEST_URL',
+    defaultValue:
+        'https://github.com/FaizGusion00/fgmap/releases/download/tiles/manifest.json',
   );
 
   /// Pengenalan app kepada server awam. Tukar `+contact` kepada URL/e-mel sebenar sebelum lancar.

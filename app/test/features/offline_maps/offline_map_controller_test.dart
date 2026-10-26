@@ -96,6 +96,26 @@ void main() {
     },
   );
 
+  test(
+    'manifest gagal dicapai: ralat dipaparkan dan boleh dicuba semula',
+    () async {
+      server.manifestStatus = 404;
+      final c = container();
+      final s = await settled(c);
+
+      expect(s.latest, isNull);
+      expect(s.error, OfflineMapFailure.network);
+      expect(s.canDownload, isFalse);
+
+      server.manifestStatus = null;
+      await c.read(offlineMapControllerProvider.notifier).refresh();
+      final recovered = c.read(offlineMapControllerProvider);
+      expect(recovered.error, isNull);
+      expect(recovered.latest, isNotNull);
+      expect(recovered.canDownload, isTrue);
+    },
+  );
+
   test('muat turun penuh: kemajuan menaik dan berakhir terpasang', () async {
     final c = container();
     await settled(c);

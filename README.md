@@ -48,6 +48,13 @@ Port hos: API `8080`, Valhalla `8002`, PostGIS `5434` (5432 dan 5433 sering digu
 | `API_BASE_URL` | `http://10.0.2.2:8080` (Android), `http://localhost:8080` (iOS) |
 | `MAP_STYLE_LIGHT` | `https://tiles.openfreemap.org/styles/positron` |
 | `MAP_STYLE_DARK` | `https://tiles.openfreemap.org/styles/dark` |
+| `OFFLINE_MANIFEST_URL` | `https://github.com/FaizGusion00/fgmap/releases/download/tiles/manifest.json` |
+
+Muat turun peta offline tersedia dalam binaan biasa selepas workflow `tiles` menerbitkan Release `tiles`
+yang pertama. Workflow berjalan apabila konfigurasi tile berubah, setiap minggu, atau secara manual melalui
+**Actions → tiles → Run workflow**. Repo mestilah awam supaya app boleh mengambil pek tanpa log masuk.
+Untuk emulator Android setempat, `make run-android` menyajikan pek `tools/tiles/out` secara automatik;
+jalankan `make tiles` dahulu jika pek belum dibina.
 
 HTTP biasa dibenarkan hanya dalam build debug/profile Android (`src/debug` dan `src/profile`); release hanya HTTPS.
 

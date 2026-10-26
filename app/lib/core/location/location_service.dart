@@ -1,5 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart'
-    show TargetPlatform, defaultTargetPlatform, visibleForTesting;
+    show TargetPlatform, debugPrint, defaultTargetPlatform, visibleForTesting;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -47,7 +49,10 @@ abstract interface class LocationService {
 
   /// Kedudukan semasa, atau null jika kebenaran tiada / GPS tidak memberi fix dalam [timeout].
   /// Tidak pernah memaparkan dialog kebenaran.
-  Future<LocationFix?> currentFix({Duration timeout});
+  Future<LocationFix?> currentFix({
+    Duration timeout = const Duration(seconds: 8),
+    double maxAccuracyMeters = 20,
+  });
 
   /// Aliran fix berketepatan tinggi untuk navigasi (sampel kerap, terus berjalan di latar belakang).
   /// Tidak pernah memaparkan dialog kebenaran. Aliran tamat dengan ralat jika kebenaran ditarik balik.
@@ -62,6 +67,7 @@ class GeolocatorLocationService implements LocationService {
 
   /// Di bawah kelajuan ini, nilai heading peranti tidak boleh dipercayai.
   static const _minSpeedForHeadingMps = 1.0;
+  static const defaultMaxAccuracyMeters = 20.0;
 
   @override
   Future<LocationAccess> access() async {
@@ -81,33 +87,104 @@ class GeolocatorLocationService implements LocationService {
 
   @override
   Future<LocationFix?> currentFix({
-    Duration timeout = const Duration(seconds: 4),
+    Duration timeout = const Duration(seconds: 8),
+    double maxAccuracyMeters = defaultMaxAccuracyMeters,
   }) async {
     if (await access() != LocationAccess.granted) return null;
+    final current = await _awaitAccurateFix(
+      timeout: timeout,
+      maxAccuracyMeters: maxAccuracyMeters,
+    );
+    if (current != null) return current;
+
+    // Fix cache berguna hanya jika masih baharu dan cukup tepat untuk tujuan ini.
+    final last = await Geolocator.getLastKnownPosition();
+    if (last == null) return null;
+    final now = DateTime.now();
+    final fallback = _toFix(last);
+    return isUsableFix(fallback, now, maxAccuracyMeters: maxAccuracyMeters)
+        ? fallback
+        : null;
+  }
+
+  Future<LocationFix?> _awaitAccurateFix({
+    required Duration timeout,
+    required double maxAccuracyMeters,
+  }) async {
+    final result = Completer<LocationFix?>();
+    StreamSubscription<Position>? subscription;
+    final timer = Timer(timeout, () {
+      if (!result.isCompleted) result.complete(null);
+    });
+
     try {
-      final position = await Geolocator.getCurrentPosition(
-        locationSettings: LocationSettings(
-          accuracy: LocationAccuracy.high,
-          timeLimit: timeout,
-        ),
-      );
-      return _toFix(position);
-    } on Object {
-      // Tamat masa atau ralat platform: cuba kedudukan terakhir yang diketahui, tetapi HANYA jika segar.
-      // Lokasi lapuk (cth. dari sesi lama atau peranti yang baru dihidupkan) bukan titik mula laluan yang
-      // betul; lebih baik jatuh balik kepada pusat peta dan memberitahu pengguna.
-      final last = await Geolocator.getLastKnownPosition();
-      if (last == null || !isFresh(last.timestamp, DateTime.now())) return null;
-      return _toFix(last);
+      subscription =
+          Geolocator.getPositionStream(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.bestForNavigation,
+              distanceFilter: 0,
+            ),
+          ).listen(
+            (position) {
+              final fix = _toFix(position);
+              if (isUsableFix(
+                    fix,
+                    DateTime.now(),
+                    maxAccuracyMeters: maxAccuracyMeters,
+                  ) &&
+                  !result.isCompleted) {
+                result.complete(fix);
+              }
+            },
+            onError: (Object error) {
+              debugPrint('GPS acquisition failed: $error');
+              if (!result.isCompleted) result.complete(null);
+            },
+          );
+    } on Object catch (error) {
+      debugPrint('GPS acquisition failed: $error');
+      if (!result.isCompleted) result.complete(null);
+    }
+
+    try {
+      return await result.future;
+    } finally {
+      timer.cancel();
+      await subscription?.cancel();
     }
   }
 
-  /// Umur maksimum fix "terakhir diketahui" yang masih boleh dipercayai sebagai lokasi semasa.
-  static const maxLastKnownAge = Duration(minutes: 2);
+  /// Umur maksimum fix yang masih boleh dipercayai sebagai lokasi semasa.
+  static const maxLastKnownAge = Duration(seconds: 10);
 
   @visibleForTesting
-  static bool isFresh(DateTime timestamp, DateTime now) =>
-      now.difference(timestamp) <= maxLastKnownAge;
+  static bool isFresh(DateTime timestamp, DateTime now) {
+    final age = now.difference(timestamp);
+    return !age.isNegative && age <= maxLastKnownAge;
+  }
+
+  @visibleForTesting
+  static bool isUsableFix(
+    LocationFix fix,
+    DateTime now, {
+    double maxAccuracyMeters = defaultMaxAccuracyMeters,
+  }) {
+    final point = fix.point;
+    final accuracy = fix.accuracyMeters;
+    final time = fix.timestamp;
+    return point.lat.isFinite &&
+        point.lng.isFinite &&
+        point.lat >= -90 &&
+        point.lat <= 90 &&
+        point.lng >= -180 &&
+        point.lng <= 180 &&
+        accuracy != null &&
+        accuracy.isFinite &&
+        accuracy >= 0 &&
+        accuracy <= maxAccuracyMeters &&
+        time != null &&
+        isFresh(time, now);
+  }
 
   @override
   Stream<LocationFix> navigationFixes() {

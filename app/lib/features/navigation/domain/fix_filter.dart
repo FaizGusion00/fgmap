@@ -35,9 +35,10 @@ class FilteredFix {
 ///  - kelajuan dan arah gerakan diperoleh daripada peranti atau perpindahan.
 class FixFilter {
   FixFilter({
-    this.maxAccuracyM = 60,
+    this.maxAccuracyM = 35,
     this.maxSpeedMps = 85,
     this.maxStaleness = const Duration(seconds: 8),
+    this.maxFixAge = const Duration(seconds: 10),
   });
 
   /// Fix yang lebih tidak tepat daripada ini ditolak...
@@ -48,6 +49,9 @@ class FixFilter {
 
   /// ...kecuali tiada fix baik diterima selama ini; ketika itu fix lemah lebih baik daripada tiada.
   final Duration maxStaleness;
+
+  /// Fix tersimpan yang dihantar semula apabila aliran GPS bermula bukan lokasi semasa.
+  final Duration maxFixAge;
 
   GeoPoint? _origin;
   double _x = 0, _y = 0; // meter ke timur / utara dari _origin
@@ -61,13 +65,21 @@ class FixFilter {
   /// Memulangkan fix tertapis, atau null jika [raw] ditolak.
   FilteredFix? accept(LocationFix raw, {required DateTime now}) {
     final time = raw.timestamp ?? now;
+    final age = now.difference(time);
+    if (age.isNegative || age > maxFixAge) return null;
     final last = _lastTime;
     if (last != null && !time.isAfter(last)) return null;
 
-    final accuracy = (raw.accuracyMeters ?? 10).clamp(1.0, 500.0);
+    final reportedAccuracy = raw.accuracyMeters;
+    if (reportedAccuracy == null ||
+        !reportedAccuracy.isFinite ||
+        reportedAccuracy < 0) {
+      return null;
+    }
+    final accuracy = reportedAccuracy.clamp(1.0, 500.0);
     var degraded = false;
     if (accuracy > maxAccuracyM) {
-      final stale = last == null || time.difference(last) > maxStaleness;
+      final stale = last != null && time.difference(last) > maxStaleness;
       if (!stale) return null;
       degraded = true;
     }

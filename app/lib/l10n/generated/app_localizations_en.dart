@@ -18,6 +18,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myLocation => 'My location';
 
   @override
+  String get locationFixUnavailable =>
+      'GPS hasn\'t found an accurate location yet. Move to an open area and try again.';
+
+  @override
+  String locationAccuracy(int meters) {
+    return 'Estimated location accuracy ±$meters m';
+  }
+
+  @override
   String get mapAttribution => '© OpenStreetMap contributors · OpenFreeMap';
 
   @override
@@ -189,6 +198,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get offlineMapsDownload => 'Download';
 
   @override
+  String get offlineMapsRetry => 'Try again';
+
+  @override
   String get offlineMapsUpdate => 'Update';
 
   @override
@@ -228,7 +240,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get offlineMapsErrorNetwork =>
-      'Download interrupted. Check your internet and try again; it will resume.';
+      'Couldn\'t connect to the offline map server. Check your internet and try again.';
 
   @override
   String get offlineMapsErrorStorage =>

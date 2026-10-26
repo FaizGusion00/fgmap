@@ -2,11 +2,16 @@ name: tiles
 
 # Membina dan menerbitkan pek peta offline tanpa server: pekerjaan berjadual ini ialah "server" data.
 # Hasil: satu Release bertanda `tiles` (dikemas kini di tempat) dengan manifest.json + pek .tar.gz.
-# Set OFFLINE_MANIFEST_URL app kepada:
-#   https://github.com/<pemilik>/<repo>/releases/download/tiles/manifest.json
+# App menggunakan URL lalai:
+#   https://github.com/FaizGusion00/fgmap/releases/download/tiles/manifest.json
 # Repo MESTI awam supaya app boleh memuat turun tanpa pengesahan.
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/tiles.yml"
+      - "tools/tiles/VERSIONS"
   schedule:
     - cron: "0 19 * * 0" # Ahad 19:00 UTC = Isnin 03:00 MYT
   workflow_dispatch:

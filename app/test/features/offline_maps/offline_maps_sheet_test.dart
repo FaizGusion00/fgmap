@@ -36,6 +36,7 @@ class _FakeController extends OfflineMapController {
   int downloads = 0;
   int cancels = 0;
   int deletes = 0;
+  int refreshes = 0;
 
   @override
   OfflineMapState build() => initial;
@@ -53,7 +54,9 @@ class _FakeController extends OfflineMapController {
   }
 
   @override
-  Future<void> refresh({bool checkRemote = true}) async {}
+  Future<void> refresh({bool checkRemote = true}) async {
+    refreshes++;
+  }
 }
 
 void main() {
@@ -117,6 +120,20 @@ void main() {
       expect(find.text('Muat turun'), findsNothing);
     },
   );
+
+  testWidgets('manifest gagal disemak: mesej dan butang cuba lagi dipaparkan', (
+    tester,
+  ) async {
+    final fake = await pumpSheet(
+      tester,
+      const OfflineMapState(configured: true, error: OfflineMapFailure.network),
+    );
+
+    expect(find.textContaining('pelayan peta offline'), findsOneWidget);
+    await tester.tap(find.text('Cuba lagi'));
+    await tester.pumpAndSettle();
+    expect(fake.refreshes, 1);
+  });
 
   group('data mudah alih', () {
     testWidgets('mengesahkan dahulu; Batal tidak memuat turun', (tester) async {
@@ -318,7 +335,7 @@ void main() {
 
   group('ralat', () {
     final cases = {
-      OfflineMapFailure.network: 'terputus',
+      OfflineMapFailure.network: 'pelayan peta',
       OfflineMapFailure.storage: 'Ruang simpanan',
       OfflineMapFailure.checksum: 'rosak',
       OfflineMapFailure.incompatible: 'tidak serasi',

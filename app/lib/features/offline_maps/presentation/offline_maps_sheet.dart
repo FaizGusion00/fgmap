@@ -168,6 +168,11 @@ class _StatusCard extends ConsumerWidget {
                       onPressed: controller.cancel,
                       child: Text(l10n.offlineMapsCancel),
                     ),
+                  if (state.configured && latest == null && !state.busy)
+                    TextButton(
+                      onPressed: () => controller.refresh(),
+                      child: Text(l10n.offlineMapsRetry),
+                    ),
                   if (!state.busy && installed != null)
                     TextButton(
                       onPressed: () => _confirmDelete(context, ref),

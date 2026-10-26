@@ -36,7 +36,9 @@ class FakeLocationService implements LocationService {
 
   @override
   Future<LocationFix?> currentFix({
-    Duration timeout = const Duration(seconds: 4),
+    Duration timeout = const Duration(seconds: 8),
+    double maxAccuracyMeters =
+        GeolocatorLocationService.defaultMaxAccuracyMeters,
   }) async => accessValue == LocationAccess.granted ? fix : null;
 
   final StreamController<LocationFix> navigationController =

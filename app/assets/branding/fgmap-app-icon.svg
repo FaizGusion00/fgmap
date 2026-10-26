@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#173B78"/>
+      <stop offset="1" stop-color="#10244A"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#background)"/>
+
+  <g fill="none" stroke="#8EB5F4" stroke-linecap="round" stroke-linejoin="round" opacity=".14">
+    <path d="M88 230h210l74 74h170l80-80h310" stroke-width="24"/>
+    <path d="M132 868h170l82-82V650l84-84h120l70-70h290" stroke-width="22"/>
+    <path d="M150 106v132l-64 64v190l75 75v118l-58 58v126" stroke-width="20"/>
+    <path d="M873 98v154l-72 72v116l91 91v156l-70 70v168" stroke-width="22"/>
+    <path d="M424 104v126l-60 60v120l78 78" stroke-width="18"/>
+    <path d="M672 814v-92l72-72v-90" stroke-width="18"/>
+  </g>
+
+  <path
+    d="M250 790v-176h156V462h214V326q0-54 54-54h82"
+    fill="none"
+    stroke="#F7F9FC"
+    stroke-width="76"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M250 790v-176h156V462h214V326q0-54 54-54h82"
+    fill="none"
+    stroke="#19D3B8"
+    stroke-width="34"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <circle cx="250" cy="790" r="43" fill="#F7F9FC"/>
+  <circle cx="250" cy="790" r="19" fill="#2563EB"/>
+
+  <path
+    d="M756 132c-81 0-146 65-146 146 0 108 146 244 146 244s146-136 146-244c0-81-65-146-146-146Z"
+    fill="#F7F9FC"
+  />
+  <circle cx="756" cy="278" r="48" fill="#2563EB"/>
+  <rect x="306" y="884" width="412" height="112" rx="56" fill="#10244A" stroke="#F7F9FC" stroke-opacity=".18" stroke-width="4"/>
+  <text
+    x="512"
+    y="963"
+    fill="#F7F9FC"
+    font-family="Plus Jakarta Sans, Arial, sans-serif"
+    font-size="72"
+    font-weight="700"
+    letter-spacing="1"
+    text-anchor="middle"
+  >FGMaps</text>
+</svg>

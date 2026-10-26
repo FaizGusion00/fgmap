@@ -1,4 +1,5 @@
 import 'package:fgmap/core/location/location_service.dart';
+import 'package:fgmap/core/utils/geo.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -25,10 +26,20 @@ void main() {
       );
     });
 
+    test('fix lebih lama daripada had sepuluh saat ditolak', () {
+      expect(
+        GeolocatorLocationService.isFresh(
+          now.subtract(const Duration(seconds: 11)),
+          now,
+        ),
+        isFalse,
+      );
+    });
+
     test('fix lapuk ditolak (bukan titik mula laluan yang betul)', () {
       expect(
         GeolocatorLocationService.isFresh(
-          now.subtract(const Duration(minutes: 3)),
+          now.subtract(const Duration(seconds: 31)),
           now,
         ),
         isFalse,
@@ -36,6 +47,59 @@ void main() {
       expect(
         GeolocatorLocationService.isFresh(
           now.subtract(const Duration(days: 30)),
+          now,
+        ),
+        isFalse,
+      );
+    });
+
+    test('cap masa masa depan ditolak', () {
+      expect(
+        GeolocatorLocationService.isFresh(
+          now.add(const Duration(seconds: 1)),
+          now,
+        ),
+        isFalse,
+      );
+    });
+  });
+
+  group('GeolocatorLocationService.isUsableFix', () {
+    LocationFix fix({
+      GeoPoint point = const GeoPoint(3, 101),
+      double? accuracyMeters = 8,
+      DateTime? timestamp,
+    }) => LocationFix(
+      point: point,
+      accuracyMeters: accuracyMeters,
+      timestamp: timestamp ?? now.subtract(const Duration(seconds: 1)),
+    );
+
+    test('menerima fix semasa dalam had ketepatan', () {
+      expect(GeolocatorLocationService.isUsableFix(fix(), now), isTrue);
+    });
+
+    test('menolak fix yang terlalu samar untuk titik mula laluan', () {
+      expect(
+        GeolocatorLocationService.isUsableFix(fix(accuracyMeters: 31), now),
+        isFalse,
+      );
+    });
+
+    test('menolak fix tanpa ketepatan atau cap masa', () {
+      expect(
+        GeolocatorLocationService.isUsableFix(
+          const LocationFix(point: GeoPoint(3, 101)),
+          now,
+        ),
+        isFalse,
+      );
+    });
+
+    test('menolak koordinat di luar julat', () {
+      expect(
+        GeolocatorLocationService.isUsableFix(
+          fix(point: const GeoPoint(91, 101)),
           now,
         ),
         isFalse,

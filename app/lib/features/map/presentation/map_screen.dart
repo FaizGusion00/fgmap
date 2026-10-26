@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -42,6 +43,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
   final Completer<MapCameraController> _camera = Completer();
   bool _hintDismissed = false;
   bool _startupLocationHandled = false;
+  bool _locating = false;
 
   @override
   void initState() {
@@ -68,33 +70,57 @@ class _MapScreenState extends ConsumerState<MapScreen>
     }
   }
 
-  /// Pada pelancaran: jika kebenaran sudah ada, terus ke lokasi pengguna; jika boleh diminta,
-  /// jelaskan dahulu kemudian minta. Ditolak kekal / GPS mati tidak mengganggu pelancaran.
+  /// Pada pelancaran, hanya gunakan lokasi jika kebenaran sudah diberi. Minta kebenaran apabila
+  /// pengguna sendiri memilih tindakan yang memerlukan lokasi.
   Future<void> _handleStartupLocation() async {
     if (_startupLocationHandled || !mounted) return;
     _startupLocationHandled = true;
 
-    var access = await ref.read(locationServiceProvider).access();
-    if (access == LocationAccess.askable && mounted) {
-      access = await ensureLocationAccess(context, ref);
-    } else {
-      await ref.read(locationAccessProvider.notifier).refresh();
-    }
+    final access = await ref.read(locationServiceProvider).access();
+    await ref.read(locationAccessProvider.notifier).refresh();
     if (access == LocationAccess.granted) await _flyToUser();
   }
 
-  Future<void> _flyToUser() async {
+  Future<void> _flyToUser({bool showFailure = false}) async {
     final fix = await ref
         .read(locationServiceProvider)
-        .currentFix(timeout: const Duration(seconds: 6));
-    if (fix == null || !mounted) return;
+        .currentFix(timeout: const Duration(seconds: 12));
+    if (!mounted) return;
+    if (fix == null) {
+      if (showFailure) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context).locationFixUnavailable),
+          ),
+        );
+      }
+      return;
+    }
     final camera = await _camera.future;
     await camera.flyTo(fix.point, zoom: 15);
+    final accuracy = fix.accuracyMeters;
+    if (showFailure && mounted && accuracy != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context).locationAccuracy(accuracy.round()),
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   Future<void> _onMyLocationPressed() async {
+    if (_locating) return;
     final access = await ensureLocationAccess(context, ref);
-    if (access == LocationAccess.granted) await _flyToUser();
+    if (!mounted || access != LocationAccess.granted) return;
+    setState(() => _locating = true);
+    try {
+      await _flyToUser(showFailure: true);
+    } finally {
+      if (mounted) setState(() => _locating = false);
+    }
   }
 
   void _onLongPress(GeoPoint point) {
@@ -424,6 +450,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
                           icon: Icons.my_location_rounded,
                           tooltip: l10n.myLocation,
                           onPressed: _onMyLocationPressed,
+                          loading: _locating,
                         ),
                       ],
                     ),
@@ -584,11 +611,13 @@ class _GlassIconButton extends StatelessWidget {
     required this.icon,
     required this.tooltip,
     required this.onPressed,
+    this.loading = false,
   });
 
   final IconData icon;
   final String tooltip;
   final VoidCallback onPressed;
+  final bool loading;
 
   @override
   Widget build(BuildContext context) {
@@ -597,10 +626,16 @@ class _GlassIconButton extends StatelessWidget {
       color: fg.glassSurface,
       shape: CircleBorder(side: BorderSide(color: fg.glassBorder)),
       elevation: 2,
+      shadowColor: Colors.black.withValues(alpha: 0.16),
       child: IconButton(
         tooltip: tooltip,
-        onPressed: onPressed,
-        icon: Icon(icon),
+        onPressed: loading ? null : onPressed,
+        icon: loading
+            ? const SizedBox.square(
+                dimension: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Icon(icon),
         color: Theme.of(context).colorScheme.onSurface,
       ),
     );
@@ -623,52 +658,86 @@ class _SearchPill extends StatelessWidget {
     return Semantics(
       button: true,
       label: label,
+      hint: hint,
       child: Material(
-        color: fg.glassSurface,
-        elevation: 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-          side: BorderSide(color: fg.glassBorder),
-        ),
-        child: InkWell(
-          key: const ValueKey('search-pill'),
-          customBorder: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-          ),
-          onTap: onTap,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 48),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.search_rounded,
-                    color: theme.colorScheme.onSurface,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(22),
+        elevation: 3,
+        shadowColor: Colors.black.withValues(alpha: 0.16),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(22),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Material(
+              color: fg.glassSurface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(22),
+                side: BorderSide(color: fg.glassBorder),
+              ),
+              child: InkWell(
+                key: const ValueKey('search-pill'),
+                customBorder: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(22),
+                ),
+                onTap: onTap,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 56),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    child: Row(
                       children: [
-                        Text(
-                          label,
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            color: theme.colorScheme.onSurface,
+                        DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary.withValues(
+                              alpha: 0.12,
+                            ),
+                            borderRadius: BorderRadius.circular(14),
                           ),
-                        ),
-                        if (hint != null)
-                          Text(
-                            hint!,
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
+                          child: SizedBox(
+                            width: 40,
+                            height: 40,
+                            child: Icon(
+                              Icons.search_rounded,
+                              color: theme.colorScheme.primary,
                             ),
                           ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                label,
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  color: theme.colorScheme.onSurface,
+                                ),
+                              ),
+                              if (hint != null)
+                                Text(
+                                  hint!,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        Icon(
+                          Icons.arrow_forward_rounded,
+                          size: 20,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ],
                     ),
                   ),
-                ],
+                ),
               ),
             ),
           ),

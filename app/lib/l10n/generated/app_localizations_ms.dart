@@ -18,6 +18,15 @@ class AppLocalizationsMs extends AppLocalizations {
   String get myLocation => 'Lokasi saya';
 
   @override
+  String get locationFixUnavailable =>
+      'GPS belum dapat lokasi yang cukup tepat. Pergi ke kawasan terbuka dan cuba lagi.';
+
+  @override
+  String locationAccuracy(int meters) {
+    return 'Anggaran ketepatan lokasi ±$meters m';
+  }
+
+  @override
   String get mapAttribution => '© penyumbang OpenStreetMap · OpenFreeMap';
 
   @override
@@ -189,6 +198,9 @@ class AppLocalizationsMs extends AppLocalizations {
   String get offlineMapsDownload => 'Muat turun';
 
   @override
+  String get offlineMapsRetry => 'Cuba lagi';
+
+  @override
   String get offlineMapsUpdate => 'Kemas kini';
 
   @override
@@ -228,7 +240,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get offlineMapsErrorNetwork =>
-      'Muat turun terputus. Semak internet dan cuba lagi; ia akan disambung.';
+      'Tidak dapat menyambung ke pelayan peta offline. Semak internet dan cuba lagi.';
 
   @override
   String get offlineMapsErrorStorage =>

@@ -289,9 +289,9 @@ class NavRoute {
   /// dijarangkan supaya data yang dihantar ke peta kekal kecil pada laluan beratus kilometer.
   List<GeoPoint> remainingShape(
     double fromM, {
-    double aheadM = 15000,
+    double aheadM = double.infinity,
     double farDetailM = 2000,
-    double farStepM = 25,
+    double farStepM = 200,
   }) {
     if (points.length < 2) return points;
     final start = fromM.clamp(0.0, totalM);

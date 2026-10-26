@@ -1,5 +1,6 @@
 import 'package:fgmap/core/utils/geo.dart';
 import 'package:fgmap/features/navigation/domain/nav_route.dart';
+import 'package:fgmap/features/route_preview/domain/route_option.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'nav_test_support.dart';
@@ -137,6 +138,31 @@ void main() {
       final limited = route.remainingShape(0, aheadM: 600);
       expect(distanceMeters(limited.last, route.pointAt(600)), lessThan(0.5));
     });
+
+    test(
+      'remainingShape laluan jauh meliputi destinasi dan menjarangkan titik jauh',
+      () {
+        const origin = GeoPoint(3, 101);
+        final points = [
+          for (var distance = 0.0; distance <= 100000; distance += 100)
+            destinationPoint(origin, 90, distance),
+        ];
+        final longRoute = NavRoute(
+          RouteOption(
+            distanceM: 100000,
+            durationS: 7200,
+            hasTolls: false,
+            points: points,
+          ),
+        );
+
+        final shape = longRoute.remainingShape(0);
+
+        expect(shape.first, points.first);
+        expect(shape.last, points.last);
+        expect(shape.length, lessThan(points.length));
+      },
+    );
 
     test('laluan sebenar KLCC-KLIA: 31 manuver, jarak sepadan ringkasan', () {
       final real = loadFixtureNavRoute();

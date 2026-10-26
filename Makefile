@@ -25,4 +25,19 @@ serve-tiles:
 
 # 10.0.2.2 ialah hos komputer dari emulator Android.
 run-android:
+	@test -s tools/tiles/out/manifest.json || { echo "Pek offline tiada. Jalankan 'make tiles' dahulu." >&2; exit 1; }
+	@set -eu; \
+	server_pid=; \
+	if ! curl -fsS http://127.0.0.1:8099/manifest.json >/dev/null; then \
+		python3 tools/tiles/serve.py tools/tiles/out 8099 & server_pid=$$!; \
+		trap 'if [ -n "$$server_pid" ]; then kill "$$server_pid" 2>/dev/null || true; fi' EXIT INT TERM; \
+		attempt=0; \
+		until curl -fsS http://127.0.0.1:8099/manifest.json >/dev/null; do \
+			attempt=$$((attempt + 1)); \
+			if [ "$$attempt" -ge 50 ] || ! kill -0 "$$server_pid" 2>/dev/null; then \
+				echo "Pelayan pek offline gagal dimulakan pada port 8099." >&2; exit 1; \
+			fi; \
+			sleep 0.1; \
+		done; \
+		fi; \
 	cd app && flutter run --dart-define=OFFLINE_MANIFEST_URL=http://10.0.2.2:8099/manifest.json

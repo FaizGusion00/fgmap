@@ -3,6 +3,15 @@
   "appName": "FGMap",
   "mapHintLongPress": "Long-press the map to choose a destination",
   "myLocation": "My location",
+  "locationFixUnavailable": "GPS hasn't found an accurate location yet. Move to an open area and try again.",
+  "locationAccuracy": "Estimated location accuracy ±{meters} m",
+  "@locationAccuracy": {
+    "placeholders": {
+      "meters": {
+        "type": "int"
+      }
+    }
+  },
   "mapAttribution": "© OpenStreetMap contributors · OpenFreeMap",
   "locationRationaleTitle": "Allow location access?",
   "locationRationaleBody": "Your location is used to show where you are on the map and as the starting point of a route. It is sent to the FGMap server only to calculate the route.",
@@ -50,6 +59,7 @@
   "offlineMapsUpdateAvailable": "Update available: {date}",
   "offlineMapsUpToDate": "Offline map is up to date",
   "offlineMapsDownload": "Download",
+  "offlineMapsRetry": "Try again",
   "offlineMapsUpdate": "Update",
   "offlineMapsDelete": "Delete",
   "offlineMapsCancel": "Cancel",
@@ -61,7 +71,7 @@
   "offlineMapsMobileDataBody": "This download is about {size}. You're not connected to Wi-Fi.",
   "offlineMapsDeleteTitle": "Delete offline map?",
   "offlineMapsDeleteBody": "You'll need to download it again to use offline routing.",
-  "offlineMapsErrorNetwork": "Download interrupted. Check your internet and try again; it will resume.",
+  "offlineMapsErrorNetwork": "Couldn't connect to the offline map server. Check your internet and try again.",
   "offlineMapsErrorStorage": "Not enough storage. Free some space and try again.",
   "offlineMapsErrorChecksum": "The downloaded file is corrupted. Try again.",
   "offlineMapsErrorIncompatible": "This offline map isn't compatible with this app version. Update the app.",

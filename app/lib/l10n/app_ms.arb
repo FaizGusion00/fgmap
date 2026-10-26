@@ -3,6 +3,15 @@
   "appName": "FGMap",
   "mapHintLongPress": "Tekan lama pada peta untuk pilih destinasi",
   "myLocation": "Lokasi saya",
+  "locationFixUnavailable": "GPS belum dapat lokasi yang cukup tepat. Pergi ke kawasan terbuka dan cuba lagi.",
+  "locationAccuracy": "Anggaran ketepatan lokasi ±{meters} m",
+  "@locationAccuracy": {
+    "placeholders": {
+      "meters": {
+        "type": "int"
+      }
+    }
+  },
   "mapAttribution": "© penyumbang OpenStreetMap · OpenFreeMap",
   "locationRationaleTitle": "Benarkan akses lokasi?",
   "locationRationaleBody": "Lokasi anda digunakan untuk menunjukkan kedudukan anda di peta dan sebagai titik mula laluan. Ia dihantar ke pelayan FGMap hanya untuk mengira laluan.",
@@ -109,6 +118,7 @@
   },
   "offlineMapsUpToDate": "Peta offline terkini",
   "offlineMapsDownload": "Muat turun",
+  "offlineMapsRetry": "Cuba lagi",
   "offlineMapsUpdate": "Kemas kini",
   "offlineMapsDelete": "Padam",
   "offlineMapsCancel": "Batal",
@@ -134,7 +144,7 @@
   },
   "offlineMapsDeleteTitle": "Padam peta offline?",
   "offlineMapsDeleteBody": "Anda perlu memuat turunnya semula untuk menggunakan laluan offline.",
-  "offlineMapsErrorNetwork": "Muat turun terputus. Semak internet dan cuba lagi; ia akan disambung.",
+  "offlineMapsErrorNetwork": "Tidak dapat menyambung ke pelayan peta offline. Semak internet dan cuba lagi.",
   "offlineMapsErrorStorage": "Ruang simpanan tidak mencukupi. Bebaskan ruang dan cuba lagi.",
   "offlineMapsErrorChecksum": "Fail yang dimuat turun rosak. Cuba lagi.",
   "offlineMapsErrorIncompatible": "Peta offline ini tidak serasi dengan versi app. Kemas kini app.",

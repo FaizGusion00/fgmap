@@ -101,8 +101,7 @@ class OfflineMapController extends Notifier<OfflineMapState> {
   }
 
   /// Membaca pek yang dipasang dan (jika [checkRemote]) menyemak manifest terkini.
-  /// Kegagalan menyemak tidak dipaparkan sebagai ralat: pengguna tanpa internet masih boleh
-  /// menggunakan pek yang sudah ada.
+  /// Kegagalan semakan dipaparkan jika belum ada pek; pek yang telah dipasang kekal boleh digunakan.
   Future<void> refresh({bool checkRemote = true}) async {
     if (state.busy) return;
     final store = ref.read(offlineMapStoreProvider);
@@ -113,16 +112,26 @@ class OfflineMapController extends Notifier<OfflineMapState> {
     final url = ref.read(offlineManifestUrlProvider);
     if (!checkRemote || url.isEmpty) return;
 
-    state = state.copyWith(op: OfflineOp.checking);
+    state = state.copyWith(op: OfflineOp.checking, error: () => null);
     try {
       final manifest = await ref
           .read(offlineMapInstallerProvider)
           .fetchManifest(url);
       if (!ref.mounted) return;
       state = state.copyWith(op: OfflineOp.idle, latest: () => manifest);
-    } on OfflineMapException {
+    } on OfflineMapException catch (e) {
       if (!ref.mounted) return;
-      state = state.copyWith(op: OfflineOp.idle);
+      state = state.copyWith(
+        op: OfflineOp.idle,
+        error: () => installed == null ? e.kind : null,
+      );
+    } on Object catch (e, st) {
+      debugPrint('Semakan peta offline gagal tanpa dijangka: $e\n$st');
+      if (!ref.mounted) return;
+      state = state.copyWith(
+        op: OfflineOp.idle,
+        error: () => installed == null ? OfflineMapFailure.generic : null,
+      );
     }
   }
 

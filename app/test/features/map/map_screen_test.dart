@@ -65,9 +65,9 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.textContaining('OpenStreetMap'),
+        find.byTooltip('© penyumbang OpenStreetMap · OpenFreeMap'),
         findsOneWidget,
-        reason: 'atribusi ODbL mesti sentiasa kelihatan',
+        reason: 'atribusi ODbL mesti boleh dicapai',
       );
       expect(find.byTooltip('Lokasi saya'), findsOneWidget);
       expect(find.byTooltip('Paparan'), findsOneWidget);
@@ -248,13 +248,23 @@ void main() {
     });
 
     testWidgets(
-      'boleh diminta: penjelasan dipaparkan DAHULU, dialog sistem hanya selepas Benarkan',
+      'kebenaran ditangguh sehingga pengguna minta lokasi; penjelasan mendahului dialog sistem',
       (tester) async {
         location
           ..accessValue = LocationAccess.askable
           ..requestResult = LocationAccess.granted;
         await pumpScreen(tester);
 
+        expect(find.byType(AlertDialog), findsNothing);
+        expect(
+          location.requestCalls,
+          0,
+          reason: 'jangan minta lokasi sebelum pengguna memilih fungsinya',
+        );
+        expect(map.config!.showUserLocation, isFalse);
+
+        await tester.tap(find.byTooltip('Lokasi saya'));
+        await tester.pumpAndSettle();
         expect(find.text('Benarkan akses lokasi?'), findsOneWidget);
         expect(
           location.requestCalls,
@@ -278,6 +288,9 @@ void main() {
         location.accessValue = LocationAccess.askable;
         await pumpScreen(tester);
 
+        expect(find.byType(AlertDialog), findsNothing);
+        await tester.tap(find.byTooltip('Lokasi saya'));
+        await tester.pumpAndSettle();
         await tester.tap(find.text('Bukan sekarang'));
         await tester.pumpAndSettle();
 
@@ -328,14 +341,39 @@ void main() {
       (tester) async {
         await pumpScreen(tester);
         map.camera.flyToCalls.clear();
-        location.fix = const LocationFix(point: batuCaves);
+        location.fix = LocationFix(
+          point: batuCaves,
+          accuracyMeters: 8,
+          timestamp: DateTime.now(),
+        );
 
         await tester.tap(find.byTooltip('Lokasi saya'));
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
 
         expect(map.camera.flyToCalls, [(batuCaves, 15.0)]);
+        expect(find.text('Anggaran ketepatan lokasi ±8 m'), findsOneWidget);
       },
     );
+
+    testWidgets('lokasi tiada fix: butang memaklumkan dan boleh dicuba semula', (
+      tester,
+    ) async {
+      location.fix = null;
+      await pumpScreen(tester);
+
+      await tester.tap(find.byTooltip('Lokasi saya'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'GPS belum dapat lokasi yang cukup tepat. Pergi ke kawasan terbuka dan cuba lagi.',
+        ),
+        findsOneWidget,
+      );
+      expect(map.camera.flyToCalls, isEmpty);
+      expect(find.byTooltip('Lokasi saya'), findsOneWidget);
+    });
   });
 
   group('tetapan paparan', () {
