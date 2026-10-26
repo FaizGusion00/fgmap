@@ -39,6 +39,28 @@ akaun; dikekalkan sebagai pilihan kemudian melalui antara muka `Geocoder`.
    15-60 m, dihantar sebagai `radius` pada lokasi terakhir Valhalla (online dan offline). Titik `N` tiada radius.
 6. **UI hasil**: baris kedua "Jenis · jarak" dan alamat; perhentian seberang jalan dilabel.
 
+## Tambahan: "Cari berhampiran" yang sebenar (versi 0.3.3)
+
+Chip Fuel/Food/Mosque/Toilets/Parking/Hospital sebelum ini hanya mengisi medan dengan perkataan dan menjalankan
+carian NAMA ("Fuel" tidak menjumpai "Petronas"). Kini setiap chip ialah carian kategori mengikut tag OSM
+di sekitar lokasi pengguna:
+
+- `NearbyCategory` memetakan chip kepada tag (`amenity=fuel`; makan = restaurant/fast_food/cafe/food_court;
+  masjid/surau = `place_of_worship`+`religion=muslim` atau `building=mosque`; tandas; parkir bukan persendirian;
+  hospital) dan radius awal (parkir 1 km, makan 1.5 km, minyak/surau/tandas 3 km, hospital 8 km). Jika kurang 3
+  hasil, radius diperluas 3x (maks 15 km).
+- `OverpassNearbySearch`: Overpass API (data OSM, percuma tanpa kunci), `out tags center`, satu permintaan pada satu
+  masa, cermin dicuba berturutan (`overpass-api.de`, `overpass.private.coffee`; boleh ditukar melalui
+  `OVERPASS_URLS`). Dasar awam: kurang 10,000 pertanyaan sehari dan UA berpengenalan; satu ketukan = 1-2
+  pertanyaan. `remark: runtime error` dan HTML dianggap kegagalan (cermin seterusnya).
+- Fallback: Nominatim frasa khas + `bounded=1` jika semua cermin Overpass gagal; Overpass yang berjaya tetapi
+  kosong ialah jawapan sah ("tiada ... dalam OSM berdekatan").
+- Susunan: paling dekat dahulu; tempat tanpa nama dalam OSM (lazim bagi tandas/parkir) diberi penalti 600 m setara
+  dan dilabel dengan nama kategori; entri bernama sama dalam 60 m digabung.
+- Tidak dipanggil semasa menaip dan tiada autocomplete; hasil dicache dalam sesi (sel ~1 km).
+- Had: kelengkapan bergantung data OSM (alamat sering kosong, jam buka tiada). Ujian guna badan Overpass sintetik;
+  pengesahan sebenar di peranti.
+
 ## Tidak dibuat dan sebabnya
 
 - **Mengesahkan titik teratas melalui Nominatim /lookup pada setiap pilihan:** menambah kebergantungan dan

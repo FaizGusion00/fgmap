@@ -110,6 +110,14 @@
   "searchClearHistory": "Clear history",
   "sharedLocationStopNavigation": "End the current navigation before opening a shared destination.",
   "searchNoResults": "No results for “{query}”.",
+  "searchNoNearby": "No “{category}” found nearby in OpenStreetMap. Try a larger area or search by name.",
+  "@searchNoNearby": {
+    "placeholders": {
+      "category": {
+        "type": "String"
+      }
+    }
+  },
   "searchErrorNetwork": "No internet connection. Search needs internet; you can still long-press the map to pick a destination.",
   "searchErrorRateLimited": "Too many searches. Please wait a moment.",
   "searchErrorUnavailable": "Search is unavailable right now.",
@@ -197,6 +205,7 @@
   "placeKindWorship": "Place of worship",
   "placeKindHealth": "Health",
   "placeKindParking": "Parking",
+  "placeKindToilets": "Toilets",
   "placeKindTransit": "Bus stop or station",
   "placeKindRoad": "Road",
   "placeKindArea": "Area",

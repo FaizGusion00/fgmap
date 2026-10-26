@@ -674,6 +674,12 @@ abstract class AppLocalizations {
   /// **'Tiada hasil untuk “{query}”.'**
   String searchNoResults(String query);
 
+  /// No description provided for @searchNoNearby.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tiada “{category}” ditemui berhampiran dalam OpenStreetMap. Cuba kawasan lain atau cari mengikut nama.'**
+  String searchNoNearby(String category);
+
   /// No description provided for @searchErrorNetwork.
   ///
   /// In ms, this message translates to:
@@ -1069,6 +1075,12 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'Parkir'**
   String get placeKindParking;
+
+  /// No description provided for @placeKindToilets.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tandas'**
+  String get placeKindToilets;
 
   /// No description provided for @placeKindTransit.
   ///

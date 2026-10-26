@@ -344,6 +344,11 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
+  String searchNoNearby(String category) {
+    return 'Tiada “$category” ditemui berhampiran dalam OpenStreetMap. Cuba kawasan lain atau cari mengikut nama.';
+  }
+
+  @override
   String get searchErrorNetwork =>
       'Tiada sambungan internet. Carian memerlukan internet; anda masih boleh tekan lama pada peta untuk memilih destinasi.';
 
@@ -554,6 +559,9 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get placeKindParking => 'Parkir';
+
+  @override
+  String get placeKindToilets => 'Tandas';
 
   @override
   String get placeKindTransit => 'Perhentian atau stesen';

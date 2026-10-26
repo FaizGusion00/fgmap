@@ -4,7 +4,9 @@ import 'package:fgmap/core/storage/preferences.dart';
 import 'package:fgmap/core/utils/geo.dart';
 import 'package:fgmap/features/map/presentation/map_screen.dart';
 import 'package:fgmap/features/route_preview/data/route_planner.dart';
+import 'package:fgmap/features/search/data/nearby_search.dart';
 import 'package:fgmap/features/search/data/photon_geocoder.dart';
+import 'package:fgmap/features/search/domain/nearby_category.dart';
 import 'package:fgmap/features/search/domain/place.dart';
 import 'package:fgmap/features/search/presentation/place_search_controller.dart';
 import 'package:fgmap/features/search/presentation/trip_planner_page.dart';
@@ -73,6 +75,7 @@ void main() {
     WidgetTester tester, {
     String? initialDestinationQuery,
     GeoPoint? userLocation,
+    List<Override> extraOverrides = const [],
   }) async {
     usePhoneSurface(tester);
     reduceMotion(tester);
@@ -93,7 +96,7 @@ void main() {
           ),
         ),
       ),
-      overrides: overrides(),
+      overrides: [...overrides(), ...extraOverrides],
     );
     await tester.tap(find.text('buka'));
     await tester.pumpAndSettle();
@@ -365,22 +368,84 @@ void main() {
   });
 
   group('Pintasan kategori', () {
-    testWidgets('mengetuk kategori mengisi medan dan mencari', (tester) async {
-      await pumpHost(tester);
+    testWidgets('mengetuk kategori mencari tag OSM berhampiran, bukan nama', (
+      tester,
+    ) async {
+      final nearby = _FakeNearby();
+      final result = await pumpHost(
+        tester,
+        userLocation: const GeoPoint(3.2290, 101.4260),
+        extraOverrides: [nearbySearchProvider.overrideWithValue(nearby)],
+      );
       expect(find.text('Masjid'), findsOneWidget);
       expect(find.text('Stesen minyak'), findsOneWidget);
 
-      await tester.tap(find.text('Masjid'));
-      await tester.pump(_debounce * 3);
+      await tester.tap(find.text('Stesen minyak'));
+      await tester.pump();
       await tester.pump();
 
-      expect(geocoder.queries, contains('Masjid'));
+      // Tiada carian nama "Stesen minyak"; carian kategori dengan lokasi pengguna sebagai pusat.
+      expect(geocoder.queries, isEmpty);
+      expect(nearby.calls.single.$1, NearbyCategory.fuel);
+      expect(nearby.calls.single.$2, const GeoPoint(3.2290, 101.4260));
       final field = tester.widget<TextField>(
         find.byKey(const ValueKey('destination-field')),
       );
-      expect(field.controller!.text, 'Masjid');
-      // Pintasan hilang apabila keputusan carian dipaparkan.
+      expect(field.controller!.text, 'Stesen minyak');
       expect(find.text('Cari berhampiran'), findsNothing);
+
+      // Hasil: jenis + jarak, dan boleh dipilih sebagai destinasi.
+      expect(find.text('Petronas Puncak Alam'), findsOneWidget);
+      expect(find.textContaining('Stesen minyak · '), findsOneWidget);
+      await tester.tap(find.text('Petronas Puncak Alam'));
+      await tester.pumpAndSettle();
+      expect(
+        (result.value! as TripSelection).destination.name,
+        'Petronas Puncak Alam',
+      );
+    });
+
+    testWidgets('tiada hasil berhampiran memaparkan mesej khusus', (
+      tester,
+    ) async {
+      await pumpHost(
+        tester,
+        extraOverrides: [
+          nearbySearchProvider.overrideWithValue(_FakeNearby(empty: true)),
+        ],
+      );
+      await tester.tap(find.text('Masjid'));
+      await tester.pump();
+      await tester.pump();
+      expect(find.textContaining('ditemui berhampiran'), findsOneWidget);
     });
   });
+}
+
+class _FakeNearby implements NearbySearch {
+  _FakeNearby({this.empty = false});
+
+  final bool empty;
+  final List<(NearbyCategory, GeoPoint)> calls = [];
+
+  @override
+  Future<List<Place>> search(
+    NearbyCategory category,
+    GeoPoint center, {
+    required String fallbackName,
+    CancelToken? cancel,
+  }) async {
+    calls.add((category, center));
+    if (empty) return const [];
+    return const [
+      Place(
+        name: 'Petronas Puncak Alam',
+        subtitle: 'Persiaran Puncak Alam',
+        point: GeoPoint(3.2300, 101.4270),
+        category: 'fuel',
+        osmKey: 'amenity',
+        osmType: 'N',
+      ),
+    ];
+  }
 }

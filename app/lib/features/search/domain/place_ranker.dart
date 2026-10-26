@@ -11,6 +11,7 @@ enum PlaceKind {
   worship,
   health,
   parking,
+  toilets,
   transit,
   road,
   area,
@@ -50,6 +51,8 @@ PlaceKind placeKindOf(Place place) {
       return PlaceKind.health;
     case 'parking':
       return PlaceKind.parking;
+    case 'toilets':
+      return PlaceKind.toilets;
     case 'bus_stop' || 'bus_station' || 'station' || 'halt' || 'platform':
       return PlaceKind.transit;
     case 'mall' || 'supermarket' || 'department_store' || 'convenience':
@@ -183,6 +186,7 @@ class PlaceRanker {
       case PlaceKind.area:
         return 8;
       case PlaceKind.parking:
+      case PlaceKind.toilets:
       case PlaceKind.address:
         return 6;
       case PlaceKind.road:

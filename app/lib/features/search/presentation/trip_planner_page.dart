@@ -8,6 +8,8 @@ import '../../../core/utils/geo.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../domain/place.dart';
 import '../../route_preview/presentation/route_format.dart';
+import '../../../core/config/app_config.dart';
+import '../domain/nearby_category.dart';
 import '../domain/place_ranker.dart';
 import 'place_search_controller.dart';
 import 'search_history_controller.dart';
@@ -119,11 +121,21 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
     setState(() {});
   }
 
-  void _searchCategory(String query) {
+  /// Carian kategori sebenar (tag OSM di sekitar lokasi anda), bukan carian nama.
+  void _searchNearby(NearbyCategory category, String label) {
     HapticFeedback.selectionClick();
-    _destText.text = query;
-    _destText.selection = TextSelection.collapsed(offset: query.length);
-    _onChanged(query);
+    _destination = null;
+    _destText.text = label;
+    _destText.selection = TextSelection.collapsed(offset: label.length);
+    ref
+        .read(placeSearchControllerProvider.notifier)
+        .searchNearby(
+          category,
+          center: widget.userLocation ?? widget.near ?? AppConfig.initialCenter,
+          label: label,
+          fallbackName: label,
+        );
+    setState(() {});
   }
 
   void _pick(Place place) {
@@ -219,7 +231,7 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
                     history: history,
                     userLocation: widget.userLocation,
                     onPick: _pick,
-                    onCategory: _searchCategory,
+                    onCategory: _searchNearby,
                     onClearHistory: () => ref
                         .read(searchHistoryControllerProvider.notifier)
                         .clear(),
@@ -307,7 +319,7 @@ class _ResultsList extends StatelessWidget {
   final List<Place> history;
   final GeoPoint? userLocation;
   final ValueChanged<Place> onPick;
-  final ValueChanged<String> onCategory;
+  final void Function(NearbyCategory category, String label) onCategory;
   final VoidCallback onClearHistory;
   final VoidCallback onRetry;
 
@@ -359,7 +371,9 @@ class _ResultsList extends StatelessWidget {
       SearchStatus.loading => const _ResultsSkeleton(),
       SearchStatus.empty => _Message(
         icon: Icons.search_off_rounded,
-        text: l10n.searchNoResults(state.query),
+        text: state.nearby != null
+            ? l10n.searchNoNearby(state.query)
+            : l10n.searchNoResults(state.query),
       ),
       SearchStatus.failed => _Message(
         icon: Icons.cloud_off_rounded,
@@ -382,7 +396,10 @@ class _ResultsList extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              subtitle: _ResultSubtitle(place: place, from: userLocation),
+              subtitle: _ResultSubtitle(
+                place: place,
+                from: state.origin ?? userLocation,
+              ),
               onTap: () => onPick(place),
             ),
         ],
@@ -416,6 +433,7 @@ class _ResultSubtitle extends StatelessWidget {
       PlaceKind.worship => l10n.placeKindWorship,
       PlaceKind.health => l10n.placeKindHealth,
       PlaceKind.parking => l10n.placeKindParking,
+      PlaceKind.toilets => l10n.placeKindToilets,
       PlaceKind.transit => l10n.placeKindTransit,
       PlaceKind.road => l10n.placeKindRoad,
       PlaceKind.area => l10n.placeKindArea,
@@ -476,19 +494,31 @@ class _PlaceIcon extends StatelessWidget {
 class _CategoryChips extends StatelessWidget {
   const _CategoryChips({required this.onPick});
 
-  final ValueChanged<String> onPick;
+  final void Function(NearbyCategory category, String label) onPick;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final items = [
-      (Icons.local_gas_station_rounded, l10n.searchCatFuel),
-      (Icons.restaurant_rounded, l10n.searchCatFood),
-      (Icons.mosque_rounded, l10n.searchCatMosque),
-      (Icons.wc_rounded, l10n.searchCatToilet),
-      (Icons.local_parking_rounded, l10n.searchCatParking),
-      (Icons.local_hospital_rounded, l10n.searchCatHospital),
+      (
+        Icons.local_gas_station_rounded,
+        l10n.searchCatFuel,
+        NearbyCategory.fuel,
+      ),
+      (Icons.restaurant_rounded, l10n.searchCatFood, NearbyCategory.food),
+      (Icons.mosque_rounded, l10n.searchCatMosque, NearbyCategory.mosque),
+      (Icons.wc_rounded, l10n.searchCatToilet, NearbyCategory.toilets),
+      (
+        Icons.local_parking_rounded,
+        l10n.searchCatParking,
+        NearbyCategory.parking,
+      ),
+      (
+        Icons.local_hospital_rounded,
+        l10n.searchCatHospital,
+        NearbyCategory.hospital,
+      ),
     ];
     return Padding(
       padding: const EdgeInsets.only(top: 12),
@@ -519,7 +549,7 @@ class _CategoryChips extends StatelessWidget {
                       color: theme.colorScheme.primary,
                     ),
                     label: Text(item.$2),
-                    onPressed: () => onPick(item.$2),
+                    onPressed: () => onPick(item.$3, item.$2),
                   ),
               ],
             ),

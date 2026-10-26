@@ -346,6 +346,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String searchNoNearby(String category) {
+    return 'No “$category” found nearby in OpenStreetMap. Try a larger area or search by name.';
+  }
+
+  @override
   String get searchErrorNetwork =>
       'No internet connection. Search needs internet; you can still long-press the map to pick a destination.';
 
@@ -555,6 +560,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get placeKindParking => 'Parking';
+
+  @override
+  String get placeKindToilets => 'Toilets';
 
   @override
   String get placeKindTransit => 'Bus stop or station';

@@ -183,6 +183,14 @@
       }
     }
   },
+  "searchNoNearby": "Tiada “{category}” ditemui berhampiran dalam OpenStreetMap. Cuba kawasan lain atau cari mengikut nama.",
+  "@searchNoNearby": {
+    "placeholders": {
+      "category": {
+        "type": "String"
+      }
+    }
+  },
   "searchErrorNetwork": "Tiada sambungan internet. Carian memerlukan internet; anda masih boleh tekan lama pada peta untuk memilih destinasi.",
   "searchErrorRateLimited": "Terlalu banyak carian. Tunggu sebentar.",
   "searchErrorUnavailable": "Perkhidmatan carian tidak tersedia buat masa ini.",
@@ -280,6 +288,7 @@
   "placeKindWorship": "Tempat ibadat",
   "placeKindHealth": "Kesihatan",
   "placeKindParking": "Parkir",
+  "placeKindToilets": "Tandas",
   "placeKindTransit": "Perhentian atau stesen",
   "placeKindRoad": "Jalan",
   "placeKindArea": "Kawasan",
