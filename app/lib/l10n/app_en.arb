@@ -200,7 +200,7 @@
   "settingsMaps": "Maps",
   "settingsOfflineHint": "Download maps to navigate without internet",
   "settingsAboutHint": "Version, developer and copyright",
-  "themeSystemShort": "Auto",
+  "themeSystemShort": "System",
   "searchCatFuel": "Fuel",
   "searchCatFood": "Food",
   "searchCatMosque": "Mosque",
@@ -220,6 +220,112 @@
   "placeKindAddress": "Address",
   "placeKindPlace": "Place",
   "placeOppositeSide": "opposite side of the road",
+  "themeSun": "Sun",
+  "themeSunHint": "Dark between sunset and sunrise at your location. Calculated on your device, no internet needed.",
+  "savedHome": "Home",
+  "savedWork": "Work",
+  "savedFavorite": "Favourite",
+  "savedSetHome": "Set home",
+  "savedSetWork": "Set work",
+  "savedSection": "Saved places",
+  "savedSaveTooltip": "Save place",
+  "savedSheetTitle": "Save as",
+  "savedChange": "Change",
+  "savedRemove": "Remove",
+  "savedTapToSet": "Tap to set",
+  "savedFavoriteAdd": "Add to favourites",
+  "savedFavoriteRemove": "Remove from favourites",
+  "savedAssigning": "Search for your {kind} address",
+  "@savedAssigning": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      }
+    }
+  },
+  "savedDone": "Saved as {label}",
+  "@savedDone": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "savedRemoved": "{label} removed",
+  "@savedRemoved": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "onbSkip": "Skip",
+  "onbNext": "Next",
+  "onbStart": "Get started",
+  "onbWelcomeTitle": "Navigation for Malaysia",
+  "onbWelcomeBody": "Turn-by-turn guidance for car and motorcycle, with voice in Malay or English.",
+  "onbFeatureRoutes": "Fastest, no-toll and alternative routes",
+  "onbFeatureNearby": "Find petrol, food, surau and toilets nearby",
+  "onbFeatureReports": "Report hazards and police on the road",
+  "onbFeatureOffline": "Offline maps for when you have no signal",
+  "onbPrivacyTitle": "Your privacy",
+  "onbPrivacyLocal": "No account and no tracking. Your places, history and reports stay on this phone.",
+  "onbPrivacyServers": "To search and plan routes, the app sends your search text and trip coordinates to public OpenStreetMap services. Nothing else is sent.",
+  "onbPrivacyLocation": "Location is used only while the app is open, to show where you are and to guide you.",
+  "onbSetupTitle": "Set up in 10 seconds",
+  "onbVehicleQuestion": "How do you travel?",
+  "onbVoiceQuestion": "Voice language",
+  "onbAllowLocation": "Allow location",
+  "onbLocationGranted": "Location allowed",
+  "onbLocationHint": "You can also do this later when you start your first trip.",
+  "onbPageOf": "Page {current} of {total}",
+  "@onbPageOf": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsTextSize": "Text size",
+  "settingsTextSizeHint": "Applied on top of your phone’s text size.",
+  "settingsReduceMotion": "Reduce animations",
+  "settingsReduceMotionHint": "Fewer moving effects. Also follows your phone’s setting.",
+  "settingsHaptics": "Vibration feedback",
+  "settingsLanguage": "App language",
+  "settingsLanguageSystem": "Device",
+  "settingsLanguageMalay": "Bahasa Melayu",
+  "settingsLanguageEnglish": "English",
+  "settingsVoice": "Voice",
+  "settingsVoiceVolume": "Voice volume",
+  "settingsVolumeLow": "Low",
+  "settingsVolumeMedium": "Medium",
+  "settingsVolumeHigh": "High",
+  "settingsSpeechRate": "Speaking speed",
+  "settingsRateSlow": "Slow",
+  "settingsRateNormal": "Normal",
+  "settingsRateFast": "Fast",
+  "settingsReports": "Reports",
+  "settingsReportAlerts": "Report alerts while driving",
+  "settingsReportAlertsHint": "Announces reports ahead and asks if they are still there.",
+  "settingsPrivacy": "Privacy",
+  "settingsLocationAllowed": "Location access: allowed",
+  "settingsLocationNotAllowed": "Location access: not allowed",
+  "settingsLocationOff": "Location services are off",
+  "settingsLocationOpen": "Open phone settings",
+  "settingsClearHistory": "Clear search history",
+  "settingsClearSaved": "Delete saved places",
+  "settingsClearReports": "Delete my reports",
+  "settingsConfirmTitle": "Delete this data?",
+  "settingsConfirmBody": "This only affects this phone and cannot be undone.",
+  "settingsConfirmDelete": "Delete",
+  "settingsConfirmCancel": "Cancel",
+  "settingsDeleted": "Deleted",
+  "settingsHelp": "Help & about",
+  "settingsWelcomeAgain": "Show the welcome tour again",
+  "settingsLicences": "Open-source licences",
   "searchCategories": "Search nearby",
   "reportTitle": "Report here",
   "reportButtonTooltip": "Report",

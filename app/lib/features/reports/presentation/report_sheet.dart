@@ -1,12 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
 import '../domain/report.dart';
 import 'reports_controller.dart';
+import '../../../core/utils/haptics.dart';
 
 /// Nama jenis laporan yang dilokalkan (untuk helaian, dialog dan umum suara).
 String reportTypeLabel(AppLocalizations l10n, ReportType type) =>
@@ -54,7 +54,7 @@ class _ReportSheetState extends ConsumerState<ReportSheet> {
 
   Future<void> _send(ReportType type) async {
     if (_sending != null) return; // elak ketukan berganda
-    unawaited(HapticFeedback.mediumImpact());
+    unawaited(Haptics.medium());
     setState(() => _sending = type);
     final result = await ref
         .read(reportsControllerProvider.notifier)

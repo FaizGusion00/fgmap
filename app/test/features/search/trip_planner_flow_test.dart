@@ -4,6 +4,8 @@ import 'package:fgmap/core/storage/preferences.dart';
 import 'package:fgmap/core/utils/geo.dart';
 import 'package:fgmap/features/map/presentation/map_screen.dart';
 import 'package:fgmap/features/route_preview/data/route_planner.dart';
+import 'package:fgmap/features/saved_places/data/saved_places_controller.dart';
+import 'package:fgmap/features/saved_places/domain/saved_place.dart';
 import 'package:fgmap/features/search/data/nearby_search.dart';
 import 'package:fgmap/features/search/data/photon_geocoder.dart';
 import 'package:fgmap/features/search/domain/nearby_category.dart';
@@ -12,6 +14,7 @@ import 'package:fgmap/features/search/presentation/place_search_controller.dart'
 import 'package:fgmap/features/search/presentation/trip_planner_page.dart';
 import 'package:fgmap/features/route_preview/domain/route_option.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -76,6 +79,7 @@ void main() {
     String? initialDestinationQuery,
     GeoPoint? userLocation,
     List<Override> extraOverrides = const [],
+    SavedKind? assign,
   }) async {
     usePhoneSurface(tester);
     reduceMotion(tester);
@@ -90,6 +94,7 @@ void main() {
                 context,
                 userLocation: userLocation,
                 initialDestinationQuery: initialDestinationQuery,
+                assign: assign,
               ),
               child: const Text('buka'),
             ),
@@ -364,6 +369,81 @@ void main() {
     testWidgets('tiada sejarah: tiada baris pintasan', (tester) async {
       await pumpMap(tester);
       expect(find.byIcon(Icons.history_rounded), findsNothing);
+    });
+  });
+
+  group('Tempat disimpan', () {
+    testWidgets(
+      'mod tetapkan Rumah: pilih hasil menyimpan dan menutup tanpa laluan',
+      (tester) async {
+        final result = await pumpHost(tester, assign: SavedKind.home);
+        expect(find.text('Cari alamat Rumah anda'), findsWidgets);
+        await type(tester, 'destination-field', 'klia');
+        await tester.tap(find.text('KLIA'));
+        await tester.pumpAndSettle();
+
+        expect(
+          result.value,
+          isNull,
+          reason: 'tiada pilihan destinasi dipulangkan',
+        );
+        final container = ProviderScope.containerOf(
+          tester.element(find.text('buka')),
+        );
+        expect(
+          container.read(savedPlacesControllerProvider.notifier).home!.place,
+          klia1,
+        );
+        expect(find.text('Disimpan sebagai Rumah'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'bintang pada hasil menyimpan kegemaran dan ia muncul dalam senarai tersimpan',
+      (tester) async {
+        await pumpHost(tester);
+        await type(tester, 'destination-field', 'klcc');
+        await tester.tap(
+          find.byKey(ValueKey('star-${klcc1.point.lat}-${klcc1.point.lng}')),
+        );
+        await tester.pump();
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(TripPlannerPage)),
+        );
+        expect(
+          container
+              .read(savedPlacesControllerProvider.notifier)
+              .isFavorite(klcc1),
+          isTrue,
+        );
+
+        // Padam teks: keadaan awal memaparkan bahagian tempat disimpan.
+        await tester.tap(find.byTooltip('Kosongkan'));
+        await tester.pumpAndSettle();
+        expect(find.text('Tempat disimpan'), findsOneWidget);
+        expect(
+          find.byKey(ValueKey('saved-${SavedPlace.favoriteId(klcc1)}')),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets('mengetuk Rumah yang disimpan memilihnya sebagai destinasi', (
+      tester,
+    ) async {
+      SharedPreferences.setMockInitialValues({});
+      prefs = await SharedPreferences.getInstance();
+      final result = await pumpHost(tester);
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(TripPlannerPage)),
+      );
+      await container
+          .read(savedPlacesControllerProvider.notifier)
+          .setHome(klia1);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('saved-home')));
+      await tester.pumpAndSettle();
+      expect((result.value! as TripSelection).destination, klia1);
     });
   });
 

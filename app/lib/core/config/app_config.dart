@@ -71,6 +71,14 @@ abstract final class AppConfig {
     defaultValue: 'https://tiles.openfreemap.org/styles/dark',
   );
 
+  /// Gaya asas untuk gaya malam. Diwarnakan semula dalam app (NightStyle), jadi mestilah gaya vektor
+  /// skema OpenMapTiles. Liberty ialah gaya rasmi OpenFreeMap yang pasti wujud; gaya `dark` hanya
+  /// sandaran apabila pengambilan atau penghuraian gagal.
+  static const mapStyleNightBase = String.fromEnvironment(
+    'MAP_STYLE_NIGHT_BASE',
+    defaultValue: 'https://tiles.openfreemap.org/styles/liberty',
+  );
+
   /// Pandangan awal: Kuala Lumpur.
   static const initialCenter = GeoPoint(3.139, 101.687);
   static const initialZoom = 11.0;

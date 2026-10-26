@@ -527,7 +527,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get settingsAboutHint => 'Versi, pembangun dan hak cipta';
 
   @override
-  String get themeSystemShort => 'Auto';
+  String get themeSystemShort => 'Sistem';
 
   @override
   String get searchCatFuel => 'Stesen minyak';
@@ -585,6 +585,250 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get placeOppositeSide => 'seberang jalan';
+
+  @override
+  String get themeSun => 'Matahari';
+
+  @override
+  String get themeSunHint =>
+      'Gelap antara matahari terbenam dan terbit di lokasi anda. Dikira dalam peranti, tanpa internet.';
+
+  @override
+  String get savedHome => 'Rumah';
+
+  @override
+  String get savedWork => 'Kerja';
+
+  @override
+  String get savedFavorite => 'Kegemaran';
+
+  @override
+  String get savedSetHome => 'Tetapkan Rumah';
+
+  @override
+  String get savedSetWork => 'Tetapkan Kerja';
+
+  @override
+  String get savedSection => 'Tempat disimpan';
+
+  @override
+  String get savedSaveTooltip => 'Simpan tempat';
+
+  @override
+  String get savedSheetTitle => 'Simpan sebagai';
+
+  @override
+  String get savedChange => 'Tukar';
+
+  @override
+  String get savedRemove => 'Padam';
+
+  @override
+  String get savedTapToSet => 'Ketik untuk tetapkan';
+
+  @override
+  String get savedFavoriteAdd => 'Tambah ke kegemaran';
+
+  @override
+  String get savedFavoriteRemove => 'Buang daripada kegemaran';
+
+  @override
+  String savedAssigning(String kind) {
+    return 'Cari alamat $kind anda';
+  }
+
+  @override
+  String savedDone(String label) {
+    return 'Disimpan sebagai $label';
+  }
+
+  @override
+  String savedRemoved(String label) {
+    return '$label dipadam';
+  }
+
+  @override
+  String get onbSkip => 'Langkau';
+
+  @override
+  String get onbNext => 'Seterusnya';
+
+  @override
+  String get onbStart => 'Mula';
+
+  @override
+  String get onbWelcomeTitle => 'Navigasi untuk Malaysia';
+
+  @override
+  String get onbWelcomeBody =>
+      'Panduan belok demi belok untuk kereta dan motosikal, dengan suara dalam Bahasa Melayu atau English.';
+
+  @override
+  String get onbFeatureRoutes => 'Laluan terpantas, tanpa tol dan alternatif';
+
+  @override
+  String get onbFeatureNearby =>
+      'Cari minyak, makan, surau dan tandas berhampiran';
+
+  @override
+  String get onbFeatureReports => 'Laporkan bahaya dan polis di jalan';
+
+  @override
+  String get onbFeatureOffline => 'Peta offline untuk bila tiada isyarat';
+
+  @override
+  String get onbPrivacyTitle => 'Privasi anda';
+
+  @override
+  String get onbPrivacyLocal =>
+      'Tiada akaun dan tiada penjejakan. Tempat, sejarah dan laporan anda kekal pada telefon ini.';
+
+  @override
+  String get onbPrivacyServers =>
+      'Untuk carian dan laluan, app menghantar teks carian dan koordinat perjalanan ke perkhidmatan awam OpenStreetMap. Tiada yang lain dihantar.';
+
+  @override
+  String get onbPrivacyLocation =>
+      'Lokasi hanya digunakan semasa app dibuka, untuk menunjukkan kedudukan anda dan memandu anda.';
+
+  @override
+  String get onbSetupTitle => 'Sediakan dalam 10 saat';
+
+  @override
+  String get onbVehicleQuestion => 'Anda bergerak dengan apa?';
+
+  @override
+  String get onbVoiceQuestion => 'Bahasa suara';
+
+  @override
+  String get onbAllowLocation => 'Benarkan lokasi';
+
+  @override
+  String get onbLocationGranted => 'Lokasi dibenarkan';
+
+  @override
+  String get onbLocationHint =>
+      'Anda juga boleh buat ini kemudian apabila memulakan perjalanan pertama.';
+
+  @override
+  String onbPageOf(int current, int total) {
+    return 'Halaman $current daripada $total';
+  }
+
+  @override
+  String get settingsTextSize => 'Saiz teks';
+
+  @override
+  String get settingsTextSizeHint =>
+      'Dikenakan di atas saiz teks telefon anda.';
+
+  @override
+  String get settingsReduceMotion => 'Kurangkan animasi';
+
+  @override
+  String get settingsReduceMotionHint =>
+      'Kurang kesan bergerak. Turut mengikut tetapan telefon anda.';
+
+  @override
+  String get settingsHaptics => 'Maklum balas getaran';
+
+  @override
+  String get settingsLanguage => 'Bahasa app';
+
+  @override
+  String get settingsLanguageSystem => 'Peranti';
+
+  @override
+  String get settingsLanguageMalay => 'Bahasa Melayu';
+
+  @override
+  String get settingsLanguageEnglish => 'English';
+
+  @override
+  String get settingsVoice => 'Suara';
+
+  @override
+  String get settingsVoiceVolume => 'Kelantangan suara';
+
+  @override
+  String get settingsVolumeLow => 'Perlahan';
+
+  @override
+  String get settingsVolumeMedium => 'Sederhana';
+
+  @override
+  String get settingsVolumeHigh => 'Kuat';
+
+  @override
+  String get settingsSpeechRate => 'Kelajuan pertuturan';
+
+  @override
+  String get settingsRateSlow => 'Perlahan';
+
+  @override
+  String get settingsRateNormal => 'Biasa';
+
+  @override
+  String get settingsRateFast => 'Pantas';
+
+  @override
+  String get settingsReports => 'Laporan';
+
+  @override
+  String get settingsReportAlerts => 'Amaran laporan semasa memandu';
+
+  @override
+  String get settingsReportAlertsHint =>
+      'Mengumumkan laporan di hadapan dan bertanya jika masih ada.';
+
+  @override
+  String get settingsPrivacy => 'Privasi';
+
+  @override
+  String get settingsLocationAllowed => 'Akses lokasi: dibenarkan';
+
+  @override
+  String get settingsLocationNotAllowed => 'Akses lokasi: tidak dibenarkan';
+
+  @override
+  String get settingsLocationOff => 'Perkhidmatan lokasi dimatikan';
+
+  @override
+  String get settingsLocationOpen => 'Buka tetapan telefon';
+
+  @override
+  String get settingsClearHistory => 'Padam sejarah carian';
+
+  @override
+  String get settingsClearSaved => 'Padam tempat disimpan';
+
+  @override
+  String get settingsClearReports => 'Padam laporan saya';
+
+  @override
+  String get settingsConfirmTitle => 'Padam data ini?';
+
+  @override
+  String get settingsConfirmBody =>
+      'Ini hanya melibatkan telefon ini dan tidak boleh dibatalkan.';
+
+  @override
+  String get settingsConfirmDelete => 'Padam';
+
+  @override
+  String get settingsConfirmCancel => 'Batal';
+
+  @override
+  String get settingsDeleted => 'Dipadam';
+
+  @override
+  String get settingsHelp => 'Bantuan & tentang';
+
+  @override
+  String get settingsWelcomeAgain => 'Papar semula sambutan';
+
+  @override
+  String get settingsLicences => 'Lesen sumber terbuka';
 
   @override
   String get searchCategories => 'Cari berhampiran';

@@ -5,7 +5,6 @@ import 'package:app_links/app_links.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/app_config.dart';
@@ -25,7 +24,7 @@ import '../../offline_maps/presentation/offline_maps_sheet.dart';
 import '../../search/domain/location_link.dart';
 import '../../search/presentation/recent_places_bar.dart';
 import '../../search/presentation/trip_planner_page.dart';
-import '../../settings/presentation/settings_sheet.dart';
+import '../../settings/presentation/settings_page.dart';
 import '../../navigation/data/location_sources.dart';
 import '../../navigation/data/navigation_settings.dart';
 import '../../navigation/domain/camera_planner.dart';
@@ -40,9 +39,18 @@ import '../../navigation/presentation/car/vehicle_overlay.dart';
 import '../../navigation/presentation/navigation_settings_sheet.dart';
 import 'idle_follow.dart';
 import 'location_prompt.dart';
+import '../../saved_places/domain/saved_place.dart';
+import '../../search/domain/place.dart';
+import '../../saved_places/presentation/save_place_sheet.dart';
+import '../../reports/domain/report.dart';
+import '../../reports/presentation/report_alerts_controller.dart';
+import '../../reports/presentation/report_sheet.dart';
+import '../../reports/presentation/reports_controller.dart';
+import '../data/map_style_loader.dart';
 import 'map_view.dart';
 import 'nav_route_line.dart';
 import 'user_location.dart';
+import '../../../core/utils/haptics.dart';
 
 class MapScreen extends ConsumerStatefulWidget {
   const MapScreen({super.key});
@@ -79,6 +87,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _tracker.location.addListener(_feedSunLocation);
     _linkSubscription = _appLinks.uriLinkStream.listen(
       (uri) => unawaited(_openSharedLocation(uri)),
       onError: (Object error, StackTrace stackTrace) {
@@ -90,8 +99,16 @@ class _MapScreenState extends ConsumerState<MapScreen>
     );
   }
 
+  /// Menyimpan lokasi terakhir untuk mod tema matahari (hanya berubah jika berpindah jauh).
+  void _feedSunLocation() {
+    final location = _tracker.location.value;
+    if (location == null || location.stale || !mounted) return;
+    ref.read(sunLocationProvider.notifier).update(location.point);
+  }
+
   @override
   void dispose() {
+    _tracker.location.removeListener(_feedSunLocation);
     _idle.dispose();
     _tracker.dispose();
     _ticker?.dispose();
@@ -317,18 +334,19 @@ class _MapScreenState extends ConsumerState<MapScreen>
   }
 
   void _onLongPress(GeoPoint point) {
-    HapticFeedback.mediumImpact();
+    Haptics.medium();
     setState(() => _hintDismissed = true);
     unawaited(_planToDestination(point));
   }
 
   /// Membuka perancang destinasi, kemudian mengira laluan dari lokasi pengguna.
-  Future<void> _openPlanner() async {
+  Future<void> _openPlanner({SavedKind? assign}) async {
     final user = _userPoint();
     final selection = await TripPlannerPage.open(
       context,
       near: user ?? _cameraCenterOrDefault(),
       userLocation: user,
+      assign: assign,
     );
     if (selection == null || !mounted) return;
     await _planSelection(selection);
@@ -613,6 +631,18 @@ class _MapScreenState extends ConsumerState<MapScreen>
     return controller.setCameraMode(next);
   }
 
+  /// Destinasi laluan semasa sebagai [Place] untuk disimpan; nama daripada label carian jika ada.
+  Place _destinationPlace(RouteReady ready) {
+    final point = ready.query.destination;
+    return Place(
+      name:
+          ready.query.destinationLabel ??
+          '${point.lat.toStringAsFixed(5)}, ${point.lng.toStringAsFixed(5)}',
+      subtitle: '',
+      point: point,
+    );
+  }
+
   /// Lokasi GPS yang sah (tidak lapuk), untuk mengutamakan hasil carian berhampiran dan memaparkan jarak.
   GeoPoint? _userPoint() {
     final tracked = _tracker.location.value;
@@ -625,6 +655,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
   }
 
   MapCameraController? _readyCamera;
+  ResolvedMapStyle? _lastStyle;
 
   void _onMapReady(MapCameraController controller) {
     _readyCamera = controller;
@@ -654,9 +685,14 @@ class _MapScreenState extends ConsumerState<MapScreen>
 
   /// Mengetuk laluan alternatif pada peta memilihnya (seperti aplikasi peta lain).
   void _onMapTap(GeoPoint point) {
+    final zoom = _readyCamera?.pose?.zoom ?? 12;
+    final tapped = _reportNear(point, metersPerPixel(zoom, point.lat) * 30);
+    if (tapped != null) {
+      unawaited(_reviewReport(tapped));
+      return;
+    }
     final state = ref.read(routePreviewControllerProvider);
     if (state is! RouteReady || state.options.length < 2) return;
-    final zoom = _readyCamera?.pose?.zoom ?? 12;
     final index = nearestRouteIndex(
       [for (final o in state.options) o.points],
       point,
@@ -666,8 +702,65 @@ class _MapScreenState extends ConsumerState<MapScreen>
     _selectRoute(index);
   }
 
+  /// Laporan aktif paling hampir dengan [point] dalam [toleranceM] (kira-kira 30 piksel), atau null.
+  Report? _reportNear(GeoPoint point, double toleranceM) {
+    Report? best;
+    var bestD = toleranceM;
+    for (final r in ref.read(reportsControllerProvider)) {
+      final d = distanceMeters(point, r.point);
+      if (d <= bestD) {
+        best = r;
+        bestD = d;
+      }
+    }
+    return best;
+  }
+
+  /// Ketuk penanda: tanya "Masih ada?" dan undi.
+  Future<void> _reviewReport(Report report) async {
+    unawaited(Haptics.selection());
+    final stillThere = await showStillThereDialog(context, report);
+    if (stillThere == null || !mounted) return;
+    await ref
+        .read(reportsControllerProvider.notifier)
+        .vote(report.id, confirm: stillThere);
+  }
+
+  Future<void> _openReport() async {
+    final result = await showReportSheet(context);
+    if (result == null || !mounted) return;
+    final l10n = AppLocalizations.of(context);
+    final message = switch (result) {
+      CreateReportResult.created => l10n.reportCreated,
+      CreateReportResult.confirmedExisting => l10n.reportConfirmedExisting,
+      CreateReportResult.noLocation => l10n.reportNoLocation,
+    };
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  bool _askOpen = false;
+
+  /// Soalan "Masih ada?" semasa memandu; ditutup sendiri apabila pengawal melepaskannya (tamat masa).
+  Future<void> _onAskChanged(Report? previous, Report? next) async {
+    if (next == null) {
+      if (_askOpen) {
+        Navigator.of(context, rootNavigator: true).pop();
+        _askOpen = false;
+      }
+      return;
+    }
+    if (_askOpen || !mounted) return;
+    _askOpen = true;
+    final answer = await showStillThereDialog(context, next);
+    _askOpen = false;
+    if (!mounted) return;
+    await ref.read(reportAlertsProvider.notifier).answer(confirm: answer);
+  }
+
   void _selectRoute(int index) {
-    HapticFeedback.selectionClick();
+    Haptics.selection();
     ref.read(routePreviewControllerProvider.notifier).select(index);
   }
 
@@ -691,9 +784,10 @@ class _MapScreenState extends ConsumerState<MapScreen>
         ? VehicleKind.motorcycle
         : VehicleKind.car;
     final mapIsDark = switch (themeSettings.mode) {
-      ThemeMode.light => false,
-      ThemeMode.dark => true,
-      ThemeMode.system =>
+      AppThemeMode.light => false,
+      AppThemeMode.dark => true,
+      AppThemeMode.sun => ref.watch(sunDarkProvider),
+      AppThemeMode.system =>
         MediaQuery.platformBrightnessOf(context) == Brightness.dark,
     };
 
@@ -704,6 +798,11 @@ class _MapScreenState extends ConsumerState<MapScreen>
 
     // Penjejak lokasi hidup selagi kebenaran ada (ia juga digantung sendiri di latar belakang dan
     // semasa navigasi); berhenti sepenuhnya jika kebenaran ditarik balik.
+    ref.listen<Report?>(
+      reportAlertsProvider.select((s) => s.ask),
+      (prev, next) => unawaited(_onAskChanged(prev, next)),
+    );
+
     ref.listen<LocationAccess>(locationAccessProvider, (prev, next) {
       if (next == LocationAccess.granted) {
         _tracker.start();
@@ -731,8 +830,21 @@ class _MapScreenState extends ConsumerState<MapScreen>
     final sheetVisible = state is! RouteIdle;
     final bottomSafe = MediaQuery.paddingOf(context).bottom;
 
+    // Gaya peta (gaya malam diwarnakan semula; lihat NightStyle). Gaya sebelumnya dikekalkan semasa
+    // gaya baharu dimuat supaya peta tidak berkelip; peta pertama menunggu paling lama beberapa saat.
+    final resolved = ref.watch(mapStyleProvider(mapIsDark)).value;
+    if (resolved != null) _lastStyle = resolved;
+    final style = resolved ?? _lastStyle;
+
     final config = MapViewConfig(
-      styleUrl: mapIsDark ? AppConfig.mapStyleDark : AppConfig.mapStyleLight,
+      styleUrl:
+          style?.style ??
+          (mapIsDark ? AppConfig.mapStyleDark : AppConfig.mapStyleLight),
+      styleKey: style?.key,
+      reports: [
+        for (final r in ref.watch(reportsControllerProvider))
+          MapReport(id: r.id, type: r.type, point: r.point),
+      ],
       initialCenter: AppConfig.initialCenter,
       initialZoom: AppConfig.initialZoom,
       routes: navigating ? const [] : _routeLines(state),
@@ -767,7 +879,9 @@ class _MapScreenState extends ConsumerState<MapScreen>
       body: Stack(
         children: [
           Positioned.fill(
-            child: ref.watch(mapViewBuilderProvider)(context, config),
+            child: style == null
+                ? ColoredBox(color: theme.scaffoldBackgroundColor)
+                : ref.watch(mapViewBuilderProvider)(context, config),
           ),
           if (navigating && _driver != null)
             Positioned.fill(
@@ -823,6 +937,8 @@ class _MapScreenState extends ConsumerState<MapScreen>
                         onPick: (place) => unawaited(
                           _planSelection(TripSelection(destination: place)),
                         ),
+                        onAssign: (kind) =>
+                            unawaited(_openPlanner(assign: kind)),
                       ),
                     ],
                   ],
@@ -851,9 +967,19 @@ class _MapScreenState extends ConsumerState<MapScreen>
                         Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            _MapZoomControls(
-                              onZoomIn: () => unawaited(_zoomMap(1)),
-                              onZoomOut: () => unawaited(_zoomMap(-1)),
+                            // Skrin pendek (telefon mendatar): butang zum disembunyikan supaya lajur
+                            // kawalan tidak menutup lembaran laluan; mencubit tetap berfungsi.
+                            if (MediaQuery.sizeOf(context).height >= 500) ...[
+                              _MapZoomControls(
+                                onZoomIn: () => unawaited(_zoomMap(1)),
+                                onZoomOut: () => unawaited(_zoomMap(-1)),
+                              ),
+                              const SizedBox(height: 8),
+                            ],
+                            _GlassIconButton(
+                              icon: Icons.add_alert_rounded,
+                              tooltip: l10n.reportButtonTooltip,
+                              onPressed: _openReport,
                             ),
                             const SizedBox(height: 8),
                             _GlassIconButton(
@@ -888,6 +1014,14 @@ class _MapScreenState extends ConsumerState<MapScreen>
                                   unawaited(controller.setVehicle(v)),
                               onRetry: controller.retry,
                               onClear: controller.clear,
+                              onSave: state is RouteReady
+                                  ? () => unawaited(
+                                      showSavePlaceSheet(
+                                        context,
+                                        _destinationPlace(state),
+                                      ),
+                                    )
+                                  : null,
                               onOpenOfflineMaps: () =>
                                   showOfflineMapsSheet(context),
                               onStart: state is RouteReady
@@ -979,6 +1113,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
       onCycleCamera: _cycleCameraMode,
       onOverview: _showOverview,
       onSettings: () => showNavigationSettingsSheet(context),
+      onReport: _openReport,
     );
 
     if (landscape) {

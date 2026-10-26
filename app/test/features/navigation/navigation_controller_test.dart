@@ -11,6 +11,9 @@ import 'package:fgmap/features/navigation/domain/instruction_text.dart';
 import 'package:fgmap/features/navigation/domain/nav_route.dart';
 import 'package:fgmap/features/navigation/domain/navigation_session.dart';
 import 'package:fgmap/features/navigation/presentation/navigation_controller.dart';
+import 'package:fgmap/features/reports/domain/report.dart';
+import 'package:fgmap/features/reports/presentation/report_alerts_controller.dart';
+import 'package:fgmap/features/reports/presentation/reports_controller.dart';
 import 'package:fgmap/features/route_preview/data/route_planner.dart';
 import 'package:fgmap/features/speed_limits/data/speed_limit_service.dart';
 import 'package:fgmap/features/route_preview/domain/route_option.dart';
@@ -87,6 +90,7 @@ void main() {
         speedLimitServiceProvider.overrideWithValue(FakeSpeedLimitService()),
         screenAwakeProvider.overrideWithValue(awake),
         navClockProvider.overrideWithValue(clock.call),
+        reportsClockProvider.overrideWithValue(clock.call),
         routePlannerProvider.overrideWithValue(planner),
         locationServiceProvider.overrideWithValue(FakeLocationService()),
       ],
@@ -219,6 +223,67 @@ void main() {
       }
       expect(state().rerouting, isFalse);
       expect(state().rerouteFailure, RoutingFailureKind.generic);
+    });
+
+    test(
+      'laporan di hadapan disebut; soalan "Masih ada?" bila dilepasi; tamat reset',
+      () async {
+        await setUpContainer();
+        container.listen(reportsControllerProvider, (_, _) {});
+        container.listen(reportAlertsProvider, (_, _) {});
+        final point = navRoute.pointAt(700);
+        await container
+            .read(reportsRepositoryProvider)
+            .create(
+              ReportType.police,
+              point,
+              clock.now.subtract(const Duration(minutes: 30)),
+            );
+        await container.read(reportsControllerProvider.notifier).refresh();
+        await begin();
+
+        await source.emitAll(driveFixes(navRoute, speedMps: 14, endM: 600));
+        final spoken = voice.said
+            .where((s) => s.$1.kind == AnnouncementKind.report)
+            .toList();
+        expect(spoken, hasLength(1));
+        expect(spoken.single.$1.text, startsWith('Polis di hadapan'));
+        expect(container.read(reportAlertsProvider).ask, isNull);
+
+        await source.emitAll(
+          driveFixes(
+            navRoute,
+            speedMps: 14,
+            startM: 600,
+            endM: 760,
+            from: DateTime.utc(2026, 1, 1, 12, 1),
+          ),
+        );
+        expect(container.read(reportAlertsProvider).ask, isNotNull);
+        expect(
+          voice.said.where((s) => s.$1.kind == AnnouncementKind.report),
+          hasLength(1),
+          reason: 'tidak diulang',
+        );
+
+        await controller().stop();
+        expect(container.read(reportAlertsProvider).ask, isNull);
+      },
+    );
+
+    test('amaran laporan dimatikan: tiada suara laporan', () async {
+      await setUpContainer(prefs: {'nav.reportAlerts': false});
+      container.listen(reportsControllerProvider, (_, _) {});
+      await container
+          .read(reportsRepositoryProvider)
+          .create(ReportType.police, navRoute.pointAt(700), clock.now);
+      await container.read(reportsControllerProvider.notifier).refresh();
+      await begin();
+      await source.emitAll(driveFixes(navRoute, speedMps: 14, endM: 600));
+      expect(
+        voice.said.where((s) => s.$1.kind == AnnouncementKind.report),
+        isEmpty,
+      );
     });
 
     test('mute: tiada suara disebut', () async {

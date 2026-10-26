@@ -283,7 +283,7 @@
   "settingsMaps": "Peta",
   "settingsOfflineHint": "Muat turun peta untuk navigasi tanpa internet",
   "settingsAboutHint": "Versi, pembangun dan hak cipta",
-  "themeSystemShort": "Auto",
+  "themeSystemShort": "Sistem",
   "searchCatFuel": "Stesen minyak",
   "searchCatFood": "Makan",
   "searchCatMosque": "Masjid",
@@ -303,6 +303,112 @@
   "placeKindAddress": "Alamat",
   "placeKindPlace": "Tempat",
   "placeOppositeSide": "seberang jalan",
+  "themeSun": "Matahari",
+  "themeSunHint": "Gelap antara matahari terbenam dan terbit di lokasi anda. Dikira dalam peranti, tanpa internet.",
+  "savedHome": "Rumah",
+  "savedWork": "Kerja",
+  "savedFavorite": "Kegemaran",
+  "savedSetHome": "Tetapkan Rumah",
+  "savedSetWork": "Tetapkan Kerja",
+  "savedSection": "Tempat disimpan",
+  "savedSaveTooltip": "Simpan tempat",
+  "savedSheetTitle": "Simpan sebagai",
+  "savedChange": "Tukar",
+  "savedRemove": "Padam",
+  "savedTapToSet": "Ketik untuk tetapkan",
+  "savedFavoriteAdd": "Tambah ke kegemaran",
+  "savedFavoriteRemove": "Buang daripada kegemaran",
+  "savedAssigning": "Cari alamat {kind} anda",
+  "@savedAssigning": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      }
+    }
+  },
+  "savedDone": "Disimpan sebagai {label}",
+  "@savedDone": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "savedRemoved": "{label} dipadam",
+  "@savedRemoved": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "onbSkip": "Langkau",
+  "onbNext": "Seterusnya",
+  "onbStart": "Mula",
+  "onbWelcomeTitle": "Navigasi untuk Malaysia",
+  "onbWelcomeBody": "Panduan belok demi belok untuk kereta dan motosikal, dengan suara dalam Bahasa Melayu atau English.",
+  "onbFeatureRoutes": "Laluan terpantas, tanpa tol dan alternatif",
+  "onbFeatureNearby": "Cari minyak, makan, surau dan tandas berhampiran",
+  "onbFeatureReports": "Laporkan bahaya dan polis di jalan",
+  "onbFeatureOffline": "Peta offline untuk bila tiada isyarat",
+  "onbPrivacyTitle": "Privasi anda",
+  "onbPrivacyLocal": "Tiada akaun dan tiada penjejakan. Tempat, sejarah dan laporan anda kekal pada telefon ini.",
+  "onbPrivacyServers": "Untuk carian dan laluan, app menghantar teks carian dan koordinat perjalanan ke perkhidmatan awam OpenStreetMap. Tiada yang lain dihantar.",
+  "onbPrivacyLocation": "Lokasi hanya digunakan semasa app dibuka, untuk menunjukkan kedudukan anda dan memandu anda.",
+  "onbSetupTitle": "Sediakan dalam 10 saat",
+  "onbVehicleQuestion": "Anda bergerak dengan apa?",
+  "onbVoiceQuestion": "Bahasa suara",
+  "onbAllowLocation": "Benarkan lokasi",
+  "onbLocationGranted": "Lokasi dibenarkan",
+  "onbLocationHint": "Anda juga boleh buat ini kemudian apabila memulakan perjalanan pertama.",
+  "onbPageOf": "Halaman {current} daripada {total}",
+  "@onbPageOf": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsTextSize": "Saiz teks",
+  "settingsTextSizeHint": "Dikenakan di atas saiz teks telefon anda.",
+  "settingsReduceMotion": "Kurangkan animasi",
+  "settingsReduceMotionHint": "Kurang kesan bergerak. Turut mengikut tetapan telefon anda.",
+  "settingsHaptics": "Maklum balas getaran",
+  "settingsLanguage": "Bahasa app",
+  "settingsLanguageSystem": "Peranti",
+  "settingsLanguageMalay": "Bahasa Melayu",
+  "settingsLanguageEnglish": "English",
+  "settingsVoice": "Suara",
+  "settingsVoiceVolume": "Kelantangan suara",
+  "settingsVolumeLow": "Perlahan",
+  "settingsVolumeMedium": "Sederhana",
+  "settingsVolumeHigh": "Kuat",
+  "settingsSpeechRate": "Kelajuan pertuturan",
+  "settingsRateSlow": "Perlahan",
+  "settingsRateNormal": "Biasa",
+  "settingsRateFast": "Pantas",
+  "settingsReports": "Laporan",
+  "settingsReportAlerts": "Amaran laporan semasa memandu",
+  "settingsReportAlertsHint": "Mengumumkan laporan di hadapan dan bertanya jika masih ada.",
+  "settingsPrivacy": "Privasi",
+  "settingsLocationAllowed": "Akses lokasi: dibenarkan",
+  "settingsLocationNotAllowed": "Akses lokasi: tidak dibenarkan",
+  "settingsLocationOff": "Perkhidmatan lokasi dimatikan",
+  "settingsLocationOpen": "Buka tetapan telefon",
+  "settingsClearHistory": "Padam sejarah carian",
+  "settingsClearSaved": "Padam tempat disimpan",
+  "settingsClearReports": "Padam laporan saya",
+  "settingsConfirmTitle": "Padam data ini?",
+  "settingsConfirmBody": "Ini hanya melibatkan telefon ini dan tidak boleh dibatalkan.",
+  "settingsConfirmDelete": "Padam",
+  "settingsConfirmCancel": "Batal",
+  "settingsDeleted": "Dipadam",
+  "settingsHelp": "Bantuan & tentang",
+  "settingsWelcomeAgain": "Papar semula sambutan",
+  "settingsLicences": "Lesen sumber terbuka",
   "searchCategories": "Cari berhampiran",
   "reportTitle": "Laporkan di sini",
   "reportButtonTooltip": "Laporkan",

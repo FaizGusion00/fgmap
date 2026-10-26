@@ -4,7 +4,16 @@ import 'package:fgmap/core/config/app_config.dart';
 import 'package:fgmap/core/location/location_service.dart';
 import 'package:fgmap/features/route_preview/domain/routing_failure.dart';
 import 'package:fgmap/core/storage/preferences.dart';
+import 'package:dio/dio.dart';
 import 'package:fgmap/core/utils/geo.dart';
+import 'package:fgmap/features/navigation/domain/instruction_text.dart';
+import 'package:fgmap/features/reports/domain/report.dart';
+import 'package:fgmap/features/reports/presentation/report_alerts_controller.dart';
+import 'package:fgmap/features/reports/presentation/reports_controller.dart';
+import 'package:fgmap/features/saved_places/data/saved_places_controller.dart';
+import 'package:fgmap/features/settings/presentation/settings_page.dart';
+import 'package:fgmap/features/search/domain/place.dart';
+import 'package:fgmap/features/map/data/map_style_loader.dart';
 import 'package:fgmap/core/theme/theme_controller.dart';
 import 'package:fgmap/features/map/presentation/idle_follow.dart';
 import 'package:fgmap/features/map/presentation/map_screen.dart';
@@ -19,6 +28,28 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/fakes.dart';
 import '../../helpers/pump_app.dart';
+
+/// Gaya segera (tiada rangkaian): gelap = URL gelap. Ujian yang mahu JSON malam guna [_NightLoader].
+class _UrlLoader extends MapStyleLoader {
+  _UrlLoader() : super(Dio(), null);
+
+  @override
+  Future<ResolvedMapStyle> resolve({required bool dark}) async => dark
+      ? const ResolvedMapStyle(
+          AppConfig.mapStyleDark,
+          'url:${AppConfig.mapStyleDark}',
+        )
+      : light();
+}
+
+class _NightLoader extends MapStyleLoader {
+  _NightLoader() : super(Dio(), null);
+
+  @override
+  Future<ResolvedMapStyle> resolve({required bool dark}) async => dark
+      ? const ResolvedMapStyle('{"version":8,"layers":[]}', 'night:test')
+      : light();
+}
 
 void main() {
   late FakeMapHarness map;
@@ -60,6 +91,7 @@ void main() {
         routeOptionsPlannerProvider.overrideWithValue(repo),
         sharedPreferencesProvider.overrideWithValue(prefs),
         idleRecenterAfterProvider.overrideWithValue(recenterAfter),
+        mapStyleLoaderProvider.overrideWithValue(_UrlLoader()),
       ],
     );
     await tester.pumpAndSettle();
@@ -724,7 +756,11 @@ void main() {
 
       await tester.tap(find.byTooltip('Tetapan'));
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('Tentang FGMaps'));
+      await tester.scrollUntilVisible(
+        find.text('Tentang FGMaps'),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.text('Tentang FGMaps'));
       await tester.pumpAndSettle();
@@ -748,21 +784,245 @@ void main() {
 
       await tester.tap(find.text('Gelap'));
       await tester.pumpAndSettle();
-      expect(map.config!.styleUrl, AppConfig.mapStyleDark);
       await tester.tap(find.byKey(const ValueKey('amoled-switch')));
       await tester.pumpAndSettle();
-
       expect(
         container.read(themeControllerProvider),
-        const ThemeSettings(mode: ThemeMode.dark, amoled: true),
+        const ThemeSettings(mode: AppThemeMode.dark, amoled: true),
       );
       expect(prefs.getString('theme.mode'), 'dark');
       expect(prefs.getBool('theme.amoled'), isTrue);
 
+      // Peta di bawah halaman Tetapan; gayanya mengikut apabila pengguna kembali.
+      Navigator.of(tester.element(find.byType(SettingsPage))).pop();
+      await tester.pumpAndSettle();
+      expect(map.config!.styleUrl, AppConfig.mapStyleDark);
+
+      await tester.tap(find.byTooltip('Tetapan'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Cerah'));
+      await tester.pumpAndSettle();
+      Navigator.of(tester.element(find.byType(SettingsPage))).pop();
       await tester.pumpAndSettle();
       expect(map.config!.styleUrl, AppConfig.mapStyleLight);
     });
+  });
+
+  group('Laporan komuniti', () {
+    testWidgets('butang Laporkan: pilih jenis -> penanda muncul pada peta', (
+      tester,
+    ) async {
+      await pumpScreen(tester);
+      expect(map.config!.reports, isEmpty);
+
+      await tester.tap(find.byTooltip('Laporkan'));
+      await tester.pumpAndSettle();
+      expect(find.text('Laporkan di sini'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('report-police')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Laporan dihantar. Terima kasih!'), findsOneWidget);
+      expect(map.config!.reports, hasLength(1));
+      expect(map.config!.reports.single.type, ReportType.police);
+      expect(map.config!.reports.single.point, klcc);
+    });
+
+    testWidgets(
+      'ketuk penanda: "Masih ada?" dan jawapan "Tiada" membuang laporan',
+      (tester) async {
+        final container = await pumpScreen(tester);
+        await container
+            .read(reportsRepositoryProvider)
+            .create(ReportType.hazard, klcc, DateTime.now());
+        await container.read(reportsControllerProvider.notifier).refresh();
+        await tester.pumpAndSettle();
+        expect(map.config!.reports, hasLength(1));
+
+        // Ketukan jauh dari penanda tidak membuka soalan.
+        map.config!.onTap!(klia);
+        await tester.pumpAndSettle();
+        expect(find.text('Bahaya masih ada?'), findsNothing);
+
+        map.config!.onTap!(klcc);
+        await tester.pumpAndSettle();
+        expect(find.text('Bahaya masih ada?'), findsOneWidget);
+        await tester.tap(find.text('Tiada'));
+        await tester.pumpAndSettle();
+        expect(map.config!.reports, isEmpty);
+      },
+    );
+  });
+
+  group('Soalan "Masih ada?" semasa memandu', () {
+    Future<ProviderContainer> seeded(WidgetTester tester) async {
+      final container = await pumpScreen(tester);
+      await container
+          .read(reportsRepositoryProvider)
+          .create(
+            ReportType.police,
+            klcc,
+            DateTime.now().subtract(const Duration(minutes: 30)),
+          );
+      await container.read(reportsControllerProvider.notifier).refresh();
+      await tester.pumpAndSettle();
+      container
+          .read(reportAlertsProvider.notifier)
+          .onFix(
+            const LocationFix(point: klcc, headingDegrees: 90),
+            VoiceLanguage.ms,
+          );
+      await tester.pump();
+      await tester.pump();
+      return container;
+    }
+
+    testWidgets('dialog muncul dan jawapan mengundi', (tester) async {
+      final container = await seeded(tester);
+      expect(find.text('Polis masih ada?'), findsOneWidget);
+      await tester.tap(find.text('Ya, masih ada'));
+      await tester.pumpAndSettle();
+      expect(find.text('Polis masih ada?'), findsNothing);
+      expect(container.read(reportsControllerProvider).single.confirms, 1);
+      expect(container.read(reportAlertsProvider).ask, isNull);
+    });
+
+    testWidgets('tidak dijawab: ditutup sendiri tanpa undi', (tester) async {
+      final container = await seeded(tester);
+      expect(find.text('Polis masih ada?'), findsOneWidget);
+      await tester.pump(
+        ReportAlertsController.askTimeout + const Duration(seconds: 1),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Polis masih ada?'), findsNothing);
+      expect(container.read(reportsControllerProvider).single.confirms, 0);
+    });
+  });
+
+  group('Rumah/Kerja', () {
+    testWidgets(
+      'chip dipaparkan; yang belum ditetapkan membuka perancang tetapkan',
+      (tester) async {
+        await pumpScreen(tester);
+        expect(find.byKey(const ValueKey('shortcut-home')), findsOneWidget);
+        expect(find.byKey(const ValueKey('shortcut-work')), findsOneWidget);
+
+        await tester.tap(find.byKey(const ValueKey('shortcut-home')));
+        await tester.pumpAndSettle();
+        expect(find.text('Cari alamat Rumah anda'), findsWidgets);
+      },
+    );
+
+    testWidgets(
+      'Rumah yang ditetapkan terus mengira laluan dengan radius bangunan',
+      (tester) async {
+        final container = await pumpScreen(tester);
+        await container
+            .read(savedPlacesControllerProvider.notifier)
+            .setHome(
+              const Place(
+                name: "Lotus's Puncak Alam",
+                subtitle: '',
+                point: GeoPoint(3.2262, 101.4278),
+                osmType: 'W',
+                extentDiagonalM: 70,
+              ),
+            );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const ValueKey('shortcut-home')));
+        await tester.pumpAndSettle();
+
+        expect(repo.queries, isNotEmpty);
+        final query = repo.queries.first;
+        expect(query.destination, const GeoPoint(3.2262, 101.4278));
+        expect(query.destinationRadiusM, 35);
+        expect(query.destinationLabel, "Lotus's Puncak Alam");
+      },
+    );
+
+    testWidgets(
+      'butang simpan pada lembaran laluan membuka pilihan simpan sebagai',
+      (tester) async {
+        await pumpScreen(tester);
+        map.config!.onLongPress(klia);
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const ValueKey('save-destination')));
+        await tester.pumpAndSettle();
+        expect(find.text('Simpan sebagai'), findsOneWidget);
+        await tester.tap(find.byKey(const ValueKey('save-as-work')));
+        await tester.pumpAndSettle();
+
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(MapScreen)),
+        );
+        expect(
+          container
+              .read(savedPlacesControllerProvider.notifier)
+              .work!
+              .place
+              .point,
+          klia,
+        );
+      },
+    );
+  });
+
+  testWidgets('mod Matahari: disimpan, petunjuk dipaparkan, peta mengikut jam', (
+    tester,
+  ) async {
+    // 21:00 waktu Malaysia (13:00 UTC): malam di Kuala Lumpur (lokasi lalai mod matahari).
+    final night = DateTime.utc(2026, 10, 26, 13).toLocal();
+    usePhoneSurface(tester);
+    reduceMotion(tester);
+    await pumpApp(
+      tester,
+      const MapScreen(),
+      overrides: [
+        map.override,
+        locationServiceProvider.overrideWithValue(location),
+        routeOptionsPlannerProvider.overrideWithValue(repo),
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        idleRecenterAfterProvider.overrideWithValue(const Duration(hours: 1)),
+        themeClockProvider.overrideWithValue(() => night),
+        mapStyleLoaderProvider.overrideWithValue(_NightLoader()),
+      ],
+    );
+    await tester.pumpAndSettle();
+    expect(map.config!.styleUrl, AppConfig.mapStyleLight);
+
+    await tester.tap(find.byTooltip('Tetapan'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Matahari'));
+    await tester.pumpAndSettle();
+    expect(prefs.getString('theme.mode'), 'sun');
+    expect(find.byKey(const ValueKey('sun-hint')), findsOneWidget);
+    Navigator.of(tester.element(find.byType(SettingsPage))).pop();
+    await tester.pumpAndSettle();
+    expect(map.config!.styleId, 'night:test');
+  });
+
+  testWidgets('mod gelap menghantar gaya malam JSON; kunci stabil', (
+    tester,
+  ) async {
+    await prefs.setString('theme.mode', 'dark');
+    usePhoneSurface(tester);
+    reduceMotion(tester);
+    await pumpApp(
+      tester,
+      const MapScreen(),
+      overrides: [
+        map.override,
+        locationServiceProvider.overrideWithValue(location),
+        routeOptionsPlannerProvider.overrideWithValue(repo),
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        idleRecenterAfterProvider.overrideWithValue(const Duration(hours: 1)),
+        mapStyleLoaderProvider.overrideWithValue(_NightLoader()),
+      ],
+    );
+    await tester.pumpAndSettle();
+    expect(map.config!.styleUrl, startsWith('{'));
+    expect(map.config!.styleId, 'night:test');
   });
 
   testWidgets(

@@ -528,7 +528,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsAboutHint => 'Version, developer and copyright';
 
   @override
-  String get themeSystemShort => 'Auto';
+  String get themeSystemShort => 'System';
 
   @override
   String get searchCatFuel => 'Fuel';
@@ -586,6 +586,249 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get placeOppositeSide => 'opposite side of the road';
+
+  @override
+  String get themeSun => 'Sun';
+
+  @override
+  String get themeSunHint =>
+      'Dark between sunset and sunrise at your location. Calculated on your device, no internet needed.';
+
+  @override
+  String get savedHome => 'Home';
+
+  @override
+  String get savedWork => 'Work';
+
+  @override
+  String get savedFavorite => 'Favourite';
+
+  @override
+  String get savedSetHome => 'Set home';
+
+  @override
+  String get savedSetWork => 'Set work';
+
+  @override
+  String get savedSection => 'Saved places';
+
+  @override
+  String get savedSaveTooltip => 'Save place';
+
+  @override
+  String get savedSheetTitle => 'Save as';
+
+  @override
+  String get savedChange => 'Change';
+
+  @override
+  String get savedRemove => 'Remove';
+
+  @override
+  String get savedTapToSet => 'Tap to set';
+
+  @override
+  String get savedFavoriteAdd => 'Add to favourites';
+
+  @override
+  String get savedFavoriteRemove => 'Remove from favourites';
+
+  @override
+  String savedAssigning(String kind) {
+    return 'Search for your $kind address';
+  }
+
+  @override
+  String savedDone(String label) {
+    return 'Saved as $label';
+  }
+
+  @override
+  String savedRemoved(String label) {
+    return '$label removed';
+  }
+
+  @override
+  String get onbSkip => 'Skip';
+
+  @override
+  String get onbNext => 'Next';
+
+  @override
+  String get onbStart => 'Get started';
+
+  @override
+  String get onbWelcomeTitle => 'Navigation for Malaysia';
+
+  @override
+  String get onbWelcomeBody =>
+      'Turn-by-turn guidance for car and motorcycle, with voice in Malay or English.';
+
+  @override
+  String get onbFeatureRoutes => 'Fastest, no-toll and alternative routes';
+
+  @override
+  String get onbFeatureNearby => 'Find petrol, food, surau and toilets nearby';
+
+  @override
+  String get onbFeatureReports => 'Report hazards and police on the road';
+
+  @override
+  String get onbFeatureOffline => 'Offline maps for when you have no signal';
+
+  @override
+  String get onbPrivacyTitle => 'Your privacy';
+
+  @override
+  String get onbPrivacyLocal =>
+      'No account and no tracking. Your places, history and reports stay on this phone.';
+
+  @override
+  String get onbPrivacyServers =>
+      'To search and plan routes, the app sends your search text and trip coordinates to public OpenStreetMap services. Nothing else is sent.';
+
+  @override
+  String get onbPrivacyLocation =>
+      'Location is used only while the app is open, to show where you are and to guide you.';
+
+  @override
+  String get onbSetupTitle => 'Set up in 10 seconds';
+
+  @override
+  String get onbVehicleQuestion => 'How do you travel?';
+
+  @override
+  String get onbVoiceQuestion => 'Voice language';
+
+  @override
+  String get onbAllowLocation => 'Allow location';
+
+  @override
+  String get onbLocationGranted => 'Location allowed';
+
+  @override
+  String get onbLocationHint =>
+      'You can also do this later when you start your first trip.';
+
+  @override
+  String onbPageOf(int current, int total) {
+    return 'Page $current of $total';
+  }
+
+  @override
+  String get settingsTextSize => 'Text size';
+
+  @override
+  String get settingsTextSizeHint =>
+      'Applied on top of your phone’s text size.';
+
+  @override
+  String get settingsReduceMotion => 'Reduce animations';
+
+  @override
+  String get settingsReduceMotionHint =>
+      'Fewer moving effects. Also follows your phone’s setting.';
+
+  @override
+  String get settingsHaptics => 'Vibration feedback';
+
+  @override
+  String get settingsLanguage => 'App language';
+
+  @override
+  String get settingsLanguageSystem => 'Device';
+
+  @override
+  String get settingsLanguageMalay => 'Bahasa Melayu';
+
+  @override
+  String get settingsLanguageEnglish => 'English';
+
+  @override
+  String get settingsVoice => 'Voice';
+
+  @override
+  String get settingsVoiceVolume => 'Voice volume';
+
+  @override
+  String get settingsVolumeLow => 'Low';
+
+  @override
+  String get settingsVolumeMedium => 'Medium';
+
+  @override
+  String get settingsVolumeHigh => 'High';
+
+  @override
+  String get settingsSpeechRate => 'Speaking speed';
+
+  @override
+  String get settingsRateSlow => 'Slow';
+
+  @override
+  String get settingsRateNormal => 'Normal';
+
+  @override
+  String get settingsRateFast => 'Fast';
+
+  @override
+  String get settingsReports => 'Reports';
+
+  @override
+  String get settingsReportAlerts => 'Report alerts while driving';
+
+  @override
+  String get settingsReportAlertsHint =>
+      'Announces reports ahead and asks if they are still there.';
+
+  @override
+  String get settingsPrivacy => 'Privacy';
+
+  @override
+  String get settingsLocationAllowed => 'Location access: allowed';
+
+  @override
+  String get settingsLocationNotAllowed => 'Location access: not allowed';
+
+  @override
+  String get settingsLocationOff => 'Location services are off';
+
+  @override
+  String get settingsLocationOpen => 'Open phone settings';
+
+  @override
+  String get settingsClearHistory => 'Clear search history';
+
+  @override
+  String get settingsClearSaved => 'Delete saved places';
+
+  @override
+  String get settingsClearReports => 'Delete my reports';
+
+  @override
+  String get settingsConfirmTitle => 'Delete this data?';
+
+  @override
+  String get settingsConfirmBody =>
+      'This only affects this phone and cannot be undone.';
+
+  @override
+  String get settingsConfirmDelete => 'Delete';
+
+  @override
+  String get settingsConfirmCancel => 'Cancel';
+
+  @override
+  String get settingsDeleted => 'Deleted';
+
+  @override
+  String get settingsHelp => 'Help & about';
+
+  @override
+  String get settingsWelcomeAgain => 'Show the welcome tour again';
+
+  @override
+  String get settingsLicences => 'Open-source licences';
 
   @override
   String get searchCategories => 'Search nearby';

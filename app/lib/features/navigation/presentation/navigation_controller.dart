@@ -1,13 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/location/location_service.dart';
 import '../../route_preview/data/route_planner.dart';
 import '../../route_preview/domain/route_option.dart';
 import '../../route_preview/domain/routing_failure.dart';
+import '../../reports/presentation/report_alerts_controller.dart';
 import '../../speed_limits/data/speed_limit_service.dart';
 import '../../speed_limits/domain/speed_limits.dart';
 import '../data/location_sources.dart';
@@ -19,6 +19,7 @@ import '../domain/instruction_text.dart';
 import '../domain/nav_route.dart';
 import '../domain/navigation_session.dart';
 import '../domain/vehicle_model.dart';
+import '../../../core/utils/haptics.dart';
 
 enum NavPhase { idle, active, arrived }
 
@@ -105,7 +106,10 @@ final navClockProvider = Provider<DateTime Function()>((ref) => DateTime.now);
 
 final voiceGuideProvider = Provider<VoiceGuide>((ref) {
   final guide = QueuedVoiceGuide(
-    tts: FlutterTtsEngine(),
+    tts: FlutterTtsEngine(
+      volume: () => ref.read(navigationSettingsProvider).voiceVolume,
+      speechRate: () => ref.read(navigationSettingsProvider).speechRate,
+    ),
     chimes: AudioplayersChimePlayer(),
   );
   ref.onDispose(guide.dispose);
@@ -184,6 +188,7 @@ class NavigationController extends Notifier<NavigationState> {
     );
 
     unawaited(ref.read(screenAwakeProvider).enable());
+    ref.read(reportAlertsProvider.notifier).reset();
     _speak(session.takeStartAnnouncements());
     unawaited(_loadSpeedLimits(route, query, generation, 1));
 
@@ -223,6 +228,7 @@ class NavigationController extends Notifier<NavigationState> {
     _session = null;
     _lastFix = null;
     _reroutePending = false;
+    ref.read(reportAlertsProvider.notifier).reset();
     if (state.phase != NavPhase.idle) {
       state = const NavigationState();
       try {
@@ -280,11 +286,14 @@ class NavigationController extends Notifier<NavigationState> {
       clearRerouteFailure: progress.status == NavStatus.onRoute,
     );
     _speak(update.announcements);
+    _speak(
+      ref.read(reportAlertsProvider.notifier).onFix(fix, _voiceLanguage()),
+    );
     _updateOverspeed(progress);
 
     if (progress.status == NavStatus.arrived) {
       state = state.copyWith(phase: NavPhase.arrived);
-      HapticFeedback.heavyImpact();
+      Haptics.heavy();
       _teardown();
       // Perjalanan selesai: skrin tidak perlu dijaga hidup lagi.
       unawaited(ref.read(screenAwakeProvider).disable());
@@ -452,7 +461,7 @@ class NavigationController extends Notifier<NavigationState> {
   void _speak(List<Announcement> announcements) {
     if (announcements.isEmpty) return;
     if (announcements.any((a) => a.kind == AnnouncementKind.now)) {
-      HapticFeedback.mediumImpact();
+      Haptics.medium();
     }
     if (!ref.read(navigationSettingsProvider).voiceEnabled) return;
     final voice = ref.read(voiceGuideProvider);

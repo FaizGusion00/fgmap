@@ -1007,7 +1007,7 @@ abstract class AppLocalizations {
   /// No description provided for @themeSystemShort.
   ///
   /// In ms, this message translates to:
-  /// **'Auto'**
+  /// **'Sistem'**
   String get themeSystemShort;
 
   /// No description provided for @searchCatFuel.
@@ -1123,6 +1123,456 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'seberang jalan'**
   String get placeOppositeSide;
+
+  /// No description provided for @themeSun.
+  ///
+  /// In ms, this message translates to:
+  /// **'Matahari'**
+  String get themeSun;
+
+  /// No description provided for @themeSunHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Gelap antara matahari terbenam dan terbit di lokasi anda. Dikira dalam peranti, tanpa internet.'**
+  String get themeSunHint;
+
+  /// No description provided for @savedHome.
+  ///
+  /// In ms, this message translates to:
+  /// **'Rumah'**
+  String get savedHome;
+
+  /// No description provided for @savedWork.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kerja'**
+  String get savedWork;
+
+  /// No description provided for @savedFavorite.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kegemaran'**
+  String get savedFavorite;
+
+  /// No description provided for @savedSetHome.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tetapkan Rumah'**
+  String get savedSetHome;
+
+  /// No description provided for @savedSetWork.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tetapkan Kerja'**
+  String get savedSetWork;
+
+  /// No description provided for @savedSection.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tempat disimpan'**
+  String get savedSection;
+
+  /// No description provided for @savedSaveTooltip.
+  ///
+  /// In ms, this message translates to:
+  /// **'Simpan tempat'**
+  String get savedSaveTooltip;
+
+  /// No description provided for @savedSheetTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Simpan sebagai'**
+  String get savedSheetTitle;
+
+  /// No description provided for @savedChange.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tukar'**
+  String get savedChange;
+
+  /// No description provided for @savedRemove.
+  ///
+  /// In ms, this message translates to:
+  /// **'Padam'**
+  String get savedRemove;
+
+  /// No description provided for @savedTapToSet.
+  ///
+  /// In ms, this message translates to:
+  /// **'Ketik untuk tetapkan'**
+  String get savedTapToSet;
+
+  /// No description provided for @savedFavoriteAdd.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tambah ke kegemaran'**
+  String get savedFavoriteAdd;
+
+  /// No description provided for @savedFavoriteRemove.
+  ///
+  /// In ms, this message translates to:
+  /// **'Buang daripada kegemaran'**
+  String get savedFavoriteRemove;
+
+  /// No description provided for @savedAssigning.
+  ///
+  /// In ms, this message translates to:
+  /// **'Cari alamat {kind} anda'**
+  String savedAssigning(String kind);
+
+  /// No description provided for @savedDone.
+  ///
+  /// In ms, this message translates to:
+  /// **'Disimpan sebagai {label}'**
+  String savedDone(String label);
+
+  /// No description provided for @savedRemoved.
+  ///
+  /// In ms, this message translates to:
+  /// **'{label} dipadam'**
+  String savedRemoved(String label);
+
+  /// No description provided for @onbSkip.
+  ///
+  /// In ms, this message translates to:
+  /// **'Langkau'**
+  String get onbSkip;
+
+  /// No description provided for @onbNext.
+  ///
+  /// In ms, this message translates to:
+  /// **'Seterusnya'**
+  String get onbNext;
+
+  /// No description provided for @onbStart.
+  ///
+  /// In ms, this message translates to:
+  /// **'Mula'**
+  String get onbStart;
+
+  /// No description provided for @onbWelcomeTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Navigasi untuk Malaysia'**
+  String get onbWelcomeTitle;
+
+  /// No description provided for @onbWelcomeBody.
+  ///
+  /// In ms, this message translates to:
+  /// **'Panduan belok demi belok untuk kereta dan motosikal, dengan suara dalam Bahasa Melayu atau English.'**
+  String get onbWelcomeBody;
+
+  /// No description provided for @onbFeatureRoutes.
+  ///
+  /// In ms, this message translates to:
+  /// **'Laluan terpantas, tanpa tol dan alternatif'**
+  String get onbFeatureRoutes;
+
+  /// No description provided for @onbFeatureNearby.
+  ///
+  /// In ms, this message translates to:
+  /// **'Cari minyak, makan, surau dan tandas berhampiran'**
+  String get onbFeatureNearby;
+
+  /// No description provided for @onbFeatureReports.
+  ///
+  /// In ms, this message translates to:
+  /// **'Laporkan bahaya dan polis di jalan'**
+  String get onbFeatureReports;
+
+  /// No description provided for @onbFeatureOffline.
+  ///
+  /// In ms, this message translates to:
+  /// **'Peta offline untuk bila tiada isyarat'**
+  String get onbFeatureOffline;
+
+  /// No description provided for @onbPrivacyTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Privasi anda'**
+  String get onbPrivacyTitle;
+
+  /// No description provided for @onbPrivacyLocal.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tiada akaun dan tiada penjejakan. Tempat, sejarah dan laporan anda kekal pada telefon ini.'**
+  String get onbPrivacyLocal;
+
+  /// No description provided for @onbPrivacyServers.
+  ///
+  /// In ms, this message translates to:
+  /// **'Untuk carian dan laluan, app menghantar teks carian dan koordinat perjalanan ke perkhidmatan awam OpenStreetMap. Tiada yang lain dihantar.'**
+  String get onbPrivacyServers;
+
+  /// No description provided for @onbPrivacyLocation.
+  ///
+  /// In ms, this message translates to:
+  /// **'Lokasi hanya digunakan semasa app dibuka, untuk menunjukkan kedudukan anda dan memandu anda.'**
+  String get onbPrivacyLocation;
+
+  /// No description provided for @onbSetupTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Sediakan dalam 10 saat'**
+  String get onbSetupTitle;
+
+  /// No description provided for @onbVehicleQuestion.
+  ///
+  /// In ms, this message translates to:
+  /// **'Anda bergerak dengan apa?'**
+  String get onbVehicleQuestion;
+
+  /// No description provided for @onbVoiceQuestion.
+  ///
+  /// In ms, this message translates to:
+  /// **'Bahasa suara'**
+  String get onbVoiceQuestion;
+
+  /// No description provided for @onbAllowLocation.
+  ///
+  /// In ms, this message translates to:
+  /// **'Benarkan lokasi'**
+  String get onbAllowLocation;
+
+  /// No description provided for @onbLocationGranted.
+  ///
+  /// In ms, this message translates to:
+  /// **'Lokasi dibenarkan'**
+  String get onbLocationGranted;
+
+  /// No description provided for @onbLocationHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Anda juga boleh buat ini kemudian apabila memulakan perjalanan pertama.'**
+  String get onbLocationHint;
+
+  /// No description provided for @onbPageOf.
+  ///
+  /// In ms, this message translates to:
+  /// **'Halaman {current} daripada {total}'**
+  String onbPageOf(int current, int total);
+
+  /// No description provided for @settingsTextSize.
+  ///
+  /// In ms, this message translates to:
+  /// **'Saiz teks'**
+  String get settingsTextSize;
+
+  /// No description provided for @settingsTextSizeHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Dikenakan di atas saiz teks telefon anda.'**
+  String get settingsTextSizeHint;
+
+  /// No description provided for @settingsReduceMotion.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kurangkan animasi'**
+  String get settingsReduceMotion;
+
+  /// No description provided for @settingsReduceMotionHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kurang kesan bergerak. Turut mengikut tetapan telefon anda.'**
+  String get settingsReduceMotionHint;
+
+  /// No description provided for @settingsHaptics.
+  ///
+  /// In ms, this message translates to:
+  /// **'Maklum balas getaran'**
+  String get settingsHaptics;
+
+  /// No description provided for @settingsLanguage.
+  ///
+  /// In ms, this message translates to:
+  /// **'Bahasa app'**
+  String get settingsLanguage;
+
+  /// No description provided for @settingsLanguageSystem.
+  ///
+  /// In ms, this message translates to:
+  /// **'Peranti'**
+  String get settingsLanguageSystem;
+
+  /// No description provided for @settingsLanguageMalay.
+  ///
+  /// In ms, this message translates to:
+  /// **'Bahasa Melayu'**
+  String get settingsLanguageMalay;
+
+  /// No description provided for @settingsLanguageEnglish.
+  ///
+  /// In ms, this message translates to:
+  /// **'English'**
+  String get settingsLanguageEnglish;
+
+  /// No description provided for @settingsVoice.
+  ///
+  /// In ms, this message translates to:
+  /// **'Suara'**
+  String get settingsVoice;
+
+  /// No description provided for @settingsVoiceVolume.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kelantangan suara'**
+  String get settingsVoiceVolume;
+
+  /// No description provided for @settingsVolumeLow.
+  ///
+  /// In ms, this message translates to:
+  /// **'Perlahan'**
+  String get settingsVolumeLow;
+
+  /// No description provided for @settingsVolumeMedium.
+  ///
+  /// In ms, this message translates to:
+  /// **'Sederhana'**
+  String get settingsVolumeMedium;
+
+  /// No description provided for @settingsVolumeHigh.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kuat'**
+  String get settingsVolumeHigh;
+
+  /// No description provided for @settingsSpeechRate.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kelajuan pertuturan'**
+  String get settingsSpeechRate;
+
+  /// No description provided for @settingsRateSlow.
+  ///
+  /// In ms, this message translates to:
+  /// **'Perlahan'**
+  String get settingsRateSlow;
+
+  /// No description provided for @settingsRateNormal.
+  ///
+  /// In ms, this message translates to:
+  /// **'Biasa'**
+  String get settingsRateNormal;
+
+  /// No description provided for @settingsRateFast.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pantas'**
+  String get settingsRateFast;
+
+  /// No description provided for @settingsReports.
+  ///
+  /// In ms, this message translates to:
+  /// **'Laporan'**
+  String get settingsReports;
+
+  /// No description provided for @settingsReportAlerts.
+  ///
+  /// In ms, this message translates to:
+  /// **'Amaran laporan semasa memandu'**
+  String get settingsReportAlerts;
+
+  /// No description provided for @settingsReportAlertsHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Mengumumkan laporan di hadapan dan bertanya jika masih ada.'**
+  String get settingsReportAlertsHint;
+
+  /// No description provided for @settingsPrivacy.
+  ///
+  /// In ms, this message translates to:
+  /// **'Privasi'**
+  String get settingsPrivacy;
+
+  /// No description provided for @settingsLocationAllowed.
+  ///
+  /// In ms, this message translates to:
+  /// **'Akses lokasi: dibenarkan'**
+  String get settingsLocationAllowed;
+
+  /// No description provided for @settingsLocationNotAllowed.
+  ///
+  /// In ms, this message translates to:
+  /// **'Akses lokasi: tidak dibenarkan'**
+  String get settingsLocationNotAllowed;
+
+  /// No description provided for @settingsLocationOff.
+  ///
+  /// In ms, this message translates to:
+  /// **'Perkhidmatan lokasi dimatikan'**
+  String get settingsLocationOff;
+
+  /// No description provided for @settingsLocationOpen.
+  ///
+  /// In ms, this message translates to:
+  /// **'Buka tetapan telefon'**
+  String get settingsLocationOpen;
+
+  /// No description provided for @settingsClearHistory.
+  ///
+  /// In ms, this message translates to:
+  /// **'Padam sejarah carian'**
+  String get settingsClearHistory;
+
+  /// No description provided for @settingsClearSaved.
+  ///
+  /// In ms, this message translates to:
+  /// **'Padam tempat disimpan'**
+  String get settingsClearSaved;
+
+  /// No description provided for @settingsClearReports.
+  ///
+  /// In ms, this message translates to:
+  /// **'Padam laporan saya'**
+  String get settingsClearReports;
+
+  /// No description provided for @settingsConfirmTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Padam data ini?'**
+  String get settingsConfirmTitle;
+
+  /// No description provided for @settingsConfirmBody.
+  ///
+  /// In ms, this message translates to:
+  /// **'Ini hanya melibatkan telefon ini dan tidak boleh dibatalkan.'**
+  String get settingsConfirmBody;
+
+  /// No description provided for @settingsConfirmDelete.
+  ///
+  /// In ms, this message translates to:
+  /// **'Padam'**
+  String get settingsConfirmDelete;
+
+  /// No description provided for @settingsConfirmCancel.
+  ///
+  /// In ms, this message translates to:
+  /// **'Batal'**
+  String get settingsConfirmCancel;
+
+  /// No description provided for @settingsDeleted.
+  ///
+  /// In ms, this message translates to:
+  /// **'Dipadam'**
+  String get settingsDeleted;
+
+  /// No description provided for @settingsHelp.
+  ///
+  /// In ms, this message translates to:
+  /// **'Bantuan & tentang'**
+  String get settingsHelp;
+
+  /// No description provided for @settingsWelcomeAgain.
+  ///
+  /// In ms, this message translates to:
+  /// **'Papar semula sambutan'**
+  String get settingsWelcomeAgain;
+
+  /// No description provided for @settingsLicences.
+  ///
+  /// In ms, this message translates to:
+  /// **'Lesen sumber terbuka'**
+  String get settingsLicences;
 
   /// No description provided for @searchCategories.
   ///

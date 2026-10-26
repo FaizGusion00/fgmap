@@ -1,8 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/widgets/skeleton.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/utils/geo.dart';
@@ -11,9 +12,13 @@ import '../domain/place.dart';
 import '../../route_preview/presentation/route_format.dart';
 import '../../../core/config/app_config.dart';
 import '../domain/nearby_category.dart';
+import '../../saved_places/data/saved_places_controller.dart';
+import '../../saved_places/domain/saved_place.dart';
+import '../../saved_places/presentation/save_place_sheet.dart';
 import '../domain/place_ranker.dart';
 import 'place_search_controller.dart';
 import 'search_history_controller.dart';
+import '../../../core/utils/haptics.dart';
 
 /// Destinasi pilihan. Asal laluan sentiasa lokasi GPS pengguna.
 @immutable
@@ -31,7 +36,12 @@ class TripPlannerPage extends ConsumerStatefulWidget {
     this.near,
     this.userLocation,
     this.initialDestinationQuery,
+    this.assign,
   });
+
+  /// Jika ditetapkan, tempat yang dipilih disimpan sebagai Rumah/Kerja dan perancang ditutup tanpa
+  /// mengira laluan.
+  final SavedKind? assign;
 
   /// Lokasi pengguna (jika diketahui) atau pusat peta, untuk mengutamakan hasil berhampiran.
   final GeoPoint? near;
@@ -45,6 +55,7 @@ class TripPlannerPage extends ConsumerStatefulWidget {
     GeoPoint? near,
     GeoPoint? userLocation,
     String? initialDestinationQuery,
+    SavedKind? assign,
   }) {
     return Navigator.of(context).push<TripSelection>(
       PageRouteBuilder<TripSelection>(
@@ -55,6 +66,7 @@ class TripPlannerPage extends ConsumerStatefulWidget {
           near: near,
           userLocation: userLocation,
           initialDestinationQuery: initialDestinationQuery,
+          assign: assign,
         ),
         // Naik dari bawah sambil pudar masuk; menghormati Reduce Motion (tempoh sifar).
         transitionsBuilder: (context, animation, _, child) {
@@ -124,7 +136,7 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
 
   /// Carian kategori sebenar (tag OSM di sekitar lokasi anda), bukan carian nama.
   void _searchNearby(NearbyCategory category, String label) {
-    HapticFeedback.selectionClick();
+    Haptics.selection();
     _destination = null;
     _destText.text = label;
     _destText.selection = TextSelection.collapsed(offset: label.length);
@@ -139,8 +151,28 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
     setState(() {});
   }
 
+  Future<void> _assign(Place place, SavedKind kind) async {
+    unawaited(Haptics.selection());
+    final controller = ref.read(savedPlacesControllerProvider.notifier);
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    final navigator = Navigator.of(context);
+    kind == SavedKind.home
+        ? await controller.setHome(place)
+        : await controller.setWork(place);
+    messenger?.showSnackBar(
+      SnackBar(content: Text(l10n.savedDone(savedKindLabel(l10n, kind)))),
+    );
+    if (mounted) navigator.pop();
+  }
+
   void _pick(Place place) {
-    HapticFeedback.selectionClick();
+    final assign = widget.assign;
+    if (assign != null) {
+      unawaited(_assign(place, assign));
+      return;
+    }
+    Haptics.selection();
     ref.read(searchHistoryControllerProvider.notifier).record(place);
     _destination = place;
     _destText.text = place.name;
@@ -164,7 +196,11 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(l10n.tripPlannerTitle),
+        title: Text(
+          widget.assign == null
+              ? l10n.tripPlannerTitle
+              : l10n.savedAssigning(savedKindLabel(l10n, widget.assign!)),
+        ),
         backgroundColor: theme.scaffoldBackgroundColor,
         surfaceTintColor: Colors.transparent,
       ),
@@ -210,7 +246,11 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
                           textInputAction: TextInputAction.search,
                           onChanged: _onChanged,
                           decoration: InputDecoration(
-                            hintText: l10n.searchHint,
+                            hintText: widget.assign == null
+                                ? l10n.searchHint
+                                : l10n.savedAssigning(
+                                    savedKindLabel(l10n, widget.assign!),
+                                  ),
                             border: InputBorder.none,
                             isDense: true,
                           ),
@@ -231,6 +271,7 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
                     state: search,
                     history: history,
                     userLocation: widget.userLocation,
+                    showSaved: widget.assign == null,
                     onPick: _pick,
                     onCategory: _searchNearby,
                     onClearHistory: () => ref
@@ -310,6 +351,7 @@ class _ResultsList extends StatelessWidget {
     required this.state,
     required this.history,
     required this.userLocation,
+    required this.showSaved,
     required this.onPick,
     required this.onCategory,
     required this.onClearHistory,
@@ -319,6 +361,7 @@ class _ResultsList extends StatelessWidget {
   final PlaceSearchState state;
   final List<Place> history;
   final GeoPoint? userLocation;
+  final bool showSaved;
   final ValueChanged<Place> onPick;
   final void Function(NearbyCategory category, String label) onCategory;
   final VoidCallback onClearHistory;
@@ -332,6 +375,7 @@ class _ResultsList extends StatelessWidget {
       SearchStatus.idle => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (showSaved) _SavedSection(onPick: onPick),
           _CategoryChips(onPick: onCategory),
           if (history.isEmpty)
             _Message(icon: Icons.search_rounded, text: l10n.searchPrompt)
@@ -363,6 +407,7 @@ class _ResultsList extends StatelessWidget {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
+                    trailing: showSaved ? _FavoriteStar(place: place) : null,
                     onTap: () => onPick(place),
                   ),
               ],
@@ -402,6 +447,7 @@ class _ResultsList extends StatelessWidget {
                 place: place,
                 from: state.origin ?? userLocation,
               ),
+              trailing: showSaved ? _FavoriteStar(place: place) : null,
               onTap: () => onPick(place),
             ),
         ],
@@ -411,6 +457,92 @@ class _ResultsList extends StatelessWidget {
     return ListView(
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       children: [body],
+    );
+  }
+}
+
+/// Bintang kegemaran pada hasil carian dan sejarah.
+class _FavoriteStar extends ConsumerWidget {
+  const _FavoriteStar({required this.place});
+
+  final Place place;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final saved = ref.watch(
+      savedPlacesControllerProvider.select(
+        (items) => items.any((s) => s.id == SavedPlace.favoriteId(place)),
+      ),
+    );
+    return IconButton(
+      key: ValueKey('star-${place.point.lat}-${place.point.lng}'),
+      tooltip: saved ? l10n.savedFavoriteRemove : l10n.savedFavoriteAdd,
+      icon: Icon(
+        saved ? Icons.star_rounded : Icons.star_outline_rounded,
+        color: saved ? Colors.amber.shade700 : null,
+      ),
+      onPressed: () {
+        Haptics.selection();
+        ref.read(savedPlacesControllerProvider.notifier).toggleFavorite(place);
+      },
+    );
+  }
+}
+
+/// Rumah, Kerja dan kegemaran di bahagian atas perancang (keadaan awal).
+class _SavedSection extends ConsumerWidget {
+  const _SavedSection({required this.onPick});
+
+  final ValueChanged<Place> onPick;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final saved = ref.watch(savedPlacesControllerProvider);
+    if (saved.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: Text(
+            l10n.savedSection,
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+        for (final item in saved)
+          ListTile(
+            key: ValueKey('saved-${item.id}'),
+            leading: _PlaceIcon(icon: savedKindIcon(item.kind)),
+            title: Text(
+              item.kind == SavedKind.favorite
+                  ? item.place.name
+                  : savedKindLabel(l10n, item.kind),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            subtitle: Text(
+              item.kind == SavedKind.favorite
+                  ? item.place.subtitle
+                  : item.place.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            trailing: IconButton(
+              tooltip: l10n.savedRemove,
+              icon: const Icon(Icons.close_rounded),
+              onPressed: () => ref
+                  .read(savedPlacesControllerProvider.notifier)
+                  .remove(item.id),
+            ),
+            onTap: () => onPick(item.place),
+          ),
+        const Divider(height: 24),
+      ],
     );
   }
 }

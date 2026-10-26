@@ -14,9 +14,8 @@ final reportsClockProvider = Provider<DateTime Function()>(
 
 /// Lokasi fail simpanan, disediakan oleh bootstrap (main.dart) dan di-override dalam ujian.
 final reportsRepositoryProvider = Provider<ReportsRepository>(
-  (ref) => throw UnimplementedError(
-    'reportsRepositoryProvider mesti di-override dalam main()',
-  ),
+  // Lalai: ingatan sahaja. main.dart menggantikannya dengan simpanan fail pada peranti.
+  (ref) => LocalReportsRepository(null),
 );
 
 enum CreateReportResult {
@@ -67,6 +66,12 @@ class ReportsController extends Notifier<List<Report>> {
     return outcome.isNew
         ? CreateReportResult.created
         : CreateReportResult.confirmedExisting;
+  }
+
+  /// Memadam semua laporan pada peranti ini.
+  Future<void> clear() async {
+    await ref.read(reportsRepositoryProvider).clear();
+    await refresh();
   }
 
   /// "Masih ada?" Ya/Tiada.

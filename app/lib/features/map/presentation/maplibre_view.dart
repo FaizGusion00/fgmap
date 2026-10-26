@@ -1,12 +1,15 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
 
-import 'package:flutter/foundation.dart' show defaultTargetPlatform;
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, listEquals;
 import 'package:flutter/material.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 
 import '../../../core/theme/motion.dart';
 import '../../../core/utils/geo.dart';
+import '../../reports/domain/report.dart';
+import '../../reports/presentation/report_icon.dart';
 import '../../navigation/domain/camera_planner.dart' show CameraPose;
 import 'map_frame_pump.dart';
 import 'map_view.dart';
@@ -19,6 +22,8 @@ const _destSource = 'fg-destination-src';
 const _legSource = 'fg-route-leg-src';
 const _legLayer = 'fg-route-leg';
 const _vehicleSource = 'fg-vehicle-src';
+const _reportSource = 'fg-reports-src';
+const _reportLayer = 'fg-reports';
 const _vehicleLayer = 'fg-vehicle';
 const _vehicleImage = 'fg-vehicle-icon';
 const _altLayer = 'fg-route-alt';
@@ -70,6 +75,7 @@ class _MapLibreViewState extends State<MapLibreView> {
   List<MapRouteLine> _sentAlt = const [];
   List<MapRouteLine> _sentMain = const [];
   GeoPoint? _sentDestination;
+  List<MapReport> _sentReports = const [];
   List<GeoPoint> _sentLeg = const [];
 
   // Pemangkasan laluan navigasi. `line-gradient` memangkas bahagian yang telah dilalui tanpa menjana
@@ -130,7 +136,7 @@ class _MapLibreViewState extends State<MapLibreView> {
       _enqueue(_initOverlays);
     }
 
-    if (old.styleUrl != cfg.styleUrl) {
+    if (old.styleId != cfg.styleId) {
       final styleUrl = cfg.styleUrl;
       _activeStyleUrl = styleUrl;
       _overlaysReady = false;
@@ -142,6 +148,7 @@ class _MapLibreViewState extends State<MapLibreView> {
     }
     if (_overlaysReady &&
         (!_sameRoutes(old.routes, cfg.routes) ||
+            !listEquals(old.reports, cfg.reports) ||
             !identical(old.navRoute, cfg.navRoute) ||
             !_sameLeg(old.finalLeg, cfg.finalLeg) ||
             old.destination != cfg.destination ||
@@ -239,6 +246,7 @@ class _MapLibreViewState extends State<MapLibreView> {
     final c = _controller;
     if (c == null) return;
     final colors = widget.config.colors;
+    _labelAnchor = firstSymbolLayerId(widget.config.styleUrl);
     if (MapFramePump.diagnostics) {
       // Untuk menala gaya peta (cth. kontras mod gelap) tanpa meneka id lapisan.
       debugPrint('FGDIAG lapisan gaya: ${(await c.getLayerIds()).join(', ')}');
@@ -247,6 +255,7 @@ class _MapLibreViewState extends State<MapLibreView> {
     // Buang dahulu jika wujud (onStyleLoaded boleh dipanggil lebih daripada sekali bagi gaya yang sama).
     for (final layer in [
       _vehicleLayer,
+      _reportLayer,
       _destLayer,
       _legLayer,
       _mainLayer,
@@ -257,6 +266,7 @@ class _MapLibreViewState extends State<MapLibreView> {
     }
     for (final source in [
       _vehicleSource,
+      _reportSource,
       _destSource,
       _legSource,
       _mainSource,
@@ -269,6 +279,7 @@ class _MapLibreViewState extends State<MapLibreView> {
     await _addMainSource(c);
     await c.addGeoJsonSource(_legSource, _emptyCollection);
     await c.addGeoJsonSource(_destSource, _emptyCollection);
+    await c.addGeoJsonSource(_reportSource, _emptyCollection);
     // Sumber baharu kosong: tiada apa yang dihantar lagi.
     _sentAlt = const [];
     _sentMain = const [];
@@ -276,6 +287,7 @@ class _MapLibreViewState extends State<MapLibreView> {
     _sentLeg = const [];
     _trimAlong = null;
     _sentDestination = null;
+    _sentReports = const [];
 
     // Urutan penting: alternatif di bawah, kemudian tepi laluan utama, laluan utama, sambungan akhir,
     // destinasi.
@@ -289,6 +301,7 @@ class _MapLibreViewState extends State<MapLibreView> {
         lineJoin: 'round',
         lineOpacity: 0.9,
       ),
+      belowLayerId: _labelAnchor,
       enableInteraction: false,
     );
     await _addMainLayers(c, colors);
@@ -302,6 +315,7 @@ class _MapLibreViewState extends State<MapLibreView> {
         lineJoin: 'round',
         lineDasharray: const [1.2, 1.6],
       ),
+      belowLayerId: _labelAnchor,
       enableInteraction: false,
     );
     await c.addCircleLayer(
@@ -312,6 +326,25 @@ class _MapLibreViewState extends State<MapLibreView> {
         circleColor: _hex(colors.destination),
         circleStrokeColor: _hex(colors.routeCasing),
         circleStrokeWidth: 3,
+      ),
+      enableInteraction: false,
+    );
+
+    // Penanda laporan komuniti: di atas laluan dan destinasi, di bawah kenderaan. Ikon dilukis sekali
+    // setiap jenis dan dipilih mengikut sifat `icon` pada setiap titik.
+    for (final type in ReportType.values) {
+      await c.addImage(reportImageName(type), await renderReportIcon(type));
+    }
+    await c.addSymbolLayer(
+      _reportSource,
+      _reportLayer,
+      SymbolLayerProperties(
+        iconImage: ['get', 'icon'],
+        iconSize:
+            0.45 *
+            (defaultTargetPlatform == TargetPlatform.android ? _pixelRatio : 1),
+        iconAllowOverlap: true,
+        iconIgnorePlacement: true,
       ),
       enableInteraction: false,
     );
@@ -370,6 +403,10 @@ class _MapLibreViewState extends State<MapLibreView> {
     }
   }
 
+  /// Lapisan simbol pertama dalam gaya JSON: garisan laluan dipasang DI BAWAHNYA supaya label jalan dan
+  /// tempat kekal terbaca di atas laluan. Null untuk gaya URL (id tidak diketahui): di atas semua.
+  String? _labelAnchor;
+
   Future<void> _addMainLayers(
     MapLibreMapController c,
     MapOverlayColors colors,
@@ -379,12 +416,14 @@ class _MapLibreViewState extends State<MapLibreView> {
         _mainSource,
         _casingLayer,
         _casingProps(colors, gradient ? 1.0 : null, gradient: gradient),
+        belowLayerId: _labelAnchor,
         enableInteraction: false,
       );
       await c.addLineLayer(
         _mainSource,
         _mainLayer,
         _mainProps(colors, gradient ? 1.0 : null, gradient: gradient),
+        belowLayerId: _labelAnchor,
         enableInteraction: false,
       );
     }
@@ -545,6 +584,10 @@ class _MapLibreViewState extends State<MapLibreView> {
     if (_sentDestination != cfg.destination) {
       _sentDestination = cfg.destination;
       await c.setGeoJsonSource(_destSource, _point(cfg.destination));
+    }
+    if (!listEquals(_sentReports, cfg.reports)) {
+      _sentReports = cfg.reports;
+      await c.setGeoJsonSource(_reportSource, _reportFeatures(cfg.reports));
     }
   }
 
@@ -818,4 +861,38 @@ Map<String, dynamic> _point(GeoPoint? p) {
         },
     ],
   };
+}
+
+Map<String, dynamic> _reportFeatures(List<MapReport> reports) => {
+  'type': 'FeatureCollection',
+  'features': [
+    for (final r in reports)
+      {
+        'type': 'Feature',
+        'properties': {'id': r.id, 'icon': reportImageName(r.type)},
+        'geometry': {
+          'type': 'Point',
+          'coordinates': [r.point.lng, r.point.lat],
+        },
+      },
+  ],
+};
+
+/// Id lapisan simbol pertama dalam gaya JSON, atau null jika [style] ialah URL/tidak dapat dihuraikan.
+@visibleForTesting
+String? firstSymbolLayerId(String style) {
+  if (!style.trimLeft().startsWith('{')) return null;
+  try {
+    final decoded = jsonDecode(style);
+    final layers = decoded is Map ? decoded['layers'] : null;
+    if (layers is! List) return null;
+    for (final l in layers) {
+      if (l is Map && l['type'] == 'symbol' && l['id'] is String) {
+        return l['id'] as String;
+      }
+    }
+  } on FormatException {
+    return null;
+  }
+  return null;
 }

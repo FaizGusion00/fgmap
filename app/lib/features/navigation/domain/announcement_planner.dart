@@ -17,6 +17,7 @@ enum AnnouncementKind {
   gpsLost,
   gpsBack,
   speeding,
+  report,
 }
 
 class Announcement {
