@@ -66,8 +66,8 @@ class AppLocalizationsMs extends AppLocalizations {
   String get routeCalculating => 'Mengira laluan…';
 
   @override
-  String get routeFromMapCenter =>
-      'Lokasi anda tidak tersedia, jadi laluan dikira dari pusat peta.';
+  String get routeLocationUnavailable =>
+      'Lokasi GPS yang tepat belum tersedia. Semak kebenaran lokasi dan GPS, kemudian cuba lagi.';
 
   @override
   String routeOptionLabel(int index) {

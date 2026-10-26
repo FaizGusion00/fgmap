@@ -63,11 +63,12 @@ abstract interface class LocationService {
 }
 
 class GeolocatorLocationService implements LocationService {
-  const GeolocatorLocationService();
+  GeolocatorLocationService();
 
   /// Di bawah kelajuan ini, nilai heading peranti tidak boleh dipercayai.
   static const _minSpeedForHeadingMps = 1.0;
   static const defaultMaxAccuracyMeters = 20.0;
+  LocationFix? _recentFix;
 
   @override
   Future<LocationAccess> access() async {
@@ -91,20 +92,35 @@ class GeolocatorLocationService implements LocationService {
     double maxAccuracyMeters = defaultMaxAccuracyMeters,
   }) async {
     if (await access() != LocationAccess.granted) return null;
+    final now = DateTime.now();
+    final recent = _recentFix;
+    if (recent != null &&
+        isUsableFix(recent, now, maxAccuracyMeters: maxAccuracyMeters)) {
+      return recent;
+    }
+
+    // Lokasi cache yang masih segar dan tepat boleh digunakan terus. Tunggu GPS baharu hanya
+    // apabila cache tiada atau tidak memenuhi syarat, supaya mula merancang tidak terasa lambat.
+    final last = await Geolocator.getLastKnownPosition();
+    if (last != null) {
+      final cached = _toFix(last);
+      if (isUsableFix(
+        cached,
+        DateTime.now(),
+        maxAccuracyMeters: maxAccuracyMeters,
+      )) {
+        _recentFix = cached;
+        return cached;
+      }
+    }
+
     final current = await _awaitAccurateFix(
       timeout: timeout,
       maxAccuracyMeters: maxAccuracyMeters,
     );
     if (current != null) return current;
 
-    // Fix cache berguna hanya jika masih baharu dan cukup tepat untuk tujuan ini.
-    final last = await Geolocator.getLastKnownPosition();
-    if (last == null) return null;
-    final now = DateTime.now();
-    final fallback = _toFix(last);
-    return isUsableFix(fallback, now, maxAccuracyMeters: maxAccuracyMeters)
-        ? fallback
-        : null;
+    return null;
   }
 
   Future<LocationFix?> _awaitAccurateFix({
@@ -127,12 +143,13 @@ class GeolocatorLocationService implements LocationService {
           ).listen(
             (position) {
               final fix = _toFix(position);
-              if (isUsableFix(
-                    fix,
-                    DateTime.now(),
-                    maxAccuracyMeters: maxAccuracyMeters,
-                  ) &&
-                  !result.isCompleted) {
+              final usable = isUsableFix(
+                fix,
+                DateTime.now(),
+                maxAccuracyMeters: maxAccuracyMeters,
+              );
+              if (usable) _recentFix = fix;
+              if (usable && !result.isCompleted) {
                 result.complete(fix);
               }
             },
@@ -190,7 +207,11 @@ class GeolocatorLocationService implements LocationService {
   Stream<LocationFix> navigationFixes() {
     return Geolocator.getPositionStream(
       locationSettings: navigationSettings(defaultTargetPlatform),
-    ).map(_toFix);
+    ).map((position) {
+      final fix = _toFix(position);
+      if (isUsableFix(fix, DateTime.now())) _recentFix = fix;
+      return fix;
+    });
   }
 
   /// Tetapan aliran navigasi: ketepatan tertinggi, tiada penapis jarak, dan kekal hidup apabila app
@@ -261,7 +282,7 @@ class GeolocatorLocationService implements LocationService {
 }
 
 final locationServiceProvider = Provider<LocationService>(
-  (ref) => const GeolocatorLocationService(),
+  (ref) => GeolocatorLocationService(),
 );
 
 /// Keadaan kebenaran lokasi untuk UI; dimuat semula selepas permintaan dan bila app kembali aktif.

@@ -65,8 +65,6 @@ class RouteQuery {
     required this.destination,
     this.headingDegrees,
     this.avoidTolls = false,
-    this.originIsMapCenter = false,
-    this.originLabel,
     this.destinationLabel,
   });
 
@@ -75,11 +73,7 @@ class RouteQuery {
   final int? headingDegrees;
   final bool avoidTolls;
 
-  /// Benar jika lokasi pengguna tidak tersedia dan pusat peta digunakan sebagai asal.
-  final bool originIsMapCenter;
-
-  /// Nama asal/destinasi untuk dipaparkan (daripada carian). Null = lokasi saya / titik pada peta.
-  final String? originLabel;
+  /// Nama destinasi untuk dipaparkan. Null = titik yang dipilih pada peta.
   final String? destinationLabel;
 
   RouteQuery copyWith({bool? avoidTolls}) {
@@ -88,8 +82,6 @@ class RouteQuery {
       destination: destination,
       headingDegrees: headingDegrees,
       avoidTolls: avoidTolls ?? this.avoidTolls,
-      originIsMapCenter: originIsMapCenter,
-      originLabel: originLabel,
       destinationLabel: destinationLabel,
     );
   }

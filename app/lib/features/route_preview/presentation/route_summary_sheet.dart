@@ -81,6 +81,11 @@ class RouteSummarySheet extends StatelessWidget {
                     onClear: onClear,
                     onOpenOfflineMaps: onOpenOfflineMaps,
                   ),
+                  RouteLocationUnavailable() => _LocationUnavailableBody(
+                    key: const ValueKey('location-unavailable'),
+                    onRetry: onRetry,
+                    onClear: onClear,
+                  ),
                 },
               ),
             ),
@@ -151,10 +156,12 @@ class _ReadyBody extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(right: 48),
             child: Text(
-              l10n.routeFromTo(state.query.originLabel ?? l10n.myLocation, destinationLabel),
+              l10n.routeFromTo(l10n.myLocation, destinationLabel),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
           const SizedBox(height: 6),
@@ -242,27 +249,54 @@ class _ReadyBody extends StatelessWidget {
             ),
           ],
         ),
-        if (state.query.originIsMapCenter) ...[
-          const SizedBox(height: 12),
+      ],
+    );
+  }
+}
+
+class _LocationUnavailableBody extends StatelessWidget {
+  const _LocationUnavailableBody({
+    super.key,
+    required this.onRetry,
+    required this.onClear,
+  });
+
+  final VoidCallback onRetry;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    return Semantics(
+      liveRegion: true,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(
-                Icons.info_outline_rounded,
-                size: 16,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: 6),
+              Icon(Icons.my_location_rounded, color: theme.colorScheme.error),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  l10n.routeFromMapCenter,
-                  style: theme.textTheme.bodySmall,
+                  l10n.routeLocationUnavailable,
+                  style: theme.textTheme.bodyLarge,
                 ),
               ),
             ],
           ),
+          const SizedBox(height: 8),
+          Wrap(
+            alignment: WrapAlignment.end,
+            spacing: 8,
+            children: [
+              TextButton(onPressed: onClear, child: Text(l10n.routeClear)),
+              FilledButton(onPressed: onRetry, child: Text(l10n.routeRetry)),
+            ],
+          ),
         ],
-      ],
+      ),
     );
   }
 }

@@ -26,13 +26,12 @@ void main() {
       sampleOption(durationS: 12840, distanceM: 359300, hasTolls: false),
     ],
   );
-  final readyMapCenter = RouteReady(
-    query: const RouteQuery(
-      origin: klcc,
-      destination: klia,
-      avoidTolls: true,
-      originIsMapCenter: true,
-    ),
+  const readyWithLocationUnavailable = RouteLocationUnavailable(
+    destination: klia,
+    destinationLabel: 'KLIA',
+  );
+  final readyLocation = RouteReady(
+    query: const RouteQuery(origin: klcc, destination: klia, avoidTolls: true),
     options: [sampleOption(durationS: 3840, distanceM: 69200, hasTolls: false)],
   );
   final readyOffline = RouteReady(
@@ -99,7 +98,8 @@ void main() {
             child: board([
               ready,
               readyOffline,
-              readyMapCenter,
+              readyWithLocationUnavailable,
+              readyLocation,
               loading,
               noRoute,
               offlineRequired,
@@ -154,7 +154,7 @@ void main() {
         child: board([
           ready,
           readyOffline,
-          readyMapCenter,
+          readyWithLocationUnavailable,
           loading,
           noRoute,
           unavailable,

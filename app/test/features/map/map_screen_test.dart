@@ -117,7 +117,6 @@ void main() {
 
       // Asal ialah lokasi pengguna (fix), bukan pusat peta.
       expect(repo.queries.single.origin, klcc);
-      expect(repo.queries.single.originIsMapCenter, isFalse);
 
       // Kamera memuatkan laluan dalam pandangan dengan ruang untuk lembaran bawah.
       expect(map.camera.fitToCalls, hasLength(1));
@@ -228,19 +227,22 @@ void main() {
     expect(attempts, 2);
   });
 
-  testWidgets(
-    'tanpa lokasi: laluan dikira dari pusat peta dan pengguna diberitahu',
-    (tester) async {
-      location.accessValue = LocationAccess.deniedForever;
-      await pumpScreen(tester);
+  testWidgets('tanpa GPS tepat: laluan tidak bermula dari pusat peta', (
+    tester,
+  ) async {
+    await pumpScreen(tester);
+    location.fix = null;
 
-      map.config!.onLongPress(klia);
-      await tester.pumpAndSettle();
+    map.config!.onLongPress(klia);
+    await tester.pumpAndSettle();
 
-      expect(repo.queries.single.origin, map.camera.center);
-      expect(find.textContaining('pusat peta'), findsOneWidget);
-    },
-  );
+    expect(repo.queries, isEmpty);
+    expect(
+      find.textContaining('Lokasi GPS yang tepat belum tersedia'),
+      findsOneWidget,
+    );
+    expect(map.config!.destination, klia);
+  });
 
   group('kebenaran lokasi', () {
     testWidgets('sudah diberi: tiada dialog, kamera terus ke lokasi pengguna', (

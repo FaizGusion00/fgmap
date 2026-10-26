@@ -200,11 +200,11 @@ abstract class AppLocalizations {
   /// **'Mengira laluan…'**
   String get routeCalculating;
 
-  /// No description provided for @routeFromMapCenter.
+  /// No description provided for @routeLocationUnavailable.
   ///
   /// In ms, this message translates to:
-  /// **'Lokasi anda tidak tersedia, jadi laluan dikira dari pusat peta.'**
-  String get routeFromMapCenter;
+  /// **'Lokasi GPS yang tepat belum tersedia. Semak kebenaran lokasi dan GPS, kemudian cuba lagi.'**
+  String get routeLocationUnavailable;
 
   /// No description provided for @routeOptionLabel.
   ///

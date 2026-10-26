@@ -24,7 +24,7 @@
   "locationServiceOffBody": "Location services are turned off. Turn on GPS to use your current location.",
   "routeSheetSemantics": "Route summary",
   "routeCalculating": "Calculating route…",
-  "routeFromMapCenter": "Your location is unavailable, so the route starts from the map centre.",
+  "routeLocationUnavailable": "Can't get an accurate GPS fix. Check location access and GPS, then try again.",
   "routeOptionLabel": "Route {index}",
   "routeAvoidTolls": "Avoid tolls",
   "routeHasTolls": "Has tolls",

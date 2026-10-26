@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:fgmap/core/location/location_service.dart';
 import 'package:fgmap/features/route_preview/domain/routing_failure.dart';
-import 'package:fgmap/core/utils/geo.dart';
 import 'package:fgmap/features/route_preview/data/route_planner.dart';
 import 'package:fgmap/features/route_preview/domain/route_option.dart';
 import 'package:fgmap/features/route_preview/presentation/route_preview_controller.dart';
@@ -10,8 +9,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/fakes.dart';
-
-const _mapCenter = GeoPoint(3.139, 101.687);
 
 ProviderContainer _container(
   FakeRoutePlanner repo,
@@ -38,7 +35,12 @@ void main() {
 
   setUp(() {
     location = FakeLocationService(
-      fix: const LocationFix(point: klcc, headingDegrees: 90),
+      fix: LocationFix(
+        point: klcc,
+        headingDegrees: 90,
+        accuracyMeters: 8,
+        timestamp: DateTime.now(),
+      ),
     );
   });
 
@@ -65,7 +67,7 @@ void main() {
         fireImmediately: false,
       );
 
-      await _controller(c).planTo(klia, mapCenter: _mapCenter);
+      await _controller(c).planTo(klia);
 
       expect(states.first, isA<RouteLoading>());
       final ready = _state(c) as RouteReady;
@@ -74,32 +76,48 @@ void main() {
       expect(ready.query.origin, klcc);
       expect(ready.query.headingDegrees, 90);
       expect(ready.query.destination, klia);
-      expect(ready.query.originIsMapCenter, isFalse);
       expect(repo.queries, hasLength(1));
     },
   );
 
-  test('tiada lokasi: jatuh balik ke pusat peta dan ditandakan', () async {
-    location.accessValue = LocationAccess.deniedForever;
-    final repo = FakeRoutePlanner((_) async => [sampleOption()]);
-    final c = _container(repo, location);
+  test(
+    'tiada fix GPS: tiada laluan dikira dan destinasi boleh dicuba semula',
+    () async {
+      location.accessValue = LocationAccess.deniedForever;
+      final repo = FakeRoutePlanner((_) async => [sampleOption()]);
+      final c = _container(repo, location);
 
-    await _controller(c).planTo(klia, mapCenter: _mapCenter);
+      await _controller(c).planTo(klia);
 
-    final ready = _state(c) as RouteReady;
-    expect(ready.query.origin, _mapCenter);
-    expect(ready.query.headingDegrees, isNull);
-    expect(ready.query.originIsMapCenter, isTrue);
-  });
+      expect(_state(c), isA<RouteLocationUnavailable>());
+      expect(repo.queries, isEmpty);
+
+      location
+        ..accessValue = LocationAccess.granted
+        ..fix = LocationFix(
+          point: klcc,
+          accuracyMeters: 8,
+          timestamp: DateTime.now(),
+        );
+      await _controller(c).retry();
+
+      expect(_state(c), isA<RouteReady>());
+      expect(repo.queries.single.origin, klcc);
+    },
+  );
 
   test('peranti pegun (tiada heading) tetap berjaya', () async {
-    location.fix = const LocationFix(point: klcc);
+    location.fix = LocationFix(
+      point: klcc,
+      accuracyMeters: 8,
+      timestamp: DateTime.now(),
+    );
     final c = _container(
       FakeRoutePlanner((_) async => [sampleOption()]),
       location,
     );
 
-    await _controller(c).planTo(klia, mapCenter: _mapCenter);
+    await _controller(c).planTo(klia);
 
     expect((_state(c) as RouteReady).query.headingDegrees, isNull);
   });
@@ -110,7 +128,7 @@ void main() {
     );
     final c = _container(repo, location);
 
-    await _controller(c).planTo(klia, mapCenter: _mapCenter);
+    await _controller(c).planTo(klia);
 
     final failed = _state(c) as RouteFailed;
     expect(failed.kind, RoutingFailureKind.noRoute);
@@ -128,7 +146,7 @@ void main() {
     });
     final c = _container(repo, location);
 
-    await _controller(c).planTo(klia, mapCenter: _mapCenter);
+    await _controller(c).planTo(klia);
     expect(_state(c), isA<RouteFailed>());
 
     await _controller(c).retry();
@@ -155,13 +173,13 @@ void main() {
       final repo = FakeRoutePlanner((_) async => [sampleOption()]);
       final c = _container(repo, location);
 
-      await _controller(c).planTo(klia, mapCenter: _mapCenter);
+      await _controller(c).planTo(klia);
       await _controller(c).setAvoidTolls(true);
 
       expect(repo.queries.last.avoidTolls, isTrue);
       expect((_state(c) as RouteReady).query.avoidTolls, isTrue);
 
-      await _controller(c).planTo(batuCaves, mapCenter: _mapCenter);
+      await _controller(c).planTo(batuCaves);
       expect(repo.queries.last.destination, batuCaves);
       expect(
         repo.queries.last.avoidTolls,
@@ -176,7 +194,7 @@ void main() {
       (_) async => [sampleOption(), sampleOption(durationS: 4000)],
     );
     final c = _container(repo, location);
-    await _controller(c).planTo(klia, mapCenter: _mapCenter);
+    await _controller(c).planTo(klia);
 
     _controller(c).select(1);
     expect((_state(c) as RouteReady).selectedIndex, 1);
@@ -192,7 +210,7 @@ void main() {
       FakeRoutePlanner((_) async => [sampleOption()]),
       location,
     );
-    await _controller(c).planTo(klia, mapCenter: _mapCenter);
+    await _controller(c).planTo(klia);
 
     _controller(c).clear();
 
@@ -209,9 +227,9 @@ void main() {
         final repo = FakeRoutePlanner((_) => pending.removeAt(0).future);
         final c = _container(repo, location);
 
-        final f1 = _controller(c).planTo(klia, mapCenter: _mapCenter);
+        final f1 = _controller(c).planTo(klia);
         await pumpEventQueue(); // permintaan pertama sudah sampai ke repositori
-        final f2 = _controller(c).planTo(batuCaves, mapCenter: _mapCenter);
+        final f2 = _controller(c).planTo(batuCaves);
         await pumpEventQueue();
 
         second.complete([sampleOption(durationS: 111)]);
@@ -236,9 +254,9 @@ void main() {
         final repo = FakeRoutePlanner((_) => pending.removeAt(0).future);
         final c = _container(repo, location);
 
-        final f1 = _controller(c).planTo(klia, mapCenter: _mapCenter);
+        final f1 = _controller(c).planTo(klia);
         await pumpEventQueue();
-        final f2 = _controller(c).planTo(batuCaves, mapCenter: _mapCenter);
+        final f2 = _controller(c).planTo(batuCaves);
         await pumpEventQueue();
 
         second.complete([sampleOption()]);
@@ -257,7 +275,7 @@ void main() {
         final repo = FakeRoutePlanner((_) => pending.future);
         final c = _container(repo, location);
 
-        final f = _controller(c).planTo(klia, mapCenter: _mapCenter);
+        final f = _controller(c).planTo(klia);
         await pumpEventQueue();
         expect(_state(c), isA<RouteLoading>());
 
@@ -275,8 +293,8 @@ void main() {
         final repo = FakeRoutePlanner((_) async => [sampleOption()]);
         final c = _container(repo, location);
 
-        final f1 = _controller(c).planTo(klia, mapCenter: _mapCenter);
-        final f2 = _controller(c).planTo(batuCaves, mapCenter: _mapCenter);
+        final f1 = _controller(c).planTo(klia);
+        final f2 = _controller(c).planTo(batuCaves);
         await Future.wait([f1, f2]);
 
         expect(repo.queries.map((q) => q.destination), [batuCaves]);

@@ -100,7 +100,6 @@ class _MapScreenState extends ConsumerState<MapScreen>
     _startupLocationHandled = true;
 
     final access = await ref.read(locationServiceProvider).access();
-    await ref.read(locationAccessProvider.notifier).refresh();
     if (access == LocationAccess.granted) await _flyToUser();
   }
 
@@ -158,32 +157,39 @@ class _MapScreenState extends ConsumerState<MapScreen>
   void _onLongPress(GeoPoint point) {
     HapticFeedback.mediumImpact();
     setState(() => _hintDismissed = true);
-    final center = _cameraCenterOrDefault();
-    ref
-        .read(routePreviewControllerProvider.notifier)
-        .planTo(point, mapCenter: center);
+    unawaited(_planToDestination(point));
   }
 
-  /// Membuka perancang perjalanan (cari asal dan destinasi), kemudian mengira laluan.
+  /// Membuka perancang destinasi, kemudian mengira laluan dari lokasi pengguna.
   Future<void> _openPlanner() async {
     final near = _cameraCenterOrDefault();
     final selection = await TripPlannerPage.open(context, near: near);
     if (selection == null || !mounted) return;
-    await _planSelection(selection, near);
+    await _planSelection(selection);
   }
 
-  Future<void> _planSelection(TripSelection selection, GeoPoint near) async {
+  Future<void> _planSelection(TripSelection selection) async {
     if (!mounted) return;
     setState(() => _hintDismissed = true);
+    final access = await ensureLocationAccess(context, ref);
+    if (!mounted || access != LocationAccess.granted) return;
     await ref
         .read(routePreviewControllerProvider.notifier)
         .planTo(
           selection.destination.point,
-          mapCenter: near,
-          origin: selection.origin?.point,
-          originLabel: selection.origin?.name,
           destinationLabel: selection.destination.name,
         );
+  }
+
+  Future<void> _planToDestination(
+    GeoPoint point, {
+    String? destinationLabel,
+  }) async {
+    final access = await ensureLocationAccess(context, ref);
+    if (!mounted || access != LocationAccess.granted) return;
+    await ref
+        .read(routePreviewControllerProvider.notifier)
+        .planTo(point, destinationLabel: destinationLabel);
   }
 
   Future<void> _openSharedLocation(Uri uri) async {
@@ -231,15 +237,12 @@ class _MapScreenState extends ConsumerState<MapScreen>
     final point = shared.point;
     if (point != null) {
       setState(() => _hintDismissed = true);
-      await ref
-          .read(routePreviewControllerProvider.notifier)
-          .planTo(
-            point,
-            mapCenter: near,
-            destinationLabel:
-                shared.label ??
-                '${point.lat.toStringAsFixed(5)}, ${point.lng.toStringAsFixed(5)}',
-          );
+      await _planToDestination(
+        point,
+        destinationLabel:
+            shared.label ??
+            '${point.lat.toStringAsFixed(5)}, ${point.lng.toStringAsFixed(5)}',
+      );
       return;
     }
 
@@ -250,7 +253,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
       near: near,
       initialDestinationQuery: query,
     );
-    if (selection != null) await _planSelection(selection, near);
+    if (selection != null) await _planSelection(selection);
   }
 
   static bool _isShortMapLink(Uri uri) =>
@@ -742,6 +745,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
   static GeoPoint? _destination(RoutePreviewState state) => switch (state) {
     RouteReady() => state.query.destination,
     RouteFailed() => state.query.destination,
+    RouteLocationUnavailable() => state.destination,
     RouteLoading() => state.destination,
     RouteIdle() => null,
   };

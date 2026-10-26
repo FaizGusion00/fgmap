@@ -48,6 +48,16 @@ class RouteFailed extends RoutePreviewState {
   final RoutingFailureKind kind;
 }
 
+class RouteLocationUnavailable extends RoutePreviewState {
+  const RouteLocationUnavailable({
+    required this.destination,
+    this.destinationLabel,
+  });
+
+  final GeoPoint destination;
+  final String? destinationLabel;
+}
+
 class RoutePreviewController extends Notifier<RoutePreviewState> {
   /// Nombor permintaan terkini. Keputusan permintaan lama dibuang supaya tidak menimpa yang baharu
   /// (cth. pengguna menukar destinasi atau memadam laluan semasa menunggu).
@@ -61,40 +71,30 @@ class RoutePreviewController extends Notifier<RoutePreviewState> {
 
   /// Kira laluan ke [destination].
   ///
-  /// Asal ialah [origin] jika diberi (dipilih pengguna melalui carian); jika tidak, lokasi pengguna,
-  /// dan jika itu tidak tersedia, [mapCenter]. [originLabel]/[destinationLabel] hanya untuk paparan.
-  Future<void> planTo(
-    GeoPoint destination, {
-    required GeoPoint mapCenter,
-    GeoPoint? origin,
-    String? originLabel,
-    String? destinationLabel,
-  }) async {
+  /// Asal sentiasa GPS semasa; laluan tidak dikira jika GPS tiada fix yang boleh digunakan.
+  Future<void> planTo(GeoPoint destination, {String? destinationLabel}) async {
     final seq = ++_seq;
     state = RouteLoading(destination: destination);
 
-    final RouteQuery query;
-    if (origin != null) {
-      // Asal dipilih pengguna: tiada lokasi/heading semasa yang relevan (kenderaan bukan di titik itu).
-      query = RouteQuery(
-        origin: origin,
+    final fix = await ref
+        .read(locationServiceProvider)
+        .currentFix(timeout: const Duration(seconds: 6));
+    if (seq != _seq) return;
+    if (fix == null) {
+      state = RouteLocationUnavailable(
         destination: destination,
-        avoidTolls: _avoidTolls,
-        originLabel: originLabel,
         destinationLabel: destinationLabel,
       );
-    } else {
-      final fix = await ref.read(locationServiceProvider).currentFix();
-      if (seq != _seq) return;
-      query = RouteQuery(
-        origin: fix?.point ?? mapCenter,
-        destination: destination,
-        headingDegrees: fix?.headingDegrees,
-        avoidTolls: _avoidTolls,
-        originIsMapCenter: fix == null,
-        destinationLabel: destinationLabel,
-      );
+      return;
     }
+
+    final query = RouteQuery(
+      origin: fix.point,
+      destination: destination,
+      headingDegrees: fix.headingDegrees,
+      avoidTolls: _avoidTolls,
+      destinationLabel: destinationLabel,
+    );
     await _fetch(query, seq);
   }
 
@@ -106,6 +106,14 @@ class RoutePreviewController extends Notifier<RoutePreviewState> {
   }
 
   Future<void> retry() async {
+    final current = state;
+    if (current is RouteLocationUnavailable) {
+      await planTo(
+        current.destination,
+        destinationLabel: current.destinationLabel,
+      );
+      return;
+    }
     final query = _currentQuery;
     if (query == null) return;
     await _fetch(query, ++_seq);
@@ -129,6 +137,7 @@ class RoutePreviewController extends Notifier<RoutePreviewState> {
       RouteReady() => s.query,
       RouteFailed() => s.query,
       RouteLoading() => s.query,
+      RouteLocationUnavailable() => null,
       RouteIdle() => null,
     };
   }

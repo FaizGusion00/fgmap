@@ -24,7 +24,7 @@
   "locationServiceOffBody": "Perkhidmatan lokasi dimatikan. Hidupkan GPS untuk guna lokasi semasa anda.",
   "routeSheetSemantics": "Ringkasan laluan",
   "routeCalculating": "Mengira laluan…",
-  "routeFromMapCenter": "Lokasi anda tidak tersedia, jadi laluan dikira dari pusat peta.",
+  "routeLocationUnavailable": "Lokasi GPS yang tepat belum tersedia. Semak kebenaran lokasi dan GPS, kemudian cuba lagi.",
   "routeOptionLabel": "Laluan {index}",
   "@routeOptionLabel": {
     "placeholders": {

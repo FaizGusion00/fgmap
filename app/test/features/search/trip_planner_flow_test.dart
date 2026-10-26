@@ -119,22 +119,20 @@ void main() {
       },
     );
 
-    testWidgets(
-      'cari destinasi, pilih -> kembali dengan asal null (lokasi saya)',
-      (tester) async {
-        final result = await pumpHost(tester);
-        await type(tester, 'destination-field', 'klia');
+    testWidgets('cari destinasi, pilih -> hasil hanya membawa destinasi', (
+      tester,
+    ) async {
+      final result = await pumpHost(tester);
+      await type(tester, 'destination-field', 'klia');
 
-        expect(find.text('KLIA'), findsOneWidget);
-        expect(find.text('Sepang, Selangor'), findsOneWidget);
-        await tester.tap(find.text('KLIA'));
-        await tester.pumpAndSettle();
+      expect(find.text('KLIA'), findsOneWidget);
+      expect(find.text('Sepang, Selangor'), findsOneWidget);
+      await tester.tap(find.text('KLIA'));
+      await tester.pumpAndSettle();
 
-        final sel = result.value! as TripSelection;
-        expect(sel.origin, isNull);
-        expect(sel.destination, klia1);
-      },
-    );
+      final sel = result.value! as TripSelection;
+      expect(sel.destination, klia1);
+    });
 
     testWidgets('destinasi daripada pautan dikongsi terus dicari', (
       tester,
@@ -166,58 +164,13 @@ void main() {
       },
     );
 
-    testWidgets('cari asal sendiri, kemudian destinasi', (tester) async {
+    testWidgets('asal lokasi saya tidak boleh diubah', (tester) async {
       final result = await pumpHost(tester);
 
-      await tester.tap(find.byKey(const ValueKey('origin-field')));
-      await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('use-my-location')), findsOneWidget);
-
-      await type(tester, 'origin-field', 'klcc');
-      await tester.tap(find.text('KLCC').last);
-      await tester.pumpAndSettle();
-      expect(result.value, 'belum', reason: 'destinasi belum dipilih');
-
-      await type(tester, 'destination-field', 'klia');
-      await tester.tap(find.text('KLIA'));
-      await tester.pumpAndSettle();
-
-      final sel = result.value! as TripSelection;
-      expect(sel.origin, klcc1);
-      expect(sel.destination, klia1);
-    });
-
-    testWidgets('"Lokasi saya" mengosongkan asal dan memfokus destinasi', (
-      tester,
-    ) async {
-      await pumpHost(tester);
-      await tester.tap(find.byKey(const ValueKey('origin-field')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('use-my-location')));
-      await tester.pumpAndSettle();
-
-      final dest = tester.widget<TextField>(
-        find.byKey(const ValueKey('destination-field')),
-      );
-      expect(dest.focusNode!.hasFocus, isTrue);
-    });
-
-    testWidgets('asal sama dengan destinasi tidak diterima', (tester) async {
-      final result = await pumpHost(tester);
-      geocoder.handler = (q) async => [
-        Place(name: q, subtitle: '', point: klia),
-      ];
-
-      await tester.tap(find.byKey(const ValueKey('origin-field')));
-      await tester.pumpAndSettle();
-      await type(tester, 'origin-field', 'a1');
-      await tester.tap(find.widgetWithText(ListTile, 'a1'));
-      await tester.pumpAndSettle();
-      await type(tester, 'destination-field', 'b2');
-      await tester.tap(find.widgetWithText(ListTile, 'b2'));
-      await tester.pumpAndSettle();
-
-      expect(result.value, 'belum', reason: 'titik sama: kekal pada halaman');
+      expect(find.byKey(const ValueKey('origin-field')), findsNothing);
+      expect(find.text('Lokasi saya'), findsOneWidget);
+      expect(geocoder.queries, isEmpty);
+      expect(result.value, 'belum');
     });
 
     testWidgets('tiada hasil', (tester) async {
@@ -304,42 +257,12 @@ void main() {
         expect(q.destination, klia);
         expect(q.destinationLabel, 'KLIA');
         expect(q.origin, klcc, reason: 'lokasi pengguna');
-        expect(q.originLabel, isNull);
         expect(
           find.text('Lokasi saya → KLIA'),
           findsOneWidget,
           reason: 'sheet memaparkan dari/ke',
         );
         expect(map.config!.destination, klia);
-      },
-    );
-
-    testWidgets(
-      'asal dipilih sendiri digunakan dan lokasi pengguna diabaikan',
-      (tester) async {
-        await pumpMap(tester);
-        await tester.tap(find.byKey(const ValueKey('search-pill')));
-        await tester.pumpAndSettle();
-
-        await tester.tap(find.byKey(const ValueKey('origin-field')));
-        await tester.pumpAndSettle();
-        await type(tester, 'origin-field', 'klcc');
-        await tester.tap(find.text('KLCC').last);
-        await tester.pumpAndSettle();
-        await type(tester, 'destination-field', 'klia');
-        await tester.tap(find.text('KLIA'));
-        await tester.pumpAndSettle();
-
-        final q = planner.queries.single;
-        expect(q.origin, klcc);
-        expect(q.originLabel, 'KLCC');
-        expect(
-          q.headingDegrees,
-          isNull,
-          reason: 'heading kenderaan tidak relevan untuk asal pilihan',
-        );
-        expect(q.originIsMapCenter, isFalse);
-        expect(find.text('KLCC → KLIA'), findsOneWidget);
       },
     );
 
@@ -354,7 +277,7 @@ void main() {
       expect(planner.queries, isEmpty);
     });
 
-    testWidgets('Elak tol mengekalkan asal dan nama yang dipilih', (
+    testWidgets('Elak tol mengekalkan asal GPS dan nama destinasi', (
       tester,
     ) async {
       await pumpMap(tester);

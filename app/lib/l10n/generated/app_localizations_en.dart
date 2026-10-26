@@ -66,8 +66,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get routeCalculating => 'Calculating route…';
 
   @override
-  String get routeFromMapCenter =>
-      'Your location is unavailable, so the route starts from the map centre.';
+  String get routeLocationUnavailable =>
+      'Can\'t get an accurate GPS fix. Check location access and GPS, then try again.';
 
   @override
   String routeOptionLabel(int index) {

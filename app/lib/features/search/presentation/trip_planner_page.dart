@@ -8,19 +8,16 @@ import '../domain/place.dart';
 import 'place_search_controller.dart';
 import 'search_history_controller.dart';
 
-/// Keputusan perancang perjalanan. [origin] null bermaksud "lokasi saya".
+/// Destinasi pilihan. Asal laluan sentiasa lokasi GPS pengguna.
 @immutable
 class TripSelection {
-  const TripSelection({required this.destination, this.origin});
+  const TripSelection({required this.destination});
 
-  final Place? origin;
   final Place destination;
 }
 
-enum _Field { origin, destination }
-
-/// Halaman penuh untuk memilih asal dan destinasi (Bahagian 14.4 pelan, skrin 3). Asal lalai ialah
-/// "Lokasi saya"; keduanya boleh dicari.
+/// Halaman penuh untuk memilih destinasi. Asal lalai ialah
+/// "Lokasi saya" dan tidak boleh diubah.
 class TripPlannerPage extends ConsumerStatefulWidget {
   const TripPlannerPage({super.key, this.near, this.initialDestinationQuery});
 
@@ -51,14 +48,10 @@ class TripPlannerPage extends ConsumerStatefulWidget {
 }
 
 class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
-  final _originText = TextEditingController();
   final _destText = TextEditingController();
-  final _originFocus = FocusNode();
   final _destFocus = FocusNode();
 
-  Place? _origin; // null = lokasi saya
   Place? _destination;
-  _Field _active = _Field.destination;
 
   @override
   void initState() {
@@ -76,37 +69,17 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
             .onQueryChanged(initialQuery, near: widget.near);
       });
     }
-    _originFocus.addListener(() => _onFocus(_Field.origin, _originFocus));
-    _destFocus.addListener(() => _onFocus(_Field.destination, _destFocus));
   }
 
   @override
   void dispose() {
-    _originText.dispose();
     _destText.dispose();
-    _originFocus.dispose();
     _destFocus.dispose();
     super.dispose();
   }
 
-  void _onFocus(_Field field, FocusNode node) {
-    if (!node.hasFocus) return;
-    setState(() => _active = field);
-    ref
-        .read(placeSearchControllerProvider.notifier)
-        .onQueryChanged(_textOf(field), near: widget.near);
-  }
-
-  String _textOf(_Field f) =>
-      (f == _Field.origin ? _originText : _destText).text;
-
-  void _onChanged(_Field field, String text) {
-    // Menaip menggantikan pilihan sebelumnya untuk medan itu.
-    if (field == _Field.origin) {
-      _origin = null;
-    } else {
-      _destination = null;
-    }
+  void _onChanged(String text) {
+    _destination = null;
     ref
         .read(placeSearchControllerProvider.notifier)
         .onQueryChanged(text, near: widget.near);
@@ -116,44 +89,17 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
   void _pick(Place place) {
     HapticFeedback.selectionClick();
     ref.read(searchHistoryControllerProvider.notifier).record(place);
-    if (_active == _Field.origin) {
-      _origin = place;
-      _originText.text = place.name;
-      if (_destination == null) {
-        _destFocus.requestFocus();
-      } else {
-        _finish();
-      }
-    } else {
-      _destination = place;
-      _destText.text = place.name;
-      _finish();
-    }
+    _destination = place;
+    _destText.text = place.name;
     ref.read(placeSearchControllerProvider.notifier).clear();
-    setState(() {});
-  }
-
-  void _useMyLocation() {
-    HapticFeedback.selectionClick();
-    _origin = null;
-    _originText.clear();
-    ref.read(placeSearchControllerProvider.notifier).clear();
-    if (_destination == null) {
-      _destFocus.requestFocus();
-    } else {
-      _finish();
-    }
+    _finish();
     setState(() {});
   }
 
   void _finish() {
     final destination = _destination;
     if (destination == null) return;
-    // Asal dan destinasi di titik yang sama tidak bermakna: kekal pada halaman supaya pengguna membetulkan.
-    if (_origin != null && _origin!.point == destination.point) return;
-    Navigator.of(
-      context,
-    ).pop(TripSelection(origin: _origin, destination: destination));
+    Navigator.of(context).pop(TripSelection(destination: destination));
   }
 
   @override
@@ -182,18 +128,12 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
                       _FieldBox(
                         label: l10n.tripFrom,
                         icon: Icons.my_location_rounded,
-                        child: TextField(
-                          key: const ValueKey('origin-field'),
-                          controller: _originText,
-                          focusNode: _originFocus,
-                          textInputAction: TextInputAction.next,
-                          onChanged: (t) => _onChanged(_Field.origin, t),
-                          decoration: InputDecoration(
-                            hintText: l10n.myLocation,
-                            border: InputBorder.none,
-                            isDense: true,
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            l10n.myLocation,
+                            style: theme.textTheme.bodyLarge,
                           ),
-                          style: theme.textTheme.bodyLarge,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -207,7 +147,7 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
                                 icon: const Icon(Icons.close_rounded),
                                 onPressed: () {
                                   _destText.clear();
-                                  _onChanged(_Field.destination, '');
+                                  _onChanged('');
                                 },
                               ),
                         child: TextField(
@@ -215,7 +155,7 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
                           controller: _destText,
                           focusNode: _destFocus,
                           textInputAction: TextInputAction.search,
-                          onChanged: (t) => _onChanged(_Field.destination, t),
+                          onChanged: _onChanged,
                           decoration: InputDecoration(
                             hintText: l10n.searchHint,
                             border: InputBorder.none,
@@ -237,8 +177,6 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
                   child: _ResultsList(
                     state: search,
                     history: history,
-                    showMyLocation: _active == _Field.origin,
-                    onMyLocation: _useMyLocation,
                     onPick: _pick,
                     onClearHistory: () => ref
                         .read(searchHistoryControllerProvider.notifier)
@@ -316,8 +254,6 @@ class _ResultsList extends StatelessWidget {
   const _ResultsList({
     required this.state,
     required this.history,
-    required this.showMyLocation,
-    required this.onMyLocation,
     required this.onPick,
     required this.onClearHistory,
     required this.onRetry,
@@ -325,8 +261,6 @@ class _ResultsList extends StatelessWidget {
 
   final PlaceSearchState state;
   final List<Place> history;
-  final bool showMyLocation;
-  final VoidCallback onMyLocation;
   final ValueChanged<Place> onPick;
   final VoidCallback onClearHistory;
   final VoidCallback onRetry;
@@ -335,19 +269,6 @@ class _ResultsList extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-
-    final header = <Widget>[
-      if (showMyLocation)
-        ListTile(
-          key: const ValueKey('use-my-location'),
-          leading: Icon(
-            Icons.my_location_rounded,
-            color: theme.colorScheme.primary,
-          ),
-          title: Text(l10n.myLocation),
-          onTap: onMyLocation,
-        ),
-    ];
 
     final Widget body = switch (state.status) {
       SearchStatus.idle =>
@@ -440,7 +361,7 @@ class _ResultsList extends StatelessWidget {
 
     return ListView(
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-      children: [...header, body],
+      children: [body],
     );
   }
 }
