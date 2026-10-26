@@ -349,6 +349,13 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
+  String get searchNearbyRefining => 'Mencari lebih jauh…';
+
+  @override
+  String get searchNeedLocation =>
+      'Lokasi anda belum diketahui. Hidupkan lokasi untuk mencari tempat berhampiran.';
+
+  @override
   String searchNearbySaved(String when) {
     return 'Pelayan data peta tidak dapat dicapai. Memaparkan hasil tersimpan dari $when.';
   }

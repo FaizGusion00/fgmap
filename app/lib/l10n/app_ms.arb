@@ -191,6 +191,8 @@
       }
     }
   },
+  "searchNearbyRefining": "Mencari lebih jauh…",
+  "searchNeedLocation": "Lokasi anda belum diketahui. Hidupkan lokasi untuk mencari tempat berhampiran.",
   "searchNearbySaved": "Pelayan data peta tidak dapat dicapai. Memaparkan hasil tersimpan dari {when}.",
   "@searchNearbySaved": {
     "placeholders": {

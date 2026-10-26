@@ -351,6 +351,13 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get searchNearbyRefining => 'Searching farther…';
+
+  @override
+  String get searchNeedLocation =>
+      'Your location isn’t known yet. Turn on location to find places nearby.';
+
+  @override
   String searchNearbySaved(String when) {
     return 'Can’t reach the map data servers. Showing saved results from $when.';
   }

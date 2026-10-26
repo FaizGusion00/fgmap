@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:fgmap/core/utils/geo.dart';
 import 'package:fgmap/features/search/data/nearby_search.dart';
@@ -113,4 +115,109 @@ void main() {
     await Future<void>.delayed(Duration.zero);
     expect(nearby.calls, 2);
   });
+
+  test(
+    'hasil berperingkat: sementara dipaparkan (refreshing), kosong kekal loading',
+    () async {
+      final progressive = _Progressive();
+      final container = ProviderContainer(
+        overrides: [nearbySearchProvider.overrideWithValue(progressive)],
+      );
+      addTearDown(container.dispose);
+      container.listen(placeSearchControllerProvider, (_, _) {});
+      final controller = container.read(placeSearchControllerProvider.notifier);
+
+      controller.searchNearby(
+        NearbyCategory.fuel,
+        center: center,
+        label: 'Fuel',
+        fallbackName: 'Fuel',
+      );
+      SearchStatus status() =>
+          container.read(placeSearchControllerProvider).status;
+
+      // Peringkat pertama kosong tetapi belum muktamad: bukan "tiada hasil".
+      progressive.controller.add(const NearbyResult([], refreshing: true));
+      await Future<void>.delayed(Duration.zero);
+      expect(status(), SearchStatus.loading);
+
+      const one = Place(
+        name: 'A',
+        subtitle: '',
+        point: center,
+        category: 'fuel',
+      );
+      progressive.controller.add(const NearbyResult([one], refreshing: true));
+      await Future<void>.delayed(Duration.zero);
+      var state = container.read(placeSearchControllerProvider);
+      expect(state.status, SearchStatus.results);
+      expect(state.refreshing, isTrue);
+
+      progressive.controller.add(const NearbyResult([one]));
+      await progressive.controller.close();
+      await Future<void>.delayed(Duration.zero);
+      state = container.read(placeSearchControllerProvider);
+      expect(state.refreshing, isFalse);
+
+      // Hanya hasil muktamad masuk cache sesi.
+      controller.searchNearby(
+        NearbyCategory.fuel,
+        center: center,
+        label: 'Fuel',
+        fallbackName: 'Fuel',
+      );
+      expect(progressive.calls, 1);
+    },
+  );
+
+  test('carian baharu membatalkan yang lama; hasil lapuk diabaikan', () async {
+    final progressive = _Progressive();
+    final container = ProviderContainer(
+      overrides: [nearbySearchProvider.overrideWithValue(progressive)],
+    );
+    addTearDown(container.dispose);
+    container.listen(placeSearchControllerProvider, (_, _) {});
+    final controller = container.read(placeSearchControllerProvider.notifier);
+    controller.searchNearby(
+      NearbyCategory.fuel,
+      center: center,
+      label: 'Fuel',
+      fallbackName: 'Fuel',
+    );
+    final firstCancel = progressive.lastCancel!;
+    controller.searchNearby(
+      NearbyCategory.food,
+      center: center,
+      label: 'Food',
+      fallbackName: 'Food',
+    );
+    expect(firstCancel.isCancelled, isTrue);
+  });
+}
+
+class _Progressive implements ProgressiveNearbySearch {
+  var controller = StreamController<NearbyResult>();
+  int calls = 0;
+  CancelToken? lastCancel;
+
+  @override
+  Future<NearbyResult> search(
+    NearbyCategory category,
+    GeoPoint center, {
+    required String fallbackName,
+    CancelToken? cancel,
+  }) =>
+      watch(category, center, fallbackName: fallbackName, cancel: cancel).last;
+
+  @override
+  Stream<NearbyResult> watch(
+    NearbyCategory category,
+    GeoPoint center, {
+    required String fallbackName,
+    CancelToken? cancel,
+  }) {
+    if (calls++ > 0) controller = StreamController<NearbyResult>();
+    lastCancel = cancel;
+    return controller.stream;
+  }
 }

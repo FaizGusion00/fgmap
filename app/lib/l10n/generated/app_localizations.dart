@@ -680,6 +680,18 @@ abstract class AppLocalizations {
   /// **'Tiada “{category}” ditemui berhampiran dalam OpenStreetMap. Cuba kawasan lain atau cari mengikut nama.'**
   String searchNoNearby(String category);
 
+  /// No description provided for @searchNearbyRefining.
+  ///
+  /// In ms, this message translates to:
+  /// **'Mencari lebih jauh…'**
+  String get searchNearbyRefining;
+
+  /// No description provided for @searchNeedLocation.
+  ///
+  /// In ms, this message translates to:
+  /// **'Lokasi anda belum diketahui. Hidupkan lokasi untuk mencari tempat berhampiran.'**
+  String get searchNeedLocation;
+
   /// No description provided for @searchNearbySaved.
   ///
   /// In ms, this message translates to:

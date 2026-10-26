@@ -147,6 +147,17 @@ class StubAdapter implements HttpClientAdapter {
   /// bukan `options.data` yang hanya objek Dart sebelum serialisasi.
   Object? lastBody;
 
+  /// Badan mentah (cth. borang `data=...` untuk Overpass POST), tidak dinyahkod.
+  String? lastBodyText;
+
+  static Object? _tryJson(String text) {
+    try {
+      return jsonDecode(text);
+    } on FormatException {
+      return text;
+    }
+  }
+
   @override
   Future<ResponseBody> fetch(
     RequestOptions options,
@@ -159,7 +170,9 @@ class StubAdapter implements HttpClientAdapter {
       await for (final chunk in requestStream) {
         bytes.addAll(chunk);
       }
-      lastBody = bytes.isEmpty ? null : jsonDecode(utf8.decode(bytes));
+      final text = utf8.decode(bytes);
+      lastBodyText = bytes.isEmpty ? null : text;
+      lastBody = bytes.isEmpty ? null : _tryJson(text);
     }
     return respond(options);
   }
