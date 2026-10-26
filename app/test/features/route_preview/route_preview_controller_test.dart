@@ -211,6 +211,21 @@ void main() {
     },
   );
 
+  test('radius destinasi diteruskan ke pertanyaan laluan', () async {
+    final repo = FakeRoutePlanner(
+      (_) async => [
+        sampleOption(),
+        sampleOption(durationS: 4000, hasTolls: false),
+      ],
+    );
+    final c = _container(repo, location);
+    await _controller(c).planTo(klia, radiusM: 42);
+    expect(repo.queries.single.destinationRadiusM, 42);
+    expect((_state(c) as RouteReady).selectedQuery.destinationRadiusM, 42);
+    _controller(c).select(1);
+    expect((_state(c) as RouteReady).selectedQuery.destinationRadiusM, 42);
+  });
+
   test('select menukar laluan dan menolak indeks di luar julat', () async {
     final repo = FakeRoutePlanner(
       (_) async => [sampleOption(), sampleOption(durationS: 4000)],

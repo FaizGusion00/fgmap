@@ -346,6 +346,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String searchNoNearby(String category) {
+    return 'No “$category” found nearby in OpenStreetMap. Try a larger area or search by name.';
+  }
+
+  @override
+  String searchNearbySaved(String when) {
+    return 'Can’t reach the map data servers. Showing saved results from $when.';
+  }
+
+  @override
   String get searchErrorNetwork =>
       'No internet connection. Search needs internet; you can still long-press the map to pick a destination.';
 
@@ -537,6 +547,45 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get searchCatHospital => 'Hospital';
+
+  @override
+  String get placeKindShopping => 'Shopping';
+
+  @override
+  String get placeKindFuel => 'Petrol station';
+
+  @override
+  String get placeKindFood => 'Food';
+
+  @override
+  String get placeKindWorship => 'Place of worship';
+
+  @override
+  String get placeKindHealth => 'Health';
+
+  @override
+  String get placeKindParking => 'Parking';
+
+  @override
+  String get placeKindToilets => 'Toilets';
+
+  @override
+  String get placeKindTransit => 'Bus stop or station';
+
+  @override
+  String get placeKindRoad => 'Road';
+
+  @override
+  String get placeKindArea => 'Area';
+
+  @override
+  String get placeKindAddress => 'Address';
+
+  @override
+  String get placeKindPlace => 'Place';
+
+  @override
+  String get placeOppositeSide => 'opposite side of the road';
 
   @override
   String get searchCategories => 'Search nearby';

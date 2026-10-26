@@ -21,7 +21,13 @@ Map<String, Object?> buildRouteRequest(RouteQuery query) {
         // Heading hanya jika diketahui; membolehkan re-route Fasa 1 mengelak pusingan-U mustahil.
         'heading': ?query.headingDegrees,
       },
-      {'lat': query.destination.lat, 'lon': query.destination.lng},
+      {
+        'lat': query.destination.lat,
+        'lon': query.destination.lng,
+        // Bangunan/kawasan: titik tengah mungkin paling dekat dengan jalan yang salah. Dengan `radius`,
+        // Valhalla menilai calon jalan dalam jarak ini dan memilih yang berkos paling rendah.
+        'radius': ?query.destinationRadiusM?.round(),
+      },
     ],
     'costing': query.vehicle.costing,
     // use_tolls / use_highways = 0 ialah keutamaan lembut untuk mengelak, bukan larangan mutlak (disahkan:

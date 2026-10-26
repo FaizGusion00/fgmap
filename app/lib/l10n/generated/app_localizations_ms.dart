@@ -344,6 +344,16 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
+  String searchNoNearby(String category) {
+    return 'Tiada “$category” ditemui berhampiran dalam OpenStreetMap. Cuba kawasan lain atau cari mengikut nama.';
+  }
+
+  @override
+  String searchNearbySaved(String when) {
+    return 'Pelayan data peta tidak dapat dicapai. Memaparkan hasil tersimpan dari $when.';
+  }
+
+  @override
   String get searchErrorNetwork =>
       'Tiada sambungan internet. Carian memerlukan internet; anda masih boleh tekan lama pada peta untuk memilih destinasi.';
 
@@ -536,6 +546,45 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get searchCatHospital => 'Hospital';
+
+  @override
+  String get placeKindShopping => 'Beli-belah';
+
+  @override
+  String get placeKindFuel => 'Stesen minyak';
+
+  @override
+  String get placeKindFood => 'Makan';
+
+  @override
+  String get placeKindWorship => 'Tempat ibadat';
+
+  @override
+  String get placeKindHealth => 'Kesihatan';
+
+  @override
+  String get placeKindParking => 'Parkir';
+
+  @override
+  String get placeKindToilets => 'Tandas';
+
+  @override
+  String get placeKindTransit => 'Perhentian atau stesen';
+
+  @override
+  String get placeKindRoad => 'Jalan';
+
+  @override
+  String get placeKindArea => 'Kawasan';
+
+  @override
+  String get placeKindAddress => 'Alamat';
+
+  @override
+  String get placeKindPlace => 'Tempat';
+
+  @override
+  String get placeOppositeSide => 'seberang jalan';
 
   @override
   String get searchCategories => 'Cari berhampiran';

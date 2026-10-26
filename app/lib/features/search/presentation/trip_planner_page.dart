@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/widgets/skeleton.dart';
 import 'package:flutter/services.dart';
@@ -7,6 +8,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/utils/geo.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../domain/place.dart';
+import '../../route_preview/presentation/route_format.dart';
+import '../../../core/config/app_config.dart';
+import '../domain/nearby_category.dart';
+import '../domain/place_ranker.dart';
 import 'place_search_controller.dart';
 import 'search_history_controller.dart';
 
@@ -21,15 +26,24 @@ class TripSelection {
 /// Halaman penuh untuk memilih destinasi. Asal lalai ialah
 /// "Lokasi saya" dan tidak boleh diubah.
 class TripPlannerPage extends ConsumerStatefulWidget {
-  const TripPlannerPage({super.key, this.near, this.initialDestinationQuery});
+  const TripPlannerPage({
+    super.key,
+    this.near,
+    this.userLocation,
+    this.initialDestinationQuery,
+  });
 
-  /// Pusat peta/lokasi semasa, untuk mengutamakan hasil berhampiran.
+  /// Lokasi pengguna (jika diketahui) atau pusat peta, untuk mengutamakan hasil berhampiran.
   final GeoPoint? near;
+
+  /// Lokasi GPS pengguna sahaja; jika ada, setiap hasil memaparkan jaraknya dari sini.
+  final GeoPoint? userLocation;
   final String? initialDestinationQuery;
 
   static Future<TripSelection?> open(
     BuildContext context, {
     GeoPoint? near,
+    GeoPoint? userLocation,
     String? initialDestinationQuery,
   }) {
     return Navigator.of(context).push<TripSelection>(
@@ -39,6 +53,7 @@ class TripPlannerPage extends ConsumerStatefulWidget {
         reverseTransitionDuration: const Duration(milliseconds: 180),
         pageBuilder: (_, _, _) => TripPlannerPage(
           near: near,
+          userLocation: userLocation,
           initialDestinationQuery: initialDestinationQuery,
         ),
         // Naik dari bawah sambil pudar masuk; menghormati Reduce Motion (tempoh sifar).
@@ -107,11 +122,21 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
     setState(() {});
   }
 
-  void _searchCategory(String query) {
+  /// Carian kategori sebenar (tag OSM di sekitar lokasi anda), bukan carian nama.
+  void _searchNearby(NearbyCategory category, String label) {
     HapticFeedback.selectionClick();
-    _destText.text = query;
-    _destText.selection = TextSelection.collapsed(offset: query.length);
-    _onChanged(query);
+    _destination = null;
+    _destText.text = label;
+    _destText.selection = TextSelection.collapsed(offset: label.length);
+    ref
+        .read(placeSearchControllerProvider.notifier)
+        .searchNearby(
+          category,
+          center: widget.userLocation ?? widget.near ?? AppConfig.initialCenter,
+          label: label,
+          fallbackName: label,
+        );
+    setState(() {});
   }
 
   void _pick(Place place) {
@@ -205,8 +230,9 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
                   child: _ResultsList(
                     state: search,
                     history: history,
+                    userLocation: widget.userLocation,
                     onPick: _pick,
-                    onCategory: _searchCategory,
+                    onCategory: _searchNearby,
                     onClearHistory: () => ref
                         .read(searchHistoryControllerProvider.notifier)
                         .clear(),
@@ -283,6 +309,7 @@ class _ResultsList extends StatelessWidget {
   const _ResultsList({
     required this.state,
     required this.history,
+    required this.userLocation,
     required this.onPick,
     required this.onCategory,
     required this.onClearHistory,
@@ -291,8 +318,9 @@ class _ResultsList extends StatelessWidget {
 
   final PlaceSearchState state;
   final List<Place> history;
+  final GeoPoint? userLocation;
   final ValueChanged<Place> onPick;
-  final ValueChanged<String> onCategory;
+  final void Function(NearbyCategory category, String label) onCategory;
   final VoidCallback onClearHistory;
   final VoidCallback onRetry;
 
@@ -344,7 +372,9 @@ class _ResultsList extends StatelessWidget {
       SearchStatus.loading => const _ResultsSkeleton(),
       SearchStatus.empty => _Message(
         icon: Icons.search_off_rounded,
-        text: l10n.searchNoResults(state.query),
+        text: state.nearby != null
+            ? l10n.searchNoNearby(state.query)
+            : l10n.searchNoResults(state.query),
       ),
       SearchStatus.failed => _Message(
         icon: Icons.cloud_off_rounded,
@@ -358,6 +388,7 @@ class _ResultsList extends StatelessWidget {
       ),
       SearchStatus.results => Column(
         children: [
+          if (state.cachedAt != null) _SavedBanner(at: state.cachedAt!),
           for (final place in state.results)
             ListTile(
               key: ValueKey('place-${place.point.lat}-${place.point.lng}'),
@@ -367,13 +398,10 @@ class _ResultsList extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              subtitle: place.subtitle.isEmpty
-                  ? null
-                  : Text(
-                      place.subtitle,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+              subtitle: _ResultSubtitle(
+                place: place,
+                from: state.origin ?? userLocation,
+              ),
               onTap: () => onPick(place),
             ),
         ],
@@ -383,6 +411,103 @@ class _ResultsList extends StatelessWidget {
     return ListView(
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       children: [body],
+    );
+  }
+}
+
+/// Diberitahu apabila senarai berasal dari simpanan peranti (pelayan tidak dapat dicapai).
+class _SavedBanner extends StatelessWidget {
+  const _SavedBanner({required this.at});
+
+  final DateTime at;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final when = DateFormat.MMMd(l10n.localeName).add_Hm().format(at);
+    return Semantics(
+      liveRegion: true,
+      child: Container(
+        key: const ValueKey('nearby-saved-banner'),
+        margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.cloud_off_rounded,
+              size: 20,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                l10n.searchNearbySaved(when),
+                style: theme.textTheme.bodySmall,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Baris kedua hasil carian: "Jenis · jarak" (menjelaskan kedai vs perhentian bas bernama sama),
+/// kemudian alamat.
+class _ResultSubtitle extends StatelessWidget {
+  const _ResultSubtitle({required this.place, required this.from});
+
+  final Place place;
+  final GeoPoint? from;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final kind = placeKindOf(place);
+    final kindLabel = switch (kind) {
+      PlaceKind.shopping => l10n.placeKindShopping,
+      PlaceKind.fuel => l10n.placeKindFuel,
+      PlaceKind.food => l10n.placeKindFood,
+      PlaceKind.worship => l10n.placeKindWorship,
+      PlaceKind.health => l10n.placeKindHealth,
+      PlaceKind.parking => l10n.placeKindParking,
+      PlaceKind.toilets => l10n.placeKindToilets,
+      PlaceKind.transit => l10n.placeKindTransit,
+      PlaceKind.road => l10n.placeKindRoad,
+      PlaceKind.area => l10n.placeKindArea,
+      PlaceKind.address => l10n.placeKindAddress,
+      PlaceKind.place => l10n.placeKindPlace,
+    };
+    final origin = from;
+    final parts = <String>[
+      if (kind == PlaceKind.transit && PlaceRanker.isOppositeSide(place.name))
+        '$kindLabel (${l10n.placeOppositeSide})'
+      else
+        kindLabel,
+      if (origin != null)
+        formatDistance(l10n, distanceMeters(origin, place.point).round()),
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          parts.join(' · '),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: theme.colorScheme.primary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        if (place.subtitle.isNotEmpty)
+          Text(place.subtitle, maxLines: 2, overflow: TextOverflow.ellipsis),
+      ],
     );
   }
 }
@@ -413,19 +538,31 @@ class _PlaceIcon extends StatelessWidget {
 class _CategoryChips extends StatelessWidget {
   const _CategoryChips({required this.onPick});
 
-  final ValueChanged<String> onPick;
+  final void Function(NearbyCategory category, String label) onPick;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final items = [
-      (Icons.local_gas_station_rounded, l10n.searchCatFuel),
-      (Icons.restaurant_rounded, l10n.searchCatFood),
-      (Icons.mosque_rounded, l10n.searchCatMosque),
-      (Icons.wc_rounded, l10n.searchCatToilet),
-      (Icons.local_parking_rounded, l10n.searchCatParking),
-      (Icons.local_hospital_rounded, l10n.searchCatHospital),
+      (
+        Icons.local_gas_station_rounded,
+        l10n.searchCatFuel,
+        NearbyCategory.fuel,
+      ),
+      (Icons.restaurant_rounded, l10n.searchCatFood, NearbyCategory.food),
+      (Icons.mosque_rounded, l10n.searchCatMosque, NearbyCategory.mosque),
+      (Icons.wc_rounded, l10n.searchCatToilet, NearbyCategory.toilets),
+      (
+        Icons.local_parking_rounded,
+        l10n.searchCatParking,
+        NearbyCategory.parking,
+      ),
+      (
+        Icons.local_hospital_rounded,
+        l10n.searchCatHospital,
+        NearbyCategory.hospital,
+      ),
     ];
     return Padding(
       padding: const EdgeInsets.only(top: 12),
@@ -456,7 +593,7 @@ class _CategoryChips extends StatelessWidget {
                       color: theme.colorScheme.primary,
                     ),
                     label: Text(item.$2),
-                    onPressed: () => onPick(item.$2),
+                    onPressed: () => onPick(item.$3, item.$2),
                   ),
               ],
             ),
@@ -555,6 +692,8 @@ IconData _iconFor(String? category) {
       return Icons.local_parking_rounded;
     case 'toilets':
       return Icons.wc_rounded;
+    case 'bus_stop' || 'platform':
+      return Icons.directions_bus_rounded;
     case 'station' || 'bus_station' || 'halt' || 'subway_entrance':
       return Icons.train_rounded;
     case 'mall' || 'supermarket' || 'convenience' || 'department_store':

@@ -8,6 +8,8 @@ import '../../../core/network/dio_provider.dart';
 import '../../../core/network/response_text.dart';
 import '../../../core/utils/geo.dart';
 import '../domain/place.dart';
+import 'fallback_geocoder.dart';
+import 'nominatim_geocoder.dart';
 
 abstract interface class Geocoder {
   /// Mencari tempat. [near] memberi keutamaan kepada hasil yang hampir (bukan penapis).
@@ -21,7 +23,7 @@ abstract interface class Geocoder {
 /// Carian tempat melalui Photon awam (komoot). Dasar penggunaan wajar: tiada had keras diterbitkan,
 /// tetapi pengguna diminta tidak membanjiri; pemanggil mesti debounce dan membatalkan permintaan lapuk.
 class PhotonGeocoder implements Geocoder {
-  PhotonGeocoder(this._dio, this._url, {this.limit = 12});
+  PhotonGeocoder(this._dio, this._url, {this.limit = 20});
 
   final Dio _dio;
   final String _url;
@@ -45,7 +47,13 @@ class PhotonGeocoder implements Geocoder {
           'limit': limit,
           // Photon hanya menyokong default/en/de/fr/it; "en" memberi nama tempatan jika tiada terjemahan.
           'lang': 'en',
-          if (near != null) ...{'lat': near.lat, 'lon': near.lng},
+          // Bias lokasi lembut: hasil hampir diutamakan tanpa menyingkirkan yang jauh (bukan `bbox`).
+          if (near != null) ...{
+            'lat': near.lat,
+            'lon': near.lng,
+            'zoom': 14,
+            'location_bias_scale': 0.35,
+          },
         },
         options: Options(
           responseType: ResponseType.bytes,
@@ -54,12 +62,12 @@ class PhotonGeocoder implements Geocoder {
       );
       return parsePhotonResponse(responseText(response.data));
     } on DioException catch (e) {
-      throw _failure(e);
+      throw geocodeFailureOf(e);
     }
   }
 }
 
-GeocodeFailure _failure(DioException e) {
+GeocodeFailure geocodeFailureOf(DioException e) {
   switch (e.type) {
     case DioExceptionType.connectionTimeout:
     case DioExceptionType.connectionError:
@@ -162,9 +170,36 @@ Place? _placeOf(Object? feature) {
     subtitle: subtitle,
     point: GeoPoint(lat, lng),
     category: s('osm_value'),
+    osmKey: s('osm_key'),
+    osmType: _osmType(s('osm_type')),
+    osmId: props['osm_id'] is int ? props['osm_id'] as int : null,
+    extentDiagonalM: _extentDiagonalM(props['extent']),
+    countryCode: s('countrycode')?.toUpperCase(),
   );
 }
 
-final geocoderProvider = Provider<Geocoder>(
-  (ref) => PhotonGeocoder(ref.watch(dioProvider), AppConfig.photonUrl),
-);
+String? _osmType(String? raw) {
+  final t = raw?.toUpperCase();
+  return t == 'N' || t == 'W' || t == 'R' ? t : null;
+}
+
+/// Pepenjuru kotak sempadan Photon `[barat, utara, timur, selatan]` dalam meter.
+double? _extentDiagonalM(Object? extent) {
+  if (extent is! List || extent.length < 4 || extent.any((v) => v is! num)) {
+    return null;
+  }
+  final v = extent.cast<num>();
+  final d = distanceMeters(
+    GeoPoint(v[1].toDouble(), v[0].toDouble()),
+    GeoPoint(v[3].toDouble(), v[2].toDouble()),
+  );
+  return d.isFinite && d > 0 ? d : null;
+}
+
+final geocoderProvider = Provider<Geocoder>((ref) {
+  final dio = ref.watch(dioProvider);
+  return FallbackGeocoder(
+    PhotonGeocoder(dio, AppConfig.photonUrl),
+    NominatimGeocoder(dio, AppConfig.nominatimUrl),
+  );
+});

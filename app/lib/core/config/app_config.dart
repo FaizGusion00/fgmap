@@ -24,6 +24,29 @@ abstract final class AppConfig {
     defaultValue: 'https://photon.komoot.io/api/',
   );
 
+  /// Fallback carian (Nominatim awam). Hanya apabila Photon gagal atau tiada hasil: dasar Nominatim
+  /// melarang autocomplete dan mengehadkan 1 permintaan sesaat. Boleh ditimpa dengan hos sendiri.
+  static const nominatimUrl = String.fromEnvironment(
+    'NOMINATIM_URL',
+    defaultValue: 'https://nominatim.openstreetmap.org/search',
+  );
+
+  /// Cermin Overpass (dipisahkan koma) untuk carian kategori berdekatan. Percuma tanpa kunci; dasar
+  /// penggunaan: kurang 10,000 pertanyaan sehari, UA berpengenalan, tiada permintaan selari. Dicuba
+  /// mengikut tertib; cermin seterusnya hanya apabila yang sebelumnya gagal.
+  static const _overpassRaw = String.fromEnvironment(
+    'OVERPASS_URLS',
+    defaultValue:
+        'https://overpass-api.de/api/interpreter,'
+        'https://overpass.private.coffee/api/interpreter,'
+        'https://overpass.openstreetmap.fr/api/interpreter',
+  );
+  static List<String> get overpassUrls => _overpassRaw
+      .split(',')
+      .map((u) => u.trim())
+      .where((u) => u.isNotEmpty)
+      .toList();
+
   /// URL manifest peta offline yang diterbitkan oleh workflow tiles. Boleh ditukar untuk pelayan
   /// pembangunan setempat atau hos sendiri dengan `--dart-define=OFFLINE_MANIFEST_URL=...`.
   static const offlineManifestUrl = String.fromEnvironment(

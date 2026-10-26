@@ -324,8 +324,12 @@ class _MapScreenState extends ConsumerState<MapScreen>
 
   /// Membuka perancang destinasi, kemudian mengira laluan dari lokasi pengguna.
   Future<void> _openPlanner() async {
-    final near = _cameraCenterOrDefault();
-    final selection = await TripPlannerPage.open(context, near: near);
+    final user = _userPoint();
+    final selection = await TripPlannerPage.open(
+      context,
+      near: user ?? _cameraCenterOrDefault(),
+      userLocation: user,
+    );
     if (selection == null || !mounted) return;
     await _planSelection(selection);
   }
@@ -340,6 +344,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
         .planTo(
           selection.destination.point,
           destinationLabel: selection.destination.name,
+          radiusM: selection.destination.routingRadiusM,
         );
   }
 
@@ -396,7 +401,8 @@ class _MapScreenState extends ConsumerState<MapScreen>
       return;
     }
 
-    final near = _cameraCenterOrDefault();
+    final user = _userPoint();
+    final near = user ?? _cameraCenterOrDefault();
     final point = shared.point;
     if (point != null) {
       setState(() => _hintDismissed = true);
@@ -414,6 +420,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
     final selection = await TripPlannerPage.open(
       context,
       near: near,
+      userLocation: user,
       initialDestinationQuery: query,
     );
     if (selection != null) await _planSelection(selection);
@@ -604,6 +611,12 @@ class _MapScreenState extends ConsumerState<MapScreen>
       NavCameraMode.flat => NavCameraMode.auto,
     };
     return controller.setCameraMode(next);
+  }
+
+  /// Lokasi GPS yang sah (tidak lapuk), untuk mengutamakan hasil carian berhampiran dan memaparkan jarak.
+  GeoPoint? _userPoint() {
+    final tracked = _tracker.location.value;
+    return tracked == null || tracked.stale ? null : tracked.point;
   }
 
   GeoPoint _cameraCenterOrDefault() {

@@ -4,7 +4,9 @@ import 'package:fgmap/core/storage/preferences.dart';
 import 'package:fgmap/core/utils/geo.dart';
 import 'package:fgmap/features/map/presentation/map_screen.dart';
 import 'package:fgmap/features/route_preview/data/route_planner.dart';
+import 'package:fgmap/features/search/data/nearby_search.dart';
 import 'package:fgmap/features/search/data/photon_geocoder.dart';
+import 'package:fgmap/features/search/domain/nearby_category.dart';
 import 'package:fgmap/features/search/domain/place.dart';
 import 'package:fgmap/features/search/presentation/place_search_controller.dart';
 import 'package:fgmap/features/search/presentation/trip_planner_page.dart';
@@ -72,6 +74,8 @@ void main() {
   Future<ValueNotifier<Object?>> pumpHost(
     WidgetTester tester, {
     String? initialDestinationQuery,
+    GeoPoint? userLocation,
+    List<Override> extraOverrides = const [],
   }) async {
     usePhoneSurface(tester);
     reduceMotion(tester);
@@ -84,6 +88,7 @@ void main() {
             child: ElevatedButton(
               onPressed: () async => result.value = await TripPlannerPage.open(
                 context,
+                userLocation: userLocation,
                 initialDestinationQuery: initialDestinationQuery,
               ),
               child: const Text('buka'),
@@ -91,7 +96,7 @@ void main() {
           ),
         ),
       ),
-      overrides: overrides(),
+      overrides: [...overrides(), ...extraOverrides],
     );
     await tester.tap(find.text('buka'));
     await tester.pumpAndSettle();
@@ -134,6 +139,42 @@ void main() {
       final sel = result.value! as TripSelection;
       expect(sel.destination, klia1);
     });
+
+    testWidgets(
+      'hasil memaparkan jenis dan jarak; perhentian seberang jalan dilabel',
+      (tester) async {
+        geocoder.handler = (_) async => [
+          const Place(
+            name: "Lotus's Puncak Alam",
+            subtitle: 'Puncak Alam, Selangor',
+            point: GeoPoint(3.2262, 101.4278),
+            category: 'supermarket',
+            osmKey: 'shop',
+            osmType: 'W',
+          ),
+          const Place(
+            name: 'Lotus Puncak Alam (Opp)',
+            subtitle: 'Puncak Alam, Selangor',
+            point: GeoPoint(3.2295, 101.4262),
+            category: 'bus_stop',
+            osmKey: 'highway',
+            osmType: 'N',
+          ),
+        ];
+        await pumpHost(tester, userLocation: const GeoPoint(3.2290, 101.4260));
+        await type(tester, 'destination-field', 'lotus puncak alam');
+
+        expect(find.text('Beli-belah · 370 m'), findsOneWidget);
+        expect(
+          find.textContaining('Perhentian atau stesen (seberang jalan)'),
+          findsOneWidget,
+        );
+        // Kedai di atas walaupun perhentian "(Opp)" lebih dekat.
+        final shop = tester.getTopLeft(find.text("Lotus's Puncak Alam")).dy;
+        final stop = tester.getTopLeft(find.text('Lotus Puncak Alam (Opp)')).dy;
+        expect(shop, lessThan(stop));
+      },
+    );
 
     testWidgets('destinasi daripada pautan dikongsi terus dicari', (
       tester,
@@ -327,22 +368,104 @@ void main() {
   });
 
   group('Pintasan kategori', () {
-    testWidgets('mengetuk kategori mengisi medan dan mencari', (tester) async {
-      await pumpHost(tester);
+    testWidgets('mengetuk kategori mencari tag OSM berhampiran, bukan nama', (
+      tester,
+    ) async {
+      final nearby = _FakeNearby();
+      final result = await pumpHost(
+        tester,
+        userLocation: const GeoPoint(3.2290, 101.4260),
+        extraOverrides: [nearbySearchProvider.overrideWithValue(nearby)],
+      );
       expect(find.text('Masjid'), findsOneWidget);
       expect(find.text('Stesen minyak'), findsOneWidget);
 
-      await tester.tap(find.text('Masjid'));
-      await tester.pump(_debounce * 3);
+      await tester.tap(find.text('Stesen minyak'));
+      await tester.pump();
       await tester.pump();
 
-      expect(geocoder.queries, contains('Masjid'));
+      // Tiada carian nama "Stesen minyak"; carian kategori dengan lokasi pengguna sebagai pusat.
+      expect(geocoder.queries, isEmpty);
+      expect(nearby.calls.single.$1, NearbyCategory.fuel);
+      expect(nearby.calls.single.$2, const GeoPoint(3.2290, 101.4260));
       final field = tester.widget<TextField>(
         find.byKey(const ValueKey('destination-field')),
       );
-      expect(field.controller!.text, 'Masjid');
-      // Pintasan hilang apabila keputusan carian dipaparkan.
+      expect(field.controller!.text, 'Stesen minyak');
       expect(find.text('Cari berhampiran'), findsNothing);
+
+      // Hasil: jenis + jarak, dan boleh dipilih sebagai destinasi.
+      expect(find.text('Petronas Puncak Alam'), findsOneWidget);
+      expect(find.textContaining('Stesen minyak · '), findsOneWidget);
+      await tester.tap(find.text('Petronas Puncak Alam'));
+      await tester.pumpAndSettle();
+      expect(
+        (result.value! as TripSelection).destination.name,
+        'Petronas Puncak Alam',
+      );
+    });
+
+    testWidgets('simpanan lama dilabel apabila pelayan tidak dapat dicapai', (
+      tester,
+    ) async {
+      await pumpHost(
+        tester,
+        extraOverrides: [
+          nearbySearchProvider.overrideWithValue(
+            _FakeNearby(cachedAt: DateTime(2026, 10, 20, 9, 30)),
+          ),
+        ],
+      );
+      await tester.tap(find.text('Stesen minyak'));
+      await tester.pump();
+      await tester.pump();
+      expect(find.byKey(const ValueKey('nearby-saved-banner')), findsOneWidget);
+      expect(find.textContaining('tersimpan'), findsOneWidget);
+      expect(find.text('Petronas Puncak Alam'), findsOneWidget);
+    });
+
+    testWidgets('tiada hasil berhampiran memaparkan mesej khusus', (
+      tester,
+    ) async {
+      await pumpHost(
+        tester,
+        extraOverrides: [
+          nearbySearchProvider.overrideWithValue(_FakeNearby(empty: true)),
+        ],
+      );
+      await tester.tap(find.text('Masjid'));
+      await tester.pump();
+      await tester.pump();
+      expect(find.textContaining('ditemui berhampiran'), findsOneWidget);
     });
   });
+}
+
+class _FakeNearby implements NearbySearch {
+  _FakeNearby({this.empty = false, this.cachedAt});
+
+  final bool empty;
+  final DateTime? cachedAt;
+  final List<(NearbyCategory, GeoPoint)> calls = [];
+
+  @override
+  Future<NearbyResult> search(
+    NearbyCategory category,
+    GeoPoint center, {
+    required String fallbackName,
+    CancelToken? cancel,
+  }) async {
+    calls.add((category, center));
+    if (empty) return const NearbyResult([]);
+    return NearbyResult(cachedAt: cachedAt, const [
+      Place(
+        name: 'Petronas Puncak Alam',
+        subtitle: 'Persiaran Puncak Alam',
+        point: GeoPoint(3.2300, 101.4270),
+        category: 'fuel',
+        osmKey: 'amenity',
+        osmType: 'N',
+      ),
+    ]);
+  }
 }

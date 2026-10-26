@@ -674,6 +674,18 @@ abstract class AppLocalizations {
   /// **'Tiada hasil untuk “{query}”.'**
   String searchNoResults(String query);
 
+  /// No description provided for @searchNoNearby.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tiada “{category}” ditemui berhampiran dalam OpenStreetMap. Cuba kawasan lain atau cari mengikut nama.'**
+  String searchNoNearby(String category);
+
+  /// No description provided for @searchNearbySaved.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pelayan data peta tidak dapat dicapai. Memaparkan hasil tersimpan dari {when}.'**
+  String searchNearbySaved(String when);
+
   /// No description provided for @searchErrorNetwork.
   ///
   /// In ms, this message translates to:
@@ -1033,6 +1045,84 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'Hospital'**
   String get searchCatHospital;
+
+  /// No description provided for @placeKindShopping.
+  ///
+  /// In ms, this message translates to:
+  /// **'Beli-belah'**
+  String get placeKindShopping;
+
+  /// No description provided for @placeKindFuel.
+  ///
+  /// In ms, this message translates to:
+  /// **'Stesen minyak'**
+  String get placeKindFuel;
+
+  /// No description provided for @placeKindFood.
+  ///
+  /// In ms, this message translates to:
+  /// **'Makan'**
+  String get placeKindFood;
+
+  /// No description provided for @placeKindWorship.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tempat ibadat'**
+  String get placeKindWorship;
+
+  /// No description provided for @placeKindHealth.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kesihatan'**
+  String get placeKindHealth;
+
+  /// No description provided for @placeKindParking.
+  ///
+  /// In ms, this message translates to:
+  /// **'Parkir'**
+  String get placeKindParking;
+
+  /// No description provided for @placeKindToilets.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tandas'**
+  String get placeKindToilets;
+
+  /// No description provided for @placeKindTransit.
+  ///
+  /// In ms, this message translates to:
+  /// **'Perhentian atau stesen'**
+  String get placeKindTransit;
+
+  /// No description provided for @placeKindRoad.
+  ///
+  /// In ms, this message translates to:
+  /// **'Jalan'**
+  String get placeKindRoad;
+
+  /// No description provided for @placeKindArea.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kawasan'**
+  String get placeKindArea;
+
+  /// No description provided for @placeKindAddress.
+  ///
+  /// In ms, this message translates to:
+  /// **'Alamat'**
+  String get placeKindAddress;
+
+  /// No description provided for @placeKindPlace.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tempat'**
+  String get placeKindPlace;
+
+  /// No description provided for @placeOppositeSide.
+  ///
+  /// In ms, this message translates to:
+  /// **'seberang jalan'**
+  String get placeOppositeSide;
 
   /// No description provided for @searchCategories.
   ///

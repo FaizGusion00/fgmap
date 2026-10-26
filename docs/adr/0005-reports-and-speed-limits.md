@@ -28,6 +28,7 @@ laporan komuniti dan trafik langsung, kerana kedua-duanya memerlukan tempat simp
 
 - **Carian kategori berdekatan (petrol, makan, surau):** Photon berasaskan nama dan tidak sesuai; Overpass ialah
   kaedah piawai tetapi semua cermin awam tamat masa dari mesin pembangunan, jadi ia tidak dapat disahkan.
+  (Kemudian dilaksanakan dengan Overpass + fallback Nominatim, lihat ADR 0007.)
 - **Amaran kamera kelajuan:** perlu semakan undang-undang dan polisi store (Bahagian 16.3).
 
 ## Akibat

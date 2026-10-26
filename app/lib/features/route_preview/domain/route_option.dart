@@ -130,6 +130,7 @@ class RouteQuery {
     this.vehicle = RouteVehicle.car,
     this.destinationLabel,
     this.alternates = 2,
+    this.destinationRadiusM,
   });
 
   final GeoPoint origin;
@@ -144,6 +145,10 @@ class RouteQuery {
 
   /// Bilangan laluan alternatif tambahan yang diminta daripada Valhalla (0 = hanya satu laluan).
   final int alternates;
+
+  /// Jarak carian calon jalan di sekitar destinasi (meter), untuk bangunan/kawasan yang titik
+  /// tengahnya bukan pintu masuk. Null = Valhalla memilih tepi jalan terdekat.
+  final double? destinationRadiusM;
 
   RouteQuery copyWith({
     bool? avoidTolls,
@@ -160,6 +165,7 @@ class RouteQuery {
       vehicle: vehicle ?? this.vehicle,
       destinationLabel: destinationLabel,
       alternates: alternates ?? this.alternates,
+      destinationRadiusM: destinationRadiusM,
     );
   }
 
@@ -175,6 +181,7 @@ class RouteQuery {
       vehicle: vehicle,
       destinationLabel: destinationLabel,
       alternates: 0,
+      destinationRadiusM: destinationRadiusM,
     );
   }
 }
