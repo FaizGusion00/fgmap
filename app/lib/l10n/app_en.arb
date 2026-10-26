@@ -141,6 +141,7 @@
   "navRerouting": "Recalculating…",
   "navRerouteRetry": "No connection. Retrying…",
   "navGpsWeak": "Weak GPS signal",
+  "navGpsEstimating": "No GPS signal. Position is estimated.",
   "navLocationLost": "Location unavailable. Check location permission.",
   "navRecenter": "Recenter",
   "navMute": "Mute voice",

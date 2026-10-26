@@ -224,6 +224,7 @@
   "navRerouting": "Mengira semula laluan…",
   "navRerouteRetry": "Tiada sambungan. Mencuba semula…",
   "navGpsWeak": "Isyarat GPS lemah",
+  "navGpsEstimating": "Tiada isyarat GPS. Kedudukan dianggar.",
   "navLocationLost": "Lokasi tidak dapat diakses. Semak kebenaran lokasi.",
   "navRecenter": "Pusatkan",
   "navMute": "Senyapkan suara",

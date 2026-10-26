@@ -808,6 +808,10 @@ CREATE TABLE user_settings (
 | **5. Beta & lancar** | Ujian lapangan, beban, keselamatan, PDPA/polis privasi, kajian store | TestFlight / Play beta → lancar | 4-6 minggu |
 | **6. Selepas lancar** | Ciri berstatus 'Selepas MVP' dan 'Kemudian' (Bahagian 16): peta offline, kongsi ETA, widget, CarPlay/Android Auto, perintah suara | Pertumbuhan | Berterusan |
 
+**Status (0.4.0):** Fasa 0-1 siap. Fasa 2 dilaksanakan tanpa backend kongsi (laporan tempatan, tiada akaun). Fasa 3: tema
+(termasuk Auto-ikut-matahari), onboarding, tetapan, peta gelap, aksesibiliti asas dan mikro-interaksi siap; animasi lanjutan
+(draw-in laluan, radial, Hero) dan profil 60 fps pada peranti belum. Fasa 4-5 belum. Lihat ADR 0008.
+
 **Jumlah MVP bawa ke beta:** kira-kira **4-6 bulan** untuk seorang pembangun. Jangkaan sebenar bergantung pengalaman, kerumitan Valhalla/tile, dan skop yang dikekalkan.
 
 ---

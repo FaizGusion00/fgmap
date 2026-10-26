@@ -405,6 +405,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navGpsWeak => 'Weak GPS signal';
 
   @override
+  String get navGpsEstimating => 'No GPS signal. Position is estimated.';
+
+  @override
   String get navLocationLost =>
       'Location unavailable. Check location permission.';
 

@@ -404,6 +404,9 @@ class AppLocalizationsMs extends AppLocalizations {
   String get navGpsWeak => 'Isyarat GPS lemah';
 
   @override
+  String get navGpsEstimating => 'Tiada isyarat GPS. Kedudukan dianggar.';
+
+  @override
   String get navLocationLost =>
       'Lokasi tidak dapat diakses. Semak kebenaran lokasi.';
 
