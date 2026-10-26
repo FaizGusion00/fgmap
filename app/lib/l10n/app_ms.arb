@@ -342,6 +342,36 @@
       }
     }
   },
+  "onbSkip": "Langkau",
+  "onbNext": "Seterusnya",
+  "onbStart": "Mula",
+  "onbWelcomeTitle": "Navigasi untuk Malaysia",
+  "onbWelcomeBody": "Panduan belok demi belok untuk kereta dan motosikal, dengan suara dalam Bahasa Melayu atau English.",
+  "onbFeatureRoutes": "Laluan terpantas, tanpa tol dan alternatif",
+  "onbFeatureNearby": "Cari minyak, makan, surau dan tandas berhampiran",
+  "onbFeatureReports": "Laporkan bahaya dan polis di jalan",
+  "onbFeatureOffline": "Peta offline untuk bila tiada isyarat",
+  "onbPrivacyTitle": "Privasi anda",
+  "onbPrivacyLocal": "Tiada akaun dan tiada penjejakan. Tempat, sejarah dan laporan anda kekal pada telefon ini.",
+  "onbPrivacyServers": "Untuk carian dan laluan, app menghantar teks carian dan koordinat perjalanan ke perkhidmatan awam OpenStreetMap. Tiada yang lain dihantar.",
+  "onbPrivacyLocation": "Lokasi hanya digunakan semasa app dibuka, untuk menunjukkan kedudukan anda dan memandu anda.",
+  "onbSetupTitle": "Sediakan dalam 10 saat",
+  "onbVehicleQuestion": "Anda bergerak dengan apa?",
+  "onbVoiceQuestion": "Bahasa suara",
+  "onbAllowLocation": "Benarkan lokasi",
+  "onbLocationGranted": "Lokasi dibenarkan",
+  "onbLocationHint": "Anda juga boleh buat ini kemudian apabila memulakan perjalanan pertama.",
+  "onbPageOf": "Halaman {current} daripada {total}",
+  "@onbPageOf": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "searchCategories": "Cari berhampiran",
   "reportTitle": "Laporkan di sini",
   "reportButtonTooltip": "Laporkan",

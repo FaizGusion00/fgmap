@@ -648,6 +648,74 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
+  String get onbSkip => 'Langkau';
+
+  @override
+  String get onbNext => 'Seterusnya';
+
+  @override
+  String get onbStart => 'Mula';
+
+  @override
+  String get onbWelcomeTitle => 'Navigasi untuk Malaysia';
+
+  @override
+  String get onbWelcomeBody =>
+      'Panduan belok demi belok untuk kereta dan motosikal, dengan suara dalam Bahasa Melayu atau English.';
+
+  @override
+  String get onbFeatureRoutes => 'Laluan terpantas, tanpa tol dan alternatif';
+
+  @override
+  String get onbFeatureNearby =>
+      'Cari minyak, makan, surau dan tandas berhampiran';
+
+  @override
+  String get onbFeatureReports => 'Laporkan bahaya dan polis di jalan';
+
+  @override
+  String get onbFeatureOffline => 'Peta offline untuk bila tiada isyarat';
+
+  @override
+  String get onbPrivacyTitle => 'Privasi anda';
+
+  @override
+  String get onbPrivacyLocal =>
+      'Tiada akaun dan tiada penjejakan. Tempat, sejarah dan laporan anda kekal pada telefon ini.';
+
+  @override
+  String get onbPrivacyServers =>
+      'Untuk carian dan laluan, app menghantar teks carian dan koordinat perjalanan ke perkhidmatan awam OpenStreetMap. Tiada yang lain dihantar.';
+
+  @override
+  String get onbPrivacyLocation =>
+      'Lokasi hanya digunakan semasa app dibuka, untuk menunjukkan kedudukan anda dan memandu anda.';
+
+  @override
+  String get onbSetupTitle => 'Sediakan dalam 10 saat';
+
+  @override
+  String get onbVehicleQuestion => 'Anda bergerak dengan apa?';
+
+  @override
+  String get onbVoiceQuestion => 'Bahasa suara';
+
+  @override
+  String get onbAllowLocation => 'Benarkan lokasi';
+
+  @override
+  String get onbLocationGranted => 'Lokasi dibenarkan';
+
+  @override
+  String get onbLocationHint =>
+      'Anda juga boleh buat ini kemudian apabila memulakan perjalanan pertama.';
+
+  @override
+  String onbPageOf(int current, int total) {
+    return 'Halaman $current daripada $total';
+  }
+
+  @override
   String get searchCategories => 'Cari berhampiran';
 
   @override

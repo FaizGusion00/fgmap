@@ -649,6 +649,73 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get onbSkip => 'Skip';
+
+  @override
+  String get onbNext => 'Next';
+
+  @override
+  String get onbStart => 'Get started';
+
+  @override
+  String get onbWelcomeTitle => 'Navigation for Malaysia';
+
+  @override
+  String get onbWelcomeBody =>
+      'Turn-by-turn guidance for car and motorcycle, with voice in Malay or English.';
+
+  @override
+  String get onbFeatureRoutes => 'Fastest, no-toll and alternative routes';
+
+  @override
+  String get onbFeatureNearby => 'Find petrol, food, surau and toilets nearby';
+
+  @override
+  String get onbFeatureReports => 'Report hazards and police on the road';
+
+  @override
+  String get onbFeatureOffline => 'Offline maps for when you have no signal';
+
+  @override
+  String get onbPrivacyTitle => 'Your privacy';
+
+  @override
+  String get onbPrivacyLocal =>
+      'No account and no tracking. Your places, history and reports stay on this phone.';
+
+  @override
+  String get onbPrivacyServers =>
+      'To search and plan routes, the app sends your search text and trip coordinates to public OpenStreetMap services. Nothing else is sent.';
+
+  @override
+  String get onbPrivacyLocation =>
+      'Location is used only while the app is open, to show where you are and to guide you.';
+
+  @override
+  String get onbSetupTitle => 'Set up in 10 seconds';
+
+  @override
+  String get onbVehicleQuestion => 'How do you travel?';
+
+  @override
+  String get onbVoiceQuestion => 'Voice language';
+
+  @override
+  String get onbAllowLocation => 'Allow location';
+
+  @override
+  String get onbLocationGranted => 'Location allowed';
+
+  @override
+  String get onbLocationHint =>
+      'You can also do this later when you start your first trip.';
+
+  @override
+  String onbPageOf(int current, int total) {
+    return 'Page $current of $total';
+  }
+
+  @override
   String get searchCategories => 'Search nearby';
 
   @override

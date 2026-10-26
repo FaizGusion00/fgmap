@@ -1232,6 +1232,126 @@ abstract class AppLocalizations {
   /// **'{label} dipadam'**
   String savedRemoved(String label);
 
+  /// No description provided for @onbSkip.
+  ///
+  /// In ms, this message translates to:
+  /// **'Langkau'**
+  String get onbSkip;
+
+  /// No description provided for @onbNext.
+  ///
+  /// In ms, this message translates to:
+  /// **'Seterusnya'**
+  String get onbNext;
+
+  /// No description provided for @onbStart.
+  ///
+  /// In ms, this message translates to:
+  /// **'Mula'**
+  String get onbStart;
+
+  /// No description provided for @onbWelcomeTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Navigasi untuk Malaysia'**
+  String get onbWelcomeTitle;
+
+  /// No description provided for @onbWelcomeBody.
+  ///
+  /// In ms, this message translates to:
+  /// **'Panduan belok demi belok untuk kereta dan motosikal, dengan suara dalam Bahasa Melayu atau English.'**
+  String get onbWelcomeBody;
+
+  /// No description provided for @onbFeatureRoutes.
+  ///
+  /// In ms, this message translates to:
+  /// **'Laluan terpantas, tanpa tol dan alternatif'**
+  String get onbFeatureRoutes;
+
+  /// No description provided for @onbFeatureNearby.
+  ///
+  /// In ms, this message translates to:
+  /// **'Cari minyak, makan, surau dan tandas berhampiran'**
+  String get onbFeatureNearby;
+
+  /// No description provided for @onbFeatureReports.
+  ///
+  /// In ms, this message translates to:
+  /// **'Laporkan bahaya dan polis di jalan'**
+  String get onbFeatureReports;
+
+  /// No description provided for @onbFeatureOffline.
+  ///
+  /// In ms, this message translates to:
+  /// **'Peta offline untuk bila tiada isyarat'**
+  String get onbFeatureOffline;
+
+  /// No description provided for @onbPrivacyTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Privasi anda'**
+  String get onbPrivacyTitle;
+
+  /// No description provided for @onbPrivacyLocal.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tiada akaun dan tiada penjejakan. Tempat, sejarah dan laporan anda kekal pada telefon ini.'**
+  String get onbPrivacyLocal;
+
+  /// No description provided for @onbPrivacyServers.
+  ///
+  /// In ms, this message translates to:
+  /// **'Untuk carian dan laluan, app menghantar teks carian dan koordinat perjalanan ke perkhidmatan awam OpenStreetMap. Tiada yang lain dihantar.'**
+  String get onbPrivacyServers;
+
+  /// No description provided for @onbPrivacyLocation.
+  ///
+  /// In ms, this message translates to:
+  /// **'Lokasi hanya digunakan semasa app dibuka, untuk menunjukkan kedudukan anda dan memandu anda.'**
+  String get onbPrivacyLocation;
+
+  /// No description provided for @onbSetupTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Sediakan dalam 10 saat'**
+  String get onbSetupTitle;
+
+  /// No description provided for @onbVehicleQuestion.
+  ///
+  /// In ms, this message translates to:
+  /// **'Anda bergerak dengan apa?'**
+  String get onbVehicleQuestion;
+
+  /// No description provided for @onbVoiceQuestion.
+  ///
+  /// In ms, this message translates to:
+  /// **'Bahasa suara'**
+  String get onbVoiceQuestion;
+
+  /// No description provided for @onbAllowLocation.
+  ///
+  /// In ms, this message translates to:
+  /// **'Benarkan lokasi'**
+  String get onbAllowLocation;
+
+  /// No description provided for @onbLocationGranted.
+  ///
+  /// In ms, this message translates to:
+  /// **'Lokasi dibenarkan'**
+  String get onbLocationGranted;
+
+  /// No description provided for @onbLocationHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Anda juga boleh buat ini kemudian apabila memulakan perjalanan pertama.'**
+  String get onbLocationHint;
+
+  /// No description provided for @onbPageOf.
+  ///
+  /// In ms, this message translates to:
+  /// **'Halaman {current} daripada {total}'**
+  String onbPageOf(int current, int total);
+
   /// No description provided for @searchCategories.
   ///
   /// In ms, this message translates to:
