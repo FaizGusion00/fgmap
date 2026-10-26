@@ -312,6 +312,7 @@ class CameraRig {
     NavCameraMode mode = NavCameraMode.auto,
     double zoomBias = 0,
     double screenOffset = carScreenOffset,
+    double groundScale = 1,
   }) {
     final safeDt = dt.clamp(0.0, 0.25);
 
@@ -363,7 +364,10 @@ class CameraRig {
     // di bawah tengah skrin pada SEMUA condongan dan zum (lihat [groundOffsetPx]). Ofset ialah fungsi
     // zum dan condongan yang SUDAH dilicinkan, jadi kenderaan kekal pada kedudukan skrin yang sama
     // walaupun zum berubah; tidak perlu dilicinkan lagi (itu menyebabkan lonjakan).
+    // [groundScale] membetulkan ralat sistematik model kamera pada peranti sebenar (diukur oleh
+    // pemacu daripada kedudukan skrin kenderaan yang sebenar); 1 = model tepat.
     final offsetM =
+        groundScale *
         metersPerPixel(_zoom.value, vehicle.lat) *
         groundOffsetPx(
           _tilt.value,

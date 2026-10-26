@@ -10,6 +10,7 @@ class CarPlacement {
     required this.yawDeg,
     required this.tiltDeg,
     required this.anchorY,
+    this.anchorX = 0.5,
     this.opacity = 1,
     this.brake = 0,
   });
@@ -23,6 +24,9 @@ class CarPlacement {
 
   /// Kedudukan tapak kereta dari atas skrin, sebagai pecahan tinggi (0.5 = tengah).
   final double anchorY;
+
+  /// Kedudukan mendatar tapak kereta sebagai pecahan lebar (0.5 = tengah).
+  final double anchorX;
 
   /// 0..1; kereta ini muncul perlahan apabila peralihan masuk kamera hampir selesai, supaya tidak
   /// terpacak di skrin ketika peta masih meluncur ke kenderaan.
@@ -38,6 +42,7 @@ class CarPlacement {
       (yawDeg - other.yawDeg).abs() < 0.05 &&
       (tiltDeg - other.tiltDeg).abs() < 0.05 &&
       (anchorY - other.anchorY).abs() < 0.0005 &&
+      (anchorX - other.anchorX).abs() < 0.0005 &&
       (opacity - other.opacity).abs() < 0.01 &&
       (brake - other.brake).abs() < 0.02;
 }
@@ -100,7 +105,7 @@ class _OverlayPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final p = placement.value;
     if (p == null || p.opacity <= 0.01) return;
-    final anchor = Offset(size.width / 2, size.height * p.anchorY);
+    final anchor = Offset(size.width * p.anchorX, size.height * p.anchorY);
     final length = VehicleOverlay.lengthFor(size.height);
     final faded = p.opacity < 0.99;
     if (faded) {
