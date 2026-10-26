@@ -13,6 +13,7 @@ import '../domain/instruction_text.dart';
 import '../domain/nav_route.dart';
 import '../domain/navigation_session.dart';
 import 'navigation_controller.dart';
+import '../../../core/widgets/press_scale.dart';
 
 /// Ikon Material bagi setiap jenis manuver.
 IconData maneuverIcon(ManeuverKind kind) => switch (kind) {
@@ -635,16 +636,18 @@ class _GlassButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final fg = context.fg;
     final side = NavHudMetrics.of(context).button;
-    return Material(
-      color: fg.glassSurface,
-      elevation: 3,
-      shape: CircleBorder(side: BorderSide(color: fg.glassBorder)),
-      child: IconButton(
-        tooltip: tooltip,
-        onPressed: onPressed,
-        icon: Icon(icon, size: 22),
-        color: Theme.of(context).colorScheme.onSurface,
-        constraints: BoxConstraints(minWidth: side, minHeight: side),
+    return PressScale(
+      child: Material(
+        color: fg.glassSurface,
+        elevation: 3,
+        shape: CircleBorder(side: BorderSide(color: fg.glassBorder)),
+        child: IconButton(
+          tooltip: tooltip,
+          onPressed: onPressed,
+          icon: Icon(icon, size: 22),
+          color: Theme.of(context).colorScheme.onSurface,
+          constraints: BoxConstraints(minWidth: side, minHeight: side),
+        ),
       ),
     );
   }

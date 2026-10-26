@@ -12,6 +12,7 @@ import '../../../core/location/location_service.dart';
 import '../../../core/network/dio_provider.dart';
 import '../../../core/theme/fgmap_theme_extension.dart';
 import '../../../core/theme/motion.dart';
+import '../../../core/widgets/press_scale.dart';
 import '../../../core/theme/theme_controller.dart';
 import '../../../core/utils/geo.dart';
 import '../../../l10n/generated/app_localizations.dart';
@@ -996,7 +997,8 @@ class _MapScreenState extends ConsumerState<MapScreen>
                   Flexible(
                     child: AnimatedSwitcher(
                       duration: Motion.of(context, Motion.normal),
-                      switchInCurve: Motion.enter,
+                      // Pegas redaman kritikal: mendarat lembut tanpa lajak (lembaran melekat di bawah).
+                      switchInCurve: Motion.sheet,
                       switchOutCurve: Motion.exit,
                       transitionBuilder: (child, animation) => SlideTransition(
                         position: Tween(
@@ -1285,21 +1287,23 @@ class _GlassIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fg = context.fg;
-    return Material(
-      color: fg.glassSurface,
-      shape: CircleBorder(side: BorderSide(color: fg.glassBorder)),
-      elevation: 2,
-      shadowColor: Colors.black.withValues(alpha: 0.16),
-      child: IconButton(
-        tooltip: tooltip,
-        onPressed: loading ? null : onPressed,
-        icon: loading
-            ? const SizedBox.square(
-                dimension: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : Icon(icon),
-        color: Theme.of(context).colorScheme.onSurface,
+    return PressScale(
+      child: Material(
+        color: fg.glassSurface,
+        shape: CircleBorder(side: BorderSide(color: fg.glassBorder)),
+        elevation: 2,
+        shadowColor: Colors.black.withValues(alpha: 0.16),
+        child: IconButton(
+          tooltip: tooltip,
+          onPressed: loading ? null : onPressed,
+          icon: loading
+              ? const SizedBox.square(
+                  dimension: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Icon(icon),
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
       ),
     );
   }
@@ -1373,69 +1377,72 @@ class _SearchPill extends StatelessWidget {
       button: true,
       label: label,
       hint: hint,
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(22),
-        elevation: 3,
-        shadowColor: Colors.black.withValues(alpha: 0.16),
-        child: ClipRRect(
+      child: PressScale(
+        scale: 0.985,
+        child: Material(
+          color: Colors.transparent,
           borderRadius: BorderRadius.circular(22),
-          // Tanpa BackdropFilter: kabur di atas pandangan peta asli dirender semula setiap kali peta
-          // bergerak dan menjejaskan telefon lemah; permukaan kaca sudah separa lutsinar.
-          child: Material(
-            color: fg.glassSurface,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(22),
-              side: BorderSide(color: fg.glassBorder),
-            ),
-            child: InkWell(
-              key: const ValueKey('search-pill'),
-              customBorder: RoundedRectangleBorder(
+          elevation: 3,
+          shadowColor: Colors.black.withValues(alpha: 0.16),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(22),
+            // Tanpa BackdropFilter: kabur di atas pandangan peta asli dirender semula setiap kali peta
+            // bergerak dan menjejaskan telefon lemah; permukaan kaca sudah separa lutsinar.
+            child: Material(
+              color: fg.glassSurface,
+              shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(22),
+                side: BorderSide(color: fg.glassBorder),
               ),
-              onTap: onTap,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(minHeight: 48),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  child: Row(
-                    children: [
-                      DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.primary.withValues(
-                            alpha: 0.12,
+              child: InkWell(
+                key: const ValueKey('search-pill'),
+                customBorder: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(22),
+                ),
+                onTap: onTap,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 48),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    child: Row(
+                      children: [
+                        DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary.withValues(
+                              alpha: 0.12,
+                            ),
+                            borderRadius: BorderRadius.circular(14),
                           ),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: SizedBox(
-                          width: 34,
-                          height: 34,
-                          child: Icon(
-                            Icons.search_rounded,
-                            color: theme.colorScheme.primary,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          label,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            color: theme.colorScheme.onSurface,
+                          child: SizedBox(
+                            width: 34,
+                            height: 34,
+                            child: Icon(
+                              Icons.search_rounded,
+                              color: theme.colorScheme.primary,
+                            ),
                           ),
                         ),
-                      ),
-                      Icon(
-                        Icons.arrow_forward_rounded,
-                        size: 20,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ],
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              color: theme.colorScheme.onSurface,
+                            ),
+                          ),
+                        ),
+                        Icon(
+                          Icons.arrow_forward_rounded,
+                          size: 20,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

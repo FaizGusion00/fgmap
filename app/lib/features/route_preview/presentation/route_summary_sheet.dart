@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/fgmap_theme_extension.dart';
 import '../../../core/theme/motion.dart';
 import '../../../core/theme/typography.dart';
+import '../../../core/widgets/press_scale.dart';
 import '../../../core/widgets/skeleton.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../domain/route_option.dart';
@@ -390,14 +391,16 @@ class _ReadyBody extends StatelessWidget {
                   const SizedBox(width: 8),
                 if (onStart != null)
                   Expanded(
-                    child: FilledButton.icon(
-                      key: const ValueKey('nav-start'),
-                      onPressed: onStart,
-                      icon: const Icon(Icons.navigation_rounded),
-                      label: Text(l10n.navStart),
-                      style: FilledButton.styleFrom(
-                        minimumSize: const Size.fromHeight(54),
-                        textStyle: theme.textTheme.titleMedium,
+                    child: PressScale(
+                      child: FilledButton.icon(
+                        key: const ValueKey('nav-start'),
+                        onPressed: onStart,
+                        icon: const Icon(Icons.navigation_rounded),
+                        label: Text(l10n.navStart),
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size.fromHeight(54),
+                          textStyle: theme.textTheme.titleMedium,
+                        ),
                       ),
                     ),
                   ),

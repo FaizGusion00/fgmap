@@ -25,7 +25,8 @@ docs/adr/             Rekod keputusan seni bina
 | Paparan peta | OpenFreeMap (tile vektor awam, tanpa kunci) | RM0, tiada SLA |
 | Laluan (online) | Server Valhalla awam FOSSGIS: data paling segar | RM0, penggunaan wajar, tiada SLA |
 | Laluan (offline) | Valhalla dalam app + pek tile Malaysia (~254 MB) dimuat turun sekali | RM0 |
-| Carian tempat | Photon awam (komoot) | RM0, penggunaan wajar |
+| Carian tempat | Photon awam (komoot), fallback Nominatim ([ADR 0007](docs/adr/0007-carian-pintar.md)) | RM0, penggunaan wajar |
+| Cari berhampiran (minyak, makan, surau...) | Overpass API (data OSM), cache dalam peranti | RM0, penggunaan wajar |
 | Pek peta offline | GitHub Release `tiles`, dikemas kini mingguan oleh `tiles.yml` | RM0 |
 
 Mod **Auto** (lalai): online dahulu; jika gagal (tiada internet, masa tamat, 5xx, disekat) dan pek offline
@@ -111,5 +112,7 @@ checksum, pembatalan, sambungan terputus). Fixture Valhalla dan Photon ialah res
 
 ## Belum ada
 
-Auth, laporan komuniti (perlukan tempat simpan dikongsi; ditangguh), trafik, gaya peta tersuai,
-Auto-ikut-matahari, code push. Lihat Bahagian 18 pelan.
+Akaun, laporan yang dikongsi antara pemandu (laporan kini tempatan sahaja; perlukan tempat simpan dikongsi,
+ditangguh), trafik langsung, code push. Sudah ada sejak 0.4: peta gelap kontras tinggi, tema Auto-ikut-matahari,
+Rumah/Kerja dan tempat disimpan, laporan tempatan dengan amaran suara, sambutan kali pertama, halaman Tetapan penuh
+([ADR 0008](docs/adr/0008-fasa-ui-peta-gelap-tema-tempat-laporan.md)). Lihat Bahagian 18 pelan.
