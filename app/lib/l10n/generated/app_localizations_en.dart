@@ -716,6 +716,121 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get settingsTextSize => 'Text size';
+
+  @override
+  String get settingsTextSizeHint =>
+      'Applied on top of your phone’s text size.';
+
+  @override
+  String get settingsReduceMotion => 'Reduce animations';
+
+  @override
+  String get settingsReduceMotionHint =>
+      'Fewer moving effects. Also follows your phone’s setting.';
+
+  @override
+  String get settingsHaptics => 'Vibration feedback';
+
+  @override
+  String get settingsLanguage => 'App language';
+
+  @override
+  String get settingsLanguageSystem => 'Device';
+
+  @override
+  String get settingsLanguageMalay => 'Bahasa Melayu';
+
+  @override
+  String get settingsLanguageEnglish => 'English';
+
+  @override
+  String get settingsVoice => 'Voice';
+
+  @override
+  String get settingsVoiceVolume => 'Voice volume';
+
+  @override
+  String get settingsVolumeLow => 'Low';
+
+  @override
+  String get settingsVolumeMedium => 'Medium';
+
+  @override
+  String get settingsVolumeHigh => 'High';
+
+  @override
+  String get settingsSpeechRate => 'Speaking speed';
+
+  @override
+  String get settingsRateSlow => 'Slow';
+
+  @override
+  String get settingsRateNormal => 'Normal';
+
+  @override
+  String get settingsRateFast => 'Fast';
+
+  @override
+  String get settingsReports => 'Reports';
+
+  @override
+  String get settingsReportAlerts => 'Report alerts while driving';
+
+  @override
+  String get settingsReportAlertsHint =>
+      'Announces reports ahead and asks if they are still there.';
+
+  @override
+  String get settingsPrivacy => 'Privacy';
+
+  @override
+  String get settingsLocationAllowed => 'Location access: allowed';
+
+  @override
+  String get settingsLocationNotAllowed => 'Location access: not allowed';
+
+  @override
+  String get settingsLocationOff => 'Location services are off';
+
+  @override
+  String get settingsLocationOpen => 'Open phone settings';
+
+  @override
+  String get settingsClearHistory => 'Clear search history';
+
+  @override
+  String get settingsClearSaved => 'Delete saved places';
+
+  @override
+  String get settingsClearReports => 'Delete my reports';
+
+  @override
+  String get settingsConfirmTitle => 'Delete this data?';
+
+  @override
+  String get settingsConfirmBody =>
+      'This only affects this phone and cannot be undone.';
+
+  @override
+  String get settingsConfirmDelete => 'Delete';
+
+  @override
+  String get settingsConfirmCancel => 'Cancel';
+
+  @override
+  String get settingsDeleted => 'Deleted';
+
+  @override
+  String get settingsHelp => 'Help & about';
+
+  @override
+  String get settingsWelcomeAgain => 'Show the welcome tour again';
+
+  @override
+  String get settingsLicences => 'Open-source licences';
+
+  @override
   String get searchCategories => 'Search nearby';
 
   @override

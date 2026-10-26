@@ -716,6 +716,121 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
+  String get settingsTextSize => 'Saiz teks';
+
+  @override
+  String get settingsTextSizeHint =>
+      'Dikenakan di atas saiz teks telefon anda.';
+
+  @override
+  String get settingsReduceMotion => 'Kurangkan animasi';
+
+  @override
+  String get settingsReduceMotionHint =>
+      'Kurang kesan bergerak. Turut mengikut tetapan telefon anda.';
+
+  @override
+  String get settingsHaptics => 'Maklum balas getaran';
+
+  @override
+  String get settingsLanguage => 'Bahasa app';
+
+  @override
+  String get settingsLanguageSystem => 'Peranti';
+
+  @override
+  String get settingsLanguageMalay => 'Bahasa Melayu';
+
+  @override
+  String get settingsLanguageEnglish => 'English';
+
+  @override
+  String get settingsVoice => 'Suara';
+
+  @override
+  String get settingsVoiceVolume => 'Kelantangan suara';
+
+  @override
+  String get settingsVolumeLow => 'Perlahan';
+
+  @override
+  String get settingsVolumeMedium => 'Sederhana';
+
+  @override
+  String get settingsVolumeHigh => 'Kuat';
+
+  @override
+  String get settingsSpeechRate => 'Kelajuan pertuturan';
+
+  @override
+  String get settingsRateSlow => 'Perlahan';
+
+  @override
+  String get settingsRateNormal => 'Biasa';
+
+  @override
+  String get settingsRateFast => 'Pantas';
+
+  @override
+  String get settingsReports => 'Laporan';
+
+  @override
+  String get settingsReportAlerts => 'Amaran laporan semasa memandu';
+
+  @override
+  String get settingsReportAlertsHint =>
+      'Mengumumkan laporan di hadapan dan bertanya jika masih ada.';
+
+  @override
+  String get settingsPrivacy => 'Privasi';
+
+  @override
+  String get settingsLocationAllowed => 'Akses lokasi: dibenarkan';
+
+  @override
+  String get settingsLocationNotAllowed => 'Akses lokasi: tidak dibenarkan';
+
+  @override
+  String get settingsLocationOff => 'Perkhidmatan lokasi dimatikan';
+
+  @override
+  String get settingsLocationOpen => 'Buka tetapan telefon';
+
+  @override
+  String get settingsClearHistory => 'Padam sejarah carian';
+
+  @override
+  String get settingsClearSaved => 'Padam tempat disimpan';
+
+  @override
+  String get settingsClearReports => 'Padam laporan saya';
+
+  @override
+  String get settingsConfirmTitle => 'Padam data ini?';
+
+  @override
+  String get settingsConfirmBody =>
+      'Ini hanya melibatkan telefon ini dan tidak boleh dibatalkan.';
+
+  @override
+  String get settingsConfirmDelete => 'Padam';
+
+  @override
+  String get settingsConfirmCancel => 'Batal';
+
+  @override
+  String get settingsDeleted => 'Dipadam';
+
+  @override
+  String get settingsHelp => 'Bantuan & tentang';
+
+  @override
+  String get settingsWelcomeAgain => 'Papar semula sambutan';
+
+  @override
+  String get settingsLicences => 'Lesen sumber terbuka';
+
+  @override
   String get searchCategories => 'Cari berhampiran';
 
   @override

@@ -1,13 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
 import '../../search/domain/place.dart';
 import '../data/saved_places_controller.dart';
 import '../domain/saved_place.dart';
+import '../../../core/utils/haptics.dart';
 
 String savedKindLabel(AppLocalizations l10n, SavedKind kind) => switch (kind) {
   SavedKind.home => l10n.savedHome,
@@ -42,7 +42,7 @@ class SavePlaceSheet extends ConsumerWidget {
     final controller = ref.read(savedPlacesControllerProvider.notifier);
 
     Future<void> done(SavedKind kind) async {
-      unawaited(HapticFeedback.selectionClick());
+      unawaited(Haptics.selection());
       final messenger = ScaffoldMessenger.maybeOf(context);
       final label = savedKindLabel(l10n, kind);
       Navigator.of(context).pop();

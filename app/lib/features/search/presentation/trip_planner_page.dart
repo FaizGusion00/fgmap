@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/widgets/skeleton.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/utils/geo.dart';
@@ -19,6 +18,7 @@ import '../../saved_places/presentation/save_place_sheet.dart';
 import '../domain/place_ranker.dart';
 import 'place_search_controller.dart';
 import 'search_history_controller.dart';
+import '../../../core/utils/haptics.dart';
 
 /// Destinasi pilihan. Asal laluan sentiasa lokasi GPS pengguna.
 @immutable
@@ -136,7 +136,7 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
 
   /// Carian kategori sebenar (tag OSM di sekitar lokasi anda), bukan carian nama.
   void _searchNearby(NearbyCategory category, String label) {
-    HapticFeedback.selectionClick();
+    Haptics.selection();
     _destination = null;
     _destText.text = label;
     _destText.selection = TextSelection.collapsed(offset: label.length);
@@ -152,7 +152,7 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
   }
 
   Future<void> _assign(Place place, SavedKind kind) async {
-    unawaited(HapticFeedback.selectionClick());
+    unawaited(Haptics.selection());
     final controller = ref.read(savedPlacesControllerProvider.notifier);
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.maybeOf(context);
@@ -172,7 +172,7 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
       unawaited(_assign(place, assign));
       return;
     }
-    HapticFeedback.selectionClick();
+    Haptics.selection();
     ref.read(searchHistoryControllerProvider.notifier).record(place);
     _destination = place;
     _destText.text = place.name;
@@ -483,7 +483,7 @@ class _FavoriteStar extends ConsumerWidget {
         color: saved ? Colors.amber.shade700 : null,
       ),
       onPressed: () {
-        HapticFeedback.selectionClick();
+        Haptics.selection();
         ref.read(savedPlacesControllerProvider.notifier).toggleFavorite(place);
       },
     );

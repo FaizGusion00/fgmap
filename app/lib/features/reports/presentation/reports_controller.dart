@@ -68,6 +68,12 @@ class ReportsController extends Notifier<List<Report>> {
         : CreateReportResult.confirmedExisting;
   }
 
+  /// Memadam semua laporan pada peranti ini.
+  Future<void> clear() async {
+    await ref.read(reportsRepositoryProvider).clear();
+    await refresh();
+  }
+
   /// "Masih ada?" Ya/Tiada.
   Future<void> vote(String id, {required bool confirm}) async {
     await ref

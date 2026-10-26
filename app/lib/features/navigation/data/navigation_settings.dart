@@ -13,6 +13,8 @@ class NavigationSettings {
     this.cameraMode = NavCameraMode.auto,
     this.overspeedToleranceKmh = 5,
     this.reportAlerts = true,
+    this.voiceVolume = 1.0,
+    this.speechRate = 0.5,
   });
 
   final bool voiceEnabled;
@@ -27,6 +29,13 @@ class NavigationSettings {
   /// Amaran suara dan soalan "Masih ada?" bagi laporan di hadapan.
   final bool reportAlerts;
 
+  /// Kelantangan suara (0.5-1.0) dan kelajuan pertuturan (0.42 perlahan, 0.5 biasa, 0.58 pantas).
+  final double voiceVolume;
+  final double speechRate;
+
+  static const volumes = [0.5, 0.75, 1.0];
+  static const speechRates = [0.42, 0.5, 0.58];
+
   NavigationSettings copyWith({
     bool? voiceEnabled,
     VoiceLanguage? voiceLanguage,
@@ -34,6 +43,8 @@ class NavigationSettings {
     NavCameraMode? cameraMode,
     int? overspeedToleranceKmh,
     bool? reportAlerts,
+    double? voiceVolume,
+    double? speechRate,
   }) {
     return NavigationSettings(
       voiceEnabled: voiceEnabled ?? this.voiceEnabled,
@@ -44,6 +55,8 @@ class NavigationSettings {
       overspeedToleranceKmh:
           overspeedToleranceKmh ?? this.overspeedToleranceKmh,
       reportAlerts: reportAlerts ?? this.reportAlerts,
+      voiceVolume: voiceVolume ?? this.voiceVolume,
+      speechRate: speechRate ?? this.speechRate,
     );
   }
 
@@ -54,7 +67,9 @@ class NavigationSettings {
       other.voiceLanguage == voiceLanguage &&
       other.cameraMode == cameraMode &&
       other.overspeedToleranceKmh == overspeedToleranceKmh &&
-      other.reportAlerts == reportAlerts;
+      other.reportAlerts == reportAlerts &&
+      other.voiceVolume == voiceVolume &&
+      other.speechRate == speechRate;
 
   @override
   int get hashCode => Object.hash(
@@ -63,6 +78,8 @@ class NavigationSettings {
     cameraMode,
     overspeedToleranceKmh,
     reportAlerts,
+    voiceVolume,
+    speechRate,
   );
 }
 
@@ -71,6 +88,8 @@ const _languageKey = 'nav.voiceLanguage';
 const _cameraKey = 'nav.cameraMode';
 const _overspeedKey = 'nav.overspeedTolerance';
 const _reportAlertsKey = 'nav.reportAlerts';
+const _volumeKey = 'nav.voiceVolume';
+const _rateKey = 'nav.speechRate';
 
 class NavigationSettingsController extends Notifier<NavigationSettings> {
   @override
@@ -83,6 +102,16 @@ class NavigationSettingsController extends Notifier<NavigationSettings> {
       cameraMode: NavCameraMode.fromName(prefs.getString(_cameraKey)),
       overspeedToleranceKmh: prefs.getInt(_overspeedKey) ?? 5,
       reportAlerts: prefs.getBool(_reportAlertsKey) ?? true,
+      voiceVolume: _oneOf(
+        prefs.getDouble(_volumeKey),
+        NavigationSettings.volumes,
+        1.0,
+      ),
+      speechRate: _oneOf(
+        prefs.getDouble(_rateKey),
+        NavigationSettings.speechRates,
+        0.5,
+      ),
     );
   }
 
@@ -113,6 +142,21 @@ class NavigationSettingsController extends Notifier<NavigationSettings> {
     state = state.copyWith(reportAlerts: value);
     await ref.read(sharedPreferencesProvider).setBool(_reportAlertsKey, value);
   }
+
+  Future<void> setVoiceVolume(double value) async {
+    if (!NavigationSettings.volumes.contains(value)) return;
+    state = state.copyWith(voiceVolume: value);
+    await ref.read(sharedPreferencesProvider).setDouble(_volumeKey, value);
+  }
+
+  Future<void> setSpeechRate(double value) async {
+    if (!NavigationSettings.speechRates.contains(value)) return;
+    state = state.copyWith(speechRate: value);
+    await ref.read(sharedPreferencesProvider).setDouble(_rateKey, value);
+  }
+
+  static double _oneOf(double? value, List<double> allowed, double fallback) =>
+      allowed.contains(value) ? value! : fallback;
 
   Future<void> setCameraMode(NavCameraMode mode) async {
     state = state.copyWith(cameraMode: mode);

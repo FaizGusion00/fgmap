@@ -32,6 +32,9 @@ abstract interface class ReportsRepository {
 
   /// Membuang laporan yang telah luput; memulangkan bilangan yang dibuang.
   Future<int> purgeExpired(DateTime now);
+
+  /// Memadam semua laporan (Tetapan > Privasi).
+  Future<void> clear();
 }
 
 /// Simpanan fail JSON pada peranti. Laporan hanya kelihatan kepada pengguna ini. Tanpa fail ([_file]
@@ -155,6 +158,11 @@ class LocalReportsRepository implements ReportsRepository {
     all[i] = denied;
     await _save(all);
     return denied;
+  });
+
+  @override
+  Future<void> clear() => _serial(() async {
+    await _save(const []);
   });
 
   @override

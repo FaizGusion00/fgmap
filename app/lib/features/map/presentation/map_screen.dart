@@ -5,7 +5,6 @@ import 'package:app_links/app_links.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/app_config.dart';
@@ -25,7 +24,7 @@ import '../../offline_maps/presentation/offline_maps_sheet.dart';
 import '../../search/domain/location_link.dart';
 import '../../search/presentation/recent_places_bar.dart';
 import '../../search/presentation/trip_planner_page.dart';
-import '../../settings/presentation/settings_sheet.dart';
+import '../../settings/presentation/settings_page.dart';
 import '../../navigation/data/location_sources.dart';
 import '../../navigation/data/navigation_settings.dart';
 import '../../navigation/domain/camera_planner.dart';
@@ -51,6 +50,7 @@ import '../data/map_style_loader.dart';
 import 'map_view.dart';
 import 'nav_route_line.dart';
 import 'user_location.dart';
+import '../../../core/utils/haptics.dart';
 
 class MapScreen extends ConsumerStatefulWidget {
   const MapScreen({super.key});
@@ -334,7 +334,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
   }
 
   void _onLongPress(GeoPoint point) {
-    HapticFeedback.mediumImpact();
+    Haptics.medium();
     setState(() => _hintDismissed = true);
     unawaited(_planToDestination(point));
   }
@@ -718,7 +718,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
 
   /// Ketuk penanda: tanya "Masih ada?" dan undi.
   Future<void> _reviewReport(Report report) async {
-    unawaited(HapticFeedback.selectionClick());
+    unawaited(Haptics.selection());
     final stillThere = await showStillThereDialog(context, report);
     if (stillThere == null || !mounted) return;
     await ref
@@ -760,7 +760,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
   }
 
   void _selectRoute(int index) {
-    HapticFeedback.selectionClick();
+    Haptics.selection();
     ref.read(routePreviewControllerProvider.notifier).select(index);
   }
 

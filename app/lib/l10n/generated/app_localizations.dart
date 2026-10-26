@@ -1352,6 +1352,228 @@ abstract class AppLocalizations {
   /// **'Halaman {current} daripada {total}'**
   String onbPageOf(int current, int total);
 
+  /// No description provided for @settingsTextSize.
+  ///
+  /// In ms, this message translates to:
+  /// **'Saiz teks'**
+  String get settingsTextSize;
+
+  /// No description provided for @settingsTextSizeHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Dikenakan di atas saiz teks telefon anda.'**
+  String get settingsTextSizeHint;
+
+  /// No description provided for @settingsReduceMotion.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kurangkan animasi'**
+  String get settingsReduceMotion;
+
+  /// No description provided for @settingsReduceMotionHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kurang kesan bergerak. Turut mengikut tetapan telefon anda.'**
+  String get settingsReduceMotionHint;
+
+  /// No description provided for @settingsHaptics.
+  ///
+  /// In ms, this message translates to:
+  /// **'Maklum balas getaran'**
+  String get settingsHaptics;
+
+  /// No description provided for @settingsLanguage.
+  ///
+  /// In ms, this message translates to:
+  /// **'Bahasa app'**
+  String get settingsLanguage;
+
+  /// No description provided for @settingsLanguageSystem.
+  ///
+  /// In ms, this message translates to:
+  /// **'Peranti'**
+  String get settingsLanguageSystem;
+
+  /// No description provided for @settingsLanguageMalay.
+  ///
+  /// In ms, this message translates to:
+  /// **'Bahasa Melayu'**
+  String get settingsLanguageMalay;
+
+  /// No description provided for @settingsLanguageEnglish.
+  ///
+  /// In ms, this message translates to:
+  /// **'English'**
+  String get settingsLanguageEnglish;
+
+  /// No description provided for @settingsVoice.
+  ///
+  /// In ms, this message translates to:
+  /// **'Suara'**
+  String get settingsVoice;
+
+  /// No description provided for @settingsVoiceVolume.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kelantangan suara'**
+  String get settingsVoiceVolume;
+
+  /// No description provided for @settingsVolumeLow.
+  ///
+  /// In ms, this message translates to:
+  /// **'Perlahan'**
+  String get settingsVolumeLow;
+
+  /// No description provided for @settingsVolumeMedium.
+  ///
+  /// In ms, this message translates to:
+  /// **'Sederhana'**
+  String get settingsVolumeMedium;
+
+  /// No description provided for @settingsVolumeHigh.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kuat'**
+  String get settingsVolumeHigh;
+
+  /// No description provided for @settingsSpeechRate.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kelajuan pertuturan'**
+  String get settingsSpeechRate;
+
+  /// No description provided for @settingsRateSlow.
+  ///
+  /// In ms, this message translates to:
+  /// **'Perlahan'**
+  String get settingsRateSlow;
+
+  /// No description provided for @settingsRateNormal.
+  ///
+  /// In ms, this message translates to:
+  /// **'Biasa'**
+  String get settingsRateNormal;
+
+  /// No description provided for @settingsRateFast.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pantas'**
+  String get settingsRateFast;
+
+  /// No description provided for @settingsReports.
+  ///
+  /// In ms, this message translates to:
+  /// **'Laporan'**
+  String get settingsReports;
+
+  /// No description provided for @settingsReportAlerts.
+  ///
+  /// In ms, this message translates to:
+  /// **'Amaran laporan semasa memandu'**
+  String get settingsReportAlerts;
+
+  /// No description provided for @settingsReportAlertsHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Mengumumkan laporan di hadapan dan bertanya jika masih ada.'**
+  String get settingsReportAlertsHint;
+
+  /// No description provided for @settingsPrivacy.
+  ///
+  /// In ms, this message translates to:
+  /// **'Privasi'**
+  String get settingsPrivacy;
+
+  /// No description provided for @settingsLocationAllowed.
+  ///
+  /// In ms, this message translates to:
+  /// **'Akses lokasi: dibenarkan'**
+  String get settingsLocationAllowed;
+
+  /// No description provided for @settingsLocationNotAllowed.
+  ///
+  /// In ms, this message translates to:
+  /// **'Akses lokasi: tidak dibenarkan'**
+  String get settingsLocationNotAllowed;
+
+  /// No description provided for @settingsLocationOff.
+  ///
+  /// In ms, this message translates to:
+  /// **'Perkhidmatan lokasi dimatikan'**
+  String get settingsLocationOff;
+
+  /// No description provided for @settingsLocationOpen.
+  ///
+  /// In ms, this message translates to:
+  /// **'Buka tetapan telefon'**
+  String get settingsLocationOpen;
+
+  /// No description provided for @settingsClearHistory.
+  ///
+  /// In ms, this message translates to:
+  /// **'Padam sejarah carian'**
+  String get settingsClearHistory;
+
+  /// No description provided for @settingsClearSaved.
+  ///
+  /// In ms, this message translates to:
+  /// **'Padam tempat disimpan'**
+  String get settingsClearSaved;
+
+  /// No description provided for @settingsClearReports.
+  ///
+  /// In ms, this message translates to:
+  /// **'Padam laporan saya'**
+  String get settingsClearReports;
+
+  /// No description provided for @settingsConfirmTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Padam data ini?'**
+  String get settingsConfirmTitle;
+
+  /// No description provided for @settingsConfirmBody.
+  ///
+  /// In ms, this message translates to:
+  /// **'Ini hanya melibatkan telefon ini dan tidak boleh dibatalkan.'**
+  String get settingsConfirmBody;
+
+  /// No description provided for @settingsConfirmDelete.
+  ///
+  /// In ms, this message translates to:
+  /// **'Padam'**
+  String get settingsConfirmDelete;
+
+  /// No description provided for @settingsConfirmCancel.
+  ///
+  /// In ms, this message translates to:
+  /// **'Batal'**
+  String get settingsConfirmCancel;
+
+  /// No description provided for @settingsDeleted.
+  ///
+  /// In ms, this message translates to:
+  /// **'Dipadam'**
+  String get settingsDeleted;
+
+  /// No description provided for @settingsHelp.
+  ///
+  /// In ms, this message translates to:
+  /// **'Bantuan & tentang'**
+  String get settingsHelp;
+
+  /// No description provided for @settingsWelcomeAgain.
+  ///
+  /// In ms, this message translates to:
+  /// **'Papar semula sambutan'**
+  String get settingsWelcomeAgain;
+
+  /// No description provided for @settingsLicences.
+  ///
+  /// In ms, this message translates to:
+  /// **'Lesen sumber terbuka'**
+  String get settingsLicences;
+
   /// No description provided for @searchCategories.
   ///
   /// In ms, this message translates to:

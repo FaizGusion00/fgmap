@@ -17,6 +17,9 @@ class _MemoryRepo implements ReportsRepository {
   final List<Report> reports = [];
 
   @override
+  Future<void> clear() async => reports.clear();
+
+  @override
   Future<List<Report>> active(DateTime now) async => [
     for (final r in reports)
       if (r.isActive(now)) r,

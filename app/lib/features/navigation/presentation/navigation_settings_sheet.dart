@@ -89,6 +89,43 @@ class NavigationSettingsSection extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 20),
+        Text(l10n.settingsVoiceVolume, style: theme.textTheme.titleSmall),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: double.infinity,
+          child: SegmentedButton<double>(
+            key: const ValueKey('voice-volume'),
+            showSelectedIcon: false,
+            segments: [
+              ButtonSegment(value: 0.5, label: Text(l10n.settingsVolumeLow)),
+              ButtonSegment(
+                value: 0.75,
+                label: Text(l10n.settingsVolumeMedium),
+              ),
+              ButtonSegment(value: 1.0, label: Text(l10n.settingsVolumeHigh)),
+            ],
+            selected: {settings.voiceVolume},
+            onSelectionChanged: (s) => controller.setVoiceVolume(s.first),
+          ),
+        ),
+        const SizedBox(height: 20),
+        Text(l10n.settingsSpeechRate, style: theme.textTheme.titleSmall),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: double.infinity,
+          child: SegmentedButton<double>(
+            key: const ValueKey('speech-rate'),
+            showSelectedIcon: false,
+            segments: [
+              ButtonSegment(value: 0.42, label: Text(l10n.settingsRateSlow)),
+              ButtonSegment(value: 0.5, label: Text(l10n.settingsRateNormal)),
+              ButtonSegment(value: 0.58, label: Text(l10n.settingsRateFast)),
+            ],
+            selected: {settings.speechRate},
+            onSelectionChanged: (s) => controller.setSpeechRate(s.first),
+          ),
+        ),
+        const SizedBox(height: 20),
         Text(l10n.navCameraTitle, style: theme.textTheme.titleSmall),
         const SizedBox(height: 8),
         SizedBox(

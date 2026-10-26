@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/settings/app_preferences.dart';
 import '../core/theme/app_theme.dart';
 import '../core/theme/theme_controller.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -18,30 +19,57 @@ class FgmapApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(themeControllerProvider);
+    final prefs = ref.watch(appPreferencesProvider);
 
     return MaterialApp.router(
       onGenerateTitle: (context) => AppLocalizations.of(context).appName,
       theme: _lightTheme,
       darkTheme: settings.amoled ? _amoledTheme : _darkTheme,
       themeMode: ref.watch(effectiveThemeModeProvider),
-      themeAnimationDuration: _themeAnimation(),
+      themeAnimationDuration: _themeAnimation(prefs.reduceMotion),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
+      // Pilihan bahasa pengguna mengatasi bahasa peranti; null = ikut peranti (BM lalai).
+      locale: prefs.locale,
       localeResolutionCallback: resolveLocale,
       routerConfig: ref.watch(routerProvider),
-      builder: (context, child) =>
-          _SystemUiStyle(child: child ?? const SizedBox.shrink()),
+      builder: (context, child) => _SystemUiStyle(
+        child: _applyAccessibility(
+          context,
+          prefs,
+          child ?? const SizedBox.shrink(),
+        ),
+      ),
     );
   }
 }
 
+/// Saiz teks pilihan pengguna didarab dengan tetapan sistem (dihadkan supaya susun atur tidak pecah),
+/// dan "Kurangkan animasi" memaksa Reduce Motion untuk seluruh app.
+Widget _applyAccessibility(
+  BuildContext context,
+  AppPreferences prefs,
+  Widget child,
+) {
+  final media = MediaQuery.of(context);
+  final system = media.textScaler.scale(1);
+  return MediaQuery(
+    data: media.copyWith(
+      textScaler: TextScaler.linear((system * prefs.textScale).clamp(0.8, 2.0)),
+      disableAnimations: media.disableAnimations || prefs.reduceMotion,
+    ),
+    child: child,
+  );
+}
+
 /// Peralihan tema lembut (~300 ms, Bahagian 14.6); tiada peralihan jika pengguna meminta Reduce Motion.
-Duration _themeAnimation() =>
-    WidgetsBinding
-        .instance
-        .platformDispatcher
-        .accessibilityFeatures
-        .disableAnimations
+Duration _themeAnimation(bool reduceMotion) => reduceMotion
+    ? Duration.zero
+    : WidgetsBinding
+          .instance
+          .platformDispatcher
+          .accessibilityFeatures
+          .disableAnimations
     ? Duration.zero
     : const Duration(milliseconds: 300);
 

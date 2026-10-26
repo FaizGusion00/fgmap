@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/location/location_service.dart';
@@ -20,6 +19,7 @@ import '../domain/instruction_text.dart';
 import '../domain/nav_route.dart';
 import '../domain/navigation_session.dart';
 import '../domain/vehicle_model.dart';
+import '../../../core/utils/haptics.dart';
 
 enum NavPhase { idle, active, arrived }
 
@@ -106,7 +106,10 @@ final navClockProvider = Provider<DateTime Function()>((ref) => DateTime.now);
 
 final voiceGuideProvider = Provider<VoiceGuide>((ref) {
   final guide = QueuedVoiceGuide(
-    tts: FlutterTtsEngine(),
+    tts: FlutterTtsEngine(
+      volume: () => ref.read(navigationSettingsProvider).voiceVolume,
+      speechRate: () => ref.read(navigationSettingsProvider).speechRate,
+    ),
     chimes: AudioplayersChimePlayer(),
   );
   ref.onDispose(guide.dispose);
@@ -290,7 +293,7 @@ class NavigationController extends Notifier<NavigationState> {
 
     if (progress.status == NavStatus.arrived) {
       state = state.copyWith(phase: NavPhase.arrived);
-      HapticFeedback.heavyImpact();
+      Haptics.heavy();
       _teardown();
       // Perjalanan selesai: skrin tidak perlu dijaga hidup lagi.
       unawaited(ref.read(screenAwakeProvider).disable());
@@ -458,7 +461,7 @@ class NavigationController extends Notifier<NavigationState> {
   void _speak(List<Announcement> announcements) {
     if (announcements.isEmpty) return;
     if (announcements.any((a) => a.kind == AnnouncementKind.now)) {
-      HapticFeedback.mediumImpact();
+      Haptics.medium();
     }
     if (!ref.read(navigationSettingsProvider).voiceEnabled) return;
     final voice = ref.read(voiceGuideProvider);

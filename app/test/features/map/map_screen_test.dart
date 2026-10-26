@@ -11,6 +11,7 @@ import 'package:fgmap/features/reports/domain/report.dart';
 import 'package:fgmap/features/reports/presentation/report_alerts_controller.dart';
 import 'package:fgmap/features/reports/presentation/reports_controller.dart';
 import 'package:fgmap/features/saved_places/data/saved_places_controller.dart';
+import 'package:fgmap/features/settings/presentation/settings_page.dart';
 import 'package:fgmap/features/search/domain/place.dart';
 import 'package:fgmap/features/map/data/map_style_loader.dart';
 import 'package:fgmap/core/theme/theme_controller.dart';
@@ -27,6 +28,19 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/fakes.dart';
 import '../../helpers/pump_app.dart';
+
+/// Gaya segera (tiada rangkaian): gelap = URL gelap. Ujian yang mahu JSON malam guna [_NightLoader].
+class _UrlLoader extends MapStyleLoader {
+  _UrlLoader() : super(Dio(), null);
+
+  @override
+  Future<ResolvedMapStyle> resolve({required bool dark}) async => dark
+      ? const ResolvedMapStyle(
+          AppConfig.mapStyleDark,
+          'url:${AppConfig.mapStyleDark}',
+        )
+      : light();
+}
 
 class _NightLoader extends MapStyleLoader {
   _NightLoader() : super(Dio(), null);
@@ -77,6 +91,7 @@ void main() {
         routeOptionsPlannerProvider.overrideWithValue(repo),
         sharedPreferencesProvider.overrideWithValue(prefs),
         idleRecenterAfterProvider.overrideWithValue(recenterAfter),
+        mapStyleLoaderProvider.overrideWithValue(_UrlLoader()),
       ],
     );
     await tester.pumpAndSettle();
@@ -741,7 +756,11 @@ void main() {
 
       await tester.tap(find.byTooltip('Tetapan'));
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('Tentang FGMaps'));
+      await tester.scrollUntilVisible(
+        find.text('Tentang FGMaps'),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.text('Tentang FGMaps'));
       await tester.pumpAndSettle();
@@ -765,10 +784,8 @@ void main() {
 
       await tester.tap(find.text('Gelap'));
       await tester.pumpAndSettle();
-      expect(map.config!.styleUrl, AppConfig.mapStyleDark);
       await tester.tap(find.byKey(const ValueKey('amoled-switch')));
       await tester.pumpAndSettle();
-
       expect(
         container.read(themeControllerProvider),
         const ThemeSettings(mode: AppThemeMode.dark, amoled: true),
@@ -776,7 +793,16 @@ void main() {
       expect(prefs.getString('theme.mode'), 'dark');
       expect(prefs.getBool('theme.amoled'), isTrue);
 
+      // Peta di bawah halaman Tetapan; gayanya mengikut apabila pengguna kembali.
+      Navigator.of(tester.element(find.byType(SettingsPage))).pop();
+      await tester.pumpAndSettle();
+      expect(map.config!.styleUrl, AppConfig.mapStyleDark);
+
+      await tester.tap(find.byTooltip('Tetapan'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Cerah'));
+      await tester.pumpAndSettle();
+      Navigator.of(tester.element(find.byType(SettingsPage))).pop();
       await tester.pumpAndSettle();
       expect(map.config!.styleUrl, AppConfig.mapStyleLight);
     });
@@ -971,6 +997,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(prefs.getString('theme.mode'), 'sun');
     expect(find.byKey(const ValueKey('sun-hint')), findsOneWidget);
+    Navigator.of(tester.element(find.byType(SettingsPage))).pop();
+    await tester.pumpAndSettle();
     expect(map.config!.styleId, 'night:test');
   });
 

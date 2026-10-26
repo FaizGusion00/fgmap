@@ -119,16 +119,27 @@ class QueuedVoiceGuide implements VoiceGuide {
 /// TTS sebenar melalui `flutter_tts`, dikonfigurasi sebagai suara navigasi (menurunkan kelantangan
 /// muzik, bukan menghentikannya).
 class FlutterTtsEngine implements TtsEngine {
-  FlutterTtsEngine([FlutterTts? tts]) : _tts = tts ?? FlutterTts();
+  FlutterTtsEngine({
+    FlutterTts? tts,
+    this.volume = _defaultVolume,
+    this.speechRate = _defaultRate,
+  }) : _tts = tts ?? FlutterTts();
+
+  static double _defaultVolume() => 1.0;
+  static double _defaultRate() => 0.5;
+
+  /// Dibaca sebelum setiap ayat, jadi perubahan dalam Tetapan berkuat kuasa pada ayat seterusnya.
+  final double Function() volume;
+  final double Function() speechRate;
 
   final FlutterTts _tts;
   Future<void>? _ready;
   VoiceLanguage? _language;
+  double? _appliedVolume;
+  double? _appliedRate;
 
   Future<void> _configure() => _ready ??= () async {
     await _tts.awaitSpeakCompletion(true);
-    await _tts.setVolume(1.0);
-    await _tts.setSpeechRate(0.5);
     await _tts.setPitch(1.0);
     if (defaultTargetPlatform == TargetPlatform.iOS) {
       await _tts.setSharedInstance(true);
@@ -149,6 +160,16 @@ class FlutterTtsEngine implements TtsEngine {
   @override
   Future<void> speak(String text, VoiceLanguage language) async {
     await _configure();
+    final v = volume();
+    if (_appliedVolume != v) {
+      await _tts.setVolume(v);
+      _appliedVolume = v;
+    }
+    final r = speechRate();
+    if (_appliedRate != r) {
+      await _tts.setSpeechRate(r);
+      _appliedRate = r;
+    }
     if (_language != language) {
       await _tts.setLanguage(language.ttsLocale);
       _language = language;
