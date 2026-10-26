@@ -14,6 +14,7 @@ import '../../../core/location/location_service.dart';
 import '../../../core/network/dio_provider.dart';
 import '../../../core/theme/fgmap_theme_extension.dart';
 import '../../../core/theme/motion.dart';
+import '../../../core/theme/theme_controller.dart';
 import '../../../core/utils/geo.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../route_preview/presentation/route_preview_controller.dart';
@@ -460,12 +461,19 @@ class _MapScreenState extends ConsumerState<MapScreen>
     final theme = Theme.of(context);
     final fg = context.fg;
     final l10n = AppLocalizations.of(context);
+    final themeSettings = ref.watch(themeControllerProvider);
     final state = ref.watch(routePreviewControllerProvider);
     final access = ref.watch(locationAccessProvider);
     final controller = ref.read(routePreviewControllerProvider.notifier);
     final nav = ref.watch(navigationControllerProvider);
     final navSettings = ref.watch(navigationSettingsProvider);
     final navigating = nav.isActive;
+    final mapIsDark = switch (themeSettings.mode) {
+      ThemeMode.light => false,
+      ThemeMode.dark => true,
+      ThemeMode.system =>
+        MediaQuery.platformBrightnessOf(context) == Brightness.dark,
+    };
 
     ref.listen<NavigationState>(
       navigationControllerProvider,
@@ -485,9 +493,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
     final bottomSafe = MediaQuery.paddingOf(context).bottom;
 
     final config = MapViewConfig(
-      styleUrl: theme.brightness == Brightness.dark
-          ? AppConfig.mapStyleDark
-          : AppConfig.mapStyleLight,
+      styleUrl: mapIsDark ? AppConfig.mapStyleDark : AppConfig.mapStyleLight,
       initialCenter: AppConfig.initialCenter,
       initialZoom: AppConfig.initialZoom,
       routes: navigating ? _navigationLines(nav) : _routeLines(state),
@@ -867,11 +873,11 @@ class _SearchPill extends StatelessWidget {
                 ),
                 onTap: onTap,
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(minHeight: 56),
+                  constraints: const BoxConstraints(minHeight: 48),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
+                      horizontal: 10,
+                      vertical: 4,
                     ),
                     child: Row(
                       children: [
@@ -883,36 +889,23 @@ class _SearchPill extends StatelessWidget {
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: SizedBox(
-                            width: 40,
-                            height: 40,
+                            width: 34,
+                            height: 34,
                             child: Icon(
                               Icons.search_rounded,
                               color: theme.colorScheme.primary,
                             ),
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 10),
                         Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                label,
-                                style: theme.textTheme.titleSmall?.copyWith(
-                                  color: theme.colorScheme.onSurface,
-                                ),
-                              ),
-                              if (hint != null)
-                                Text(
-                                  hint!,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: theme.textTheme.labelSmall?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                  ),
-                                ),
-                            ],
+                          child: Text(
+                            label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              color: theme.colorScheme.onSurface,
+                            ),
                           ),
                         ),
                         Icon(

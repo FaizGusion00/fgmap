@@ -38,6 +38,8 @@ class MapLibreView extends StatefulWidget {
 
 class _MapLibreViewState extends State<MapLibreView> {
   MapLibreMapController? _controller;
+  late final String _initialStyleUrl;
+  late String _activeStyleUrl;
 
   /// Benar selepas sumber dan lapisan overlay ditambah pada gaya semasa. Menukar gaya (cerah/gelap)
   /// membuang semuanya, jadi ia diset semula dan dibina semula bila gaya baharu siap dimuatkan.
@@ -56,13 +58,26 @@ class _MapLibreViewState extends State<MapLibreView> {
   bool _gestureReported = false;
 
   @override
+  void initState() {
+    super.initState();
+    _initialStyleUrl = widget.config.styleUrl;
+    _activeStyleUrl = _initialStyleUrl;
+  }
+
+  @override
   void didUpdateWidget(MapLibreView oldWidget) {
     super.didUpdateWidget(oldWidget);
     final old = oldWidget.config;
     final cfg = widget.config;
 
     if (old.styleUrl != cfg.styleUrl) {
+      final styleUrl = cfg.styleUrl;
+      _activeStyleUrl = styleUrl;
       _overlaysReady = false;
+      final controller = _controller;
+      if (controller != null) {
+        _enqueue(() => controller.setStyle(styleUrl));
+      }
       return; // onStyleLoaded akan membina semula overlay dengan data terkini.
     }
     if (_overlaysReady &&
@@ -82,6 +97,9 @@ class _MapLibreViewState extends State<MapLibreView> {
 
   void _onMapCreated(MapLibreMapController controller) {
     _controller = controller;
+    if (_activeStyleUrl != _initialStyleUrl) {
+      _enqueue(() => controller.setStyle(_activeStyleUrl));
+    }
     widget.config.onReady(
       _MapLibreCamera(
         controller,
@@ -231,7 +249,8 @@ class _MapLibreViewState extends State<MapLibreView> {
   Widget build(BuildContext context) {
     final cfg = widget.config;
     final map = MapLibreMap(
-      styleString: cfg.styleUrl,
+      // Kekalkan parameter asal; pertukaran gaya dibuat melalui controller.setStyle.
+      styleString: _initialStyleUrl,
       initialCameraPosition: CameraPosition(
         target: LatLng(cfg.initialCenter.lat, cfg.initialCenter.lng),
         zoom: cfg.initialZoom,

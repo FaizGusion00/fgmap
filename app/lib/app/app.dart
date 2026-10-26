@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/theme/app_theme.dart';
-import '../core/theme/motion.dart';
 import '../core/theme/theme_controller.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'router.dart';
@@ -25,8 +24,7 @@ class FgmapApp extends ConsumerWidget {
       theme: _lightTheme,
       darkTheme: settings.amoled ? _amoledTheme : _darkTheme,
       themeMode: settings.mode,
-      themeAnimationDuration: Motion.themeSwitch,
-      themeAnimationCurve: Motion.standard,
+      themeAnimationDuration: Duration.zero,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       localeResolutionCallback: resolveLocale,

@@ -1,3 +1,4 @@
+import 'package:fgmap/core/config/app_config.dart';
 import 'package:fgmap/core/location/location_service.dart';
 import 'package:fgmap/features/route_preview/domain/routing_failure.dart';
 import 'package:fgmap/core/storage/preferences.dart';
@@ -62,21 +63,19 @@ void main() {
     expect(find.byKey(const ValueKey('fake-map')), findsOneWidget);
     expect(
       find.text('Tekan lama pada peta untuk pilih destinasi'),
-      findsOneWidget,
+      findsNothing,
+      reason:
+          'petunjuk kekal sebagai hint aksesibiliti supaya pil lebih rendah',
     );
     expect(find.byTooltip('Lokasi saya'), findsOneWidget);
     expect(find.byTooltip('Zum masuk'), findsOneWidget);
     expect(find.byTooltip('Zum keluar'), findsOneWidget);
     expect(find.byTooltip('Paparan'), findsOneWidget);
-    expect(find.text('Mengira laluan…'), findsNothing);
-    // Regresi: chip petunjuk pernah berada di tengah skrin (Center dalam Row setinggi skrin).
     expect(
-      tester
-          .getTopLeft(find.text('Tekan lama pada peta untuk pilih destinasi'))
-          .dy,
-      lessThan(150),
-      reason: 'petunjuk mesti di bahagian atas skrin',
+      tester.getSize(find.byKey(const ValueKey('search-pill'))).height,
+      lessThanOrEqualTo(52),
     );
+    expect(find.text('Mengira laluan…'), findsNothing);
     expect(map.config!.routes, isEmpty);
     expect(map.config!.destination, isNull);
   });
@@ -401,7 +400,9 @@ void main() {
     testWidgets('memilih Gelap dan AMOLED menukar dan menyimpan tetapan', (
       tester,
     ) async {
+      await prefs.setString('theme.mode', 'light');
       final container = await pumpScreen(tester);
+      expect(map.config!.styleUrl, AppConfig.mapStyleLight);
 
       await tester.tap(find.byTooltip('Paparan'));
       await tester.pumpAndSettle();
@@ -409,6 +410,7 @@ void main() {
 
       await tester.tap(find.text('Gelap'));
       await tester.pumpAndSettle();
+      expect(map.config!.styleUrl, AppConfig.mapStyleDark);
       await tester.tap(find.byType(Switch));
       await tester.pumpAndSettle();
 
@@ -418,6 +420,10 @@ void main() {
       );
       expect(prefs.getString('theme.mode'), 'dark');
       expect(prefs.getBool('theme.amoled'), isTrue);
+
+      await tester.tap(find.text('Cerah'));
+      await tester.pumpAndSettle();
+      expect(map.config!.styleUrl, AppConfig.mapStyleLight);
     });
   });
 
