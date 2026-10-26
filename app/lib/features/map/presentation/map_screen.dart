@@ -16,6 +16,8 @@ import '../../../core/theme/motion.dart';
 import '../../../core/theme/theme_controller.dart';
 import '../../../core/utils/geo.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../route_preview/data/route_planner.dart' show routeVehicleProvider;
+import '../../route_preview/domain/route_option.dart' show RouteVehicle;
 import '../../route_preview/domain/route_options_merge.dart';
 import '../../route_preview/presentation/route_preview_controller.dart';
 import '../../route_preview/presentation/route_summary_sheet.dart';
@@ -32,12 +34,14 @@ import '../../navigation/domain/nav_route.dart';
 import '../../navigation/presentation/navigation_controller.dart';
 import '../../navigation/presentation/navigation_frame_driver.dart';
 import '../../navigation/presentation/navigation_hud.dart';
+import '../../navigation/presentation/car/car_mesh.dart' show VehicleKind;
 import '../../navigation/presentation/car/car_renderer.dart';
 import '../../navigation/presentation/car/vehicle_overlay.dart';
 import '../../navigation/presentation/navigation_settings_sheet.dart';
 import 'idle_follow.dart';
 import 'location_prompt.dart';
 import 'map_view.dart';
+import 'nav_route_line.dart';
 import 'user_location.dart';
 
 class MapScreen extends ConsumerStatefulWidget {
@@ -437,12 +441,21 @@ class _MapScreenState extends ConsumerState<MapScreen>
   NavigationFrameDriver? _driver;
   Ticker? _ticker;
 
-  // Bentuk laluan baki yang dihantar ke peta. Disimpan supaya identiti senarai stabil antara
-  // pembinaan semula (peta hanya dikemas kini bila senarai berubah) dan hanya dikira semula apabila
-  // kenderaan telah bergerak cukup jauh.
-  List<GeoPoint> _shape = const [];
-  double _shapeAlong = -1000;
-  int _shapeVersion = -1;
+  // Laluan navigasi aktif untuk peta: dibina sekali setiap laluan (re-route menggantinya) dan dipangkas
+  // di permulaan oleh peta mengikut kedudukan kenderaan.
+  NavRouteLine? _navLine;
+
+  NavRouteLine? _navLineFor(NavigationState nav) {
+    final route = nav.route;
+    if (route == null) return null;
+    final current = _navLine;
+    if (current != null && current.version == nav.routeVersion) return current;
+    return _navLine = NavRouteLine(
+      points: route.points,
+      cumulativeM: route.cum,
+      version: nav.routeVersion,
+    );
+  }
 
   void _onNavigationChanged(NavigationState? prev, NavigationState next) {
     final wasActive = prev?.isActive ?? false;
@@ -489,7 +502,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
     _ticker = null;
     _driver?.dispose();
     _driver = null;
-    _shapeVersion = -1;
+    _navLine = null;
     final camera = _readyCamera;
     if (camera != null) {
       camera.showVehicle(null);
@@ -530,7 +543,12 @@ class _MapScreenState extends ConsumerState<MapScreen>
           route,
           ready.selectedQuery,
           uiLanguage: uiLanguage,
-          source: simulate ? routeSimulation(NavRoute(route)) : null,
+          source: simulate
+              ? routeSimulation(
+                  NavRoute(route),
+                  clock: ref.read(navClockProvider),
+                )
+              : null,
         );
   }
 
@@ -586,19 +604,6 @@ class _MapScreenState extends ConsumerState<MapScreen>
       NavCameraMode.flat => NavCameraMode.auto,
     };
     return controller.setCameraMode(next);
-  }
-
-  List<MapRouteLine> _navigationLines(NavigationState nav) {
-    final route = nav.route;
-    if (route == null) return const [];
-    final along = nav.progress?.alongM ?? 0;
-    if (nav.routeVersion != _shapeVersion ||
-        (along - _shapeAlong).abs() >= 15) {
-      _shape = route.remainingShape(along);
-      _shapeAlong = along;
-      _shapeVersion = nav.routeVersion;
-    }
-    return [MapRouteLine(points: _shape, isMain: true)];
   }
 
   GeoPoint _cameraCenterOrDefault() {
@@ -665,6 +670,13 @@ class _MapScreenState extends ConsumerState<MapScreen>
     final nav = ref.watch(navigationControllerProvider);
     final navSettings = ref.watch(navigationSettingsProvider);
     final navigating = nav.isActive;
+    // Kenderaan yang dipilih (kereta/motosikal): sama dengan yang digunakan untuk mengira laluan.
+    final vehicle = navigating
+        ? (nav.query?.vehicle ?? ref.watch(routeVehicleProvider))
+        : ref.watch(routeVehicleProvider);
+    final vehicleKind = vehicle == RouteVehicle.motorcycle
+        ? VehicleKind.motorcycle
+        : VehicleKind.car;
     final mapIsDark = switch (themeSettings.mode) {
       ThemeMode.light => false,
       ThemeMode.dark => true,
@@ -710,17 +722,27 @@ class _MapScreenState extends ConsumerState<MapScreen>
       styleUrl: mapIsDark ? AppConfig.mapStyleDark : AppConfig.mapStyleLight,
       initialCenter: AppConfig.initialCenter,
       initialZoom: AppConfig.initialZoom,
-      routes: navigating ? _navigationLines(nav) : _routeLines(state),
+      routes: navigating ? const [] : _routeLines(state),
+      navRoute: navigating ? _navLineFor(nav) : null,
+      navAlong: navigating ? _driver?.routeAlong : null,
+      finalLeg: _finalLeg(
+        end: navigating
+            ? nav.route?.points.last
+            : (state is RouteReady ? state.selected.points.last : null),
+        destination: navigating ? nav.query?.destination : _destination(state),
+      ),
       destination: navigating ? nav.query?.destination : _destination(state),
       showUserLocation: access == LocationAccess.granted && !navigating,
       userLocation: _tracker.location,
       showCompass: !navigating,
+      vehicleKind: vehicleKind,
       colors: MapOverlayColors(
         mainRoute: fg.routeMain,
         routeCasing: fg.routeCasing,
         alternativeRoute: fg.routeAlternative,
         destination: fg.destination,
         vehicle: theme.colorScheme.primary,
+        dark: mapIsDark,
       ),
       onLongPress: navigating ? (_) {} : _onLongPress,
       onTap: navigating ? null : _onMapTap,
@@ -738,7 +760,11 @@ class _MapScreenState extends ConsumerState<MapScreen>
             Positioned.fill(
               child: VehicleOverlay(
                 placement: _driver!.car,
-                palette: CarPalette.fromPrimary(theme.colorScheme.primary),
+                palette: CarPalette.forBrightness(
+                  theme.colorScheme.primary,
+                  mapIsDark ? Brightness.dark : Brightness.light,
+                ),
+                kind: vehicleKind,
               ),
             ),
           if (!navigating)
@@ -912,6 +938,9 @@ class _MapScreenState extends ConsumerState<MapScreen>
             now: ref.read(navClockProvider)(),
             simulated: nav.simulated,
             floating: landscape,
+            vehicleIcon: nav.query?.vehicle == RouteVehicle.motorcycle
+                ? Icons.two_wheeler_rounded
+                : Icons.directions_car_rounded,
             onEnd: _confirmEnd,
           );
 
@@ -1061,6 +1090,15 @@ class _MapScreenState extends ConsumerState<MapScreen>
         ),
       ),
     ];
+  }
+
+  /// Sambungan bertitik dari hujung laluan (titik jalan yang disnap) ke destinasi sebenar bila ia
+  /// berjauhan, supaya penanda destinasi tidak terapung di luar jalan tanpa kaitan dengan laluan.
+  static List<GeoPoint> _finalLeg({GeoPoint? end, GeoPoint? destination}) {
+    if (end == null || destination == null) return const [];
+    return distanceMeters(end, destination) > 10
+        ? [end, destination]
+        : const [];
   }
 
   static List<MapRouteLine> _routeLines(RoutePreviewState state) {

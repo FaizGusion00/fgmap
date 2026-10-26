@@ -1,8 +1,10 @@
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:flutter/material.dart' show Brightness;
 import 'package:flutter/painting.dart';
 
+import '../../navigation/presentation/car/car_mesh.dart';
 import '../../navigation/presentation/car/car_renderer.dart';
 
 /// Ukuran piksel imej ikon kenderaan. Dilukis dengan MapLibre pada `iconSize` kecil supaya tajam
@@ -15,17 +17,24 @@ const vehicleIconPixels = 192;
 ///
 /// Dilukis dengan enjin kereta yang sama supaya kedua-duanya sama rupa. Tiada bayang atau cahaya
 /// sekeliling kerana lapisan peta menambah sendiri.
-Future<Uint8List> renderVehicleIcon({required Color fill}) async {
+Future<Uint8List> renderVehicleIcon({
+  required Color fill,
+  VehicleKind kind = VehicleKind.car,
+  bool dark = false,
+}) async {
   const s = vehicleIconPixels * 1.0;
   final recorder = ui.PictureRecorder();
   final canvas = Canvas(recorder, const Rect.fromLTWH(0, 0, s, s));
-  CarRenderer().paint(
+  CarRenderer(kind.mesh).paint(
     canvas,
     anchor: const Offset(s / 2, s / 2),
-    lengthPx: s * 0.84,
+    lengthPx: s * 0.84 * kind.screenScale,
     yawDeg: 0,
     tiltDeg: 0,
-    palette: CarPalette.fromPrimary(fill).withoutHalo(),
+    palette: CarPalette.forBrightness(
+      fill,
+      dark ? Brightness.dark : Brightness.light,
+    ).withoutHalo(withRim: dark),
     shadow: false,
   );
   final image = await recorder.endRecording().toImage(

@@ -110,6 +110,36 @@ class NavHudMetrics {
   final double bannerMaxWidth;
 }
 
+/// Warna kad manuver. Pada peta gelap kad biru cerah dengan teks gelap terlalu terang dan menyilaukan;
+/// kad biru tua dengan teks putih (kontras >= 7:1) dan garis tepi biru lebih jelas dan lebih tenang.
+@immutable
+class BannerColors {
+  const BannerColors({
+    required this.background,
+    required this.foreground,
+    required this.border,
+  });
+
+  factory BannerColors.of(ThemeData theme, Color glassBorder) {
+    if (theme.brightness == Brightness.dark) {
+      return BannerColors(
+        background: const Color(0xFF14284F),
+        foreground: Colors.white,
+        border: theme.colorScheme.primary.withValues(alpha: 0.6),
+      );
+    }
+    return BannerColors(
+      background: theme.colorScheme.primary,
+      foreground: theme.colorScheme.onPrimary,
+      border: glassBorder.withValues(alpha: 0.4),
+    );
+  }
+
+  final Color background;
+  final Color foreground;
+  final Color border;
+}
+
 /// Mengekang penskalaan teks sistem pada HUD: teks yang membesar tanpa had menolak kad manuver sehingga
 /// menutup jalan. Sedikit pembesaran (115%) masih dihormati.
 Widget _clampTextScale(Widget child) => MediaQuery.withClampedTextScaling(
@@ -138,6 +168,7 @@ class ManeuverBanner extends StatelessWidget {
     final text = instructionTextFor(l10n);
     final fg = context.fg;
     final metrics = NavHudMetrics.of(context);
+    final colors = BannerColors.of(theme, fg.glassBorder);
 
     final child = next == null
         ? const SizedBox.shrink(key: ValueKey('none'))
@@ -155,6 +186,7 @@ class ManeuverBanner extends StatelessWidget {
                 thenGapM: then == null ? null : then.startM - next.startM,
                 text: text,
                 metrics: metrics,
+                colors: colors,
               );
             },
           );
@@ -165,12 +197,12 @@ class ManeuverBanner extends StatelessWidget {
       Semantics(
         container: true,
         child: Material(
-          color: theme.colorScheme.primary,
+          color: colors.background,
           elevation: 4,
           shadowColor: Colors.black54,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(metrics.radius),
-            side: BorderSide(color: fg.glassBorder.withValues(alpha: 0.4)),
+            side: BorderSide(color: colors.border),
           ),
           clipBehavior: Clip.antiAlias,
           child: AnimatedSwitcher(
@@ -228,7 +260,10 @@ class _BannerContent extends StatelessWidget {
     required this.thenGapM,
     required this.text,
     required this.metrics,
+    required this.colors,
   });
+
+  final BannerColors colors;
 
   /// Dalam jarak ini bar "bersedia" muncul dan memenuh sehingga manuver.
   static const readyWithinM = 300.0;
@@ -246,7 +281,7 @@ class _BannerContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final onPrimary = theme.colorScheme.onPrimary;
+    final onPrimary = colors.foreground;
     final street = maneuver.isArrival ? null : maneuver.street;
     final followingStreet = following?.street;
     final ready = distanceM <= readyWithinM && !maneuver.isArrival;
@@ -390,7 +425,11 @@ class NavBottomPanel extends StatelessWidget {
     required this.onEnd,
     this.simulated = false,
     this.floating = false,
+    this.vehicleIcon,
   });
+
+  /// Ikon jenis kenderaan (kereta/motosikal) di sebelah masa baki; null = tiada.
+  final IconData? vehicleIcon;
 
   final NavProgress progress;
   final DateTime now;
@@ -435,6 +474,16 @@ class NavBottomPanel extends StatelessWidget {
             ),
             child: Row(
               children: [
+                if (vehicleIcon != null) ...[
+                  ExcludeSemantics(
+                    child: Icon(
+                      vehicleIcon,
+                      size: 22,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                ],
                 Expanded(
                   child: Semantics(
                     container: true,

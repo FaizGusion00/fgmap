@@ -56,7 +56,32 @@ Punca yang dijumpai dalam kod:
 6. **Kurangkan kerja platform dan kelipan.** Kompas asli dimatikan semasa navigasi; hanya sumber GeoJSON yang berubah
    ditulis semula.
 
+## Pembetulan selepas ujian naik motor (versi 0.3.1)
+
+1. **Simpang tepat masa.** Kenderaan dianchor pada masa fix DIUKUR (latensi dihad 2.5 s), bukan masa tiba.
+   `NavigationSession.refreshLive` (4 Hz) mengira banner, jarak dan pengumuman daripada kedudukan kenderaan
+   yang diunjur; manuver dianggap dilalui `0.7 s` sebelum titiknya supaya paparan tidak ketinggalan.
+2. **Tamat tepat.** Tiba hanya dalam radius 12-25 m dari hujung laluan, ATAU selepas melepasi titik terdekat,
+   ATAU berhenti dekat hujung (bukan lagi 25-50 m). Sambungan akhir bertitik dilukis dari hujung laluan
+   (titik jalan yang disnap) ke destinasi sebenar.
+3. **Garisan melekat pada kereta, dan peta lancar pada zum rendah.** Laluan dihantar SEKALI dan dipangkas
+   dengan `line-gradient` (`lineMetrics`), pecahan dikira dalam ruang Mercator (nisbah geodesik tersasar
+   puluhan meter pada laluan panjang). Dahulu GeoJSON laluan dijana semula setiap 15 m, dan pada zum rendah
+   (seluruh laluan kelihatan) ini membuat peta memasang jubin semula dan tersangkut. Sandaran: hantar baki
+   laluan jika platform menolak `line-gradient`.
+4. **Motosikal.** `CarMesh.motorcycle` (penunggang), ikon ikut kenderaan terpilih, `use_trails: 0` untuk
+   costing `motorcycle`; larangan motor di lebuh raya mengikut tag OSM yang dihormati Valhalla.
+5. **Mod gelap.** Palet kenderaan gelap (badan cerah, halo kuat, kontur terang di atas jalan), tepi laluan
+   terang, kad manuver biru tua + teks putih, garis tepi kaca lebih jelas; semuanya diuji nisbah kontras.
+6. **Diagnostik** (`--dart-define=FG_DIAG=true`): kadar dan RTT kamera, latensi fix GPS, dan senarai id lapisan
+   gaya peta.
+
 ## Tidak dibuat dan sebabnya
+
+- **Pemulihan kontras gaya peta gelap (jalan/label):** `setLayerProperties` plugin menghantar semua sifat dan
+  menetapkan yang null semula, jadi mengubah satu sifat lapisan yang tidak dikenali boleh merosakkan lebar atau
+  warna lain; gaya OpenFreeMap tidak dapat diambil dari persekitaran pembangunan. Senarai id lapisan (FG_DIAG)
+  disediakan supaya penalaan boleh dibuat dengan data sebenar.
 
 - **Model 3D sebenar (glTF) atau `fill-extrusion` pada lapisan peta:** plugin `maplibre_gl` tidak menyokong model, dan
   `fill-extrusion` tidak dapat disahkan secara visual tanpa peranti; lukisan Flutter boleh diuji dan dirender di sini.

@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/utils/geo.dart';
 import '../../navigation/domain/camera_planner.dart' show CameraPose;
 import 'maplibre_view.dart';
+import '../../navigation/presentation/car/car_mesh.dart' show VehicleKind;
+import 'nav_route_line.dart';
 import 'user_location.dart';
 
 /// Kawalan kamera yang didedahkan oleh pandangan peta kepada skrin. Antara muka (bukan kelas
@@ -69,8 +71,11 @@ class MapOverlayColors {
     required this.alternativeRoute,
     required this.destination,
     this.vehicle = const Color(0xFF2F6BFF),
+    this.dark = false,
   });
 
+  /// Peta gelap: sprite kenderaan dilukis dengan palet gelap (kontur terang).
+  final bool dark;
   final Color vehicle;
   final Color mainRoute;
   final Color routeCasing;
@@ -84,6 +89,7 @@ class MapOverlayColors {
       other.routeCasing == routeCasing &&
       other.alternativeRoute == alternativeRoute &&
       other.destination == destination &&
+      other.dark == dark &&
       other.vehicle == vehicle;
 
   @override
@@ -93,6 +99,7 @@ class MapOverlayColors {
     alternativeRoute,
     destination,
     vehicle,
+    dark,
   );
 }
 
@@ -109,7 +116,11 @@ class MapViewConfig {
     required this.onLongPress,
     required this.onReady,
     this.userLocation,
+    this.navRoute,
+    this.navAlong,
+    this.finalLeg = const [],
     this.showCompass = true,
+    this.vehicleKind = VehicleKind.car,
     this.onUserGesture,
     this.onTap,
   });
@@ -125,6 +136,20 @@ class MapViewConfig {
   /// (bukan enjin GPS asli peta yang berasingan) supaya titik dan kamera "ikut saya" tidak berselisih.
   /// Null = tiada kedudukan untuk dipaparkan.
   final ValueListenable<UserLocation?>? userLocation;
+
+  /// Laluan navigasi aktif, dilukis sekali dan dipangkas di permulaan mengikut [navAlong] (tanpa menjana
+  /// semula geometri). Null = tiada navigasi; [routes] digunakan seperti biasa.
+  final NavRouteLine? navRoute;
+
+  /// Jarak (m) yang telah dilalui sepanjang [navRoute], dikemas kini beberapa kali sesaat.
+  final ValueListenable<double?>? navAlong;
+
+  /// Sambungan akhir bertitik dari hujung laluan (titik jalan) ke destinasi sebenar bila ia berjauhan;
+  /// kosong jika tiada.
+  final List<GeoPoint> finalLeg;
+
+  /// Jenis kenderaan untuk sprite kenderaan di lapisan peta (kereta atau motosikal).
+  final VehicleKind vehicleKind;
 
   /// Butang kompas asli peta. Dimatikan semasa navigasi: ia muncul dan hilang setiap kali arah peta
   /// melintasi utara dan kelihatan berkelip.

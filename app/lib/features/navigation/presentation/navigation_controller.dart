@@ -196,15 +196,23 @@ class NavigationController extends Notifier<NavigationState> {
         state = state.copyWith(locationError: true);
       },
     );
-    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+    // 4 Hz: banner, jarak dan pengumuman mengikut kedudukan kenderaan yang diunjur, bukan hanya fix 1 Hz.
+    _ticker = Timer.periodic(const Duration(milliseconds: 250), (_) {
       final s = _session;
       if (s == null || generation != _generation) return;
       final said = s.tick();
-      if (said.isEmpty) return;
-      // Isyarat hilang: kemas kini penanda GPS lemah walaupun tiada fix baharu.
-      final p = s.progress;
-      if (p != null) state = state.copyWith(progress: p);
-      _speak(said);
+      if (said.isNotEmpty) {
+        // Isyarat hilang: kemas kini penanda GPS lemah walaupun tiada fix baharu.
+        final p = s.progress;
+        if (p != null) state = state.copyWith(progress: p);
+        _speak(said);
+      }
+      if (state.phase != NavPhase.active) return;
+      final live = s.refreshLive();
+      if (live == null) return;
+      state = state.copyWith(progress: live.progress);
+      _speak(live.announcements);
+      _updateOverspeed(live.progress);
     });
     return true;
   }
@@ -228,6 +236,27 @@ class NavigationController extends Notifier<NavigationState> {
     }
   }
 
+  /// Diagnostik (`--dart-define=FG_DIAG=true`): berapa lewat fix GPS tiba berbanding cap masanya.
+  static const _diagnostics = bool.fromEnvironment('FG_DIAG');
+  final List<int> _diagLatenciesMs = [];
+
+  void _logFixLatency(LocationFix fix) {
+    final stamp = fix.timestamp;
+    if (stamp == null) return;
+    _diagLatenciesMs.add(
+      ref.read(navClockProvider)().difference(stamp).inMilliseconds,
+    );
+    if (_diagLatenciesMs.length >= 10) {
+      final avg =
+          _diagLatenciesMs.reduce((a, b) => a + b) / _diagLatenciesMs.length;
+      final max = _diagLatenciesMs.reduce((a, b) => a > b ? a : b);
+      debugPrint(
+        'FGDIAG GPS: latensi fix purata ${avg.round()} ms, maks $max ms',
+      );
+      _diagLatenciesMs.clear();
+    }
+  }
+
   void _teardown() {
     unawaited(_subscription?.cancel());
     _subscription = null;
@@ -239,6 +268,7 @@ class NavigationController extends Notifier<NavigationState> {
     final session = _session;
     if (session == null || state.phase != NavPhase.active) return;
     _lastFix = fix;
+    if (_diagnostics) _logFixLatency(fix);
     final update = session.onFix(fix);
     if (update == null) return;
 

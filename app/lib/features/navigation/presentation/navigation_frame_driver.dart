@@ -71,6 +71,15 @@ class NavigationFrameDriver {
   /// peralihan masuk kamera.
   final ValueNotifier<CarPlacement?> car = ValueNotifier(null);
 
+  /// Jarak (m) yang dilalui sepanjang laluan (kedudukan langsung kenderaan, tidak dibundar), untuk
+  /// memangkas garisan laluan di peta supaya bermula tepat di bawah kereta. Dikemas kini ~8 kali
+  /// sesaat dan hanya apabila berubah >= 0.5 m: setiap kemas kini ialah satu panggilan ke peta.
+  late final ValueNotifier<double?> routeAlong = ValueNotifier(
+    progress()?.alongM,
+  );
+  DateTime? _lastRouteAlongPush;
+  static const _routeAlongEvery = Duration(milliseconds: 120);
+
   CameraRig? _rig;
   Duration? _lastElapsed;
   DateTime? _lastInteraction;
@@ -163,6 +172,7 @@ class NavigationFrameDriver {
 
     final liveAlong = pose.onRoute ? (pose.alongM / 5).floor() * 5.0 : null;
     if (alongM.value != liveAlong) alongM.value = liveAlong;
+    if (pose.onRoute) _pushRouteAlong(pose.alongM, now);
 
     final marker = VehicleMarker(point: pose.point, bearing: pose.bearing);
 
@@ -295,6 +305,15 @@ class NavigationFrameDriver {
     }
   }
 
+  void _pushRouteAlong(double along, DateTime now) {
+    final last = _lastRouteAlongPush;
+    if (last != null && now.difference(last) < _routeAlongEvery) return;
+    final current = routeAlong.value;
+    if (current != null && (along - current).abs() < 0.5) return;
+    routeAlong.value = along;
+    _lastRouteAlongPush = now;
+  }
+
   void _showMapMarker(VehicleMarker marker) {
     if (!_sameMarker(_sentMarker, marker) ||
         ++_markerSkipped >= _heartbeatFrames) {
@@ -332,6 +351,7 @@ class NavigationFrameDriver {
     _disposed = true;
     follow.dispose();
     alongM.dispose();
+    routeAlong.dispose();
     car.dispose();
   }
 }

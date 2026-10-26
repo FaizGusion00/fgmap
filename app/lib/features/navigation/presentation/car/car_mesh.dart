@@ -12,6 +12,27 @@ enum CarMaterial {
   tire,
   headlight,
   taillight,
+
+  /// Jaket/seluar penunggang (hanya motosikal).
+  rider,
+
+  /// Enjin, garpu dan ekzos (hanya motosikal).
+  metal,
+}
+
+/// Jenis kenderaan yang dilukis; ikut pilihan kereta/motosikal pengguna.
+enum VehicleKind {
+  car,
+  motorcycle;
+
+  CarMesh get mesh => switch (this) {
+    VehicleKind.car => CarMesh.standard,
+    VehicleKind.motorcycle => CarMesh.motorcycle,
+  };
+
+  /// Skala saiz skrin berbanding kereta (motosikal lebih kecil, tetapi tidak sekecil nisbah sebenar
+  /// supaya kekal jelas).
+  double get screenScale => this == VehicleKind.car ? 1.0 : 0.72;
 }
 
 /// Satu muka (poligon cembung) pada mesh kereta.
@@ -41,7 +62,21 @@ class CarFace {
 /// Model 3D kereta berpoligon rendah. Ruang kereta, dalam meter: x ke kanan, y ke hadapan (hidung),
 /// z ke atas; asalan di tengah tapak. Dibina sekali dan dikongsi.
 class CarMesh {
-  CarMesh._(this.positions, this.faces, this.footprint);
+  CarMesh._(
+    this.positions,
+    this.faces,
+    this.footprint, {
+    required this.lengthM,
+    required this.heightM,
+    required this.tailLights,
+  });
+
+  /// Panjang dan tinggi model ini (meter).
+  final double lengthM;
+  final double heightM;
+
+  /// Pusat lampu belakang (x, y, z), untuk cahaya lampu brek.
+  final List<(double, double, double)> tailLights;
 
   /// x, y, z bagi setiap verteks, berselang-seli.
   final Float64List positions;
@@ -57,6 +92,7 @@ class CarMesh {
   static const height = 1.52;
 
   static final CarMesh standard = _build();
+  static final CarMesh motorcycle = _buildMotorcycle();
 
   static CarMesh _build() {
     final b = _Builder();
@@ -187,7 +223,207 @@ class CarMesh {
       foot[i * 2] = plan[i].$1 * 1.02;
       foot[i * 2 + 1] = plan[i].$2 * 1.02;
     }
-    return CarMesh._(b.positions(), b.faces, foot);
+    return CarMesh._(
+      b.positions(),
+      b.faces,
+      foot,
+      lengthM: length,
+      heightM: height,
+      tailLights: const [(-0.5, -2.2, 0.7), (0.5, -2.2, 0.7)],
+    );
+  }
+
+  /// Motosikal kapcai dengan penunggang (~2.1 x 0.75 x 1.6 m), poligon rendah seperti kereta.
+  static CarMesh _buildMotorcycle() {
+    final b = _Builder();
+
+    // Roda: cakera menegak dianggarkan dengan tiga papak bertindan (bulat dari sisi).
+    for (final y in const [0.72, -0.72]) {
+      for (final (z0, z1, halfLen) in const [
+        (0.0, 0.1, 0.15),
+        (0.1, 0.52, 0.31),
+        (0.52, 0.62, 0.15),
+      ]) {
+        b.prism(
+          _squircle(halfW: 0.08, yBack: -halfLen, yFront: halfLen, p: 3, n: 12),
+          dy: y,
+          z0: z0,
+          z1: z1,
+          side: CarMaterial.tire,
+          top: CarMaterial.tire,
+          order: 0,
+        );
+      }
+    }
+
+    // Garpu depan dan ekzos.
+    b.prism(
+      _rect(halfW: 0.04, yBack: -0.04, yFront: 0.04),
+      dy: 0.72,
+      dx: 0,
+      z0: 0.3,
+      z1: 1.0,
+      side: CarMaterial.metal,
+      top: CarMaterial.metal,
+      order: 1,
+    );
+    b.prism(
+      _squircle(halfW: 0.07, yBack: -0.8, yFront: 0.0, p: 3, n: 12),
+      dx: 0.2,
+      z0: 0.18,
+      z1: 0.34,
+      side: CarMaterial.metal,
+      top: CarMaterial.metal,
+      order: 1,
+    );
+
+    // Enjin dan rangka bawah.
+    b.prism(
+      _squircle(halfW: 0.17, yBack: -0.5, yFront: 0.45, p: 3.4, n: 16),
+      z0: 0.26,
+      z1: 0.6,
+      side: CarMaterial.metal,
+      top: CarMaterial.metal,
+      order: 2,
+    );
+
+    // Tangki / badan: lebih lebar di bawah, bumbung lebih cerah.
+    b.loft(
+      _squircle(halfW: 0.27, yBack: -0.25, yFront: 0.68, p: 3.2, n: 20),
+      0.6,
+      _squircle(halfW: 0.21, yBack: -0.15, yFront: 0.58, p: 3.2, n: 20),
+      0.98,
+      side: CarMaterial.body,
+      top: CarMaterial.bodyTop,
+      order: 3,
+    );
+    // Fender belakang dan lampu depan/ayam.
+    b.loft(
+      _squircle(halfW: 0.2, yBack: -1.02, yFront: -0.38, p: 3.2, n: 16),
+      0.66,
+      _squircle(halfW: 0.16, yBack: -0.98, yFront: -0.44, p: 3.2, n: 16),
+      0.86,
+      side: CarMaterial.body,
+      top: CarMaterial.bodyTop,
+      order: 3,
+    );
+    b.loft(
+      _squircle(halfW: 0.19, yBack: 0.55, yFront: 0.98, p: 3, n: 16),
+      0.7,
+      _squircle(halfW: 0.14, yBack: 0.58, yFront: 0.92, p: 3, n: 16),
+      1.05,
+      side: CarMaterial.body,
+      top: CarMaterial.bodyTop,
+      order: 3,
+    );
+
+    // Tempat duduk.
+    b.prism(
+      _squircle(halfW: 0.15, yBack: -0.72, yFront: -0.05, p: 3.2, n: 16),
+      z0: 0.78,
+      z1: 0.9,
+      side: CarMaterial.tire,
+      top: CarMaterial.tire,
+      order: 4,
+    );
+
+    // Penunggang: kaki, badan membongkok ke hadapan, lengan, topi keledar.
+    for (final sx in const [-1.0, 1.0]) {
+      b.prism(
+        _squircle(halfW: 0.08, yBack: -0.3, yFront: 0.22, p: 3, n: 12),
+        dx: sx * 0.2,
+        z0: 0.48,
+        z1: 0.92,
+        side: CarMaterial.rider,
+        top: CarMaterial.rider,
+        order: 5,
+      );
+      b.prism(
+        _squircle(halfW: 0.045, yBack: -0.1, yFront: 0.54, p: 3, n: 12),
+        dx: sx * 0.22,
+        z0: 1.04,
+        z1: 1.14,
+        side: CarMaterial.rider,
+        top: CarMaterial.rider,
+        order: 5,
+      );
+    }
+    b.loft(
+      _squircle(halfW: 0.18, yBack: -0.5, yFront: -0.1, p: 3, n: 16),
+      0.9,
+      _squircle(halfW: 0.16, yBack: -0.2, yFront: 0.15, p: 3, n: 16),
+      1.34,
+      side: CarMaterial.rider,
+      top: CarMaterial.rider,
+      order: 5,
+    );
+    b.loft(
+      _squircle(halfW: 0.13, yBack: -0.12, yFront: 0.2, p: 2.4, n: 16),
+      1.3,
+      _squircle(halfW: 0.095, yBack: -0.08, yFront: 0.16, p: 2.4, n: 16),
+      1.54,
+      side: CarMaterial.bodyTop,
+      top: CarMaterial.bodyTop,
+      order: 6,
+    );
+    // Visor.
+    b.prism(
+      _rect(halfW: 0.09, yBack: 0.17, yFront: 0.21),
+      z0: 1.36,
+      z1: 1.46,
+      side: CarMaterial.glass,
+      top: CarMaterial.glass,
+      order: 7,
+    );
+
+    // Pemegang.
+    b.prism(
+      _rect(halfW: 0.3, yBack: 0.52, yFront: 0.57),
+      z0: 1.08,
+      z1: 1.12,
+      side: CarMaterial.metal,
+      top: CarMaterial.metal,
+      order: 7,
+    );
+
+    // Lampu.
+    b.prism(
+      _rect(halfW: 0.1, yBack: 0.94, yFront: 1.02),
+      z0: 0.78,
+      z1: 0.92,
+      side: CarMaterial.headlight,
+      top: CarMaterial.headlight,
+      order: 8,
+    );
+    b.prism(
+      _rect(halfW: 0.12, yBack: -1.04, yFront: -0.97),
+      z0: 0.72,
+      z1: 0.82,
+      side: CarMaterial.taillight,
+      top: CarMaterial.taillight,
+      order: 8,
+    );
+
+    final foot = Float64List(24 * 2);
+    final plan = _squircle(
+      halfW: 0.24,
+      yBack: -1.05,
+      yFront: 1.05,
+      p: 4,
+      n: 24,
+    );
+    for (var i = 0; i < plan.length; i++) {
+      foot[i * 2] = plan[i].$1;
+      foot[i * 2 + 1] = plan[i].$2;
+    }
+    return CarMesh._(
+      b.positions(),
+      b.faces,
+      foot,
+      lengthM: 2.1,
+      heightM: 1.54,
+      tailLights: const [(0, -1.02, 0.77)],
+    );
   }
 }
 
@@ -266,13 +502,14 @@ class _Builder {
   void prism(
     List<_P2> outline, {
     double dx = 0,
+    double dy = 0,
     required double z0,
     required double z1,
     required CarMaterial side,
     required CarMaterial top,
     required int order,
   }) {
-    final shifted = [for (final p in outline) (p.$1 + dx, p.$2)];
+    final shifted = [for (final p in outline) (p.$1 + dx, p.$2 + dy)];
     loft(shifted, z0, shifted, z1, side: side, top: top, order: order);
   }
 

@@ -402,7 +402,7 @@ void main() {
         final px = groundM / (metersPerPixel(pose.zoom, point.lat) * mppError);
         final tilt = pose.tilt * math.pi / 180;
         const altitude = 1.5;
-        final a = altitude * height;
+        const a = altitude * height;
         final below = a * px * math.cos(tilt) / (a - px * math.sin(tilt));
         return Offset(width / 2, height / 2 + below);
       };
@@ -515,6 +515,64 @@ void main() {
         expect(d.groundScale, before);
       },
     );
+  });
+
+  group('routeAlong (pemangkasan garisan laluan)', () {
+    test(
+      'bermula daripada kemajuan semasa dan maju mengikut kedudukan langsung',
+      () {
+        expect(
+          driver.routeAlong.value,
+          closeTo(session.progress!.alongM, 0.001),
+        );
+        final start = driver.routeAlong.value!;
+        for (var i = 0; i < 120; i++) {
+          clock.advance(const Duration(milliseconds: 16));
+          driver.step(t(16 * i));
+        }
+        // ~2 s x 14 m/s di hadapan, tidak dibundar kepada 5 m.
+        expect(driver.routeAlong.value! - start, greaterThan(15));
+        expect(driver.routeAlong.value! % 5, isNot(0));
+      },
+    );
+
+    test('dikemas kini paling kerap ~8 kali sesaat, bukan setiap bingkai', () {
+      var changes = 0;
+      driver.routeAlong.addListener(() => changes++);
+      for (var i = 0; i < 120; i++) {
+        clock.advance(const Duration(milliseconds: 16));
+        driver.step(t(16 * i));
+      }
+      // ~1.9 s -> paling banyak ~16 kali (120 ms), jauh kurang daripada 120 bingkai.
+      expect(changes, inInclusiveRange(8, 18));
+    });
+
+    test('kenderaan berhenti: tiada kemas kini', () {
+      final d = NavigationFrameDriver(
+        camera: camera,
+        poseAt: (_) => const VehiclePose(
+          point: GeoPoint(3.14, 101.69),
+          bearing: 90,
+          alongM: 100,
+          speedMps: 0,
+          onRoute: true,
+        ),
+        progress: () => null,
+        viewportHeight: () => 800,
+        cameraMode: () => NavCameraMode.flat,
+        clock: clock.call,
+        reduceMotion: true,
+      );
+      addTearDown(d.dispose);
+      var changes = 0;
+      d.routeAlong.addListener(() => changes++);
+      for (var i = 0; i < 200; i++) {
+        clock.advance(const Duration(milliseconds: 16));
+        d.step(t(16 * i));
+      }
+      expect(changes, 1, reason: 'hanya nilai pertama');
+      expect(d.routeAlong.value, 100);
+    });
   });
 
   test('tiada pose (navigasi belum bermula): tidak berbuat apa-apa', () {
