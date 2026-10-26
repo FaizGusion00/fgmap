@@ -1,0 +1,76 @@
+# Data Valhalla (pbf + tile graf) besar dan boleh dijana semula
+infra/valhalla/custom_files/*
+!infra/valhalla/custom_files/.gitkeep
+
+# Output tools/tiles/build.sh (tarball, sqlite, valhalla_tiles: ~1.7 GB, boleh dijana semula)
+tools/tiles/out/
+
+# Data geospatial besar di mana-mana sahaja
+*.pbf
+*.mbtiles
+*.pmtiles
+*.sqlite
+*.tar
+*.tar.gz
+
+# Rahsia dan env setempat
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.key
+*.jks
+*.keystore
+key.properties
+google-services.json
+GoogleService-Info.plist
+
+# Go
+server/bin/
+*.test
+*.out
+coverage.txt
+coverage.html
+
+# Python (tools/tiles/serve.py)
+__pycache__/
+*.pyc
+
+# Flutter / Dart (app/ dan packages/*; setiap pakej juga ada .gitignore sendiri)
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+**/build/
+**/coverage/
+**/Pods/
+**/.symlinks/
+**/ios/Flutter/ephemeral/
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/Flutter/Flutter.podspec
+**/ios/Runner/GeneratedPluginRegistrant.*
+**/android/.gradle/
+**/android/local.properties
+**/android/**/GeneratedPluginRegistrant.java
+**/android/gradle/wrapper/gradle-wrapper.jar
+**/DerivedData/
+**/xcuserdata/
+*.xcuserstate
+app.*.symbols
+app.*.map.json
+
+# Editor / OS
+.DS_Store
+.idea/
+*.iml
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.swp
+
+# Fail setempat Claude Code (kekalkan CLAUDE.md dan .claude/settings.json)
+.claude/settings.local.json
+.claude/worktrees/

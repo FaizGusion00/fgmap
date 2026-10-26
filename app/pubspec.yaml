@@ -1,0 +1,61 @@
+name: fgmap
+description: "FGMap: aplikasi navigasi komuniti Malaysia."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.11.5
+
+dependencies:
+  audioplayers: ^6.7.1
+  connectivity_plus: ^7.3.1
+  crypto: ^3.0.7
+  dio: ^5.11.1
+  fgmap_valhalla:
+    path: ../packages/fgmap_valhalla
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  flutter_riverpod: ^3.3.2
+  flutter_tts: ^4.2.5
+  geolocator: ^14.1.2
+  go_router: ^17.5.0
+  intl: ^0.20.2
+  maplibre_gl: ^0.27.1
+  package_info_plus: ^10.2.2
+  path: ^1.9.1
+  path_provider: ^2.1.6
+  shared_preferences: ^2.5.6
+  wakelock_plus: ^1.7.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_native_splash: ^2.4.7
+
+flutter:
+  uses-material-design: true
+  generate: true # flutter gen-l10n (lihat l10n.yaml)
+
+  assets:
+    - assets/fonts/OFL-PlusJakartaSans.txt
+
+  fonts:
+    # Fon variabel (paksi wght 200-800), dibundel supaya tidak dimuat turun masa jalan.
+    # Berat ditetapkan melalui FontVariation dalam core/theme/typography.dart.
+    - family: PlusJakartaSans
+      fonts:
+        - asset: assets/fonts/PlusJakartaSans.ttf
+
+# Lesen fon (SIL OFL 1.1) didaftarkan dalam LicenseRegistry; lihat lib/core/licenses.dart.
+
+# Splash asli tanpa kilat putih dalam mod gelap (Bahagian 14.6). Warna sama dengan token latar tema.
+flutter_native_splash:
+  color: "#F7F9FC"
+  color_dark: "#0B1220"
+  android_12:
+    color: "#F7F9FC"
+    color_dark: "#0B1220"
+  fullscreen: false

@@ -1,0 +1,76 @@
+name: tiles
+
+# Membina dan menerbitkan pek peta offline tanpa server: pekerjaan berjadual ini ialah "server" data.
+# Hasil: satu Release bertanda `tiles` (dikemas kini di tempat) dengan manifest.json + pek .tar.gz.
+# Set OFFLINE_MANIFEST_URL app kepada:
+#   https://github.com/<pemilik>/<repo>/releases/download/tiles/manifest.json
+# Repo MESTI awam supaya app boleh memuat turun tanpa pengesahan.
+
+on:
+  schedule:
+    - cron: "0 19 * * 0" # Ahad 19:00 UTC = Isnin 03:00 MYT
+  workflow_dispatch:
+
+permissions:
+  contents: write # mencipta/mengemas kini Release
+
+concurrency:
+  group: tiles
+  cancel-in-progress: false
+
+env:
+  EXTRACT_URL: https://download.geofabrik.de/asia/malaysia-singapore-brunei-latest.osm.pbf
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Muat turun ekstrak OSM (Geofabrik)
+        run: |
+          mkdir -p tools/tiles/data
+          curl -fsSL --retry 3 -o tools/tiles/data/extract.osm.pbf "$EXTRACT_URL"
+          ls -l tools/tiles/data
+
+      - name: Bina pek tile (Valhalla versi sepadan dengan valhalla-mobile)
+        run: tools/tiles/build.sh tools/tiles/data/extract.osm.pbf tools/tiles/out
+
+      - name: Sahkan pek sebelum terbit
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, os, re, sys
+          out = "tools/tiles/out"
+          m = json.load(open(f"{out}/manifest.json"))
+          pack = f"{out}/{m['file']}"
+          assert re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", m["file"]), m["file"]
+          assert os.path.getsize(pack) == m["sizeBytes"], "saiz pek tidak sepadan"
+          h = hashlib.sha256()
+          with open(pack, "rb") as f:
+              for chunk in iter(lambda: f.read(1 << 20), b""):
+                  h.update(chunk)
+          assert h.hexdigest() == m["sha256"], "sha256 pek tidak sepadan"
+          assert os.path.getsize(f"{out}/valhalla_tiles.tar") == m["extractedSizeBytes"], "saiz ekstrak tidak sepadan"
+          # Pek terlalu kecil bermaksud pembinaan gagal senyap (Malaysia ~250 MB termampat).
+          assert m["sizeBytes"] > 100_000_000, f"pek mencurigakan kecil: {m['sizeBytes']}"
+          print("OK", m["version"], m["sizeBytes"])
+          PY
+
+      - name: Terbit ke Release `tiles`
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          VERSION=$(python3 -c "import json;print(json.load(open('tools/tiles/out/manifest.json'))['version'])")
+          if ! gh release view tiles >/dev/null 2>&1; then
+            gh release create tiles --title "Peta offline (tile Valhalla)" \
+              --notes "Dijana secara automatik oleh .github/workflows/tiles.yml. Jangan sunting." --latest=false
+          fi
+          # Muat naik pek baharu DAHULU, kemudian manifest (yang menunjuk kepadanya), kemudian buang pek lama.
+          # Dengan itu app tidak pernah melihat manifest yang menunjuk kepada fail yang belum wujud.
+          gh release upload tiles "tools/tiles/out/malaysia-${VERSION}.tar.gz" --clobber
+          gh release upload tiles tools/tiles/out/manifest.json --clobber
+          gh release view tiles --json assets --jq '.assets[].name' \
+            | grep -E '^malaysia-[0-9]{8}\.tar\.gz$' | grep -v "^malaysia-${VERSION}\.tar\.gz$" \
+            | while read -r old; do gh release delete-asset tiles "$old" --yes; done

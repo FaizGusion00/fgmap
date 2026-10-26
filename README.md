@@ -51,6 +51,16 @@ Port hos: API `8080`, Valhalla `8002`, PostGIS `5434` (5432 dan 5433 sering digu
 
 HTTP biasa dibenarkan hanya dalam build debug/profile Android (`src/debug` dan `src/profile`); release hanya HTTPS.
 
+## Navigasi
+
+Selepas laluan dikira, tekan **Mula** (GPS sebenar) atau **Simulasi** (memandu sepanjang laluan tanpa GPS; berguna
+untuk menguji kamera, suara dan re-route). Semasa navigasi: kad manuver dengan "kemudian ...", ETA yang dilaraskan
+mengikut kelajuan sebenar, kamera 3D/2D automatik, suara BM/English dengan bunyi amaran awal, re-route automatik
+apabila tersasar, dan mod kamera/suara/bahasa suara pada butang sisi. Reka bentuk: [docs/adr/0003-navigation-engine.md](docs/adr/0003-navigation-engine.md).
+
+Main semula jejak GPX (Bahagian 8.4): `ReplayLocationSource(gpxToFixes(parseGpx(xml)))` boleh diberi kepada
+`NavigationController.start(source: ...)`.
+
 ## Ujian
 
 ```sh

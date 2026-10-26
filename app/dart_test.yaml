@@ -1,0 +1,5 @@
+tags:
+  # Ujian golden: dijana pada macOS; CI menjalankannya pada macOS sahaja (perbezaan render teks
+  # antara platform menyebabkan beza piksel). Jalankan sahaja: flutter test --tags golden
+  # Kemas kini: flutter test --update-goldens --tags golden
+  golden:

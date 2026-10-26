@@ -1,0 +1,61 @@
+name: app
+
+on:
+  push:
+    branches: [main]
+    paths: ["app/**", "packages/**", ".github/workflows/app.yml"]
+  pull_request:
+    paths: ["app/**", "packages/**", ".github/workflows/app.yml"]
+
+permissions:
+  contents: read
+
+env:
+  # Sama dengan versi pembangunan. Golden bergantung pada versi Flutter; naikkan bersama kemas kini golden.
+  FLUTTER_VERSION: "3.41.7"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      # l10n dijana dan di-commit; jika berbeza daripada .arb, build gagal.
+      - name: Generated code is up to date
+        run: |
+          flutter gen-l10n
+          git diff --exit-code -- .
+
+      - run: flutter analyze
+
+      # Golden dijalankan pada macOS (job di bawah): render teks berbeza sedikit antara platform.
+      - run: flutter test --exclude-tags golden
+
+  golden:
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - run: flutter test --tags golden

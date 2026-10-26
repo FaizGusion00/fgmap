@@ -1,0 +1,5 @@
+# Versi Valhalla yang tertanam dalam pustaka valhalla-mobile yang digunakan app.
+# valhalla-mobile 0.6.4 -> submodule src/valhalla @ bafb6990 yang SAMA dengan valhalla/valhalla tag 3.9.1
+# (diesahkan: GitHub compare 3.9.1...bafb6990 = identical). Naikkan kedua-duanya bersama.
+VALHALLA_VERSION=3.9.1
+VALHALLA_MOBILE_VERSION=0.6.4

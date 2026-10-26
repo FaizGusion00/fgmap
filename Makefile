@@ -1,0 +1,28 @@
+.PHONY: help test analyze l10n tiles serve-tiles run-android
+
+help:
+	@echo "make test           ujian app (tanpa golden)"
+	@echo "make analyze        flutter analyze"
+	@echo "make l10n           jana semula l10n daripada .arb"
+	@echo "make tiles          bina pek tile offline (Docker, ~10 min) ke tools/tiles/out"
+	@echo "make serve-tiles    sajikan tools/tiles/out di :8099 (menyokong Range) untuk menguji muat turun"
+	@echo "make run-android    jalankan app pada emulator dengan pek tile setempat"
+
+test:
+	cd app && flutter test --exclude-tags golden
+
+analyze:
+	cd app && flutter analyze
+
+l10n:
+	cd app && flutter gen-l10n
+
+tiles:
+	tools/tiles/build.sh tools/tiles/data/malaysia-singapore-brunei-latest.osm.pbf tools/tiles/out
+
+serve-tiles:
+	python3 tools/tiles/serve.py tools/tiles/out 8099
+
+# 10.0.2.2 ialah hos komputer dari emulator Android.
+run-android:
+	cd app && flutter run --dart-define=OFFLINE_MANIFEST_URL=http://10.0.2.2:8099/manifest.json

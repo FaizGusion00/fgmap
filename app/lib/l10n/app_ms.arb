@@ -1,0 +1,219 @@
+{
+  "@@locale": "ms",
+  "appName": "FGMap",
+  "mapHintLongPress": "Tekan lama pada peta untuk pilih destinasi",
+  "myLocation": "Lokasi saya",
+  "mapAttribution": "© penyumbang OpenStreetMap · OpenFreeMap",
+  "locationRationaleTitle": "Benarkan akses lokasi?",
+  "locationRationaleBody": "Lokasi anda digunakan untuk menunjukkan kedudukan anda di peta dan sebagai titik mula laluan. Ia dihantar ke pelayan FGMap hanya untuk mengira laluan.",
+  "locationAllow": "Benarkan",
+  "locationNotNow": "Bukan sekarang",
+  "locationOpenSettings": "Buka Tetapan",
+  "locationDeniedForeverBody": "Akses lokasi dimatikan. Aktifkan dalam Tetapan untuk guna lokasi semasa anda.",
+  "locationServiceOffBody": "Perkhidmatan lokasi dimatikan. Hidupkan GPS untuk guna lokasi semasa anda.",
+  "routeSheetSemantics": "Ringkasan laluan",
+  "routeCalculating": "Mengira laluan…",
+  "routeFromMapCenter": "Lokasi anda tidak tersedia, jadi laluan dikira dari pusat peta.",
+  "routeOptionLabel": "Laluan {index}",
+  "@routeOptionLabel": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "routeAvoidTolls": "Elak tol",
+  "routeHasTolls": "Ada tol",
+  "routeNoTolls": "Tiada tol",
+  "routeClear": "Padam laluan",
+  "routeRetry": "Cuba lagi",
+  "routeErrorNoRoute": "Tiada laluan ditemui ke tempat ini. Cuba pilih jalan lain berdekatan.",
+  "routeErrorUnavailable": "Perkhidmatan laluan tidak tersedia buat masa ini. Cuba sebentar lagi.",
+  "routeErrorTimeout": "Pengiraan laluan mengambil masa terlalu lama. Cuba lagi.",
+  "routeErrorNetwork": "Tiada sambungan ke pelayan. Semak internet anda.",
+  "routeErrorRateLimited": "Terlalu banyak permintaan. Tunggu sebentar.",
+  "routeErrorGeneric": "Sesuatu tidak kena. Cuba lagi.",
+  "distanceMeters": "{meters} m",
+  "@distanceMeters": {
+    "placeholders": {
+      "meters": {
+        "type": "int"
+      }
+    }
+  },
+  "distanceKilometers": "{km} km",
+  "@distanceKilometers": {
+    "placeholders": {
+      "km": {
+        "type": "String"
+      }
+    }
+  },
+  "durationMinutes": "{minutes} min",
+  "@durationMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "durationHoursMinutes": "{hours} j {minutes} min",
+  "@durationHoursMinutes": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "appearanceTooltip": "Paparan",
+  "appearanceTitle": "Paparan",
+  "themeSystem": "Ikut sistem",
+  "themeLight": "Cerah",
+  "themeDark": "Gelap",
+  "themeAmoled": "Hitam AMOLED",
+  "themeAmoledHint": "Latar hitam tulen. Jimat bateri pada skrin OLED dan kurang silau waktu malam.",
+  "routeErrorOfflineRequired": "Tiada sambungan internet. Muat turun peta offline untuk mengira laluan tanpa internet.",
+  "routeErrorOfflineEngine": "Peta offline tidak dapat digunakan. Cuba muat turun semula.",
+  "routeSourceOffline": "Offline",
+  "offlineMapsOpen": "Peta offline",
+  "offlineMapsTitle": "Peta offline",
+  "offlineMapsIntro": "Muat turun peta Malaysia sekali supaya laluan boleh dikira tanpa internet. Dengan internet, laluan dikira secara online (lebih terkini) dan peta offline menjadi sandaran.",
+  "offlineMapsNotConfigured": "Muat turun peta offline belum dikonfigurasi dalam binaan ini.",
+  "offlineMapsNotInstalled": "Belum dimuat turun",
+  "offlineMapsInstalled": "Dipasang: {date}",
+  "@offlineMapsInstalled": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "offlineMapsSize": "Saiz muat turun {size}",
+  "@offlineMapsSize": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "offlineMapsUpdateAvailable": "Kemas kini tersedia: {date}",
+  "@offlineMapsUpdateAvailable": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "offlineMapsUpToDate": "Peta offline terkini",
+  "offlineMapsDownload": "Muat turun",
+  "offlineMapsUpdate": "Kemas kini",
+  "offlineMapsDelete": "Padam",
+  "offlineMapsCancel": "Batal",
+  "offlineMapsChecking": "Menyemak…",
+  "offlineMapsDownloading": "Memuat turun… {percent}%",
+  "@offlineMapsDownloading": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "offlineMapsVerifying": "Mengesahkan fail…",
+  "offlineMapsInstalling": "Memasang…",
+  "offlineMapsMobileDataTitle": "Guna data mudah alih?",
+  "offlineMapsMobileDataBody": "Muat turun ini kira-kira {size}. Anda tidak bersambung ke Wi-Fi.",
+  "@offlineMapsMobileDataBody": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "offlineMapsDeleteTitle": "Padam peta offline?",
+  "offlineMapsDeleteBody": "Anda perlu memuat turunnya semula untuk menggunakan laluan offline.",
+  "offlineMapsErrorNetwork": "Muat turun terputus. Semak internet dan cuba lagi; ia akan disambung.",
+  "offlineMapsErrorStorage": "Ruang simpanan tidak mencukupi. Bebaskan ruang dan cuba lagi.",
+  "offlineMapsErrorChecksum": "Fail yang dimuat turun rosak. Cuba lagi.",
+  "offlineMapsErrorIncompatible": "Peta offline ini tidak serasi dengan versi app. Kemas kini app.",
+  "offlineMapsErrorInvalid": "Maklumat peta offline tidak sah.",
+  "offlineMapsErrorGeneric": "Sesuatu tidak kena. Cuba lagi.",
+  "routingModeTitle": "Sumber laluan",
+  "routingModeAuto": "Auto",
+  "routingModeOnline": "Online sahaja",
+  "routingModeOffline": "Offline sahaja",
+  "routingModeAutoHint": "Online dahulu; jika gagal, guna peta offline.",
+  "tripPlannerTitle": "Rancang perjalanan",
+  "tripFrom": "Dari",
+  "tripTo": "Ke",
+  "searchHint": "Cari tempat atau alamat",
+  "searchPillHint": "Cari destinasi",
+  "searchClear": "Kosongkan",
+  "searchPrompt": "Taip nama tempat, jalan atau alamat. Anda juga boleh tekan lama pada peta.",
+  "searchNoResults": "Tiada hasil untuk “{query}”.",
+  "@searchNoResults": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "searchErrorNetwork": "Tiada sambungan internet. Carian memerlukan internet; anda masih boleh tekan lama pada peta untuk memilih destinasi.",
+  "searchErrorRateLimited": "Terlalu banyak carian. Tunggu sebentar.",
+  "searchErrorUnavailable": "Perkhidmatan carian tidak tersedia buat masa ini.",
+  "routeFromTo": "{from} → {to}",
+  "@routeFromTo": {
+    "placeholders": {
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      }
+    }
+  },
+  "navStart": "Mula",
+  "navSimulate": "Simulasi",
+  "navEnd": "Tamat",
+  "navEndTitle": "Tamatkan navigasi?",
+  "navEndKeep": "Teruskan",
+  "navDone": "Selesai",
+  "navArrived": "Anda telah sampai",
+  "navArrivalSub": "Sampai di destinasi",
+  "navRerouting": "Mengira semula laluan…",
+  "navRerouteRetry": "Tiada sambungan. Mencuba semula…",
+  "navGpsWeak": "Isyarat GPS lemah",
+  "navLocationLost": "Lokasi tidak dapat diakses. Semak kebenaran lokasi.",
+  "navRecenter": "Pusatkan",
+  "navMute": "Senyapkan suara",
+  "navUnmute": "Hidupkan suara",
+  "navOverview": "Lihat keseluruhan laluan",
+  "navCameraAuto": "Kamera auto 3D/2D",
+  "navCameraFlat": "Kamera 2D",
+  "navCameraTilted": "Kamera 3D",
+  "navThen": "Kemudian",
+  "navSimulatedBadge": "Simulasi",
+  "navSpeedUnit": "km/j",
+  "navSpeedLabel": "Kelajuan",
+  "navSettingsTitle": "Tetapan navigasi",
+  "navVoiceTitle": "Suara navigasi",
+  "navVoiceLanguage": "Bahasa suara",
+  "navVoiceFollowApp": "Ikut app",
+  "navVoiceMalay": "Bahasa Melayu",
+  "navVoiceEnglish": "English",
+  "navCameraTitle": "Paparan kamera",
+  "navCameraAutoHint": "3D di jalan lurus, 2D menghampiri selekoh dan bulatan",
+  "navSettingsOpen": "Tetapan navigasi",
+  "navContinue": "Teruskan",
+  "navEta": "Tiba {time}",
+  "@navEta": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "navAcquiring": "Mencari isyarat GPS…"
+}

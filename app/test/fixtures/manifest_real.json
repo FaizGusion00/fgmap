@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "region": "malaysia",
+  "version": "20261026",
+  "valhalla": "3.9.1",
+  "file": "malaysia-20261026.tar.gz",
+  "sizeBytes": 253855993,
+  "sha256": "8219761382b982b460b46750ae1c741b2fc3308983fc89e6df9a8ddd243e5897",
+  "extractedSizeBytes": 682844160,
+  "extractedSha256": "65551990e38e66c7231d90fd5069a170e7311e7c5a538fa4c396dbc4c9f56617"
+}

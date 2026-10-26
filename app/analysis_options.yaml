@@ -1,0 +1,12 @@
+include: package:flutter_lints/flutter.yaml
+
+# Kod dijana (*.g.dart, *.freezed.dart, generated/, l10n/generated/) sengaja TIDAK dikecualikan:
+# ia membawa `ignore_for_file: type=lint` jadi lint senyap, tetapi ralat kompilasi (cth. kelas Freezed 3
+# yang bukan abstract) mesti tetap menggagalkan `flutter analyze`.
+
+linter:
+  rules:
+    prefer_const_constructors: true
+    prefer_const_declarations: true
+    avoid_print: true
+    unawaited_futures: true
