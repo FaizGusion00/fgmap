@@ -34,14 +34,15 @@ abstract interface class ReportsRepository {
   Future<int> purgeExpired(DateTime now);
 }
 
-/// Simpanan fail JSON pada peranti. Laporan hanya kelihatan kepada pengguna ini.
+/// Simpanan fail JSON pada peranti. Laporan hanya kelihatan kepada pengguna ini. Tanpa fail ([_file]
+/// null) laporan hanya disimpan dalam ingatan (lalai untuk ujian dan sebelum bootstrap menyediakan fail).
 class LocalReportsRepository implements ReportsRepository {
   LocalReportsRepository(
     this._file, {
     this.denyThreshold = ReportRules.localDenyThreshold,
   });
 
-  final File _file;
+  final File? _file;
   final int denyThreshold;
 
   List<Report>? _cache;
@@ -59,9 +60,11 @@ class LocalReportsRepository implements ReportsRepository {
     final cached = _cache;
     if (cached != null) return cached;
     final reports = <Report>[];
+    final file = _file;
+    if (file == null) return _cache = reports;
     try {
-      if (await _file.exists()) {
-        final decoded = jsonDecode(await _file.readAsString());
+      if (await file.exists()) {
+        final decoded = jsonDecode(await file.readAsString());
         if (decoded is List) {
           for (final item in decoded) {
             final r = Report.tryFromJson(item);
@@ -78,14 +81,16 @@ class LocalReportsRepository implements ReportsRepository {
 
   Future<void> _save(List<Report> reports) async {
     _cache = reports;
-    await _file.parent.create(recursive: true);
+    final file = _file;
+    if (file == null) return;
+    await file.parent.create(recursive: true);
     // Tulis ke fail sementara kemudian tukar nama: tidak meninggalkan fail separuh ditulis jika proses mati.
-    final tmp = File('${_file.path}.tmp');
+    final tmp = File('${file.path}.tmp');
     await tmp.writeAsString(
       jsonEncode([for (final r in reports) r.toJson()]),
       flush: true,
     );
-    await tmp.rename(_file.path);
+    await tmp.rename(file.path);
   }
 
   @override

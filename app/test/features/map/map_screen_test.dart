@@ -6,6 +6,10 @@ import 'package:fgmap/features/route_preview/domain/routing_failure.dart';
 import 'package:fgmap/core/storage/preferences.dart';
 import 'package:dio/dio.dart';
 import 'package:fgmap/core/utils/geo.dart';
+import 'package:fgmap/features/navigation/domain/instruction_text.dart';
+import 'package:fgmap/features/reports/domain/report.dart';
+import 'package:fgmap/features/reports/presentation/report_alerts_controller.dart';
+import 'package:fgmap/features/reports/presentation/reports_controller.dart';
 import 'package:fgmap/features/saved_places/data/saved_places_controller.dart';
 import 'package:fgmap/features/search/domain/place.dart';
 import 'package:fgmap/features/map/data/map_style_loader.dart';
@@ -775,6 +779,96 @@ void main() {
       await tester.tap(find.text('Cerah'));
       await tester.pumpAndSettle();
       expect(map.config!.styleUrl, AppConfig.mapStyleLight);
+    });
+  });
+
+  group('Laporan komuniti', () {
+    testWidgets('butang Laporkan: pilih jenis -> penanda muncul pada peta', (
+      tester,
+    ) async {
+      await pumpScreen(tester);
+      expect(map.config!.reports, isEmpty);
+
+      await tester.tap(find.byTooltip('Laporkan'));
+      await tester.pumpAndSettle();
+      expect(find.text('Laporkan di sini'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('report-police')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Laporan dihantar. Terima kasih!'), findsOneWidget);
+      expect(map.config!.reports, hasLength(1));
+      expect(map.config!.reports.single.type, ReportType.police);
+      expect(map.config!.reports.single.point, klcc);
+    });
+
+    testWidgets(
+      'ketuk penanda: "Masih ada?" dan jawapan "Tiada" membuang laporan',
+      (tester) async {
+        final container = await pumpScreen(tester);
+        await container
+            .read(reportsRepositoryProvider)
+            .create(ReportType.hazard, klcc, DateTime.now());
+        await container.read(reportsControllerProvider.notifier).refresh();
+        await tester.pumpAndSettle();
+        expect(map.config!.reports, hasLength(1));
+
+        // Ketukan jauh dari penanda tidak membuka soalan.
+        map.config!.onTap!(klia);
+        await tester.pumpAndSettle();
+        expect(find.text('Bahaya masih ada?'), findsNothing);
+
+        map.config!.onTap!(klcc);
+        await tester.pumpAndSettle();
+        expect(find.text('Bahaya masih ada?'), findsOneWidget);
+        await tester.tap(find.text('Tiada'));
+        await tester.pumpAndSettle();
+        expect(map.config!.reports, isEmpty);
+      },
+    );
+  });
+
+  group('Soalan "Masih ada?" semasa memandu', () {
+    Future<ProviderContainer> seeded(WidgetTester tester) async {
+      final container = await pumpScreen(tester);
+      await container
+          .read(reportsRepositoryProvider)
+          .create(
+            ReportType.police,
+            klcc,
+            DateTime.now().subtract(const Duration(minutes: 30)),
+          );
+      await container.read(reportsControllerProvider.notifier).refresh();
+      await tester.pumpAndSettle();
+      container
+          .read(reportAlertsProvider.notifier)
+          .onFix(
+            const LocationFix(point: klcc, headingDegrees: 90),
+            VoiceLanguage.ms,
+          );
+      await tester.pump();
+      await tester.pump();
+      return container;
+    }
+
+    testWidgets('dialog muncul dan jawapan mengundi', (tester) async {
+      final container = await seeded(tester);
+      expect(find.text('Polis masih ada?'), findsOneWidget);
+      await tester.tap(find.text('Ya, masih ada'));
+      await tester.pumpAndSettle();
+      expect(find.text('Polis masih ada?'), findsNothing);
+      expect(container.read(reportsControllerProvider).single.confirms, 1);
+      expect(container.read(reportAlertsProvider).ask, isNull);
+    });
+
+    testWidgets('tidak dijawab: ditutup sendiri tanpa undi', (tester) async {
+      final container = await seeded(tester);
+      expect(find.text('Polis masih ada?'), findsOneWidget);
+      await tester.pump(
+        ReportAlertsController.askTimeout + const Duration(seconds: 1),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Polis masih ada?'), findsNothing);
+      expect(container.read(reportsControllerProvider).single.confirms, 0);
     });
   });
 

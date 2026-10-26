@@ -43,6 +43,10 @@ import 'location_prompt.dart';
 import '../../saved_places/domain/saved_place.dart';
 import '../../search/domain/place.dart';
 import '../../saved_places/presentation/save_place_sheet.dart';
+import '../../reports/domain/report.dart';
+import '../../reports/presentation/report_alerts_controller.dart';
+import '../../reports/presentation/report_sheet.dart';
+import '../../reports/presentation/reports_controller.dart';
 import '../data/map_style_loader.dart';
 import 'map_view.dart';
 import 'nav_route_line.dart';
@@ -681,9 +685,14 @@ class _MapScreenState extends ConsumerState<MapScreen>
 
   /// Mengetuk laluan alternatif pada peta memilihnya (seperti aplikasi peta lain).
   void _onMapTap(GeoPoint point) {
+    final zoom = _readyCamera?.pose?.zoom ?? 12;
+    final tapped = _reportNear(point, metersPerPixel(zoom, point.lat) * 30);
+    if (tapped != null) {
+      unawaited(_reviewReport(tapped));
+      return;
+    }
     final state = ref.read(routePreviewControllerProvider);
     if (state is! RouteReady || state.options.length < 2) return;
-    final zoom = _readyCamera?.pose?.zoom ?? 12;
     final index = nearestRouteIndex(
       [for (final o in state.options) o.points],
       point,
@@ -691,6 +700,63 @@ class _MapScreenState extends ConsumerState<MapScreen>
     );
     if (index == null || index == state.selectedIndex) return;
     _selectRoute(index);
+  }
+
+  /// Laporan aktif paling hampir dengan [point] dalam [toleranceM] (kira-kira 30 piksel), atau null.
+  Report? _reportNear(GeoPoint point, double toleranceM) {
+    Report? best;
+    var bestD = toleranceM;
+    for (final r in ref.read(reportsControllerProvider)) {
+      final d = distanceMeters(point, r.point);
+      if (d <= bestD) {
+        best = r;
+        bestD = d;
+      }
+    }
+    return best;
+  }
+
+  /// Ketuk penanda: tanya "Masih ada?" dan undi.
+  Future<void> _reviewReport(Report report) async {
+    unawaited(HapticFeedback.selectionClick());
+    final stillThere = await showStillThereDialog(context, report);
+    if (stillThere == null || !mounted) return;
+    await ref
+        .read(reportsControllerProvider.notifier)
+        .vote(report.id, confirm: stillThere);
+  }
+
+  Future<void> _openReport() async {
+    final result = await showReportSheet(context);
+    if (result == null || !mounted) return;
+    final l10n = AppLocalizations.of(context);
+    final message = switch (result) {
+      CreateReportResult.created => l10n.reportCreated,
+      CreateReportResult.confirmedExisting => l10n.reportConfirmedExisting,
+      CreateReportResult.noLocation => l10n.reportNoLocation,
+    };
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  bool _askOpen = false;
+
+  /// Soalan "Masih ada?" semasa memandu; ditutup sendiri apabila pengawal melepaskannya (tamat masa).
+  Future<void> _onAskChanged(Report? previous, Report? next) async {
+    if (next == null) {
+      if (_askOpen) {
+        Navigator.of(context, rootNavigator: true).pop();
+        _askOpen = false;
+      }
+      return;
+    }
+    if (_askOpen || !mounted) return;
+    _askOpen = true;
+    final answer = await showStillThereDialog(context, next);
+    _askOpen = false;
+    if (!mounted) return;
+    await ref.read(reportAlertsProvider.notifier).answer(confirm: answer);
   }
 
   void _selectRoute(int index) {
@@ -732,6 +798,11 @@ class _MapScreenState extends ConsumerState<MapScreen>
 
     // Penjejak lokasi hidup selagi kebenaran ada (ia juga digantung sendiri di latar belakang dan
     // semasa navigasi); berhenti sepenuhnya jika kebenaran ditarik balik.
+    ref.listen<Report?>(
+      reportAlertsProvider.select((s) => s.ask),
+      (prev, next) => unawaited(_onAskChanged(prev, next)),
+    );
+
     ref.listen<LocationAccess>(locationAccessProvider, (prev, next) {
       if (next == LocationAccess.granted) {
         _tracker.start();
@@ -770,6 +841,10 @@ class _MapScreenState extends ConsumerState<MapScreen>
           style?.style ??
           (mapIsDark ? AppConfig.mapStyleDark : AppConfig.mapStyleLight),
       styleKey: style?.key,
+      reports: [
+        for (final r in ref.watch(reportsControllerProvider))
+          MapReport(id: r.id, type: r.type, point: r.point),
+      ],
       initialCenter: AppConfig.initialCenter,
       initialZoom: AppConfig.initialZoom,
       routes: navigating ? const [] : _routeLines(state),
@@ -892,9 +967,19 @@ class _MapScreenState extends ConsumerState<MapScreen>
                         Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            _MapZoomControls(
-                              onZoomIn: () => unawaited(_zoomMap(1)),
-                              onZoomOut: () => unawaited(_zoomMap(-1)),
+                            // Skrin pendek (telefon mendatar): butang zum disembunyikan supaya lajur
+                            // kawalan tidak menutup lembaran laluan; mencubit tetap berfungsi.
+                            if (MediaQuery.sizeOf(context).height >= 500) ...[
+                              _MapZoomControls(
+                                onZoomIn: () => unawaited(_zoomMap(1)),
+                                onZoomOut: () => unawaited(_zoomMap(-1)),
+                              ),
+                              const SizedBox(height: 8),
+                            ],
+                            _GlassIconButton(
+                              icon: Icons.add_alert_rounded,
+                              tooltip: l10n.reportButtonTooltip,
+                              onPressed: _openReport,
                             ),
                             const SizedBox(height: 8),
                             _GlassIconButton(
@@ -1028,6 +1113,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
       onCycleCamera: _cycleCameraMode,
       onOverview: _showOverview,
       onSettings: () => showNavigationSettingsSheet(context),
+      onReport: _openReport,
     );
 
     if (landscape) {

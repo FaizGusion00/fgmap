@@ -555,6 +555,7 @@ class NavSideButtons extends StatelessWidget {
     required this.onCycleCamera,
     required this.onOverview,
     required this.onSettings,
+    this.onReport,
   });
 
   final bool voiceEnabled;
@@ -564,12 +565,23 @@ class NavSideButtons extends StatelessWidget {
   final VoidCallback onOverview;
   final VoidCallback onSettings;
 
+  /// Laporkan sesuatu di jalan (penumpang atau berhenti); tersembunyi jika null.
+  final VoidCallback? onReport;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
+        if (onReport != null) ...[
+          _GlassButton(
+            icon: Icons.add_alert_rounded,
+            tooltip: l10n.reportButtonTooltip,
+            onPressed: onReport!,
+          ),
+          const SizedBox(height: 6),
+        ],
         _GlassButton(
           icon: Icons.route_rounded,
           tooltip: l10n.navOverview,

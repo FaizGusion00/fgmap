@@ -287,6 +287,39 @@ void main() {
       },
     );
 
+    testWidgets('butang sisi: butang Laporkan hanya jika dikaitkan', (
+      tester,
+    ) async {
+      var reported = 0;
+      await pump(
+        tester,
+        NavSideButtons(
+          voiceEnabled: true,
+          cameraMode: NavCameraMode.auto,
+          onToggleVoice: () {},
+          onCycleCamera: () {},
+          onOverview: () {},
+          onSettings: () {},
+          onReport: () => reported++,
+        ),
+      );
+      await tester.tap(find.byTooltip('Laporkan'));
+      expect(reported, 1);
+
+      await pump(
+        tester,
+        NavSideButtons(
+          voiceEnabled: true,
+          cameraMode: NavCameraMode.auto,
+          onToggleVoice: () {},
+          onCycleCamera: () {},
+          onOverview: () {},
+          onSettings: () {},
+        ),
+      );
+      expect(find.byTooltip('Laporkan'), findsNothing);
+    });
+
     testWidgets('butang sisi: setiap tindakan dipanggil', (tester) async {
       final calls = <String>[];
       await pump(

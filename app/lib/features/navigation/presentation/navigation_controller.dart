@@ -8,6 +8,7 @@ import '../../../core/location/location_service.dart';
 import '../../route_preview/data/route_planner.dart';
 import '../../route_preview/domain/route_option.dart';
 import '../../route_preview/domain/routing_failure.dart';
+import '../../reports/presentation/report_alerts_controller.dart';
 import '../../speed_limits/data/speed_limit_service.dart';
 import '../../speed_limits/domain/speed_limits.dart';
 import '../data/location_sources.dart';
@@ -184,6 +185,7 @@ class NavigationController extends Notifier<NavigationState> {
     );
 
     unawaited(ref.read(screenAwakeProvider).enable());
+    ref.read(reportAlertsProvider.notifier).reset();
     _speak(session.takeStartAnnouncements());
     unawaited(_loadSpeedLimits(route, query, generation, 1));
 
@@ -223,6 +225,7 @@ class NavigationController extends Notifier<NavigationState> {
     _session = null;
     _lastFix = null;
     _reroutePending = false;
+    ref.read(reportAlertsProvider.notifier).reset();
     if (state.phase != NavPhase.idle) {
       state = const NavigationState();
       try {
@@ -280,6 +283,9 @@ class NavigationController extends Notifier<NavigationState> {
       clearRerouteFailure: progress.status == NavStatus.onRoute,
     );
     _speak(update.announcements);
+    _speak(
+      ref.read(reportAlertsProvider.notifier).onFix(fix, _voiceLanguage()),
+    );
     _updateOverspeed(progress);
 
     if (progress.status == NavStatus.arrived) {

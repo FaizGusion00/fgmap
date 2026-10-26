@@ -1,5 +1,7 @@
 import 'dart:math' as math;
 
+import '../../reports/domain/report.dart';
+
 import 'nav_route.dart';
 
 /// Bahasa arahan. Ayat dijana sendiri daripada jenis manuver (Bahagian 8.2 pelan), bukan teks
@@ -134,6 +136,24 @@ class InstructionText {
   String get newRoute => _ms ? 'Laluan baharu.' : 'New route found.';
   String get gpsLost => _ms ? 'Isyarat GPS lemah.' : 'GPS signal lost.';
   String get gpsBack => _ms ? 'Isyarat GPS pulih.' : 'GPS signal restored.';
+
+  /// Nama jenis laporan untuk suara (tanpa BuildContext, jadi tidak melalui l10n app).
+  String reportTypeName(ReportType type) => switch (type) {
+    ReportType.police => _ms ? 'Polis' : 'Police',
+    ReportType.accident => _ms ? 'Kemalangan' : 'Accident',
+    ReportType.hazard => _ms ? 'Bahaya' : 'Hazard',
+    ReportType.trafficJam => _ms ? 'Kesesakan' : 'Traffic jam',
+    ReportType.roadClosed => _ms ? 'Jalan ditutup' : 'Road closed',
+    ReportType.brokenDown => _ms ? 'Kenderaan rosak' : 'Broken-down vehicle',
+    ReportType.flood => _ms ? 'Banjir' : 'Flooding',
+  };
+
+  /// "Polis di hadapan, 300 meter." / "Police ahead, 300 meters."
+  String reportAhead(ReportType type, double meters) {
+    final name = reportTypeName(type);
+    final d = distance(meters);
+    return _ms ? '$name di hadapan, $d.' : '$name ahead, $d.';
+  }
 
   /// Frasa jarak yang dibundar mengikut cara orang menyebutnya: 50, 100, ... 900 m, 1 km, 1.5 km, 2 km.
   String distance(double meters) {

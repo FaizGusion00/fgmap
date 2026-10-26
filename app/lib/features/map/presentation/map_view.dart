@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/utils/geo.dart';
+import '../../reports/domain/report.dart';
 import '../../navigation/domain/camera_planner.dart' show CameraPose;
 import 'maplibre_view.dart';
 import '../../navigation/presentation/car/car_mesh.dart' show VehicleKind;
@@ -103,6 +104,26 @@ class MapOverlayColors {
   );
 }
 
+/// Satu laporan komuniti yang dipaparkan sebagai penanda di peta.
+@immutable
+class MapReport {
+  const MapReport({required this.id, required this.type, required this.point});
+
+  final String id;
+  final ReportType type;
+  final GeoPoint point;
+
+  @override
+  bool operator ==(Object other) =>
+      other is MapReport &&
+      other.id == id &&
+      other.type == type &&
+      other.point == point;
+
+  @override
+  int get hashCode => Object.hash(id, type, point);
+}
+
 @immutable
 class MapViewConfig {
   const MapViewConfig({
@@ -122,6 +143,7 @@ class MapViewConfig {
     this.finalLeg = const [],
     this.showCompass = true,
     this.vehicleKind = VehicleKind.car,
+    this.reports = const [],
     this.onUserGesture,
     this.onTap,
   });
@@ -132,6 +154,9 @@ class MapViewConfig {
   /// Pengenal stabil untuk membandingkan gaya (JSON panjang tidak sesuai dibanding). Lalai: [styleUrl].
   final String? styleKey;
   String get styleId => styleKey ?? styleUrl;
+
+  /// Laporan aktif untuk penanda. Senarai baharu dibanding mengikut kandungan, bukan identiti.
+  final List<MapReport> reports;
   final GeoPoint initialCenter;
   final double initialZoom;
   final List<MapRouteLine> routes;
