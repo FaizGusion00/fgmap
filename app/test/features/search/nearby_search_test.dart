@@ -2,7 +2,9 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fgmap/core/utils/geo.dart';
+import 'package:fgmap/features/search/data/nearby_cache.dart';
 import 'package:fgmap/features/search/data/nearby_search.dart';
 import 'package:fgmap/features/search/domain/nearby_category.dart';
 import 'package:fgmap/features/search/domain/place.dart';
@@ -70,9 +72,24 @@ void main() {
       },
     );
 
-    test('radius diperluas tiga kali ganda, dihadkan 15 km', () {
-      expect(NearbyCategory.fuel.widenedRadiusM, 9000);
-      expect(NearbyCategory.hospital.widenedRadiusM, 15000);
+    test('radius berperingkat menaik; setiap kategori ada ambang cukup', () {
+      for (final c in NearbyCategory.values) {
+        expect(c.radiiM, isNotEmpty);
+        expect([...c.radiiM]..sort(), c.radiiM, reason: c.name);
+        expect(c.radiiM.last, lessThanOrEqualTo(30000));
+        expect(c.enoughResults, greaterThan(0));
+      }
+    });
+
+    test('surau tanpa tag agama dipadankan melalui nama; hospital dua tag', () {
+      final mosque = NearbyCategory.mosque.overpassQuery(3.2, 101.4, 2000);
+      expect(
+        mosque,
+        contains('"name"~"surau|masjid|mosque|musolla|musalla",i'),
+      );
+      expect(mosque, contains('["amenity"="prayer_room"]'));
+      final hospital = NearbyCategory.hospital.overpassQuery(3.2, 101.4, 5000);
+      expect(hospital, contains('["healthcare"="hospital"]'));
     });
   });
 
@@ -145,24 +162,36 @@ void main() {
     Dio dioWith(ResponseBody Function(RequestOptions) respond) =>
         Dio()..httpClientAdapter = StubAdapter(respond);
 
-    test('menghantar data Overpass dengan radius kategori', () async {
-      final adapter = StubAdapter(
-        (_) => StubAdapter.json(_overpass([_petronas, _shellWay, _unnamed])),
-      );
+    final many = _overpass([
+      _petronas,
+      _shellWay,
+      for (var i = 0; i < 4; i++)
+        {
+          'type': 'node',
+          'id': 100 + i,
+          'lat': 3.2290 + i * 0.0003,
+          'lon': 101.4260,
+          'tags': {'amenity': 'fuel', 'name': 'Stesen $i'},
+        },
+    ]);
+
+    test('menghantar data Overpass dengan radius pertama kategori', () async {
+      final adapter = StubAdapter((_) => StubAdapter.json(many));
       final search = OverpassNearbySearch(Dio()..httpClientAdapter = adapter, [
         'https://m1.example/api/interpreter',
       ]);
-      final places = await search.search(
+      final result = await search.search(
         NearbyCategory.fuel,
         _center,
         fallbackName: 'Stesen minyak',
       );
-      expect(places, hasLength(3));
+      expect(result.places, hasLength(6));
+      expect(result.fromCache, isFalse);
       final data = adapter.lastRequest!.uri.queryParameters['data']!;
-      expect(data, contains('around:3000,3.229,101.426'));
+      expect(data, contains('around:2500,3.229,101.426'));
     });
 
-    test('hasil terlalu sedikit: radius diperluas sekali', () async {
+    test('hasil belum cukup: radius diperluas berperingkat', () async {
       final requests = <String>[];
       final search = OverpassNearbySearch(
         dioWith((o) {
@@ -172,9 +201,10 @@ void main() {
         ['https://m1.example/api/interpreter'],
       );
       await search.search(NearbyCategory.fuel, _center, fallbackName: 'x');
-      expect(requests, hasLength(2));
-      expect(requests[0], contains('around:3000'));
-      expect(requests[1], contains('around:9000'));
+      expect(requests, hasLength(3));
+      expect(requests[0], contains('around:2500'));
+      expect(requests[1], contains('around:6000'));
+      expect(requests[2], contains('around:15000'));
     });
 
     test('cukup hasil: satu permintaan sahaja', () async {
@@ -182,16 +212,7 @@ void main() {
       final search = OverpassNearbySearch(
         dioWith((o) {
           requests.add(o.uri.toString());
-          return StubAdapter.json(
-            _overpass([
-              _petronas,
-              _shellWay,
-              {
-                ..._unnamed,
-                'tags': {'amenity': 'fuel', 'name': 'Caltex'},
-              },
-            ]),
-          );
+          return StubAdapter.json(many);
         }),
         ['https://m1.example/api/interpreter'],
       );
@@ -199,38 +220,59 @@ void main() {
       expect(requests, hasLength(1));
     });
 
-    test('cermin pertama gagal -> cermin kedua digunakan', () async {
-      final hosts = <String>[];
-      final search = OverpassNearbySearch(
-        dioWith((o) {
-          hosts.add(o.uri.host);
-          if (o.uri.host == 'm1.example') {
-            return StubAdapter.text('busy', status: 504);
-          }
-          return StubAdapter.json(
-            _overpass([
-              _petronas,
-              _shellWay,
-              {
-                ..._unnamed,
-                'tags': {'amenity': 'fuel', 'name': 'Caltex'},
-              },
-            ]),
-          );
-        }),
-        [
-          'https://m1.example/api/interpreter',
-          'https://m2.example/api/interpreter',
-        ],
-      );
-      final places = await search.search(
-        NearbyCategory.fuel,
-        _center,
-        fallbackName: 'x',
-      );
-      expect(hosts, ['m1.example', 'm2.example']);
-      expect(places, isNotEmpty);
-    });
+    test(
+      'peringkat lebih luas gagal: kekalkan hasil peringkat pertama',
+      () async {
+        var n = 0;
+        final search = OverpassNearbySearch(
+          dioWith((_) {
+            n++;
+            return n == 1
+                ? StubAdapter.json(_overpass([_petronas]))
+                : StubAdapter.text('busy', status: 503);
+          }),
+          ['https://m1.example/api/interpreter'],
+        );
+        final result = await search.search(
+          NearbyCategory.fuel,
+          _center,
+          fallbackName: 'x',
+        );
+        expect(result.places.single.name, 'Petronas');
+      },
+    );
+
+    test(
+      'cermin pertama gagal -> cermin kedua; cermin baik diingati',
+      () async {
+        final hosts = <String>[];
+        final search = OverpassNearbySearch(
+          dioWith((o) {
+            hosts.add(o.uri.host);
+            return o.uri.host == 'm1.example'
+                ? StubAdapter.text('busy', status: 504)
+                : StubAdapter.json(many);
+          }),
+          [
+            'https://m1.example/api/interpreter',
+            'https://m2.example/api/interpreter',
+          ],
+        );
+        final first = await search.search(
+          NearbyCategory.fuel,
+          _center,
+          fallbackName: 'x',
+        );
+        expect(hosts, ['m1.example', 'm2.example']);
+        expect(first.places, isNotEmpty);
+
+        hosts.clear();
+        await search.search(NearbyCategory.fuel, _center, fallbackName: 'x');
+        expect(hosts, [
+          'm2.example',
+        ], reason: 'cermin yang berjaya dicuba dahulu');
+      },
+    );
 
     test('semua cermin gagal -> GeocodeFailure', () async {
       final search = OverpassNearbySearch(
@@ -250,6 +292,27 @@ void main() {
           ),
         ),
       );
+    });
+
+    test('tamat masa keseluruhan: cermin seterusnya tidak dicuba', () async {
+      final hosts = <String>[];
+      final search = OverpassNearbySearch(
+        dioWith((o) {
+          hosts.add(o.uri.host);
+          return StubAdapter.text('x', status: 503);
+        }),
+        [
+          'https://m1.example/api/interpreter',
+          'https://m2.example/api/interpreter',
+          'https://m3.example/api/interpreter',
+        ],
+        deadline: Duration.zero,
+      );
+      await expectLater(
+        search.search(NearbyCategory.fuel, _center, fallbackName: 'x'),
+        throwsA(isA<GeocodeFailure>()),
+      );
+      expect(hosts, ['m1.example']);
     });
   });
 
@@ -285,12 +348,12 @@ void main() {
           _AlwaysFails(),
           NominatimNearbySearch(dio, 'https://nominatim.example/search'),
         );
-        final places = await search.search(
+        final result = await search.search(
           NearbyCategory.fuel,
           _center,
           fallbackName: 'x',
         );
-        expect(places.map((p) => p.name), ['Dekat', 'Jauh']);
+        expect(result.places.map((p) => p.name), ['Dekat', 'Jauh']);
         final q = adapter.lastRequest!.uri.queryParameters;
         expect(q['q'], 'petrol station');
         expect(q['bounded'], '1');
@@ -300,10 +363,12 @@ void main() {
     test('Overpass kosong: kekal kosong, Nominatim tidak dipanggil', () async {
       final secondary = _AlwaysFails();
       final search = FallbackNearbySearch(_Empty(), secondary);
-      expect(
-        await search.search(NearbyCategory.fuel, _center, fallbackName: 'x'),
-        isEmpty,
+      final result = await search.search(
+        NearbyCategory.fuel,
+        _center,
+        fallbackName: 'x',
       );
+      expect(result.places, isEmpty);
       expect(secondary.calls, 0);
     });
 
@@ -324,6 +389,162 @@ void main() {
       );
     });
   });
+
+  group('CachedNearbySearch', () {
+    late SharedPreferences prefs;
+    var now = DateTime(2026, 10, 26, 10);
+
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+      prefs = await SharedPreferences.getInstance();
+      now = DateTime(2026, 10, 26, 10);
+    });
+
+    CachedNearbySearch build(NearbySearch inner) =>
+        CachedNearbySearch(inner, prefs, clock: () => now);
+
+    const live = NearbyResult([
+      Place(
+        name: 'Petronas',
+        subtitle: 'Puncak Alam',
+        point: GeoPoint(3.2300, 101.4270),
+        category: 'fuel',
+        osmKey: 'amenity',
+        osmType: 'N',
+        osmId: 1,
+      ),
+    ]);
+
+    test(
+      'berjaya: disimpan; dalam 30 minit dipulangkan tanpa rangkaian',
+      () async {
+        final inner = _Scripted([live]);
+        final cache = build(inner);
+        final first = await cache.search(
+          NearbyCategory.fuel,
+          _center,
+          fallbackName: 'x',
+        );
+        expect(first.fromCache, isFalse);
+        expect(inner.calls, 1);
+
+        now = now.add(const Duration(minutes: 10));
+        final second = await cache.search(
+          NearbyCategory.fuel,
+          _center,
+          fallbackName: 'x',
+        );
+        expect(inner.calls, 1);
+        expect(
+          second.fromCache,
+          isFalse,
+          reason: 'masih segar, bukan "simpanan lama"',
+        );
+        expect(second.places.single.name, 'Petronas');
+        expect(second.places.single.osmId, 1);
+      },
+    );
+
+    test(
+      'pelayan gagal selepas tempoh segar: simpanan lama ditandakan',
+      () async {
+        final inner = _Scripted([
+          live,
+          const GeocodeFailure(GeocodeFailureKind.unavailable),
+        ]);
+        final cache = build(inner);
+        await cache.search(NearbyCategory.fuel, _center, fallbackName: 'x');
+
+        final savedAt = now;
+        now = now.add(const Duration(hours: 5));
+        final result = await cache.search(
+          NearbyCategory.fuel,
+          _center,
+          fallbackName: 'x',
+        );
+        expect(result.fromCache, isTrue);
+        expect(result.cachedAt, savedAt);
+        expect(result.places.single.name, 'Petronas');
+      },
+    );
+
+    test('simpanan terlalu lama (>30 hari) tidak digunakan', () async {
+      final inner = _Scripted([
+        live,
+        const GeocodeFailure(GeocodeFailureKind.network),
+      ]);
+      final cache = build(inner);
+      await cache.search(NearbyCategory.fuel, _center, fallbackName: 'x');
+      now = now.add(const Duration(days: 31));
+      await expectLater(
+        cache.search(NearbyCategory.fuel, _center, fallbackName: 'x'),
+        throwsA(isA<GeocodeFailure>()),
+      );
+    });
+
+    test('kategori atau kawasan lain tidak berkongsi simpanan', () async {
+      final inner = _Scripted([
+        live,
+        const GeocodeFailure(GeocodeFailureKind.network),
+      ]);
+      final cache = build(inner);
+      await cache.search(NearbyCategory.fuel, _center, fallbackName: 'x');
+      now = now.add(const Duration(hours: 5));
+      await expectLater(
+        cache.search(NearbyCategory.food, _center, fallbackName: 'x'),
+        throwsA(isA<GeocodeFailure>()),
+      );
+    });
+
+    test('hasil kosong tidak menimpa simpanan yang baik', () async {
+      final inner = _Scripted([
+        live,
+        const NearbyResult([]),
+        const GeocodeFailure(GeocodeFailureKind.network),
+      ]);
+      final cache = build(inner);
+      await cache.search(NearbyCategory.fuel, _center, fallbackName: 'x');
+      now = now.add(const Duration(hours: 2));
+      await cache.search(NearbyCategory.fuel, _center, fallbackName: 'x');
+      now = now.add(const Duration(hours: 2));
+      final result = await cache.search(
+        NearbyCategory.fuel,
+        _center,
+        fallbackName: 'x',
+      );
+      expect(result.fromCache, isTrue);
+      expect(result.places, isNotEmpty);
+    });
+
+    test('data simpanan rosak diabaikan', () async {
+      await prefs.setString('nearby.v1.fuel.323.10143', '{bukan json');
+      final inner = _Scripted([live]);
+      final result = await build(
+        inner,
+      ).search(NearbyCategory.fuel, _center, fallbackName: 'x');
+      expect(result.places, isNotEmpty);
+    });
+  });
+}
+
+class _Scripted implements NearbySearch {
+  _Scripted(this.script);
+
+  final List<Object> script;
+  int calls = 0;
+
+  @override
+  Future<NearbyResult> search(
+    NearbyCategory category,
+    GeoPoint center, {
+    required String fallbackName,
+    CancelToken? cancel,
+  }) async {
+    final next = script[calls < script.length ? calls : script.length - 1];
+    calls++;
+    if (next is GeocodeFailure) throw next;
+    return next as NearbyResult;
+  }
 }
 
 class _AlwaysFails implements NearbySearch {
@@ -333,7 +554,7 @@ class _AlwaysFails implements NearbySearch {
   int calls = 0;
 
   @override
-  Future<List<Place>> search(
+  Future<NearbyResult> search(
     NearbyCategory category,
     GeoPoint center, {
     required String fallbackName,
@@ -346,10 +567,10 @@ class _AlwaysFails implements NearbySearch {
 
 class _Empty implements NearbySearch {
   @override
-  Future<List<Place>> search(
+  Future<NearbyResult> search(
     NearbyCategory category,
     GeoPoint center, {
     required String fallbackName,
     CancelToken? cancel,
-  }) async => const [];
+  }) async => const NearbyResult([]);
 }

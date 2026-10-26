@@ -351,6 +351,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String searchNearbySaved(String when) {
+    return 'Can’t reach the map data servers. Showing saved results from $when.';
+  }
+
+  @override
   String get searchErrorNetwork =>
       'No internet connection. Search needs internet; you can still long-press the map to pick a destination.';
 

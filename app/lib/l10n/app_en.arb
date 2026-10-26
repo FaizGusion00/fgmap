@@ -118,6 +118,14 @@
       }
     }
   },
+  "searchNearbySaved": "Can’t reach the map data servers. Showing saved results from {when}.",
+  "@searchNearbySaved": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
   "searchErrorNetwork": "No internet connection. Search needs internet; you can still long-press the map to pick a destination.",
   "searchErrorRateLimited": "Too many searches. Please wait a moment.",
   "searchErrorUnavailable": "Search is unavailable right now.",

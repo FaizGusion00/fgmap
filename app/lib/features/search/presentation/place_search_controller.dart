@@ -22,6 +22,7 @@ class PlaceSearchState {
     this.failure,
     this.nearby,
     this.origin,
+    this.cachedAt,
   });
 
   final SearchStatus status;
@@ -34,6 +35,9 @@ class PlaceSearchState {
   /// Kategori jika ini carian "berhampiran" (bukan teks), dan titik pusatnya.
   final NearbyCategory? nearby;
   final GeoPoint? origin;
+
+  /// Bukan null apabila pelayan tidak dapat dicapai dan [results] ialah simpanan lama dalam peranti.
+  final DateTime? cachedAt;
 }
 
 /// Jeda menaip sebelum carian dihantar. Photon awam ialah sumber kongsi; setiap ketukan kekunci
@@ -129,12 +133,19 @@ class PlaceSearchController extends Notifier<PlaceSearchState> {
     final cancel = CancelToken();
     _cancel = cancel;
     try {
-      final results = await ref
+      final result = await ref
           .read(nearbySearchProvider)
           .search(category, center, fallbackName: fallbackName, cancel: cancel);
       if (seq != _seq || !ref.mounted) return;
-      _cache[key] = results;
-      state = _ready(label, results, nearby: category, origin: center);
+      // Simpanan lama tidak dicache dalam sesi supaya ketukan seterusnya mencuba pelayan semula.
+      if (!result.fromCache) _cache[key] = result.places;
+      state = _ready(
+        label,
+        result.places,
+        nearby: category,
+        origin: center,
+        cachedAt: result.cachedAt,
+      );
     } on GeocodeFailure catch (f) {
       if (seq != _seq || !ref.mounted) return;
       state = PlaceSearchState(
@@ -222,12 +233,14 @@ class PlaceSearchController extends Notifier<PlaceSearchState> {
     List<Place> results, {
     NearbyCategory? nearby,
     GeoPoint? origin,
+    DateTime? cachedAt,
   }) => PlaceSearchState(
     status: results.isEmpty ? SearchStatus.empty : SearchStatus.results,
     query: query,
     results: results,
     nearby: nearby,
     origin: origin,
+    cachedAt: cachedAt,
   );
 
   // Bundar ke ~1 km (2 perpuluhan ≈ 1.1 km) supaya pergerakan kecil tidak menggugurkan cache.

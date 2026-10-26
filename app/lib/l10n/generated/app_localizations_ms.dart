@@ -349,6 +349,11 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
+  String searchNearbySaved(String when) {
+    return 'Pelayan data peta tidak dapat dicapai. Memaparkan hasil tersimpan dari $when.';
+  }
+
+  @override
   String get searchErrorNetwork =>
       'Tiada sambungan internet. Carian memerlukan internet; anda masih boleh tekan lama pada peta untuk memilih destinasi.';
 

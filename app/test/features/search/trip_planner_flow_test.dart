@@ -405,6 +405,25 @@ void main() {
       );
     });
 
+    testWidgets('simpanan lama dilabel apabila pelayan tidak dapat dicapai', (
+      tester,
+    ) async {
+      await pumpHost(
+        tester,
+        extraOverrides: [
+          nearbySearchProvider.overrideWithValue(
+            _FakeNearby(cachedAt: DateTime(2026, 10, 20, 9, 30)),
+          ),
+        ],
+      );
+      await tester.tap(find.text('Stesen minyak'));
+      await tester.pump();
+      await tester.pump();
+      expect(find.byKey(const ValueKey('nearby-saved-banner')), findsOneWidget);
+      expect(find.textContaining('tersimpan'), findsOneWidget);
+      expect(find.text('Petronas Puncak Alam'), findsOneWidget);
+    });
+
     testWidgets('tiada hasil berhampiran memaparkan mesej khusus', (
       tester,
     ) async {
@@ -423,21 +442,22 @@ void main() {
 }
 
 class _FakeNearby implements NearbySearch {
-  _FakeNearby({this.empty = false});
+  _FakeNearby({this.empty = false, this.cachedAt});
 
   final bool empty;
+  final DateTime? cachedAt;
   final List<(NearbyCategory, GeoPoint)> calls = [];
 
   @override
-  Future<List<Place>> search(
+  Future<NearbyResult> search(
     NearbyCategory category,
     GeoPoint center, {
     required String fallbackName,
     CancelToken? cancel,
   }) async {
     calls.add((category, center));
-    if (empty) return const [];
-    return const [
+    if (empty) return const NearbyResult([]);
+    return NearbyResult(cachedAt: cachedAt, const [
       Place(
         name: 'Petronas Puncak Alam',
         subtitle: 'Persiaran Puncak Alam',
@@ -446,6 +466,6 @@ class _FakeNearby implements NearbySearch {
         osmKey: 'amenity',
         osmType: 'N',
       ),
-    ];
+    ]);
   }
 }

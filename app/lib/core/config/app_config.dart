@@ -37,7 +37,9 @@ abstract final class AppConfig {
   static const _overpassRaw = String.fromEnvironment(
     'OVERPASS_URLS',
     defaultValue:
-        'https://overpass-api.de/api/interpreter,https://overpass.private.coffee/api/interpreter',
+        'https://overpass-api.de/api/interpreter,'
+        'https://overpass.private.coffee/api/interpreter,'
+        'https://overpass.openstreetmap.fr/api/interpreter',
   );
   static List<String> get overpassUrls => _overpassRaw
       .split(',')

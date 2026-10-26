@@ -191,6 +191,14 @@
       }
     }
   },
+  "searchNearbySaved": "Pelayan data peta tidak dapat dicapai. Memaparkan hasil tersimpan dari {when}.",
+  "@searchNearbySaved": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
   "searchErrorNetwork": "Tiada sambungan internet. Carian memerlukan internet; anda masih boleh tekan lama pada peta untuk memilih destinasi.",
   "searchErrorRateLimited": "Terlalu banyak carian. Tunggu sebentar.",
   "searchErrorUnavailable": "Perkhidmatan carian tidak tersedia buat masa ini.",

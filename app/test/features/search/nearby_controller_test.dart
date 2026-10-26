@@ -10,9 +10,10 @@ import 'package:flutter_test/flutter_test.dart';
 class _Nearby implements NearbySearch {
   int calls = 0;
   bool fail = true;
+  bool stale = false;
 
   @override
-  Future<List<Place>> search(
+  Future<NearbyResult> search(
     NearbyCategory category,
     GeoPoint center, {
     required String fallbackName,
@@ -20,9 +21,9 @@ class _Nearby implements NearbySearch {
   }) async {
     calls++;
     if (fail) throw const GeocodeFailure(GeocodeFailureKind.unavailable);
-    return [
+    return NearbyResult([
       Place(name: fallbackName, subtitle: '', point: center, category: 'fuel'),
-    ];
+    ], cachedAt: stale ? DateTime(2026, 10, 20, 9, 30) : null);
   }
 }
 
@@ -78,4 +79,38 @@ void main() {
       expect(nearby.calls, 2);
     },
   );
+
+  test('simpanan lama ditandakan dan tidak dicache dalam sesi', () async {
+    final nearby = _Nearby()
+      ..fail = false
+      ..stale = true;
+    final container = ProviderContainer(
+      overrides: [nearbySearchProvider.overrideWithValue(nearby)],
+    );
+    addTearDown(container.dispose);
+    container.listen(placeSearchControllerProvider, (_, _) {});
+    final controller = container.read(placeSearchControllerProvider.notifier);
+
+    controller.searchNearby(
+      NearbyCategory.food,
+      center: center,
+      label: 'Food',
+      fallbackName: 'Food',
+    );
+    await Future<void>.delayed(Duration.zero);
+    expect(
+      container.read(placeSearchControllerProvider).cachedAt,
+      DateTime(2026, 10, 20, 9, 30),
+    );
+
+    // Ketukan seterusnya mesti cuba pelayan semula (bukan cache sesi).
+    controller.searchNearby(
+      NearbyCategory.food,
+      center: center,
+      label: 'Food',
+      fallbackName: 'Food',
+    );
+    await Future<void>.delayed(Duration.zero);
+    expect(nearby.calls, 2);
+  });
 }

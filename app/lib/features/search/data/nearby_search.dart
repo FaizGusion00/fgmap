@@ -6,17 +6,30 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/network/dio_provider.dart';
 import '../../../core/network/response_text.dart';
+import '../../../core/storage/preferences.dart';
 import '../../../core/utils/geo.dart';
 import '../domain/nearby_category.dart';
 import '../domain/place.dart';
+import 'nearby_cache.dart';
 import 'nominatim_geocoder.dart';
 import 'photon_geocoder.dart';
+
+/// Hasil carian berhampiran. [cachedAt] bukan null apabila pelayan tidak dapat dicapai dan senarai
+/// ini ialah simpanan lama dalam peranti.
+class NearbyResult {
+  const NearbyResult(this.places, {this.cachedAt});
+
+  final List<Place> places;
+  final DateTime? cachedAt;
+
+  bool get fromCache => cachedAt != null;
+}
 
 /// Mencari tempat mengikut KATEGORI di sekitar satu titik (stesen minyak, makan, surau...).
 abstract interface class NearbySearch {
   /// Hasil tersusun dari yang paling dekat. [fallbackName] dipakai untuk tempat tanpa nama dalam OSM
   /// (cth. tandas atau parkir awam).
-  Future<List<Place>> search(
+  Future<NearbyResult> search(
     NearbyCategory category,
     GeoPoint center, {
     required String fallbackName,
@@ -26,41 +39,53 @@ abstract interface class NearbySearch {
 
 /// Overpass API (data OSM, percuma tanpa kunci). Dasar penggunaan awam: kurang 10,000 pertanyaan sehari
 /// dan UA berpengenalan; satu permintaan pada satu masa (tiada selari) dan jatuh ke cermin seterusnya
-/// hanya apabila yang pertama gagal. Setiap ketukan chip = 1 pertanyaan (2 jika radius perlu diperluas).
+/// hanya apabila yang pertama gagal. Cermin yang terakhir berjaya dicuba dahulu pada carian seterusnya.
+/// Radius diperluas berperingkat ([NearbyCategory.radiiM]) hanya jika hasil belum mencukupi.
 class OverpassNearbySearch implements NearbySearch {
-  OverpassNearbySearch(this._dio, this._mirrors);
+  OverpassNearbySearch(
+    this._dio,
+    this._mirrors, {
+    this.deadline = const Duration(seconds: 20),
+    Stopwatch Function()? stopwatch,
+  }) : _newStopwatch = stopwatch ?? Stopwatch.new;
 
   final Dio _dio;
   final List<String> _mirrors;
 
-  /// Radius diperluas jika hasil kurang daripada ini.
-  static const _minResults = 3;
+  /// Jumlah masa maksimum mencuba cermin untuk satu peringkat radius; selepas ini dianggap gagal.
+  final Duration deadline;
+  final Stopwatch Function() _newStopwatch;
+
+  int _preferred = 0;
 
   @override
-  Future<List<Place>> search(
+  Future<NearbyResult> search(
     NearbyCategory category,
     GeoPoint center, {
     required String fallbackName,
     CancelToken? cancel,
   }) async {
-    var places = await _query(
-      category,
-      center,
-      category.radiusM,
-      fallbackName,
-      cancel,
-    );
-    if (places.length < _minResults &&
-        category.widenedRadiusM > category.radiusM) {
-      places = await _query(
-        category,
-        center,
-        category.widenedRadiusM,
-        fallbackName,
-        cancel,
-      );
+    var places = const <Place>[];
+    GeocodeFailure? widenFailure;
+    for (var i = 0; i < category.radiiM.length; i++) {
+      try {
+        places = await _query(
+          category,
+          center,
+          category.radiiM[i],
+          fallbackName,
+          cancel,
+        );
+      } on GeocodeFailure catch (f) {
+        // Peringkat pertama gagal = gagal. Peringkat lebih luas gagal: kekalkan apa yang sudah ada.
+        if (i == 0) rethrow;
+        widenFailure = f;
+        break;
+      }
+      if (places.length >= category.enoughResults) break;
     }
-    return places;
+    if (places.isEmpty && widenFailure != null) throw widenFailure;
+    return NearbyResult(places);
   }
 
   Future<List<Place>> _query(
@@ -70,25 +95,30 @@ class OverpassNearbySearch implements NearbySearch {
     String fallbackName,
     CancelToken? cancel,
   ) async {
+    final watch = _newStopwatch()..start();
     GeocodeFailure? last;
-    for (final mirror in _mirrors) {
+    for (var n = 0; n < _mirrors.length; n++) {
+      if (n > 0 && watch.elapsed >= deadline) break;
+      final index = (_preferred + n) % _mirrors.length;
       try {
         final response = await _dio.get<Object>(
-          mirror,
+          _mirrors[index],
           cancelToken: cancel,
           queryParameters: {
             'data': category.overpassQuery(center.lat, center.lng, radius),
           },
           options: Options(
             responseType: ResponseType.bytes,
-            receiveTimeout: const Duration(seconds: 12),
+            receiveTimeout: const Duration(seconds: 10),
           ),
         );
-        return parseOverpassResponse(
+        final places = parseOverpassResponse(
           responseText(response.data),
           center: center,
           fallbackName: fallbackName,
         );
+        _preferred = index;
+        return places;
       } on DioException catch (e) {
         if (e.type == DioExceptionType.cancel) rethrow;
         last = geocodeFailureOf(e);
@@ -112,7 +142,7 @@ class NominatimNearbySearch implements NearbySearch {
   static const _halfDegrees = 0.08;
 
   @override
-  Future<List<Place>> search(
+  Future<NearbyResult> search(
     NearbyCategory category,
     GeoPoint center, {
     required String fallbackName,
@@ -139,7 +169,7 @@ class NominatimNearbySearch implements NearbySearch {
         ),
       );
       final places = parseNominatimResponse(responseText(response.data));
-      return sortNearby(places, center);
+      return NearbyResult(sortNearby(places, center));
     } on DioException catch (e) {
       throw geocodeFailureOf(e);
     }
@@ -155,7 +185,7 @@ class FallbackNearbySearch implements NearbySearch {
   final NearbySearch secondary;
 
   @override
-  Future<List<Place>> search(
+  Future<NearbyResult> search(
     NearbyCategory category,
     GeoPoint center, {
     required String fallbackName,
@@ -286,8 +316,11 @@ List<Place> sortNearby(
 
 final nearbySearchProvider = Provider<NearbySearch>((ref) {
   final dio = ref.watch(dioProvider);
-  return FallbackNearbySearch(
-    OverpassNearbySearch(dio, AppConfig.overpassUrls),
-    NominatimNearbySearch(dio, AppConfig.nominatimUrl),
+  return CachedNearbySearch(
+    FallbackNearbySearch(
+      OverpassNearbySearch(dio, AppConfig.overpassUrls),
+      NominatimNearbySearch(dio, AppConfig.nominatimUrl),
+    ),
+    ref.watch(sharedPreferencesProvider),
   );
 });

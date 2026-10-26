@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/widgets/skeleton.dart';
 import 'package:flutter/services.dart';
@@ -387,6 +388,7 @@ class _ResultsList extends StatelessWidget {
       ),
       SearchStatus.results => Column(
         children: [
+          if (state.cachedAt != null) _SavedBanner(at: state.cachedAt!),
           for (final place in state.results)
             ListTile(
               key: ValueKey('place-${place.point.lat}-${place.point.lng}'),
@@ -409,6 +411,48 @@ class _ResultsList extends StatelessWidget {
     return ListView(
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       children: [body],
+    );
+  }
+}
+
+/// Diberitahu apabila senarai berasal dari simpanan peranti (pelayan tidak dapat dicapai).
+class _SavedBanner extends StatelessWidget {
+  const _SavedBanner({required this.at});
+
+  final DateTime at;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final when = DateFormat.MMMd(l10n.localeName).add_Hm().format(at);
+    return Semantics(
+      liveRegion: true,
+      child: Container(
+        key: const ValueKey('nearby-saved-banner'),
+        margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.cloud_off_rounded,
+              size: 20,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                l10n.searchNearbySaved(when),
+                style: theme.textTheme.bodySmall,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

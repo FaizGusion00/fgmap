@@ -680,6 +680,12 @@ abstract class AppLocalizations {
   /// **'Tiada “{category}” ditemui berhampiran dalam OpenStreetMap. Cuba kawasan lain atau cari mengikut nama.'**
   String searchNoNearby(String category);
 
+  /// No description provided for @searchNearbySaved.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pelayan data peta tidak dapat dicapai. Memaparkan hasil tersimpan dari {when}.'**
+  String searchNearbySaved(String when);
+
   /// No description provided for @searchErrorNetwork.
   ///
   /// In ms, this message translates to:
