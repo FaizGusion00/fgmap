@@ -35,6 +35,9 @@ abstract class FgmapValhallaPlatform extends PlatformInterface {
   /// Kira laluan. [requestJson] ialah permintaan Valhalla `/route`; memulangkan JSON respons Valhalla.
   Future<String> route(String requestJson) => throw UnimplementedError();
 
+  /// Atribut tepi jalan sepanjang jejak (Valhalla `trace_attributes`), cth. had laju. JSON masuk, JSON keluar.
+  Future<String> traceAttributes(String requestJson) => throw UnimplementedError();
+
   /// Lepaskan enjin. Mesti dipanggil sebelum fail tile diganti atau dipadam.
   Future<void> close() => throw UnimplementedError();
 }

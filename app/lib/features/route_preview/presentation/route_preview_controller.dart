@@ -18,10 +18,15 @@ class RouteIdle extends RoutePreviewState {
 
 class RouteLoading extends RoutePreviewState {
   /// [query] masih null selagi asal (lokasi pengguna) sedang dicari.
-  const RouteLoading({required this.destination, this.query});
+  const RouteLoading({
+    required this.destination,
+    this.query,
+    this.destinationLabel,
+  });
 
   final GeoPoint destination;
   final RouteQuery? query;
+  final String? destinationLabel;
 }
 
 class RouteReady extends RoutePreviewState {
@@ -36,6 +41,13 @@ class RouteReady extends RoutePreviewState {
   final int selectedIndex;
 
   RouteOption get selected => options[selectedIndex];
+
+  /// Permintaan yang menghasilkan laluan terpilih. Navigasi menggunakannya untuk mengira semula
+  /// bila menyimpang, jadi pilihan pengguna (cth. laluan tanpa tol) dikekalkan sepanjang perjalanan.
+  RouteQuery get selectedQuery => query.copyWith(
+    avoidTolls: selected.label == RouteLabel.noTolls,
+    avoidHighways: selected.label == RouteLabel.noHighways,
+  );
 
   RouteReady withSelected(int index) =>
       RouteReady(query: query, options: options, selectedIndex: index);
@@ -63,9 +75,6 @@ class RoutePreviewController extends Notifier<RoutePreviewState> {
   /// (cth. pengguna menukar destinasi atau memadam laluan semasa menunggu).
   int _seq = 0;
 
-  /// Pilihan "Elak tol" kekal merentas destinasi dalam satu sesi.
-  bool _avoidTolls = false;
-
   @override
   RoutePreviewState build() => const RouteIdle();
 
@@ -74,7 +83,10 @@ class RoutePreviewController extends Notifier<RoutePreviewState> {
   /// Asal sentiasa GPS semasa; laluan tidak dikira jika GPS tiada fix yang boleh digunakan.
   Future<void> planTo(GeoPoint destination, {String? destinationLabel}) async {
     final seq = ++_seq;
-    state = RouteLoading(destination: destination);
+    state = RouteLoading(
+      destination: destination,
+      destinationLabel: destinationLabel,
+    );
 
     final fix = await ref
         .read(locationServiceProvider)
@@ -92,17 +104,18 @@ class RoutePreviewController extends Notifier<RoutePreviewState> {
       origin: fix.point,
       destination: destination,
       headingDegrees: fix.headingDegrees,
-      avoidTolls: _avoidTolls,
+      vehicle: ref.read(routeVehicleProvider),
       destinationLabel: destinationLabel,
     );
     await _fetch(query, seq);
   }
 
-  Future<void> setAvoidTolls(bool value) async {
-    _avoidTolls = value;
+  /// Menukar kenderaan (kereta/motosikal), menyimpannya, dan mengira semula laluan aktif.
+  Future<void> setVehicle(RouteVehicle vehicle) async {
+    await ref.read(routeVehicleProvider.notifier).set(vehicle);
     final query = _currentQuery;
     if (query == null) return;
-    await _fetch(query.copyWith(avoidTolls: value), ++_seq);
+    await _fetch(query.copyWith(vehicle: vehicle), ++_seq);
   }
 
   Future<void> retry() async {
@@ -143,14 +156,23 @@ class RoutePreviewController extends Notifier<RoutePreviewState> {
   }
 
   Future<void> _fetch(RouteQuery query, int seq) async {
-    state = RouteLoading(destination: query.destination, query: query);
+    state = RouteLoading(
+      destination: query.destination,
+      query: query,
+      destinationLabel: query.destinationLabel,
+    );
     try {
-      final options = await ref.read(routePlannerProvider).plan(query);
+      final options = await ref.read(routeOptionsPlannerProvider).plan(query);
       if (seq != _seq) return;
       state = RouteReady(query: query, options: options);
     } on RoutingFailure catch (failure) {
       if (seq != _seq) return;
       state = RouteFailed(query: query, kind: failure.kind);
+    } on Object catch (e, st) {
+      // Kegagalan tidak dijangka mesti tidak meninggalkan lembaran "mengira" selama-lamanya.
+      debugPrint('Pengiraan laluan gagal: $e\n$st');
+      if (seq != _seq) return;
+      state = RouteFailed(query: query, kind: RoutingFailureKind.generic);
     }
   }
 }

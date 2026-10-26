@@ -1,6 +1,6 @@
 {
   "@@locale": "ms",
-  "appName": "FGMap",
+  "appName": "FGMaps",
   "mapHintLongPress": "Tekan lama pada peta untuk pilih destinasi",
   "mapZoomIn": "Zum masuk",
   "mapZoomOut": "Zum keluar",
@@ -16,7 +16,7 @@
   },
   "mapAttribution": "© penyumbang OpenStreetMap · OpenFreeMap",
   "locationRationaleTitle": "Benarkan akses lokasi?",
-  "locationRationaleBody": "Lokasi anda digunakan untuk menunjukkan kedudukan anda di peta dan sebagai titik mula laluan. Ia dihantar ke pelayan FGMap hanya untuk mengira laluan.",
+  "locationRationaleBody": "Lokasi anda digunakan untuk menunjukkan kedudukan anda di peta dan sebagai titik mula laluan. Ia dihantar ke pelayan FGMaps hanya untuk mengira laluan.",
   "locationAllow": "Benarkan",
   "locationNotNow": "Bukan sekarang",
   "locationOpenSettings": "Buka Tetapan",
@@ -25,15 +25,6 @@
   "routeSheetSemantics": "Ringkasan laluan",
   "routeCalculating": "Mengira laluan…",
   "routeLocationUnavailable": "Lokasi GPS yang tepat belum tersedia. Semak kebenaran lokasi dan GPS, kemudian cuba lagi.",
-  "routeOptionLabel": "Laluan {index}",
-  "@routeOptionLabel": {
-    "placeholders": {
-      "index": {
-        "type": "int"
-      }
-    }
-  },
-  "routeAvoidTolls": "Elak tol",
   "routeHasTolls": "Ada tol",
   "routeNoTolls": "Tiada tol",
   "routeClear": "Padam laluan",
@@ -79,9 +70,9 @@
       }
     }
   },
-  "appearanceTooltip": "Paparan",
+  "appearanceTooltip": "Tetapan",
   "appearanceTitle": "Paparan",
-  "aboutTitle": "Tentang FGMap",
+  "aboutTitle": "Tentang FGMaps",
   "aboutDescription": "Aplikasi navigasi komuniti Malaysia",
   "aboutVersion": "Versi",
   "aboutVersionLoading": "Memuatkan…",
@@ -233,7 +224,7 @@
   "navVoiceTitle": "Suara navigasi",
   "navVoiceLanguage": "Bahasa suara",
   "navVoiceFollowApp": "Ikut app",
-  "navVoiceMalay": "Bahasa Melayu",
+  "navVoiceMalay": "Melayu",
   "navVoiceEnglish": "English",
   "navCameraTitle": "Paparan kamera",
   "navCameraAutoHint": "3D di jalan lurus, 2D menghampiri selekoh dan bulatan",
@@ -247,5 +238,79 @@
       }
     }
   },
-  "navAcquiring": "Mencari isyarat GPS…"
+  "navAcquiring": "Mencari isyarat GPS…",
+  "routeFastest": "Terpantas",
+  "routeShortest": "Terpendek",
+  "routeNoHighways": "Tanpa lebuh raya",
+  "routeAlternative": "Alternatif",
+  "routeVia": "melalui {road}",
+  "@routeVia": {
+    "placeholders": {
+      "road": {
+        "type": "String"
+      }
+    }
+  },
+  "routeFindingTo": "Mencari laluan ke {place}…",
+  "@routeFindingTo": {
+    "placeholders": {
+      "place": {
+        "type": "String"
+      }
+    }
+  },
+  "routeVehicleCar": "Kereta",
+  "routeVehicleMotorcycle": "Motosikal",
+  "settingsTitle": "Tetapan",
+  "settingsAppearance": "Paparan",
+  "settingsNavigation": "Navigasi",
+  "settingsMaps": "Peta",
+  "settingsOfflineHint": "Muat turun peta untuk navigasi tanpa internet",
+  "settingsAboutHint": "Versi, pembangun dan hak cipta",
+  "themeSystemShort": "Auto",
+  "searchCatFuel": "Stesen minyak",
+  "searchCatFood": "Makan",
+  "searchCatMosque": "Masjid",
+  "searchCatToilet": "Tandas",
+  "searchCatParking": "Parkir",
+  "searchCatHospital": "Hospital",
+  "searchCategories": "Cari berhampiran",
+  "reportTitle": "Laporkan di sini",
+  "reportButtonTooltip": "Laporkan",
+  "reportTypePolice": "Polis",
+  "reportTypeAccident": "Kemalangan",
+  "reportTypeHazard": "Bahaya",
+  "reportTypeJam": "Sesak",
+  "reportTypeClosed": "Jalan ditutup",
+  "reportTypeBrokenDown": "Kenderaan rosak",
+  "reportTypeFlood": "Banjir",
+  "reportCreated": "Laporan dihantar. Terima kasih!",
+  "reportConfirmedExisting": "Laporan serupa sudah ada berdekatan; ia disahkan.",
+  "reportNoLocation": "Lokasi anda tidak tersedia. Laporan mesti dibuat dari lokasi sebenar anda.",
+  "reportLocalOnlyNote": "Laporan disimpan pada peranti ini sahaja dan belum dikongsi dengan pemandu lain.",
+  "reportStillThereTitle": "{type} masih ada?",
+  "@reportStillThereTitle": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "reportStillThereYes": "Ya, masih ada",
+  "reportStillThereNo": "Tiada",
+  "reportAhead": "{type} {distance} di hadapan",
+  "@reportAhead": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      },
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "navSpeedLimit": "Had laju",
+  "navOverspeedTitle": "Amaran laju lebih",
+  "navOverspeedOff": "Mati",
+  "navOverspeedHint": "Bunyi dan tanda merah apabila melebihi had laju. Had laju tidak lengkap di semua jalan."
 }

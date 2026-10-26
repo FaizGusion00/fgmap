@@ -54,6 +54,18 @@ abstract interface class LocationService {
     double maxAccuracyMeters = 20,
   });
 
+  /// Kedudukan terakhir yang diketahui peranti, TANPA had umur atau ketepatan, atau null jika
+  /// kebenaran tiada / belum pernah ada fix. Pulang serta-merta (tidak menunggu GPS).
+  ///
+  /// Hanya untuk meletakkan kamera peta di kawasan yang betul semasa pelancaran. Jangan gunakan
+  /// sebagai asal laluan: ia boleh lapuk; gunakan [currentFix] untuk itu.
+  Future<LocationFix?> lastKnownFix();
+
+  /// Aliran fix berkuasa rendah untuk mengikut pengguna di peta (bukan navigasi): sampel hanya apabila
+  /// peranti bergerak >= ~10 m, tanpa notifikasi latar depan, dan berhenti apabila langganan dibatalkan.
+  /// Tidak pernah memaparkan dialog kebenaran. Aliran tamat dengan ralat jika kebenaran ditarik balik.
+  Stream<LocationFix> trackingFixes();
+
   /// Aliran fix berketepatan tinggi untuk navigasi (sampel kerap, terus berjalan di latar belakang).
   /// Tidak pernah memaparkan dialog kebenaran. Aliran tamat dengan ralat jika kebenaran ditarik balik.
   Stream<LocationFix> navigationFixes();
@@ -121,6 +133,19 @@ class GeolocatorLocationService implements LocationService {
     if (current != null) return current;
 
     return null;
+  }
+
+  @override
+  Future<LocationFix?> lastKnownFix() async {
+    if (await access() != LocationAccess.granted) return null;
+    final recent = _recentFix;
+    if (recent != null) return recent;
+    try {
+      final last = await Geolocator.getLastKnownPosition();
+      return last == null ? null : _toFix(last);
+    } on Object {
+      return null; // platform tidak menyokong / ralat sementara: pelancaran jatuh balik ke currentFix
+    }
   }
 
   Future<LocationFix?> _awaitAccurateFix({
@@ -204,6 +229,16 @@ class GeolocatorLocationService implements LocationService {
   }
 
   @override
+  Stream<LocationFix> trackingFixes() {
+    return Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 10,
+      ),
+    ).map(_toFix);
+  }
+
+  @override
   Stream<LocationFix> navigationFixes() {
     return Geolocator.getPositionStream(
       locationSettings: navigationSettings(defaultTargetPlatform),
@@ -225,7 +260,7 @@ class GeolocatorLocationService implements LocationService {
           distanceFilter: 0,
           intervalDuration: const Duration(seconds: 1),
           foregroundNotificationConfig: const ForegroundNotificationConfig(
-            notificationTitle: 'FGMap',
+            notificationTitle: 'FGMaps',
             notificationText: 'Navigasi sedang berjalan',
             notificationChannelName: 'Navigasi',
             enableWakeLock: true,

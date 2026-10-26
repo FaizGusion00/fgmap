@@ -24,6 +24,9 @@ class _RecordingEngine implements OfflineEngine {
   }
 
   @override
+  Future<String> traceAttributes(String requestJson) async => '{}';
+
+  @override
   Future<void> close() async {
     log.add('close');
     if (closeError != null) throw closeError!;
@@ -250,6 +253,9 @@ class _FailingOnce implements OfflineEngine {
 
   @override
   Future<String> route(String requestJson) async => '{}';
+
+  @override
+  Future<String> traceAttributes(String requestJson) async => '{}';
 
   @override
   Future<void> close() async {}

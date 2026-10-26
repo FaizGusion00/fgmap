@@ -1,7 +1,7 @@
 name: fgmap
 description: "FGMap: aplikasi navigasi komuniti Malaysia."
 publish_to: 'none'
-version: 0.1.0+1
+version: 0.2.0+2
 
 environment:
   sdk: ^3.11.5
@@ -41,6 +41,7 @@ flutter:
   generate: true # flutter gen-l10n (lihat l10n.yaml)
 
   assets:
+    - assets/branding/fgmap-app-icon.png
     - assets/fonts/OFL-PlusJakartaSans.txt
 
   fonts:

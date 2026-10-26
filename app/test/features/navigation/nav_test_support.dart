@@ -3,6 +3,10 @@ import 'dart:math' as math;
 
 import 'package:fgmap/core/location/location_service.dart';
 import 'package:fgmap/features/navigation/data/screen_awake.dart';
+import 'package:fgmap/features/route_preview/domain/route_option.dart'
+    show RouteVehicle;
+import 'package:fgmap/features/speed_limits/data/speed_limit_service.dart';
+import 'package:fgmap/features/speed_limits/domain/speed_limits.dart';
 import 'package:fgmap/features/navigation/data/voice_guide.dart';
 import 'package:fgmap/features/navigation/domain/announcement_planner.dart';
 import 'package:fgmap/features/navigation/domain/instruction_text.dart';
@@ -126,12 +130,18 @@ class FakeVoice implements VoiceGuide {
   final List<(Announcement, VoiceLanguage)> said = [];
   int stops = 0;
 
+  /// Simulasi enjin suara yang baling ralat apabila dihentikan.
+  bool failStop = false;
+
   @override
   Future<void> announce(Announcement a, VoiceLanguage language) async =>
       said.add((a, language));
 
   @override
-  Future<void> stop() async => stops++;
+  Future<void> stop() async {
+    stops++;
+    if (failStop) throw StateError('tts');
+  }
 
   @override
   Future<void> dispose() async {}
@@ -150,3 +160,27 @@ class FakeAwake implements ScreenAwake {
   @override
   Future<void> disable() async => enabled = false;
 }
+
+/// Perkhidmatan had laju palsu: tiada rangkaian; memulangkan [limits] (atau kosong).
+class FakeSpeedLimitService implements SpeedLimitService {
+  FakeSpeedLimitService([this.limits = SpeedLimits.empty]);
+
+  SpeedLimits limits;
+  int calls = 0;
+
+  @override
+  Future<SpeedLimits> forRoute(RouteOption route, RouteVehicle vehicle) async {
+    calls++;
+    return limits;
+  }
+}
+
+/// Had laju seragam [kmh] sepanjang [lengthM] meter.
+SpeedLimits uniformLimit(int kmh, double lengthM) => SpeedLimits([
+  SpeedLimitSegment(
+    beginShapeIndex: 0,
+    endShapeIndex: 1000,
+    lengthM: lengthM,
+    limitKmh: kmh,
+  ),
+]);

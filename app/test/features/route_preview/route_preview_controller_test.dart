@@ -1,14 +1,18 @@
 import 'dart:async';
 
 import 'package:fgmap/core/location/location_service.dart';
+import 'package:fgmap/core/storage/preferences.dart';
 import 'package:fgmap/features/route_preview/domain/routing_failure.dart';
 import 'package:fgmap/features/route_preview/data/route_planner.dart';
 import 'package:fgmap/features/route_preview/domain/route_option.dart';
 import 'package:fgmap/features/route_preview/presentation/route_preview_controller.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/fakes.dart';
+
+late SharedPreferences _prefs;
 
 ProviderContainer _container(
   FakeRoutePlanner repo,
@@ -16,8 +20,9 @@ ProviderContainer _container(
 ) {
   final container = ProviderContainer(
     overrides: [
-      routePlannerProvider.overrideWithValue(repo),
+      routeOptionsPlannerProvider.overrideWithValue(repo),
       locationServiceProvider.overrideWithValue(location),
+      sharedPreferencesProvider.overrideWithValue(_prefs),
     ],
   );
   addTearDown(container.dispose);
@@ -33,7 +38,9 @@ RoutePreviewState _state(ProviderContainer c) =>
 void main() {
   late FakeLocationService location;
 
-  setUp(() {
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    _prefs = await SharedPreferences.getInstance();
     location = FakeLocationService(
       fix: LocationFix(
         point: klcc,
@@ -156,36 +163,51 @@ void main() {
     expect(repo.queries[1].origin, repo.queries[0].origin);
   });
 
-  test('retry/avoidTolls tanpa laluan aktif tidak berbuat apa-apa', () async {
+  test('retry/setVehicle tanpa laluan aktif tidak berbuat apa-apa', () async {
     final repo = FakeRoutePlanner((_) async => [sampleOption()]);
     final c = _container(repo, location);
 
     await _controller(c).retry();
-    await _controller(c).setAvoidTolls(true);
+    await _controller(c).setVehicle(RouteVehicle.motorcycle);
 
     expect(_state(c), isA<RouteIdle>());
     expect(repo.queries, isEmpty);
   });
 
   test(
-    'setAvoidTolls mengira semula dengan pilihan baharu dan kekal untuk destinasi seterusnya',
+    'kegagalan tidak dijangka dari perancang tidak meninggalkan Loading',
     () async {
-      final repo = FakeRoutePlanner((_) async => [sampleOption()]);
+      final repo = FakeRoutePlanner((_) async => throw StateError('rosak'));
       final c = _container(repo, location);
 
       await _controller(c).planTo(klia);
-      await _controller(c).setAvoidTolls(true);
 
-      expect(repo.queries.last.avoidTolls, isTrue);
-      expect((_state(c) as RouteReady).query.avoidTolls, isTrue);
+      final failed = _state(c) as RouteFailed;
+      expect(failed.kind, RoutingFailureKind.generic);
+    },
+  );
 
-      await _controller(c).planTo(batuCaves);
-      expect(repo.queries.last.destination, batuCaves);
-      expect(
-        repo.queries.last.avoidTolls,
-        isTrue,
-        reason: 'pilihan Elak tol kekal dalam sesi',
+  test(
+    'selectedQuery membawa pilihan laluan terpilih untuk pengiraan semula',
+    () async {
+      final repo = FakeRoutePlanner(
+        (_) async => [
+          sampleOption(),
+          sampleOption(
+            durationS: 4000,
+            hasTolls: false,
+            label: RouteLabel.noTolls,
+          ),
+        ],
       );
+      final c = _container(repo, location);
+      await _controller(c).planTo(klia, destinationLabel: 'KLIA');
+
+      expect((_state(c) as RouteReady).selectedQuery.avoidTolls, isFalse);
+      _controller(c).select(1);
+      final query = (_state(c) as RouteReady).selectedQuery;
+      expect(query.avoidTolls, isTrue);
+      expect(query.destinationLabel, 'KLIA');
     },
   );
 
@@ -298,6 +320,51 @@ void main() {
         await Future.wait([f1, f2]);
 
         expect(repo.queries.map((q) => q.destination), [batuCaves]);
+      },
+    );
+  });
+
+  group('pilihan laluan', () {
+    test(
+      'kenderaan: lalai kereta; motosikal dihantar, disimpan dan dipulihkan',
+      () async {
+        final repo = FakeRoutePlanner((_) async => [sampleOption()]);
+        final c = _container(repo, location);
+        await _controller(c).planTo(klia);
+        expect(repo.queries.last.vehicle, RouteVehicle.car);
+
+        await _controller(c).setVehicle(RouteVehicle.motorcycle);
+        expect(repo.queries.last.vehicle, RouteVehicle.motorcycle);
+        expect(_prefs.getString('route.vehicle'), 'motorcycle');
+
+        // Sesi baharu: kenderaan dipulihkan, dan laluan baharu menggunakannya.
+        final repo2 = FakeRoutePlanner((_) async => [sampleOption()]);
+        final c2 = _container(repo2, location);
+        await _controller(c2).planTo(klia);
+        expect(repo2.queries.single.vehicle, RouteVehicle.motorcycle);
+      },
+    );
+
+    test(
+      'menukar kenderaan tanpa laluan aktif hanya menyimpan pilihan',
+      () async {
+        final repo = FakeRoutePlanner((_) async => [sampleOption()]);
+        final c = _container(repo, location);
+        await _controller(c).setVehicle(RouteVehicle.motorcycle);
+        expect(repo.queries, isEmpty);
+        expect(_state(c), isA<RouteIdle>());
+      },
+    );
+
+    test(
+      'nilai kenderaan tersimpan yang tidak dikenali jatuh balik kepada kereta',
+      () async {
+        SharedPreferences.setMockInitialValues({'route.vehicle': 'helikopter'});
+        _prefs = await SharedPreferences.getInstance();
+        final repo = FakeRoutePlanner((_) async => [sampleOption()]);
+        final c = _container(repo, location);
+        await _controller(c).planTo(klia);
+        expect(repo.queries.single.vehicle, RouteVehicle.car);
       },
     );
   });

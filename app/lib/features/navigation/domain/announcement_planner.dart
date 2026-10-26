@@ -16,6 +16,7 @@ enum AnnouncementKind {
   newRoute,
   gpsLost,
   gpsBack,
+  speeding,
 }
 
 class Announcement {

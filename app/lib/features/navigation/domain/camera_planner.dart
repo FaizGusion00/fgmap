@@ -76,12 +76,12 @@ double _smoothstep(double edge0, double edge1, double x) {
 /// Zum asas mengikut kelajuan: perlahan = dekat dan terperinci, laju = jauh untuk melihat ke hadapan.
 double zoomForSpeed(double speedMps) {
   const table = [
-    (0.0, 17.6),
-    (8.0, 17.25),
-    (17.0, 16.6),
-    (25.0, 16.0),
-    (33.0, 15.6),
-    (42.0, 15.3),
+    (0.0, 18.5),
+    (8.0, 18.15),
+    (17.0, 17.5),
+    (25.0, 16.9),
+    (33.0, 16.5),
+    (42.0, 16.2),
   ];
   final v = speedMps.clamp(0.0, table.last.$1);
   for (var i = 1; i < table.length; i++) {
@@ -123,7 +123,7 @@ CameraTarget planCamera(CameraSituation s) {
 
   final p = maneuverProximity(distance, speed);
   final (boost, turnTilt) = _maneuverCamera(kind);
-  zoom = math.min(18.2, zoom + p * boost);
+  zoom = math.min(19.2, zoom + p * boost);
   return CameraTarget(zoom: zoom, tilt: _lerp(cruiseTilt, turnTilt, p));
 }
 

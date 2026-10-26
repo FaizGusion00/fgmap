@@ -41,6 +41,24 @@ class FakeLocationService implements LocationService {
         GeolocatorLocationService.defaultMaxAccuracyMeters,
   }) async => accessValue == LocationAccess.granted ? fix : null;
 
+  /// Fix terakhir diketahui (boleh lapuk); null = peranti belum pernah ada fix.
+  LocationFix? lastKnown;
+
+  @override
+  Future<LocationFix?> lastKnownFix() async =>
+      accessValue == LocationAccess.granted ? lastKnown : null;
+
+  /// Strim "ikut saya" di peta; ujian menolak fix melalui [trackingController]. [trackingListens]
+  /// mengira berapa kali strim dilanggan (untuk membuktikan ia dihentikan apabila tidak diperlukan).
+  int trackingListens = 0;
+  late final StreamController<LocationFix> trackingController =
+      StreamController<LocationFix>.broadcast(
+        onListen: () => trackingListens++,
+      );
+
+  @override
+  Stream<LocationFix> trackingFixes() => trackingController.stream;
+
   final StreamController<LocationFix> navigationController =
       StreamController<LocationFix>.broadcast();
 
@@ -83,6 +101,8 @@ RouteOption sampleOption({
   bool hasTolls = true,
   List<GeoPoint> points = const [klcc, klia],
   RouteSource source = RouteSource.online,
+  RouteLabel label = RouteLabel.fastest,
+  String? via,
 }) {
   return RouteOption(
     distanceM: distanceM,
@@ -90,6 +110,17 @@ RouteOption sampleOption({
     hasTolls: hasTolls,
     points: points,
     source: source,
+    label: label,
+    maneuvers: [
+      if (via != null)
+        Maneuver(
+          type: 8,
+          streetNames: [via],
+          lengthM: distanceM,
+          timeS: durationS,
+          beginShapeIndex: 0,
+        ),
+    ],
   );
 }
 

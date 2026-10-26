@@ -24,7 +24,8 @@ abstract interface class MapCameraController {
   CameraPose? get pose;
 
   /// Memindahkan kamera serta-merta tanpa animasi. Dipanggil setiap bingkai semasa navigasi, jadi
-  /// pelaksana patut menggugurkan panggilan jika yang sebelumnya belum selesai.
+  /// pelaksana patut menggabungkan panggilan: hanya satu berjalan, dan yang terkini dihantar selepas
+  /// itu (jangan gugurkan nilai terakhir).
   void moveTo(CameraPose pose);
 
   /// Beralih ke [pose] dengan animasi lembut (cth. kembali ke peta 2D selepas navigasi). Tidak
@@ -100,6 +101,7 @@ class MapViewConfig {
     required this.onLongPress,
     required this.onReady,
     this.onUserGesture,
+    this.onTap,
   });
 
   final String styleUrl;
@@ -110,6 +112,9 @@ class MapViewConfig {
   final bool showUserLocation;
   final MapOverlayColors colors;
   final ValueChanged<GeoPoint> onLongPress;
+
+  /// Ketikan pada peta (cth. memilih laluan alternatif). Null = tidak dipantau.
+  final ValueChanged<GeoPoint>? onTap;
   final ValueChanged<MapCameraController> onReady;
 
   /// Dipanggil apabila pengguna menyentuh dan menggerakkan peta (cth. semasa navigasi, untuk

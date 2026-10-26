@@ -8,6 +8,8 @@ import '../../../core/location/location_service.dart';
 import '../../route_preview/data/route_planner.dart';
 import '../../route_preview/domain/route_option.dart';
 import '../../route_preview/domain/routing_failure.dart';
+import '../../speed_limits/data/speed_limit_service.dart';
+import '../../speed_limits/domain/speed_limits.dart';
 import '../data/location_sources.dart';
 import '../data/navigation_settings.dart';
 import '../data/screen_awake.dart';
@@ -32,6 +34,8 @@ class NavigationState {
     this.rerouteFailure,
     this.routeVersion = 0,
     this.locationError = false,
+    this.speedLimits = SpeedLimits.empty,
+    this.overspeed = false,
   });
 
   final NavPhase phase;
@@ -52,6 +56,18 @@ class NavigationState {
   /// Aliran lokasi terputus dengan ralat (cth. kebenaran ditarik balik).
   final bool locationError;
 
+  /// Had laju sepanjang laluan semasa (kosong jika belum dimuat atau tiada data).
+  final SpeedLimits speedLimits;
+
+  /// Kelajuan semasa melebihi had laju (+ toleransi pengguna).
+  final bool overspeed;
+
+  /// Had laju di kedudukan semasa, atau null jika tidak diketahui.
+  int? get currentLimitKmh {
+    final along = progress?.alongM;
+    return along == null ? null : speedLimits.atDistance(along);
+  }
+
   bool get isActive => phase != NavPhase.idle;
 
   NavigationState copyWith({
@@ -63,6 +79,8 @@ class NavigationState {
     bool clearRerouteFailure = false,
     int? routeVersion,
     bool? locationError,
+    SpeedLimits? speedLimits,
+    bool? overspeed,
   }) {
     return NavigationState(
       phase: phase ?? this.phase,
@@ -76,6 +94,8 @@ class NavigationState {
           : (rerouteFailure ?? this.rerouteFailure),
       routeVersion: routeVersion ?? this.routeVersion,
       locationError: locationError ?? this.locationError,
+      speedLimits: speedLimits ?? this.speedLimits,
+      overspeed: overspeed ?? this.overspeed,
     );
   }
 }
@@ -101,6 +121,10 @@ class NavigationController extends Notifier<NavigationState> {
   int _generation = 0;
   bool _reroutePending = false;
   bool _refreshingLocation = false;
+
+  /// Fix mentah terkini, untuk disuap ke sesi re-route baharu supaya HUD tidak kosong menunggu fix
+  /// seterusnya.
+  LocationFix? _lastFix;
   VoiceLanguage _uiLanguage = VoiceLanguage.ms;
 
   @override
@@ -134,6 +158,9 @@ class NavigationController extends Notifier<NavigationState> {
     NavLocationSource? source,
   }) async {
     await stop();
+    // Dua start() serentak (cth. ketik dua kali) kedua-duanya melepasi stop() di atas; tanpa ini
+    // langganan dan pemasa sesi pertama bocor kerana rujukannya ditimpa.
+    _teardown();
     final nav = NavRoute(route);
     if (!nav.isUsable) return false;
 
@@ -158,6 +185,7 @@ class NavigationController extends Notifier<NavigationState> {
 
     unawaited(ref.read(screenAwakeProvider).enable());
     _speak(session.takeStartAnnouncements());
+    unawaited(_loadSpeedLimits(route, query, generation, 1));
 
     _subscription = src.fixes().listen(
       (fix) {
@@ -185,11 +213,18 @@ class NavigationController extends Notifier<NavigationState> {
     _generation++;
     _teardown();
     _session = null;
+    _lastFix = null;
     _reroutePending = false;
     if (state.phase != NavPhase.idle) {
       state = const NavigationState();
-      await ref.read(voiceGuideProvider).stop();
-      await ref.read(screenAwakeProvider).disable();
+      try {
+        await ref.read(voiceGuideProvider).stop();
+      } on Object catch (e) {
+        debugPrint('Menghentikan suara gagal: $e');
+      } finally {
+        // Skrin mesti dilepaskan walaupun enjin suara bermasalah.
+        await ref.read(screenAwakeProvider).disable();
+      }
     }
   }
 
@@ -203,6 +238,7 @@ class NavigationController extends Notifier<NavigationState> {
   void _onFix(LocationFix fix) {
     final session = _session;
     if (session == null || state.phase != NavPhase.active) return;
+    _lastFix = fix;
     final update = session.onFix(fix);
     if (update == null) return;
 
@@ -214,6 +250,7 @@ class NavigationController extends Notifier<NavigationState> {
       clearRerouteFailure: progress.status == NavStatus.onRoute,
     );
     _speak(update.announcements);
+    _updateOverspeed(progress);
 
     if (progress.status == NavStatus.arrived) {
       state = state.copyWith(phase: NavPhase.arrived);
@@ -253,6 +290,9 @@ class NavigationController extends Notifier<NavigationState> {
     }
   }
 
+  /// Fix lebih lama daripada ini tidak disuap ke sesi re-route baharu (kenderaan sudah jauh).
+  static const _maxFeedAge = Duration(seconds: 5);
+
   Future<void> _reroute(RerouteRequest request) async {
     final query = state.query;
     final session = _session;
@@ -265,14 +305,15 @@ class NavigationController extends Notifier<NavigationState> {
       final options = await ref
           .read(routePlannerProvider)
           .plan(
-            RouteQuery(
-              origin: request.origin,
-              destination: query.destination,
+            query.rerouteFrom(
+              request.origin,
               headingDegrees: request.headingDegrees,
-              avoidTolls: query.avoidTolls,
             ),
           );
       if (generation != _generation) return;
+      if (options.isEmpty) {
+        throw const RoutingFailure(RoutingFailureKind.generic);
+      }
       final route = NavRoute(options.first);
       if (!route.isUsable) {
         throw const RoutingFailure(RoutingFailureKind.generic);
@@ -293,13 +334,89 @@ class NavigationController extends Notifier<NavigationState> {
         routeVersion: state.routeVersion + 1,
       );
       _speak(fresh.takeStartAnnouncements());
+      unawaited(
+        _loadSpeedLimits(options.first, query, generation, state.routeVersion),
+      );
+
+      // Sesi baharu belum melihat fix: tanpa ini progress kosong sehingga fix seterusnya (~1 s),
+      // banner hilang dan chip "mencari GPS" berkelip. Fix terkini (bukan yang mencetuskan
+      // re-route; kedudukan sudah beralih sepanjang pengiraan) disuap terus.
+      final fix = _lastFix;
+      final clock = ref.read(navClockProvider);
+      if (fix != null &&
+          clock().difference(fix.timestamp ?? clock()) <= _maxFeedAge) {
+        _onFix(fix);
+      }
     } on RoutingFailure catch (failure) {
       if (generation != _generation) return;
       // Kekal di sesi semasa; pengesan menyimpang akan mencuba lagi selepas cooldown.
       state = state.copyWith(rerouting: false, rerouteFailure: failure.kind);
+    } on Object catch (e) {
+      // Apa-apa ralat lain (respons rosak, dsb.) tidak boleh meninggalkan "mengira semula" tersangkut.
+      debugPrint('Re-route gagal: $e');
+      if (generation != _generation) return;
+      state = state.copyWith(
+        rerouting: false,
+        rerouteFailure: RoutingFailureKind.generic,
+      );
     } finally {
       _reroutePending = false;
     }
+  }
+
+  /// Had laju ialah maklumat sokongan: kegagalan atau data kosong tidak menjejas navigasi.
+  Future<void> _loadSpeedLimits(
+    RouteOption route,
+    RouteQuery query,
+    int generation,
+    int routeVersion,
+  ) async {
+    try {
+      final limits = await ref
+          .read(speedLimitServiceProvider)
+          .forRoute(route, query.vehicle);
+      if (generation != _generation || state.routeVersion != routeVersion) {
+        return;
+      }
+      state = state.copyWith(speedLimits: limits);
+    } on Object catch (e) {
+      debugPrint('Had laju tidak dapat dimuat: $e');
+    }
+  }
+
+  DateTime? _lastOverspeedChime;
+
+  /// Menilai kelajuan terhadap had; bunyi amaran sekali apabila mula melebihi (dengan cooldown) supaya
+  /// tidak membebel ketika kelajuan berayun di sekitar had.
+  void _updateOverspeed(NavProgress progress) {
+    final tolerance = ref
+        .read(navigationSettingsProvider)
+        .overspeedToleranceKmh;
+    final limit = state.speedLimits.atDistance(progress.alongM);
+    final over =
+        tolerance >= 0 &&
+        overspeedLevel(
+              speedKmh: progress.speedMps * 3.6,
+              limitKmh: limit,
+              toleranceKmh: tolerance,
+            ) ==
+            OverspeedLevel.warning;
+    if (over == state.overspeed) return;
+    state = state.copyWith(overspeed: over);
+    if (!over) return;
+    final now = ref.read(navClockProvider)();
+    final last = _lastOverspeedChime;
+    if (last != null && now.difference(last) < const Duration(seconds: 20)) {
+      return;
+    }
+    _lastOverspeedChime = now;
+    _speak(const [
+      Announcement(
+        kind: AnnouncementKind.speeding,
+        text: '',
+        chime: ChimeKind.warning,
+      ),
+    ]);
   }
 
   void _speak(List<Announcement> announcements) {

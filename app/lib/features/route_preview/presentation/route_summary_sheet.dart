@@ -17,20 +17,30 @@ class RouteSummarySheet extends StatelessWidget {
     super.key,
     required this.state,
     required this.onSelect,
-    required this.onAvoidTollsChanged,
+    required this.onVehicleChanged,
     required this.onRetry,
     required this.onClear,
     this.onOpenOfflineMaps,
+    this.onStart,
+    this.onSimulate,
+    this.now,
   });
 
   final RoutePreviewState state;
   final ValueChanged<int> onSelect;
-  final ValueChanged<bool> onAvoidTollsChanged;
+  final ValueChanged<RouteVehicle> onVehicleChanged;
   final VoidCallback onRetry;
   final VoidCallback onClear;
 
   /// Dipaparkan sebagai tindakan bila kegagalan boleh diatasi dengan peta offline.
   final VoidCallback? onOpenOfflineMaps;
+
+  /// Tindakan utama pada laluan siap: mula navigasi dan simulasi. Kedua-duanya tersembunyi jika null.
+  final VoidCallback? onStart;
+  final VoidCallback? onSimulate;
+
+  /// Masa semasa untuk mengira waktu tiba; lalai `DateTime.now()`. Ujian golden menetapkannya.
+  final DateTime? now;
 
   @override
   Widget build(BuildContext context) {
@@ -64,15 +74,20 @@ class RouteSummarySheet extends StatelessWidget {
                 ),
                 child: switch (state) {
                   RouteIdle() => const SizedBox.shrink(key: ValueKey('idle')),
-                  RouteLoading() => const _LoadingBody(
-                    key: ValueKey('loading'),
+                  RouteLoading() => _LoadingBody(
+                    key: const ValueKey('loading'),
+                    destinationLabel: (state as RouteLoading).destinationLabel,
+                    onClear: onClear,
                   ),
                   RouteReady() => _ReadyBody(
                     key: const ValueKey('ready'),
                     state: state as RouteReady,
                     onSelect: onSelect,
-                    onAvoidTollsChanged: onAvoidTollsChanged,
+                    onVehicleChanged: onVehicleChanged,
                     onClear: onClear,
+                    onStart: onStart,
+                    onSimulate: onSimulate,
+                    now: now ?? DateTime.now(),
                   ),
                   RouteFailed() => _FailedBody(
                     key: const ValueKey('failed'),
@@ -97,11 +112,16 @@ class RouteSummarySheet extends StatelessWidget {
 }
 
 class _LoadingBody extends StatelessWidget {
-  const _LoadingBody({super.key});
+  const _LoadingBody({super.key, required this.onClear, this.destinationLabel});
+
+  final VoidCallback onClear;
+  final String? destinationLabel;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final label = destinationLabel;
     return Semantics(
       liveRegion: true,
       child: SizedBox(
@@ -110,14 +130,32 @@ class _LoadingBody extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    label == null
+                        ? l10n.routeCalculating
+                        : l10n.routeFindingTo(label),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleSmall,
+                  ),
+                ),
+                // Pengguna mesti boleh membatalkan semasa menunggu GPS atau pelayan.
+                IconButton(
+                  key: const ValueKey('route-cancel'),
+                  tooltip: l10n.routeClear,
+                  onPressed: onClear,
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
             const SkeletonBox(width: 150, height: 36),
             const SizedBox(height: 12),
             const SkeletonBox(width: 210, height: 16, radius: 8),
             const SizedBox(height: 16),
-            Text(
-              l10n.routeCalculating,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
           ],
         ),
       ),
@@ -130,14 +168,20 @@ class _ReadyBody extends StatelessWidget {
     super.key,
     required this.state,
     required this.onSelect,
-    required this.onAvoidTollsChanged,
+    required this.onVehicleChanged,
     required this.onClear,
+    required this.now,
+    this.onStart,
+    this.onSimulate,
   });
 
   final RouteReady state;
   final ValueChanged<int> onSelect;
-  final ValueChanged<bool> onAvoidTollsChanged;
+  final ValueChanged<RouteVehicle> onVehicleChanged;
   final VoidCallback onClear;
+  final VoidCallback? onStart;
+  final VoidCallback? onSimulate;
+  final DateTime now;
 
   @override
   Widget build(BuildContext context) {
@@ -145,8 +189,12 @@ class _ReadyBody extends StatelessWidget {
     final theme = Theme.of(context);
     final fg = context.fg;
     final route = state.selected;
+    final via = route.via;
 
     final destinationLabel = state.query.destinationLabel;
+    final fastestS = state.options
+        .map((o) => o.durationS)
+        .reduce((a, b) => a < b ? a : b);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -179,6 +227,17 @@ class _ReadyBody extends StatelessWidget {
                       color: theme.colorScheme.onSurface,
                     ),
                   ),
+                  if (via != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      l10n.routeVia(via),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 6),
                   Wrap(
                     spacing: 12,
@@ -228,28 +287,320 @@ class _ReadyBody extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
+        const SizedBox(height: 14),
+        if (state.options.length > 1) ...[
+          _RouteOptionCards(
+            options: state.options,
+            fastestS: fastestS,
+            selectedIndex: state.selectedIndex,
+            onSelect: onSelect,
+          ),
+          const SizedBox(height: 12),
+        ],
+        Row(
           children: [
-            if (state.options.length > 1)
-              for (var i = 0; i < state.options.length; i++)
-                ChoiceChip(
-                  label: Text(
-                    '${l10n.routeOptionLabel(i + 1)} · ${formatDuration(l10n, state.options[i].durationS)}',
-                  ),
-                  selected: i == state.selectedIndex,
-                  onSelected: (_) => onSelect(i),
+            SegmentedButton<RouteVehicle>(
+              key: const ValueKey('route-vehicle'),
+              showSelectedIcon: false,
+              style: SegmentedButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                // Tona utama app, bukan warna sekunder lalai Material.
+                selectedBackgroundColor: theme.colorScheme.primary.withValues(
+                  alpha: 0.14,
                 ),
-            FilterChip(
-              label: Text(l10n.routeAvoidTolls),
-              selected: state.query.avoidTolls,
-              onSelected: onAvoidTollsChanged,
+                selectedForegroundColor: theme.colorScheme.primary,
+              ),
+              segments: [
+                ButtonSegment(
+                  value: RouteVehicle.car,
+                  icon: const Icon(Icons.directions_car_rounded),
+                  tooltip: l10n.routeVehicleCar,
+                ),
+                ButtonSegment(
+                  value: RouteVehicle.motorcycle,
+                  icon: const Icon(Icons.two_wheeler_rounded),
+                  tooltip: l10n.routeVehicleMotorcycle,
+                ),
+              ],
+              selected: {state.query.vehicle},
+              onSelectionChanged: (v) => onVehicleChanged(v.single),
+            ),
+            const Spacer(),
+            Icon(
+              Icons.schedule_rounded,
+              size: 18,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: Text(
+                  l10n.navEta(
+                    MaterialLocalizations.of(context).formatTimeOfDay(
+                      TimeOfDay.fromDateTime(
+                        now.add(Duration(seconds: route.durationS)),
+                      ),
+                    ),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: theme.colorScheme.onSurface,
+                  ),
+                ),
+              ),
             ),
           ],
         ),
+        if (onStart != null || onSimulate != null) ...[
+          const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Row(
+              children: [
+                if (onSimulate != null)
+                  TextButton.icon(
+                    key: const ValueKey('nav-simulate'),
+                    onPressed: onSimulate,
+                    icon: const Icon(Icons.play_circle_outline_rounded),
+                    label: Text(l10n.navSimulate),
+                  ),
+                if (onSimulate != null && onStart != null)
+                  const SizedBox(width: 8),
+                if (onStart != null)
+                  Expanded(
+                    child: FilledButton.icon(
+                      key: const ValueKey('nav-start'),
+                      onPressed: onStart,
+                      icon: const Icon(Icons.navigation_rounded),
+                      label: Text(l10n.navStart),
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size.fromHeight(54),
+                        textStyle: theme.textTheme.titleMedium,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
       ],
+    );
+  }
+}
+
+/// Senarai kad pilihan. Jika semua muat pada lebar yang ada, ia berkongsi lebar sama rata (tiada kad
+/// terpotong di tepi); jika tidak (cth. 4 pilihan atau teks sistem besar) ia boleh digulung ke sisi.
+class _RouteOptionCards extends StatelessWidget {
+  const _RouteOptionCards({
+    required this.options,
+    required this.fastestS,
+    required this.selectedIndex,
+    required this.onSelect,
+  });
+
+  final List<RouteOption> options;
+  final int fastestS;
+  final int selectedIndex;
+  final ValueChanged<int> onSelect;
+
+  static const _gap = 8.0;
+  static const _minCardWidth = 106.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final needed =
+            options.length * _minCardWidth * textScale.clamp(1.0, 1.5) +
+            (options.length - 1) * _gap;
+        final fits = needed <= constraints.maxWidth;
+
+        Widget card(int i) => _RouteOptionCard(
+          key: ValueKey('route-option-$i'),
+          option: options[i],
+          slowerByS: options[i].durationS - fastestS,
+          selected: i == selectedIndex,
+          onTap: () => onSelect(i),
+        );
+
+        // Tinggi mengikut kandungan (bukan nilai tetap) supaya saiz teks sistem yang besar tidak
+        // memotong kad; IntrinsicHeight menyamakan tinggi semua kad.
+        if (fits) {
+          return IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var i = 0; i < options.length; i++) ...[
+                  if (i > 0) const SizedBox(width: _gap),
+                  Expanded(child: card(i)),
+                ],
+              ],
+            ),
+          );
+        }
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          clipBehavior: Clip.none,
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var i = 0; i < options.length; i++) ...[
+                  if (i > 0) const SizedBox(width: _gap),
+                  card(i),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+String routeLabelText(AppLocalizations l10n, RouteLabel label) {
+  return switch (label) {
+    RouteLabel.fastest => l10n.routeFastest,
+    RouteLabel.shortest => l10n.routeShortest,
+    RouteLabel.noTolls => l10n.routeNoTolls,
+    RouteLabel.noHighways => l10n.routeNoHighways,
+    RouteLabel.alternative => l10n.routeAlternative,
+  };
+}
+
+IconData _routeLabelIcon(RouteLabel label) {
+  return switch (label) {
+    RouteLabel.fastest => Icons.bolt_rounded,
+    RouteLabel.shortest => Icons.straighten_rounded,
+    RouteLabel.noTolls => Icons.money_off_rounded,
+    RouteLabel.noHighways => Icons.alt_route_rounded,
+    RouteLabel.alternative => Icons.alt_route_rounded,
+  };
+}
+
+/// Kad pilihan laluan: label (terpantas, tanpa tol, ...), masa, beza masa dengan yang terpantas dan
+/// jarak. Dipilih = sempadan dan tona utama.
+class _RouteOptionCard extends StatelessWidget {
+  const _RouteOptionCard({
+    super.key,
+    required this.option,
+    required this.slowerByS,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final RouteOption option;
+
+  /// Beza masa berbanding laluan terpantas (0 untuk yang terpantas sendiri).
+  final int slowerByS;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final fg = context.fg;
+    final primary = theme.colorScheme.primary;
+    final label = routeLabelText(l10n, option.label);
+    final duration = formatDuration(l10n, option.durationS);
+    final distance = formatDistance(l10n, option.distanceM);
+    // Beza di bawah semenit tidak bermakna kepada pemandu.
+    final slower = slowerByS >= 60
+        ? '+${formatDuration(l10n, slowerByS)}'
+        : null;
+    final tollText = option.hasTolls ? l10n.routeHasTolls : l10n.routeNoTolls;
+
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: [label, duration, ?slower, distance, tollText].join(', '),
+      excludeSemantics: true,
+      child: Material(
+        color: selected
+            ? primary.withValues(alpha: 0.10)
+            : theme.colorScheme.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: selected ? primary : theme.colorScheme.outline,
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: InkWell(
+          customBorder: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          onTap: onTap,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 106, maxWidth: 190),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        _routeLabelIcon(option.label),
+                        size: 15,
+                        color: selected
+                            ? primary
+                            : theme.colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            color: selected
+                                ? primary
+                                : theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  // Wrap: masa + beza masa tidak muat satu baris pada teks sistem besar atau tempoh panjang.
+                  Wrap(
+                    spacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(
+                        duration,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                      if (slower != null)
+                        Text(slower, style: theme.textTheme.labelSmall),
+                    ],
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(distance, style: theme.textTheme.bodySmall),
+                      if (option.hasTolls) ...[
+                        const SizedBox(width: 6),
+                        Icon(Icons.toll_rounded, size: 14, color: fg.warning),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

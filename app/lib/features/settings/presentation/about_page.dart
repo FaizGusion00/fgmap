@@ -43,18 +43,29 @@ class AboutPage extends ConsumerWidget {
                   ),
                   child: Column(
                     children: [
+                      // Logo app sebenar (sama dengan ikon pelancar), bukan ikon generik.
                       DecoratedBox(
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.18),
+                              blurRadius: 16,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
                         ),
-                        child: SizedBox(
-                          width: 72,
-                          height: 72,
-                          child: Icon(
-                            Icons.navigation_rounded,
-                            size: 36,
-                            color: theme.colorScheme.onPrimaryContainer,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(24),
+                          child: Image.asset(
+                            'assets/branding/fgmap-app-icon.png',
+                            key: const ValueKey('about-logo'),
+                            width: 96,
+                            height: 96,
+                            // Sumber 1024 px; nyahkod pada saiz paparan (3x) sahaja.
+                            cacheWidth: 288,
+                            filterQuality: FilterQuality.medium,
+                            semanticLabel: l10n.appName,
                           ),
                         ),
                       ),

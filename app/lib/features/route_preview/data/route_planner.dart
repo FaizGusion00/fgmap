@@ -12,6 +12,7 @@ import '../../../core/network/response_text.dart';
 import '../../../core/storage/preferences.dart';
 import '../../offline_maps/data/offline_engine_host.dart';
 import '../domain/route_option.dart';
+import '../domain/route_options_merge.dart';
 import '../domain/routing_failure.dart';
 import 'valhalla_codec.dart';
 
@@ -126,6 +127,61 @@ class OfflineRoutePlanner implements RoutePlanner {
   }
 }
 
+/// Perancang pilihan laluan untuk pratonton. Selain laluan biasa dan alternatif Valhalla, ia meminta
+/// laluan yang mengelak tol dan lebuh raya supaya SEMUA pilihan yang bermakna terpapar serta-merta,
+/// tanpa pengguna perlu menekan sebarang butang.
+///
+/// Permintaan tambahan sentiasa menggunakan sumber (online/offline) yang sama dengan laluan biasa,
+/// supaya pilihan tidak bercampur antara data segar dan pek offline. Kegagalan permintaan tambahan
+/// tidak menggagalkan pratonton: laluan biasa tetap dipaparkan.
+class MultiRoutePlanner implements RoutePlanner {
+  MultiRoutePlanner({required this.primary, required this.forSource});
+
+  /// Perancang bagi laluan biasa (dasar online/offline pengguna).
+  final RoutePlanner primary;
+
+  /// Perancang yang terhad kepada satu sumber, untuk permintaan tambahan.
+  final RoutePlanner Function(RouteSource source) forSource;
+
+  /// Perjalanan di bawah jarak ini jarang ada pilihan lebuh raya yang bermakna.
+  static const _minHighwayTripM = 5000;
+
+  @override
+  Future<List<RouteOption>> plan(RouteQuery query) async {
+    final standard = await primary.plan(query);
+    if (standard.isEmpty) return standard;
+
+    final planner = forSource(standard.first.source);
+    final wantTolls = standard.any((r) => r.hasTolls);
+    final wantHighways = standard.first.distanceM >= _minHighwayTripM;
+
+    final extra = await Future.wait([
+      if (wantTolls)
+        _tryPlan(planner, query.copyWith(avoidTolls: true, alternates: 0)),
+      if (wantHighways)
+        _tryPlan(planner, query.copyWith(avoidHighways: true, alternates: 0)),
+    ]);
+
+    var next = 0;
+    return mergeRouteCandidates(
+      standard: standard,
+      noTolls: wantTolls ? extra[next++] : const [],
+      noHighways: wantHighways ? extra[next++] : const [],
+    );
+  }
+
+  static Future<List<RouteOption>> _tryPlan(
+    RoutePlanner planner,
+    RouteQuery query,
+  ) async {
+    try {
+      return await planner.plan(query);
+    } on RoutingFailure {
+      return const [];
+    }
+  }
+}
+
 /// Pilihan sumber laluan oleh pengguna.
 enum RoutingMode {
   /// Online dahulu; jatuh balik ke offline bila online gagal (lalai).
@@ -216,16 +272,63 @@ class RoutingModeController extends Notifier<RoutingMode> {
   }
 }
 
+const _vehicleKey = 'route.vehicle';
+
+/// Kenderaan pilihan pengguna, disimpan merentas sesi (pemandu motosikal kekal motosikal).
+class RouteVehicleController extends Notifier<RouteVehicle> {
+  @override
+  RouteVehicle build() {
+    final saved = ref.watch(sharedPreferencesProvider).getString(_vehicleKey);
+    return RouteVehicle.values.firstWhere(
+      (v) => v.name == saved,
+      orElse: () => RouteVehicle.car,
+    );
+  }
+
+  Future<void> set(RouteVehicle vehicle) async {
+    state = vehicle;
+    await ref
+        .read(sharedPreferencesProvider)
+        .setString(_vehicleKey, vehicle.name);
+  }
+}
+
+final routeVehicleProvider =
+    NotifierProvider<RouteVehicleController, RouteVehicle>(
+      RouteVehicleController.new,
+    );
+
 final routingModeProvider =
     NotifierProvider<RoutingModeController, RoutingMode>(
       RoutingModeController.new,
     );
 
+/// Perancang satu laluan (satu permintaan setiap kali). Digunakan untuk mengira semula semasa
+/// navigasi: ia mesti pantas dan mengekalkan pilihan laluan pengguna.
 final routePlannerProvider = Provider<RoutePlanner>((ref) {
   return HybridRoutePlanner(
-    online: OnlineRoutePlanner(ref.watch(dioProvider), AppConfig.valhallaUrl),
-    offline: OfflineRoutePlanner(ref.watch(offlineEngineHostProvider)),
+    online: ref.watch(_onlinePlannerProvider),
+    offline: ref.watch(_offlinePlannerProvider),
     // Dibaca pada setiap permintaan (bukan ditangkap), supaya menukar mod berkuat kuasa serta-merta.
     mode: () => ref.read(routingModeProvider),
   );
 });
+
+/// Perancang pratonton: semua pilihan laluan yang bermakna, berlabel (lihat [MultiRoutePlanner]).
+final routeOptionsPlannerProvider = Provider<RoutePlanner>((ref) {
+  return MultiRoutePlanner(
+    primary: ref.watch(routePlannerProvider),
+    forSource: (source) => switch (source) {
+      RouteSource.online => ref.read(_onlinePlannerProvider),
+      RouteSource.offline => ref.read(_offlinePlannerProvider),
+    },
+  );
+});
+
+final _onlinePlannerProvider = Provider<RoutePlanner>(
+  (ref) => OnlineRoutePlanner(ref.watch(dioProvider), AppConfig.valhallaUrl),
+);
+
+final _offlinePlannerProvider = Provider<RoutePlanner>(
+  (ref) => OfflineRoutePlanner(ref.watch(offlineEngineHostProvider)),
+);

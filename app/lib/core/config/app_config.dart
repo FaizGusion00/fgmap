@@ -12,6 +12,11 @@ abstract final class AppConfig {
     defaultValue: 'https://valhalla1.openstreetmap.de/route',
   );
 
+  /// Atribut jalan (had laju) pada server yang sama dengan [valhallaUrl]: `.../route` -> `.../trace_attributes`.
+  static String get traceAttributesUrl => valhallaUrl.endsWith('/route')
+      ? '${valhallaUrl.substring(0, valhallaUrl.length - '/route'.length)}/trace_attributes'
+      : '$valhallaUrl/trace_attributes';
+
   /// Carian tempat (Photon). Pelayan awam komoot: percuma dan tanpa kunci, tetapi tertakluk kepada
   /// penggunaan wajar dan tiada SLA. Nominatim awam sengaja TIDAK digunakan: ia melarang autocomplete.
   static const photonUrl = String.fromEnvironment(

@@ -21,6 +21,8 @@ RoutingFailure _parseFailure(Object? body) {
 }
 
 void main() {
+  routingOptionsTests();
+
   group('buildRouteRequest', () {
     test(
       'lalai: auto, 2 alternatif, manuver tanpa teks, tiada heading/costing_options',
@@ -243,5 +245,77 @@ void main() {
 
   test('GeoPoint digunakan oleh RouteQuery kekal sama nilai', () {
     expect(const GeoPoint(1, 2), const GeoPoint(1, 2));
+  });
+}
+
+void routingOptionsTests() {
+  group('buildRouteRequest: kenderaan dan elak lebuh raya', () {
+    List<Object?> locs(Map<String, Object?> j) =>
+        j['locations']! as List<Object?>;
+
+    test('motosikal menggunakan costing motorcycle', () {
+      final json = buildRouteRequest(
+        const RouteQuery(
+          origin: klcc,
+          destination: klia,
+          vehicle: RouteVehicle.motorcycle,
+        ),
+      );
+      expect(json['costing'], 'motorcycle');
+      expect(locs(json), hasLength(2));
+    });
+
+    test(
+      'costing_options mengikut kunci costing kenderaan (bukan "auto" tetap)',
+      () {
+        final json = buildRouteRequest(
+          const RouteQuery(
+            origin: klcc,
+            destination: klia,
+            vehicle: RouteVehicle.motorcycle,
+            avoidTolls: true,
+            avoidHighways: true,
+          ),
+        );
+        expect(json['costing_options'], {
+          'motorcycle': {'use_tolls': 0, 'use_highways': 0},
+        });
+      },
+    );
+
+    test('hanya elak lebuh raya: use_tolls tidak dihantar', () {
+      final json = buildRouteRequest(
+        const RouteQuery(origin: klcc, destination: klia, avoidHighways: true),
+      );
+      expect(json['costing_options'], {
+        'auto': {'use_highways': 0},
+      });
+    });
+
+    test('tiada pilihan: tiada costing_options', () {
+      expect(
+        buildRouteRequest(
+          const RouteQuery(origin: klcc, destination: klia),
+        ).containsKey('costing_options'),
+        isFalse,
+      );
+    });
+
+    test('copyWith mengekalkan nilai lain', () {
+      const q = RouteQuery(
+        origin: klcc,
+        destination: klia,
+        avoidTolls: true,
+        destinationLabel: 'KLIA',
+      );
+      final r = q.copyWith(
+        vehicle: RouteVehicle.motorcycle,
+        avoidHighways: true,
+      );
+      expect(r.avoidTolls, isTrue);
+      expect(r.avoidHighways, isTrue);
+      expect(r.vehicle, RouteVehicle.motorcycle);
+      expect(r.destinationLabel, 'KLIA');
+    });
   });
 }

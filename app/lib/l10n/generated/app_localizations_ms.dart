@@ -9,7 +9,7 @@ class AppLocalizationsMs extends AppLocalizations {
   AppLocalizationsMs([String locale = 'ms']) : super(locale);
 
   @override
-  String get appName => 'FGMap';
+  String get appName => 'FGMaps';
 
   @override
   String get mapHintLongPress => 'Tekan lama pada peta untuk pilih destinasi';
@@ -40,7 +40,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get locationRationaleBody =>
-      'Lokasi anda digunakan untuk menunjukkan kedudukan anda di peta dan sebagai titik mula laluan. Ia dihantar ke pelayan FGMap hanya untuk mengira laluan.';
+      'Lokasi anda digunakan untuk menunjukkan kedudukan anda di peta dan sebagai titik mula laluan. Ia dihantar ke pelayan FGMaps hanya untuk mengira laluan.';
 
   @override
   String get locationAllow => 'Benarkan';
@@ -68,14 +68,6 @@ class AppLocalizationsMs extends AppLocalizations {
   @override
   String get routeLocationUnavailable =>
       'Lokasi GPS yang tepat belum tersedia. Semak kebenaran lokasi dan GPS, kemudian cuba lagi.';
-
-  @override
-  String routeOptionLabel(int index) {
-    return 'Laluan $index';
-  }
-
-  @override
-  String get routeAvoidTolls => 'Elak tol';
 
   @override
   String get routeHasTolls => 'Ada tol';
@@ -133,13 +125,13 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
-  String get appearanceTooltip => 'Paparan';
+  String get appearanceTooltip => 'Tetapan';
 
   @override
   String get appearanceTitle => 'Paparan';
 
   @override
-  String get aboutTitle => 'Tentang FGMap';
+  String get aboutTitle => 'Tentang FGMaps';
 
   @override
   String get aboutDescription => 'Aplikasi navigasi komuniti Malaysia';
@@ -451,7 +443,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get navVoiceFollowApp => 'Ikut app';
 
   @override
-  String get navVoiceMalay => 'Bahasa Melayu';
+  String get navVoiceMalay => 'Melayu';
 
   @override
   String get navVoiceEnglish => 'English';
@@ -476,4 +468,146 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get navAcquiring => 'Mencari isyarat GPS…';
+
+  @override
+  String get routeFastest => 'Terpantas';
+
+  @override
+  String get routeShortest => 'Terpendek';
+
+  @override
+  String get routeNoHighways => 'Tanpa lebuh raya';
+
+  @override
+  String get routeAlternative => 'Alternatif';
+
+  @override
+  String routeVia(String road) {
+    return 'melalui $road';
+  }
+
+  @override
+  String routeFindingTo(String place) {
+    return 'Mencari laluan ke $place…';
+  }
+
+  @override
+  String get routeVehicleCar => 'Kereta';
+
+  @override
+  String get routeVehicleMotorcycle => 'Motosikal';
+
+  @override
+  String get settingsTitle => 'Tetapan';
+
+  @override
+  String get settingsAppearance => 'Paparan';
+
+  @override
+  String get settingsNavigation => 'Navigasi';
+
+  @override
+  String get settingsMaps => 'Peta';
+
+  @override
+  String get settingsOfflineHint =>
+      'Muat turun peta untuk navigasi tanpa internet';
+
+  @override
+  String get settingsAboutHint => 'Versi, pembangun dan hak cipta';
+
+  @override
+  String get themeSystemShort => 'Auto';
+
+  @override
+  String get searchCatFuel => 'Stesen minyak';
+
+  @override
+  String get searchCatFood => 'Makan';
+
+  @override
+  String get searchCatMosque => 'Masjid';
+
+  @override
+  String get searchCatToilet => 'Tandas';
+
+  @override
+  String get searchCatParking => 'Parkir';
+
+  @override
+  String get searchCatHospital => 'Hospital';
+
+  @override
+  String get searchCategories => 'Cari berhampiran';
+
+  @override
+  String get reportTitle => 'Laporkan di sini';
+
+  @override
+  String get reportButtonTooltip => 'Laporkan';
+
+  @override
+  String get reportTypePolice => 'Polis';
+
+  @override
+  String get reportTypeAccident => 'Kemalangan';
+
+  @override
+  String get reportTypeHazard => 'Bahaya';
+
+  @override
+  String get reportTypeJam => 'Sesak';
+
+  @override
+  String get reportTypeClosed => 'Jalan ditutup';
+
+  @override
+  String get reportTypeBrokenDown => 'Kenderaan rosak';
+
+  @override
+  String get reportTypeFlood => 'Banjir';
+
+  @override
+  String get reportCreated => 'Laporan dihantar. Terima kasih!';
+
+  @override
+  String get reportConfirmedExisting =>
+      'Laporan serupa sudah ada berdekatan; ia disahkan.';
+
+  @override
+  String get reportNoLocation =>
+      'Lokasi anda tidak tersedia. Laporan mesti dibuat dari lokasi sebenar anda.';
+
+  @override
+  String get reportLocalOnlyNote =>
+      'Laporan disimpan pada peranti ini sahaja dan belum dikongsi dengan pemandu lain.';
+
+  @override
+  String reportStillThereTitle(String type) {
+    return '$type masih ada?';
+  }
+
+  @override
+  String get reportStillThereYes => 'Ya, masih ada';
+
+  @override
+  String get reportStillThereNo => 'Tiada';
+
+  @override
+  String reportAhead(String type, String distance) {
+    return '$type $distance di hadapan';
+  }
+
+  @override
+  String get navSpeedLimit => 'Had laju';
+
+  @override
+  String get navOverspeedTitle => 'Amaran laju lebih';
+
+  @override
+  String get navOverspeedOff => 'Mati';
+
+  @override
+  String get navOverspeedHint =>
+      'Bunyi dan tanda merah apabila melebihi had laju. Had laju tidak lengkap di semua jalan.';
 }

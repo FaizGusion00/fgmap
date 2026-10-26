@@ -1,11 +1,13 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 
 import '../../../core/theme/motion.dart';
 import '../../../core/utils/geo.dart';
 import '../../navigation/domain/camera_planner.dart' show CameraPose;
+import 'map_frame_pump.dart';
 import 'map_view.dart';
 import 'vehicle_icon.dart';
 
@@ -48,12 +50,13 @@ class _MapLibreViewState extends State<MapLibreView> {
   /// Operasi overlay dijalankan satu demi satu; panggilan platform tak segerak tidak boleh bertindih.
   Future<void> _queue = Future.value();
 
-  /// Marker kenderaan terkini dan penanda "panggilan sebelumnya belum selesai". Dikemas kini
-  /// 60 kali sesaat semasa navigasi, jadi bingkai yang tiba ketika panggilan lama masih berjalan
-  /// digugurkan (bingkai seterusnya membawa kedudukan yang lebih baharu).
-  VehicleMarker? _vehicle;
-  bool _vehicleBusy = false;
-  bool _cameraBusy = false;
+  /// Marker kenderaan dan gerakan kamera dikemas kini 60 kali sesaat semasa navigasi. Pam ini
+  /// menghantarnya satu demi satu (nilai terkini menang, tiada yang digugurkan) dan serentak.
+  late final MapFramePump _pump = MapFramePump(
+    sendVehicle: _sendVehicle,
+    sendCamera: _sendCamera,
+  );
+  double _pixelRatio = 1;
   double _gestureTravel = 0;
   bool _gestureReported = false;
 
@@ -62,6 +65,12 @@ class _MapLibreViewState extends State<MapLibreView> {
     super.initState();
     _initialStyleUrl = widget.config.styleUrl;
     _activeStyleUrl = _initialStyleUrl;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _pixelRatio = MediaQuery.devicePixelRatioOf(context);
   }
 
   @override
@@ -100,30 +109,35 @@ class _MapLibreViewState extends State<MapLibreView> {
     if (_activeStyleUrl != _initialStyleUrl) {
       _enqueue(() => controller.setStyle(_activeStyleUrl));
     }
-    widget.config.onReady(
-      _MapLibreCamera(
-        controller,
-        onVehicle: _setVehicle,
-        tryMove: _tryBeginCameraMove,
-        endMove: () => _cameraBusy = false,
+    widget.config.onReady(_MapLibreCamera(controller, pump: _pump));
+  }
+
+  @override
+  void dispose() {
+    _pump.dispose();
+    super.dispose();
+  }
+
+  Future<void> _sendVehicle(VehicleMarker? marker) async {
+    final c = _controller;
+    // Overlay belum siap: _initOverlays membaca marker terkini daripada pam apabila ia siap.
+    if (c == null || !_overlaysReady) return;
+    await c.setGeoJsonSource(_vehicleSource, _vehiclePoint(marker));
+  }
+
+  Future<void> _sendCamera(CameraPose pose) async {
+    final c = _controller;
+    if (c == null) return;
+    await c.moveCamera(
+      CameraUpdate.newCameraPosition(
+        CameraPosition(
+          target: LatLng(pose.center.lat, pose.center.lng),
+          zoom: pose.zoom,
+          tilt: pose.tilt,
+          bearing: pose.bearing,
+        ),
       ),
     );
-  }
-
-  bool _tryBeginCameraMove() {
-    if (_cameraBusy) return false;
-    return _cameraBusy = true;
-  }
-
-  void _setVehicle(VehicleMarker? marker) {
-    _vehicle = marker;
-    final c = _controller;
-    if (c == null || !_overlaysReady || _vehicleBusy) return;
-    _vehicleBusy = true;
-    c
-        .setGeoJsonSource(_vehicleSource, _vehiclePoint(marker))
-        .catchError((Object e) => debugPrint('Marker kenderaan gagal: $e'))
-        .whenComplete(() => _vehicleBusy = false);
   }
 
   void _onStyleLoaded() => _enqueue(_initOverlays);
@@ -209,13 +223,17 @@ class _MapLibreViewState extends State<MapLibreView> {
       _vehicleImage,
       await renderVehicleIcon(fill: colors.vehicle),
     );
-    await c.addGeoJsonSource(_vehicleSource, _vehiclePoint(_vehicle));
+    await c.addGeoJsonSource(_vehicleSource, _vehiclePoint(_pump.vehicle));
     await c.addSymbolLayer(
       _vehicleSource,
       _vehicleLayer,
-      const SymbolLayerProperties(
+      SymbolLayerProperties(
         iconImage: _vehicleImage,
-        iconSize: 0.26,
+        // Android MapLibre menganggap imej sebagai piksel fizikal (bukan dp), jadi tanpa pengganda ini
+        // ikon hanya ~1/3 saiz sebenar pada skrin 3x. iOS menggunakan titik.
+        iconSize:
+            0.3 *
+            (defaultTargetPlatform == TargetPlatform.android ? _pixelRatio : 1),
         iconAllowOverlap: true,
         iconIgnorePlacement: true,
         iconRotationAlignment: 'map',
@@ -259,6 +277,10 @@ class _MapLibreViewState extends State<MapLibreView> {
       onStyleLoadedCallback: _onStyleLoaded,
       onMapLongClick: (_, latLng) =>
           cfg.onLongPress(GeoPoint(latLng.latitude, latLng.longitude)),
+      onMapClick: cfg.onTap == null
+          ? null
+          : (_, latLng) =>
+                cfg.onTap!(GeoPoint(latLng.latitude, latLng.longitude)),
       myLocationEnabled: cfg.showUserLocation,
       trackCameraPosition: true,
       zoomGesturesEnabled: true,
@@ -290,17 +312,10 @@ class _MapLibreViewState extends State<MapLibreView> {
 }
 
 class _MapLibreCamera implements MapCameraController {
-  _MapLibreCamera(
-    this._controller, {
-    required this.onVehicle,
-    required this.tryMove,
-    required this.endMove,
-  });
+  _MapLibreCamera(this._controller, {required this.pump});
 
   final MapLibreMapController _controller;
-  final void Function(VehicleMarker?) onVehicle;
-  final bool Function() tryMove;
-  final VoidCallback endMove;
+  final MapFramePump pump;
 
   @override
   CameraPose? get pose {
@@ -315,28 +330,11 @@ class _MapLibreCamera implements MapCameraController {
   }
 
   @override
-  void moveTo(CameraPose pose) {
-    if (!tryMove()) return;
-    _controller
-        .moveCamera(
-          CameraUpdate.newCameraPosition(
-            CameraPosition(
-              target: LatLng(pose.center.lat, pose.center.lng),
-              zoom: pose.zoom,
-              tilt: pose.tilt,
-              bearing: pose.bearing,
-            ),
-          ),
-        )
-        .catchError((Object e) {
-          debugPrint('Gerak kamera gagal: $e');
-          return null;
-        })
-        .whenComplete(endMove);
-  }
+  void moveTo(CameraPose pose) => pump.moveCamera(pose);
 
   @override
   Future<void> animateTo(CameraPose pose) async {
+    pump.cancelCamera();
     await _controller.animateCamera(
       CameraUpdate.newCameraPosition(
         CameraPosition(
@@ -351,7 +349,7 @@ class _MapLibreCamera implements MapCameraController {
   }
 
   @override
-  void showVehicle(VehicleMarker? marker) => onVehicle(marker);
+  void showVehicle(VehicleMarker? marker) => pump.setVehicle(marker);
 
   @override
   GeoPoint? get center {
@@ -361,6 +359,7 @@ class _MapLibreCamera implements MapCameraController {
 
   @override
   Future<void> flyTo(GeoPoint target, {double zoom = 15}) async {
+    pump.cancelCamera();
     await _controller.animateCamera(
       CameraUpdate.newLatLngZoom(LatLng(target.lat, target.lng), zoom),
       duration: Motion.emphasized,
@@ -369,6 +368,7 @@ class _MapLibreCamera implements MapCameraController {
 
   @override
   Future<void> zoomBy(double amount) async {
+    pump.cancelCamera();
     final currentZoom = pose?.zoom ?? 11;
     final targetZoom = (currentZoom + amount).clamp(2.0, 20.0).toDouble();
     if (targetZoom == currentZoom) return;
@@ -385,6 +385,7 @@ class _MapLibreCamera implements MapCameraController {
   }) async {
     if (points.isEmpty) return;
     if (points.length == 1) return flyTo(points.first);
+    pump.cancelCamera();
 
     var south = points.first.lat, north = points.first.lat;
     var west = points.first.lng, east = points.first.lng;

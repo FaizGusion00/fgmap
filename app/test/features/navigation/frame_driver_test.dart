@@ -4,6 +4,7 @@ import 'package:fgmap/features/navigation/domain/camera_planner.dart';
 import 'package:fgmap/features/navigation/domain/instruction_text.dart';
 import 'package:fgmap/features/navigation/domain/nav_route.dart';
 import 'package:fgmap/features/navigation/domain/navigation_session.dart';
+import 'package:fgmap/features/navigation/domain/vehicle_model.dart';
 import 'package:fgmap/features/navigation/presentation/navigation_frame_driver.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -174,6 +175,115 @@ void main() {
     clock.advance(const Duration(milliseconds: 16));
     driver.step(t(16));
     expect(camera.moveToCalls.length, moves);
+  });
+
+  group('kenderaan berhenti (jimat CPU/bateri pada peranti lemah)', () {
+    NavigationFrameDriver stoppedDriver() {
+      final d = NavigationFrameDriver(
+        camera: camera,
+        // Pose tetap: kenderaan berhenti di lampu isyarat.
+        poseAt: (_) => const VehiclePose(
+          point: GeoPoint(3.14, 101.69),
+          bearing: 90,
+          alongM: 100,
+          speedMps: 0,
+          onRoute: true,
+        ),
+        progress: () => null,
+        viewportHeight: () => 800,
+        cameraMode: () => NavCameraMode.flat,
+        clock: clock.call,
+        reduceMotion: true,
+      );
+      addTearDown(d.dispose);
+      return d;
+    }
+
+    void run(NavigationFrameDriver d, int frames, {int from = 0}) {
+      for (var i = from; i < from + frames; i++) {
+        clock.advance(const Duration(milliseconds: 16));
+        d.step(t(16 * i));
+      }
+    }
+
+    test('pose tidak berubah: panggilan platform digugurkan', () {
+      final d = stoppedDriver();
+      run(
+        d,
+        600,
+      ); // kamera meluncur masuk ke sasaran dahulu (pergerakan sebenar)
+      final cars = camera.vehicleCalls.length;
+      final moves = camera.moveToCalls.length;
+      run(d, 300, from: 600); // ~5 saat berhenti
+      // Sebelum ini 300 + 300 panggilan platform; kini hanya degupan (~1 setiap 30 bingkai).
+      expect(camera.vehicleCalls.length - cars, lessThanOrEqualTo(11));
+      expect(camera.moveToCalls.length - moves, lessThanOrEqualTo(11));
+      expect(camera.vehicleCalls, isNotEmpty);
+      expect(camera.moveToCalls, isNotEmpty);
+    });
+
+    test(
+      'degupan: pose sama dihantar semula berkala (panggilan lama mungkin digugurkan platform)',
+      () {
+        final d = stoppedDriver();
+        run(d, 100);
+        final first = camera.moveToCalls.length;
+        run(d, 100, from: 100);
+        expect(camera.moveToCalls.length, greaterThan(first));
+      },
+    );
+
+    test(
+      'recenter() selepas pengguna menggeser peta: kamera dipulangkan walaupun pose sama',
+      () {
+        final d = stoppedDriver();
+        run(d, 200);
+        d.userInteracted();
+        camera.pose = const CameraPose(
+          center: GeoPoint(3.5, 101.5),
+          zoom: 12,
+          tilt: 0,
+          bearing: 200,
+        );
+        d.recenter();
+        final before = camera.moveToCalls.length;
+        run(d, 1, from: 200);
+        expect(
+          camera.moveToCalls.length,
+          before + 1,
+          reason: 'bingkai pertama selepas pusat semula mesti dihantar',
+        );
+      },
+    );
+
+    test('kenderaan bergerak semula: dikemas kini setiap bingkai lagi', () {
+      var moving = false;
+      var lat = 3.14;
+      final d = NavigationFrameDriver(
+        camera: camera,
+        poseAt: (_) {
+          if (moving) lat += 0.000002; // ~0.2 m / bingkai
+          return VehiclePose(
+            point: GeoPoint(lat, 101.69),
+            bearing: 0,
+            alongM: 100,
+            speedMps: moving ? 14 : 0,
+            onRoute: true,
+          );
+        },
+        progress: () => null,
+        viewportHeight: () => 800,
+        cameraMode: () => NavCameraMode.flat,
+        clock: clock.call,
+        reduceMotion: true,
+      );
+      addTearDown(d.dispose);
+      run(d, 100);
+      moving = true;
+      final cars = camera.vehicleCalls.length;
+      run(d, 30, from: 100);
+      expect(camera.vehicleCalls.length, cars + 30);
+    });
   });
 
   test('tiada pose (navigasi belum bermula): tidak berbuat apa-apa', () {

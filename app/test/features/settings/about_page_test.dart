@@ -1,5 +1,6 @@
 import 'package:fgmap/core/theme/app_theme.dart';
 import 'package:fgmap/features/settings/presentation/about_page.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -15,7 +16,7 @@ void main() {
       overrides: [
         appPackageInfoProvider.overrideWith(
           (ref) async => PackageInfo(
-            appName: 'FGMap',
+            appName: 'FGMaps',
             packageName: 'com.example.fgmap',
             version: '1.2.3',
             buildNumber: '42',
@@ -25,7 +26,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Tentang FGMap'), findsOneWidget);
+    expect(find.text('Tentang FGMaps'), findsOneWidget);
+    expect(find.byKey(const ValueKey('about-logo')), findsOneWidget);
+    expect(find.byIcon(Icons.navigation_rounded), findsNothing);
     expect(find.text('1.2.3+42'), findsOneWidget);
     expect(find.text('Faiz Nasir'), findsOneWidget);
     expect(find.text('FG Universal Empire Company'), findsOneWidget);

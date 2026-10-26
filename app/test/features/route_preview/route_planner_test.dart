@@ -445,5 +445,8 @@ class _FakeEngine implements OfflineEngine {
   }
 
   @override
+  Future<String> traceAttributes(String requestJson) async => '{}';
+
+  @override
   Future<void> close() async {}
 }

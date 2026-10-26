@@ -4,9 +4,6 @@ import '../../../core/utils/geo.dart';
 import '../domain/route_option.dart';
 import '../domain/routing_failure.dart';
 
-/// Bilangan laluan alternatif tambahan yang diminta bersama laluan utama (Bahagian 8.2: 2-3 laluan).
-const routeAlternatives = 2;
-
 /// Kod ralat Valhalla yang bermaksud "tiada laluan boleh dikira untuk input ini" (bukan kegagalan sistem).
 ///
 /// 154 (jarak melebihi had), 170 (wilayah tidak bersambung) dan 171 (tiada jalan berhampiran) disahkan
@@ -26,13 +23,17 @@ Map<String, Object?> buildRouteRequest(RouteQuery query) {
       },
       {'lat': query.destination.lat, 'lon': query.destination.lng},
     ],
-    'costing': 'auto',
-    // use_tolls = 0 ialah keutamaan lembut untuk mengelak tol, bukan larangan mutlak.
-    if (query.avoidTolls)
+    'costing': query.vehicle.costing,
+    // use_tolls / use_highways = 0 ialah keutamaan lembut untuk mengelak, bukan larangan mutlak (disahkan:
+    // elak lebuh raya KLCC-KLIA = 74 km/123 min tanpa tol, dan masih mungkin ada segmen lebuh raya).
+    if (query.avoidTolls || query.avoidHighways)
       'costing_options': {
-        'auto': {'use_tolls': 0},
+        query.vehicle.costing: {
+          if (query.avoidTolls) 'use_tolls': 0,
+          if (query.avoidHighways) 'use_highways': 0,
+        },
       },
-    'alternates': routeAlternatives,
+    'alternates': query.alternates,
     // Teks arahan Valhalla tidak digunakan; ayat BM/EN dijana dalam app. `directions_type` mesti di
     // peringkat atas (di dalam directions_options ia diabaikan; disahkan terhadap Valhalla 3.5.1).
     'directions_type': 'maneuvers',

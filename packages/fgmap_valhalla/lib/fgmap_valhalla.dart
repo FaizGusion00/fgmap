@@ -10,5 +10,8 @@ class FgmapValhalla {
 
   Future<String> route(String requestJson) => FgmapValhallaPlatform.instance.route(requestJson);
 
+  Future<String> traceAttributes(String requestJson) =>
+      FgmapValhallaPlatform.instance.traceAttributes(requestJson);
+
   Future<void> close() => FgmapValhallaPlatform.instance.close();
 }

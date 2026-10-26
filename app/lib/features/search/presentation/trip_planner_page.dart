@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../core/widgets/skeleton.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -33,12 +35,31 @@ class TripPlannerPage extends ConsumerStatefulWidget {
     return Navigator.of(context).push<TripSelection>(
       PageRouteBuilder<TripSelection>(
         fullscreenDialog: true,
-        transitionDuration: Duration.zero,
-        reverseTransitionDuration: Duration.zero,
+        transitionDuration: const Duration(milliseconds: 220),
+        reverseTransitionDuration: const Duration(milliseconds: 180),
         pageBuilder: (_, _, _) => TripPlannerPage(
           near: near,
           initialDestinationQuery: initialDestinationQuery,
         ),
+        // Naik dari bawah sambil pudar masuk; menghormati Reduce Motion (tempoh sifar).
+        transitionsBuilder: (context, animation, _, child) {
+          if (MediaQuery.disableAnimationsOf(context)) return child;
+          final curved = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+            reverseCurve: Curves.easeInCubic,
+          );
+          return FadeTransition(
+            opacity: curved,
+            child: SlideTransition(
+              position: Tween(
+                begin: const Offset(0, 0.06),
+                end: Offset.zero,
+              ).animate(curved),
+              child: child,
+            ),
+          );
+        },
       ),
     );
   }
@@ -84,6 +105,13 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
         .read(placeSearchControllerProvider.notifier)
         .onQueryChanged(text, near: widget.near);
     setState(() {});
+  }
+
+  void _searchCategory(String query) {
+    HapticFeedback.selectionClick();
+    _destText.text = query;
+    _destText.selection = TextSelection.collapsed(offset: query.length);
+    _onChanged(query);
   }
 
   void _pick(Place place) {
@@ -178,6 +206,7 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
                     state: search,
                     history: history,
                     onPick: _pick,
+                    onCategory: _searchCategory,
                     onClearHistory: () => ref
                         .read(searchHistoryControllerProvider.notifier)
                         .clear(),
@@ -255,6 +284,7 @@ class _ResultsList extends StatelessWidget {
     required this.state,
     required this.history,
     required this.onPick,
+    required this.onCategory,
     required this.onClearHistory,
     required this.onRetry,
   });
@@ -262,62 +292,56 @@ class _ResultsList extends StatelessWidget {
   final PlaceSearchState state;
   final List<Place> history;
   final ValueChanged<Place> onPick;
+  final ValueChanged<String> onCategory;
   final VoidCallback onClearHistory;
   final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
 
     final Widget body = switch (state.status) {
-      SearchStatus.idle =>
-        history.isEmpty
-            ? _Message(icon: Icons.search_rounded, text: l10n.searchPrompt)
-            : Column(
-                children: [
-                  ListTile(
-                    title: Text(l10n.searchHistory),
-                    trailing: TextButton(
-                      onPressed: onClearHistory,
-                      child: Text(l10n.searchClearHistory),
-                    ),
+      SearchStatus.idle => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _CategoryChips(onPick: onCategory),
+          if (history.isEmpty)
+            _Message(icon: Icons.search_rounded, text: l10n.searchPrompt)
+          else
+            Column(
+              children: [
+                ListTile(
+                  title: Text(l10n.searchHistory),
+                  trailing: TextButton(
+                    onPressed: onClearHistory,
+                    child: Text(l10n.searchClearHistory),
                   ),
-                  for (final place in history)
-                    ListTile(
-                      key: ValueKey(
-                        'history-${place.point.lat}-${place.point.lng}',
-                      ),
-                      leading: Icon(
-                        _iconFor(place.category),
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                      title: Text(
-                        place.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      subtitle: place.subtitle.isEmpty
-                          ? null
-                          : Text(
-                              place.subtitle,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                      onTap: () => onPick(place),
+                ),
+                for (final place in history)
+                  ListTile(
+                    key: ValueKey(
+                      'history-${place.point.lat}-${place.point.lng}',
                     ),
-                ],
-              ),
-      SearchStatus.loading => const Padding(
-        padding: EdgeInsets.only(top: 24),
-        child: Center(
-          child: SizedBox(
-            width: 28,
-            height: 28,
-            child: CircularProgressIndicator(strokeWidth: 3),
-          ),
-        ),
+                    leading: _PlaceIcon(icon: _iconFor(place.category)),
+                    title: Text(
+                      place.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    subtitle: place.subtitle.isEmpty
+                        ? null
+                        : Text(
+                            place.subtitle,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                    onTap: () => onPick(place),
+                  ),
+              ],
+            ),
+        ],
       ),
+      SearchStatus.loading => const _ResultsSkeleton(),
       SearchStatus.empty => _Message(
         icon: Icons.search_off_rounded,
         text: l10n.searchNoResults(state.query),
@@ -337,10 +361,7 @@ class _ResultsList extends StatelessWidget {
           for (final place in state.results)
             ListTile(
               key: ValueKey('place-${place.point.lat}-${place.point.lng}'),
-              leading: Icon(
-                _iconFor(place.category),
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+              leading: _PlaceIcon(icon: _iconFor(place.category)),
               title: Text(
                 place.name,
                 maxLines: 1,
@@ -362,6 +383,125 @@ class _ResultsList extends StatelessWidget {
     return ListView(
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       children: [body],
+    );
+  }
+}
+
+class _PlaceIcon extends StatelessWidget {
+  const _PlaceIcon({required this.icon});
+
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primary.withValues(alpha: 0.10),
+        shape: BoxShape.circle,
+      ),
+      child: SizedBox(
+        width: 40,
+        height: 40,
+        child: Icon(icon, size: 20, color: theme.colorScheme.primary),
+      ),
+    );
+  }
+}
+
+/// Pintasan kategori berhampiran (minyak, makan, masjid, ...). Mengetuk mengisi medan carian.
+class _CategoryChips extends StatelessWidget {
+  const _CategoryChips({required this.onPick});
+
+  final ValueChanged<String> onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final items = [
+      (Icons.local_gas_station_rounded, l10n.searchCatFuel),
+      (Icons.restaurant_rounded, l10n.searchCatFood),
+      (Icons.mosque_rounded, l10n.searchCatMosque),
+      (Icons.wc_rounded, l10n.searchCatToilet),
+      (Icons.local_parking_rounded, l10n.searchCatParking),
+      (Icons.local_hospital_rounded, l10n.searchCatHospital),
+    ];
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              l10n.searchCategories,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final item in items)
+                  ActionChip(
+                    avatar: Icon(
+                      item.$1,
+                      size: 18,
+                      color: theme.colorScheme.primary,
+                    ),
+                    label: Text(item.$2),
+                    onPressed: () => onPick(item.$2),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ResultsSkeleton extends StatelessWidget {
+  const _ResultsSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      liveRegion: true,
+      label: AppLocalizations.of(context).routeCalculating,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+        child: Column(
+          children: [
+            for (var i = 0; i < 5; i++)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 16),
+                child: Row(
+                  children: [
+                    SkeletonBox(width: 40, height: 40, radius: 20),
+                    SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SkeletonBox(height: 14, radius: 7),
+                          SizedBox(height: 8),
+                          SkeletonBox(width: 180, height: 12, radius: 6),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

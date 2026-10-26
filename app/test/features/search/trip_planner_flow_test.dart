@@ -8,6 +8,7 @@ import 'package:fgmap/features/search/data/photon_geocoder.dart';
 import 'package:fgmap/features/search/domain/place.dart';
 import 'package:fgmap/features/search/presentation/place_search_controller.dart';
 import 'package:fgmap/features/search/presentation/trip_planner_page.dart';
+import 'package:fgmap/features/route_preview/domain/route_option.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
@@ -235,7 +236,7 @@ void main() {
           locationServiceProvider.overrideWithValue(
             FakeLocationService(fix: fix ?? const LocationFix(point: klcc)),
           ),
-          routePlannerProvider.overrideWithValue(planner),
+          routeOptionsPlannerProvider.overrideWithValue(planner),
         ],
       );
       await tester.pumpAndSettle();
@@ -277,7 +278,7 @@ void main() {
       expect(planner.queries, isEmpty);
     });
 
-    testWidgets('Elak tol mengekalkan asal GPS dan nama destinasi', (
+    testWidgets('tukar kenderaan mengekalkan asal GPS dan nama destinasi', (
       tester,
     ) async {
       await pumpMap(tester);
@@ -287,12 +288,61 @@ void main() {
       await tester.tap(find.text('KLIA'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Elak tol'));
+      await tester.tap(find.byTooltip('Motosikal'));
       await tester.pumpAndSettle();
 
       expect(planner.queries, hasLength(2));
-      expect(planner.queries.last.avoidTolls, isTrue);
+      expect(planner.queries.last.vehicle, RouteVehicle.motorcycle);
+      expect(planner.queries.last.origin, planner.queries.first.origin);
       expect(planner.queries.last.destinationLabel, 'KLIA');
+    });
+
+    testWidgets('destinasi terkini: pintasan di skrin utama terus mengira laluan', (
+      tester,
+    ) async {
+      SharedPreferences.setMockInitialValues({
+        'search.history.v1': [
+          '{"name":"KLIA","subtitle":"Sepang","lat":${klia.lat},"lng":${klia.lng}}',
+        ],
+      });
+      prefs = await SharedPreferences.getInstance();
+      await pumpMap(tester);
+
+      final chip = find.byKey(ValueKey('recent-${klia.lat}-${klia.lng}'));
+      expect(chip, findsOneWidget);
+      await tester.tap(chip);
+      await tester.pumpAndSettle();
+
+      final q = planner.queries.single;
+      expect(q.destination, klia);
+      expect(q.destinationLabel, 'KLIA');
+      // Selepas laluan dikira, pintasan disembunyikan supaya tidak menutup peta.
+      expect(chip, findsNothing);
+    });
+
+    testWidgets('tiada sejarah: tiada baris pintasan', (tester) async {
+      await pumpMap(tester);
+      expect(find.byIcon(Icons.history_rounded), findsNothing);
+    });
+  });
+
+  group('Pintasan kategori', () {
+    testWidgets('mengetuk kategori mengisi medan dan mencari', (tester) async {
+      await pumpHost(tester);
+      expect(find.text('Masjid'), findsOneWidget);
+      expect(find.text('Stesen minyak'), findsOneWidget);
+
+      await tester.tap(find.text('Masjid'));
+      await tester.pump(_debounce * 3);
+      await tester.pump();
+
+      expect(geocoder.queries, contains('Masjid'));
+      final field = tester.widget<TextField>(
+        find.byKey(const ValueKey('destination-field')),
+      );
+      expect(field.controller!.text, 'Masjid');
+      // Pintasan hilang apabila keputusan carian dipaparkan.
+      expect(find.text('Cari berhampiran'), findsNothing);
     });
   });
 }

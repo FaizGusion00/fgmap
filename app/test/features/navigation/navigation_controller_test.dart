@@ -12,6 +12,7 @@ import 'package:fgmap/features/navigation/domain/nav_route.dart';
 import 'package:fgmap/features/navigation/domain/navigation_session.dart';
 import 'package:fgmap/features/navigation/presentation/navigation_controller.dart';
 import 'package:fgmap/features/route_preview/data/route_planner.dart';
+import 'package:fgmap/features/speed_limits/data/speed_limit_service.dart';
 import 'package:fgmap/features/route_preview/domain/route_option.dart';
 import 'package:fgmap/features/route_preview/domain/routing_failure.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -59,8 +60,15 @@ void main() {
   late NavRoute navRoute;
   const destination = GeoPoint(3.0, 101.05);
 
-  RouteQuery query() =>
-      RouteQuery(origin: navRoute.points.first, destination: destination);
+  // Pilihan pengguna di pratonton (motosikal, tanpa tol/lebuh raya) mesti terbawa ke pengiraan semula.
+  RouteQuery query() => RouteQuery(
+    origin: navRoute.points.first,
+    destination: destination,
+    vehicle: RouteVehicle.motorcycle,
+    avoidTolls: true,
+    avoidHighways: true,
+    destinationLabel: 'Destinasi',
+  );
 
   Future<void> setUpContainer({Map<String, Object> prefs = const {}}) async {
     SharedPreferences.setMockInitialValues(prefs);
@@ -76,6 +84,7 @@ void main() {
       overrides: [
         sharedPreferencesProvider.overrideWithValue(sp),
         voiceGuideProvider.overrideWithValue(voice),
+        speedLimitServiceProvider.overrideWithValue(FakeSpeedLimitService()),
         screenAwakeProvider.overrideWithValue(awake),
         navClockProvider.overrideWithValue(clock.call),
         routePlannerProvider.overrideWithValue(planner),
@@ -153,6 +162,64 @@ void main() {
         expect(state().phase, NavPhase.idle);
       },
     );
+
+    test('tamat: suara gagal berhenti tetap melepaskan wakelock', () async {
+      await setUpContainer();
+      await begin();
+      voice.failStop = true;
+      await controller().stop();
+      expect(state().phase, NavPhase.idle);
+      expect(awake.enabled, isFalse);
+    });
+
+    test(
+      're-route: ralat bukan RoutingFailure tidak menyangkut "mengira semula"',
+      () async {
+        await setUpContainer();
+        await begin();
+        await source.emitAll(driveFixes(navRoute, speedMps: 14, endM: 700));
+        planner.handler = (_) async => throw StateError('respons rosak');
+
+        final base = DateTime.utc(2026, 1, 1, 12, 10);
+        for (var i = 0; i < 6; i++) {
+          await source.emit(
+            LocationFix(
+              point: destinationPoint(navRoute.pointAt(700), 0, 14.0 * (i + 1)),
+              headingDegrees: 0,
+              accuracyMeters: 5,
+              speedMps: 14,
+              timestamp: base.add(Duration(seconds: i)),
+            ),
+          );
+        }
+        expect(planner.queries, hasLength(1));
+        expect(state().phase, NavPhase.active);
+        expect(state().rerouting, isFalse);
+        expect(state().rerouteFailure, RoutingFailureKind.generic);
+      },
+    );
+
+    test('re-route: senarai kosong dianggap kegagalan, bukan ranap', () async {
+      await setUpContainer();
+      await begin();
+      await source.emitAll(driveFixes(navRoute, speedMps: 14, endM: 700));
+      planner.handler = (_) async => <RouteOption>[];
+
+      final base = DateTime.utc(2026, 1, 1, 12, 10);
+      for (var i = 0; i < 6; i++) {
+        await source.emit(
+          LocationFix(
+            point: destinationPoint(navRoute.pointAt(700), 0, 14.0 * (i + 1)),
+            headingDegrees: 0,
+            accuracyMeters: 5,
+            speedMps: 14,
+            timestamp: base.add(Duration(seconds: i)),
+          ),
+        );
+      }
+      expect(state().rerouting, isFalse);
+      expect(state().rerouteFailure, RoutingFailureKind.generic);
+    });
 
     test('mute: tiada suara disebut', () async {
       await setUpContainer(prefs: {'nav.voice': false});
@@ -246,6 +313,14 @@ void main() {
         final q = planner.queries.single;
         expect(q.destination, destination);
         expect(q.headingDegrees, 0);
+        expect(q.vehicle, RouteVehicle.motorcycle);
+        expect(q.avoidTolls, isTrue);
+        expect(q.avoidHighways, isTrue);
+        expect(
+          q.alternates,
+          0,
+          reason: 'pengiraan semula hanya perlukan satu laluan',
+        );
         expect(
           distanceMeters(q.origin, navRoute.pointAt(700)),
           greaterThan(30),
@@ -254,6 +329,8 @@ void main() {
         expect(state().routeVersion, 2);
         expect(state().rerouting, isFalse);
         expect(state().route!.totalM, closeTo(3000, 20));
+        // Fix terkini disuap ke sesi baharu: HUD tidak kosong menunggu fix seterusnya.
+        expect(state().progress, isNotNull);
         final kinds = voice.said.map((s) => s.$1.kind);
         expect(
           kinds,

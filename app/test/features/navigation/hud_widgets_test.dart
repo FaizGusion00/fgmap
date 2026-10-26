@@ -6,6 +6,7 @@ import 'package:fgmap/features/navigation/presentation/navigation_controller.dar
 import 'package:fgmap/features/navigation/presentation/navigation_hud.dart';
 import 'package:fgmap/features/route_preview/domain/routing_failure.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart' show SemanticsNode;
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/pump_app.dart';
@@ -83,7 +84,7 @@ void main() {
     });
 
     testWidgets(
-      '"Kemudian" hanya jika manuver berikutnya rapat dan bukan ketibaan',
+      '"Kemudian" hanya jika manuver berikutnya dalam 800 m dan bukan ketibaan',
       (tester) async {
         final next = m(1, ManeuverKind.left, 300);
         await pump(
@@ -102,7 +103,7 @@ void main() {
           ManeuverBanner(
             progress: progress(
               next: next,
-              following: m(2, ManeuverKind.right, 900),
+              following: m(2, ManeuverKind.right, 1300),
             ),
           ),
         );
@@ -120,6 +121,52 @@ void main() {
         expect(find.text('Kemudian'), findsNothing);
       },
     );
+
+    testWidgets('jarak mengikut kedudukan langsung, bukan fix GPS 1 Hz', (
+      tester,
+    ) async {
+      final live = ValueNotifier<double?>(null);
+      addTearDown(live.dispose);
+      await pump(
+        tester,
+        ManeuverBanner(
+          progress: progress(
+            next: m(1, ManeuverKind.right, 1000),
+            distance: 480,
+          ),
+          liveAlongM: live,
+        ),
+      );
+      // Tiada kedudukan langsung: guna jarak daripada kemajuan.
+      expect(find.text('480 m'), findsOneWidget);
+
+      live.value = 800; // 200 m lagi ke manuver pada 1000 m
+      await tester.pump();
+      expect(find.text('200 m'), findsOneWidget);
+
+      live.value = 1020; // sudah melepasi: tidak negatif
+      await tester.pump();
+      expect(find.text('10 m'), findsOneWidget);
+    });
+
+    testWidgets('liveRegion hanya pada teks tindakan, bukan jarak', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      await pump(
+        tester,
+        ManeuverBanner(
+          progress: progress(
+            next: m(1, ManeuverKind.right, 300, streets: ['Jalan Ampang']),
+            distance: 480,
+          ),
+        ),
+      );
+      SemanticsNode node(String text) => tester.getSemantics(find.text(text));
+      expect(node('Belok kanan'), isSemantics(isLiveRegion: true));
+      expect(node('480 m'), isNot(isSemantics(isLiveRegion: true)));
+      handle.dispose();
+    });
 
     testWidgets('English', (tester) async {
       await pump(

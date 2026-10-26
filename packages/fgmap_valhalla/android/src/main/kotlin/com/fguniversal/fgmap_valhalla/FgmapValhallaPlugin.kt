@@ -22,6 +22,7 @@ import java.util.concurrent.Executors
  *
  * - `open(tarPath)`  buka enjin pada tile extract (.tar). Menggantikan enjin sebelumnya.
  * - `route(json)`    kira laluan; memulangkan JSON respons Valhalla.
+ * - `traceAttributes(json)` atribut tepi jalan sepanjang jejak (cth. had laju); JSON mentah.
  * - `close()`        lepaskan enjin (mmap tile). Mesti dipanggil sebelum fail tile diganti atau dipadam.
  */
 class FgmapValhallaPlugin : FlutterPlugin, MethodCallHandler {
@@ -60,6 +61,14 @@ class FgmapValhallaPlugin : FlutterPlugin, MethodCallHandler {
                 }
                 runAsync(result) { route(json) }
             }
+            "traceAttributes" -> {
+                val json = call.argument<String>("request")
+                if (json == null) {
+                    result.error("bad_args", "request is required", null)
+                    return
+                }
+                runAsync(result) { traceAttributes(json) }
+            }
             "close" -> runAsync(result) { closeEngine(); null }
             else -> result.notImplemented()
         }
@@ -85,6 +94,15 @@ class FgmapValhallaPlugin : FlutterPlugin, MethodCallHandler {
             return v.routeRaw(requestJson)
         } catch (e: Exception) {
             // Mesej valhalla-mobile membawa JSON ralat Valhalla (error_code); Dart menghuraikannya.
+            throw EngineException("route_failed", "${e.javaClass.simpleName}: ${e.message}")
+        }
+    }
+
+    private fun traceAttributes(requestJson: String): Any? {
+        val v = engine ?: throw EngineException("not_open", "Offline engine is not open")
+        try {
+            return v.traceAttributesRaw(requestJson)
+        } catch (e: Exception) {
             throw EngineException("route_failed", "${e.javaClass.simpleName}: ${e.message}")
         }
     }

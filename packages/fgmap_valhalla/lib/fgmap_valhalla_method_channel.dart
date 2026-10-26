@@ -30,5 +30,14 @@ class MethodChannelFgmapValhalla extends FgmapValhallaPlatform {
   }
 
   @override
+  Future<String> traceAttributes(String requestJson) async {
+    final response = await _invoke<String>('traceAttributes', {'request': requestJson});
+    if (response == null) {
+      throw const ValhallaEngineException('internal', 'Engine returned no response');
+    }
+    return response;
+  }
+
+  @override
   Future<void> close() => _invoke<void>('close');
 }

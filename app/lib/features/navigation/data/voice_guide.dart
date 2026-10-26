@@ -60,7 +60,7 @@ class QueuedVoiceGuide implements VoiceGuide {
     if (a.interrupt) {
       _generation++;
       _queue.clear();
-      await Future.wait([_tts.stop(), _chimes.stop()]);
+      await _haltAudio();
     } else {
       // Buang yang paling lama jika penuh; arahan terbaru lebih relevan.
       while (_queue.length >= maxQueued) {
@@ -96,7 +96,17 @@ class QueuedVoiceGuide implements VoiceGuide {
   Future<void> stop() async {
     _generation++;
     _queue.clear();
-    await Future.wait([_tts.stop(), _chimes.stop()]);
+    await _haltAudio();
+  }
+
+  /// Hentikan TTS dan bunyi isyarat. Ralat plugin ditelan: pemanggil tidak menunggu hasilnya
+  /// (`unawaited`) dan tamat navigasi tidak boleh gagal kerananya.
+  Future<void> _haltAudio() async {
+    try {
+      await Future.wait([_tts.stop(), _chimes.stop()]);
+    } on Object catch (e) {
+      debugPrint('Menghentikan audio gagal: $e');
+    }
   }
 
   @override

@@ -12,6 +12,8 @@ import 'core/licenses.dart';
 import 'core/storage/preferences.dart';
 import 'features/offline_maps/data/offline_engine_host.dart';
 import 'features/offline_maps/data/offline_map_store.dart';
+import 'features/reports/data/reports_repository.dart';
+import 'features/reports/presentation/reports_controller.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -38,6 +40,10 @@ Future<void> main() async {
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         offlineMapStoreProvider.overrideWithValue(offlineStore),
+        // Laporan komuniti: simpanan tempatan pada peranti ini (belum dikongsi; lihat ADR 0005).
+        reportsRepositoryProvider.overrideWithValue(
+          LocalReportsRepository(File(p.join(support.path, 'reports.json'))),
+        ),
       ],
       child: const FgmapApp(),
     ),

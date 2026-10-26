@@ -8,6 +8,7 @@ import 'package:fgmap/features/navigation/domain/nav_route.dart';
 import 'package:fgmap/features/navigation/domain/navigation_session.dart';
 import 'package:fgmap/features/navigation/presentation/navigation_controller.dart';
 import 'package:fgmap/features/navigation/presentation/navigation_hud.dart';
+import 'package:fgmap/features/speed_limits/domain/speed_limits.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -99,7 +100,11 @@ class _Frame extends StatelessWidget {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      SpeedBubble(speedMps: p.speedMps),
+                      SpeedBubble(
+                        speedMps: p.speedMps,
+                        limitKmh: state.currentLimitKmh,
+                        overspeed: state.overspeed,
+                      ),
                       const Spacer(),
                       NavSideButtons(
                         voiceEnabled: true,
@@ -144,11 +149,15 @@ void main() {
     NavProgress p, {
     bool rerouting = false,
     bool sim = false,
+    SpeedLimits limits = SpeedLimits.empty,
+    bool overspeed = false,
   }) => NavigationState(
     phase: NavPhase.active,
     progress: p,
     rerouting: rerouting,
     simulated: sim,
+    speedLimits: limits,
+    overspeed: overspeed,
   );
 
   final scenarios = <String, (NavigationState, bool)>{
@@ -182,6 +191,21 @@ void main() {
           remainingS: 3480,
           gpsWeak: true,
         ),
+      ),
+      false,
+    ),
+    'speeding': (
+      stateFor(
+        progress(next: right, speed: 22),
+        limits: const SpeedLimits([
+          SpeedLimitSegment(
+            beginShapeIndex: 0,
+            endShapeIndex: 100,
+            lengthM: 5000,
+            limitKmh: 60,
+          ),
+        ]),
+        overspeed: true,
       ),
       false,
     ),

@@ -1,3 +1,6 @@
+import 'dart:math' as math;
+
+import 'package:flutter/foundation.dart' show ValueListenable, ValueNotifier;
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/fgmap_theme_extension.dart';
@@ -44,9 +47,13 @@ InstructionText instructionTextFor(AppLocalizations l10n) =>
 /// Kad manuver di atas skrin: ikon besar, jarak ke manuver, tindakan dan nama jalan, serta "kemudian"
 /// untuk manuver rapat berikutnya. Beranimasi (slaid + skala) bila manuver bertukar.
 class ManeuverBanner extends StatelessWidget {
-  const ManeuverBanner({super.key, required this.progress});
+  const ManeuverBanner({super.key, required this.progress, this.liveAlongM});
 
   final NavProgress progress;
+
+  /// Kedudukan sepanjang laluan yang dikemas kini setiap bingkai; jika ada, jarak ke manuver
+  /// dikira daripadanya (bukan daripada fix GPS 1 Hz) supaya kiraan turun lancar.
+  final ValueListenable<double?>? liveAlongM;
 
   @override
   Widget build(BuildContext context) {
@@ -58,17 +65,27 @@ class ManeuverBanner extends StatelessWidget {
 
     final child = next == null
         ? const SizedBox.shrink(key: ValueKey('none'))
-        : _BannerContent(
+        : ValueListenableBuilder<double?>(
             key: ValueKey('m${next.index}'),
-            maneuver: next,
-            distanceM: progress.distanceToNextM ?? 0,
-            following: _thenManeuver(progress),
-            text: text,
+            valueListenable: liveAlongM ?? _noLiveAlong,
+            builder: (context, along, _) {
+              final then = _thenManeuver(progress);
+              return _BannerContent(
+                maneuver: next,
+                distanceM: along == null
+                    ? (progress.distanceToNextM ?? 0)
+                    : math.max(0.0, next.startM - along),
+                following: then,
+                thenGapM: then == null ? null : then.startM - next.startM,
+                text: text,
+              );
+            },
           );
 
+    // Bukan liveRegion di sini: jarak berubah setiap saat dan TalkBack akan membacanya terus,
+    // bertindih dengan suara arahan. Hanya teks tindakan (berubah bila manuver bertukar) yang live.
     return Semantics(
       container: true,
-      liveRegion: true,
       child: Material(
         color: theme.colorScheme.primary,
         elevation: 6,
@@ -105,12 +122,20 @@ class ManeuverBanner extends StatelessWidget {
     );
   }
 
-  /// "Kemudian" hanya jika manuver berikutnya rapat (< 400 m selepas yang seterusnya).
+  static final ValueListenable<double?> _noLiveAlong = ValueNotifier<double?>(
+    null,
+  );
+
+  /// Jarak (m) dari manuver seterusnya ke yang selepasnya; "Kemudian" ditunjuk jika <= nilai ini.
+  static const thenWithinM = 800.0;
+
+  /// "Kemudian" hanya jika manuver berikutnya cukup dekat untuk dirancang (<= 800 m selepas yang
+  /// seterusnya) dan bukan ketibaan.
   static NavManeuver? _thenManeuver(NavProgress p) {
     final next = p.next;
     final following = p.following;
     if (next == null || following == null) return null;
-    return following.startM - next.startM < 400 && !following.isArrival
+    return following.startM - next.startM <= thenWithinM && !following.isArrival
         ? following
         : null;
   }
@@ -118,16 +143,22 @@ class ManeuverBanner extends StatelessWidget {
 
 class _BannerContent extends StatelessWidget {
   const _BannerContent({
-    super.key,
     required this.maneuver,
     required this.distanceM,
     required this.following,
+    required this.thenGapM,
     required this.text,
   });
+
+  /// Dalam jarak ini bar "bersedia" muncul dan memenuh sehingga manuver.
+  static const readyWithinM = 300.0;
 
   final NavManeuver maneuver;
   final double distanceM;
   final NavManeuver? following;
+
+  /// Jarak antara manuver ini dan [following]; null jika tiada "Kemudian".
+  final double? thenGapM;
   final InstructionText text;
 
   @override
@@ -136,16 +167,18 @@ class _BannerContent extends StatelessWidget {
     final theme = Theme.of(context);
     final onPrimary = theme.colorScheme.onPrimary;
     final street = maneuver.isArrival ? null : maneuver.street;
+    final followingStreet = following?.street;
+    final ready = distanceM <= readyWithinM && !maneuver.isArrival;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          child: Row(
             children: [
-              Icon(maneuverIcon(maneuver.kind), size: 56, color: onPrimary),
+              Icon(maneuverIcon(maneuver.kind), size: 72, color: onPrimary),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
@@ -155,14 +188,22 @@ class _BannerContent extends StatelessWidget {
                       formatDistance(l10n, distanceM.round()),
                       style: FgTypography.metricLarge.copyWith(
                         color: onPrimary,
+                        fontSize: 42,
                       ),
                     ),
-                    Text(
-                      text.action(maneuver),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: onPrimary,
+                    // container: nod sendiri (tidak digabung ke kad), supaya bendera live tidak
+                    // menjalar ke jarak yang berubah setiap saat.
+                    Semantics(
+                      container: true,
+                      liveRegion: true,
+                      child: Text(
+                        text.action(maneuver),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: onPrimary,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                     if (street != null)
@@ -179,40 +220,60 @@ class _BannerContent extends StatelessWidget {
               ),
             ],
           ),
-          if (following != null) ...[
-            const SizedBox(height: 10),
-            DecoratedBox(
-              decoration: BoxDecoration(
-                color: onPrimary.withValues(alpha: 0.16),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      l10n.navThen,
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: onPrimary,
+        ),
+        if (ready)
+          // Bar "bersedia": kosong pada 300 m, penuh di titik belok.
+          LinearProgressIndicator(
+            value: (1 - distanceM / readyWithinM).clamp(0.0, 1.0),
+            minHeight: 5,
+            color: onPrimary,
+            backgroundColor: onPrimary.withValues(alpha: 0.2),
+          ),
+        if (following != null && thenGapM != null)
+          ColoredBox(
+            color: Colors.black.withValues(alpha: 0.22),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              child: Row(
+                children: [
+                  Text(
+                    l10n.navThen,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: onPrimary.withValues(alpha: 0.85),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Icon(
+                    maneuverIcon(following!.kind),
+                    size: 30,
+                    color: onPrimary,
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    formatDistance(l10n, thenGapM!.round()),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: onPrimary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  if (followingStreet != null) ...[
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        followingStreet,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: onPrimary.withValues(alpha: 0.85),
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Icon(
-                      maneuverIcon(following!.kind),
-                      size: 22,
-                      color: onPrimary,
-                    ),
                   ],
-                ),
+                ],
               ),
             ),
-          ],
-        ],
-      ),
+          ),
+      ],
     );
   }
 }
@@ -424,11 +485,19 @@ class _Badge extends StatelessWidget {
   }
 }
 
-/// Bulatan kelajuan semasa (km/j).
+/// Kelajuan semasa (km/j) dengan tanda had laju di atasnya apabila diketahui. Melebihi had: bulatan
+/// kelajuan menjadi merah (bukan hanya warna: tanda had tetap kelihatan sebagai perbandingan nombor).
 class SpeedBubble extends StatelessWidget {
-  const SpeedBubble({super.key, required this.speedMps});
+  const SpeedBubble({
+    super.key,
+    required this.speedMps,
+    this.limitKmh,
+    this.overspeed = false,
+  });
 
   final double speedMps;
+  final int? limitKmh;
+  final bool overspeed;
 
   @override
   Widget build(BuildContext context) {
@@ -436,28 +505,98 @@ class SpeedBubble extends StatelessWidget {
     final theme = Theme.of(context);
     final fg = context.fg;
     final kmh = (speedMps * 3.6).round();
+    final limit = limitKmh;
+    final background = overspeed ? theme.colorScheme.error : fg.glassSurface;
+    final foreground = overspeed
+        ? theme.colorScheme.onError
+        : theme.colorScheme.onSurface;
+
     return Semantics(
-      label: '${l10n.navSpeedLabel}: $kmh ${l10n.navSpeedUnit}',
+      label:
+          '${l10n.navSpeedLabel}: $kmh ${l10n.navSpeedUnit}'
+          '${limit == null ? '' : ', ${l10n.navSpeedLimit}: $limit'}',
+      liveRegion: overspeed,
       excludeSemantics: true,
-      child: Material(
-        color: fg.glassSurface,
-        elevation: 3,
-        shape: CircleBorder(side: BorderSide(color: fg.glassBorder)),
-        child: SizedBox(
-          width: 64,
-          height: 64,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                '$kmh',
-                style: FgTypography.metricMedium.copyWith(
-                  color: theme.colorScheme.onSurface,
-                  height: 1,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (limit != null) ...[
+            _SpeedLimitSign(limitKmh: limit),
+            const SizedBox(height: 8),
+          ],
+          Material(
+            type: MaterialType.transparency,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: background,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: overspeed ? theme.colorScheme.error : fg.glassBorder,
                 ),
+                boxShadow: const [
+                  BoxShadow(color: Color(0x33000000), blurRadius: 6),
+                ],
               ),
-              Text(l10n.navSpeedUnit, style: theme.textTheme.labelSmall),
-            ],
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '$kmh',
+                    style: FgTypography.metricMedium.copyWith(
+                      color: foreground,
+                      height: 1,
+                    ),
+                  ),
+                  Text(
+                    l10n.navSpeedUnit,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: foreground,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Tanda had laju gaya Malaysia/Eropah: bulatan putih bergelang merah.
+class _SpeedLimitSign extends StatelessWidget {
+  const _SpeedLimitSign({required this.limitKmh});
+
+  final int limitKmh;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      type: MaterialType.transparency,
+      child: DecoratedBox(
+        key: const ValueKey('speed-limit-sign'),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          border: Border.all(color: const Color(0xFFD62828), width: 5),
+          boxShadow: const [BoxShadow(color: Color(0x33000000), blurRadius: 6)],
+        ),
+        child: SizedBox(
+          width: 52,
+          height: 52,
+          child: Center(
+            child: Text(
+              '$limitKmh',
+              style: FgTypography.metricMedium.copyWith(
+                // Sentiasa hitam di atas putih, tidak mengikut tema (tanda jalan sebenar).
+                color: Colors.black,
+                fontSize: limitKmh >= 100 ? 18 : 22,
+                height: 1,
+              ),
+            ),
           ),
         ),
       ),

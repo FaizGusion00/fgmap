@@ -101,7 +101,7 @@ abstract class AppLocalizations {
   /// No description provided for @appName.
   ///
   /// In ms, this message translates to:
-  /// **'FGMap'**
+  /// **'FGMaps'**
   String get appName;
 
   /// No description provided for @mapHintLongPress.
@@ -155,7 +155,7 @@ abstract class AppLocalizations {
   /// No description provided for @locationRationaleBody.
   ///
   /// In ms, this message translates to:
-  /// **'Lokasi anda digunakan untuk menunjukkan kedudukan anda di peta dan sebagai titik mula laluan. Ia dihantar ke pelayan FGMap hanya untuk mengira laluan.'**
+  /// **'Lokasi anda digunakan untuk menunjukkan kedudukan anda di peta dan sebagai titik mula laluan. Ia dihantar ke pelayan FGMaps hanya untuk mengira laluan.'**
   String get locationRationaleBody;
 
   /// No description provided for @locationAllow.
@@ -205,18 +205,6 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'Lokasi GPS yang tepat belum tersedia. Semak kebenaran lokasi dan GPS, kemudian cuba lagi.'**
   String get routeLocationUnavailable;
-
-  /// No description provided for @routeOptionLabel.
-  ///
-  /// In ms, this message translates to:
-  /// **'Laluan {index}'**
-  String routeOptionLabel(int index);
-
-  /// No description provided for @routeAvoidTolls.
-  ///
-  /// In ms, this message translates to:
-  /// **'Elak tol'**
-  String get routeAvoidTolls;
 
   /// No description provided for @routeHasTolls.
   ///
@@ -305,7 +293,7 @@ abstract class AppLocalizations {
   /// No description provided for @appearanceTooltip.
   ///
   /// In ms, this message translates to:
-  /// **'Paparan'**
+  /// **'Tetapan'**
   String get appearanceTooltip;
 
   /// No description provided for @appearanceTitle.
@@ -317,7 +305,7 @@ abstract class AppLocalizations {
   /// No description provided for @aboutTitle.
   ///
   /// In ms, this message translates to:
-  /// **'Tentang FGMap'**
+  /// **'Tentang FGMaps'**
   String get aboutTitle;
 
   /// No description provided for @aboutDescription.
@@ -875,7 +863,7 @@ abstract class AppLocalizations {
   /// No description provided for @navVoiceMalay.
   ///
   /// In ms, this message translates to:
-  /// **'Bahasa Melayu'**
+  /// **'Melayu'**
   String get navVoiceMalay;
 
   /// No description provided for @navVoiceEnglish.
@@ -919,6 +907,264 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'Mencari isyarat GPS…'**
   String get navAcquiring;
+
+  /// No description provided for @routeFastest.
+  ///
+  /// In ms, this message translates to:
+  /// **'Terpantas'**
+  String get routeFastest;
+
+  /// No description provided for @routeShortest.
+  ///
+  /// In ms, this message translates to:
+  /// **'Terpendek'**
+  String get routeShortest;
+
+  /// No description provided for @routeNoHighways.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tanpa lebuh raya'**
+  String get routeNoHighways;
+
+  /// No description provided for @routeAlternative.
+  ///
+  /// In ms, this message translates to:
+  /// **'Alternatif'**
+  String get routeAlternative;
+
+  /// No description provided for @routeVia.
+  ///
+  /// In ms, this message translates to:
+  /// **'melalui {road}'**
+  String routeVia(String road);
+
+  /// No description provided for @routeFindingTo.
+  ///
+  /// In ms, this message translates to:
+  /// **'Mencari laluan ke {place}…'**
+  String routeFindingTo(String place);
+
+  /// No description provided for @routeVehicleCar.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kereta'**
+  String get routeVehicleCar;
+
+  /// No description provided for @routeVehicleMotorcycle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Motosikal'**
+  String get routeVehicleMotorcycle;
+
+  /// No description provided for @settingsTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tetapan'**
+  String get settingsTitle;
+
+  /// No description provided for @settingsAppearance.
+  ///
+  /// In ms, this message translates to:
+  /// **'Paparan'**
+  String get settingsAppearance;
+
+  /// No description provided for @settingsNavigation.
+  ///
+  /// In ms, this message translates to:
+  /// **'Navigasi'**
+  String get settingsNavigation;
+
+  /// No description provided for @settingsMaps.
+  ///
+  /// In ms, this message translates to:
+  /// **'Peta'**
+  String get settingsMaps;
+
+  /// No description provided for @settingsOfflineHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Muat turun peta untuk navigasi tanpa internet'**
+  String get settingsOfflineHint;
+
+  /// No description provided for @settingsAboutHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Versi, pembangun dan hak cipta'**
+  String get settingsAboutHint;
+
+  /// No description provided for @themeSystemShort.
+  ///
+  /// In ms, this message translates to:
+  /// **'Auto'**
+  String get themeSystemShort;
+
+  /// No description provided for @searchCatFuel.
+  ///
+  /// In ms, this message translates to:
+  /// **'Stesen minyak'**
+  String get searchCatFuel;
+
+  /// No description provided for @searchCatFood.
+  ///
+  /// In ms, this message translates to:
+  /// **'Makan'**
+  String get searchCatFood;
+
+  /// No description provided for @searchCatMosque.
+  ///
+  /// In ms, this message translates to:
+  /// **'Masjid'**
+  String get searchCatMosque;
+
+  /// No description provided for @searchCatToilet.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tandas'**
+  String get searchCatToilet;
+
+  /// No description provided for @searchCatParking.
+  ///
+  /// In ms, this message translates to:
+  /// **'Parkir'**
+  String get searchCatParking;
+
+  /// No description provided for @searchCatHospital.
+  ///
+  /// In ms, this message translates to:
+  /// **'Hospital'**
+  String get searchCatHospital;
+
+  /// No description provided for @searchCategories.
+  ///
+  /// In ms, this message translates to:
+  /// **'Cari berhampiran'**
+  String get searchCategories;
+
+  /// No description provided for @reportTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Laporkan di sini'**
+  String get reportTitle;
+
+  /// No description provided for @reportButtonTooltip.
+  ///
+  /// In ms, this message translates to:
+  /// **'Laporkan'**
+  String get reportButtonTooltip;
+
+  /// No description provided for @reportTypePolice.
+  ///
+  /// In ms, this message translates to:
+  /// **'Polis'**
+  String get reportTypePolice;
+
+  /// No description provided for @reportTypeAccident.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kemalangan'**
+  String get reportTypeAccident;
+
+  /// No description provided for @reportTypeHazard.
+  ///
+  /// In ms, this message translates to:
+  /// **'Bahaya'**
+  String get reportTypeHazard;
+
+  /// No description provided for @reportTypeJam.
+  ///
+  /// In ms, this message translates to:
+  /// **'Sesak'**
+  String get reportTypeJam;
+
+  /// No description provided for @reportTypeClosed.
+  ///
+  /// In ms, this message translates to:
+  /// **'Jalan ditutup'**
+  String get reportTypeClosed;
+
+  /// No description provided for @reportTypeBrokenDown.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kenderaan rosak'**
+  String get reportTypeBrokenDown;
+
+  /// No description provided for @reportTypeFlood.
+  ///
+  /// In ms, this message translates to:
+  /// **'Banjir'**
+  String get reportTypeFlood;
+
+  /// No description provided for @reportCreated.
+  ///
+  /// In ms, this message translates to:
+  /// **'Laporan dihantar. Terima kasih!'**
+  String get reportCreated;
+
+  /// No description provided for @reportConfirmedExisting.
+  ///
+  /// In ms, this message translates to:
+  /// **'Laporan serupa sudah ada berdekatan; ia disahkan.'**
+  String get reportConfirmedExisting;
+
+  /// No description provided for @reportNoLocation.
+  ///
+  /// In ms, this message translates to:
+  /// **'Lokasi anda tidak tersedia. Laporan mesti dibuat dari lokasi sebenar anda.'**
+  String get reportNoLocation;
+
+  /// No description provided for @reportLocalOnlyNote.
+  ///
+  /// In ms, this message translates to:
+  /// **'Laporan disimpan pada peranti ini sahaja dan belum dikongsi dengan pemandu lain.'**
+  String get reportLocalOnlyNote;
+
+  /// No description provided for @reportStillThereTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'{type} masih ada?'**
+  String reportStillThereTitle(String type);
+
+  /// No description provided for @reportStillThereYes.
+  ///
+  /// In ms, this message translates to:
+  /// **'Ya, masih ada'**
+  String get reportStillThereYes;
+
+  /// No description provided for @reportStillThereNo.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tiada'**
+  String get reportStillThereNo;
+
+  /// No description provided for @reportAhead.
+  ///
+  /// In ms, this message translates to:
+  /// **'{type} {distance} di hadapan'**
+  String reportAhead(String type, String distance);
+
+  /// No description provided for @navSpeedLimit.
+  ///
+  /// In ms, this message translates to:
+  /// **'Had laju'**
+  String get navSpeedLimit;
+
+  /// No description provided for @navOverspeedTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Amaran laju lebih'**
+  String get navOverspeedTitle;
+
+  /// No description provided for @navOverspeedOff.
+  ///
+  /// In ms, this message translates to:
+  /// **'Mati'**
+  String get navOverspeedOff;
+
+  /// No description provided for @navOverspeedHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Bunyi dan tanda merah apabila melebihi had laju. Had laju tidak lengkap di semua jalan.'**
+  String get navOverspeedHint;
 }
 
 class _AppLocalizationsDelegate

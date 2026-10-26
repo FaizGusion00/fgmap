@@ -123,8 +123,8 @@ void main() {
         expect(z, lessThanOrEqualTo(prev));
         prev = z;
       }
-      expect(zoomForSpeed(0), closeTo(17.6, 0.01));
-      expect(zoomForSpeed(100), closeTo(15.3, 0.01));
+      expect(zoomForSpeed(0), closeTo(18.5, 0.01));
+      expect(zoomForSpeed(100), closeTo(16.2, 0.01));
     });
 
     test(

@@ -31,6 +31,11 @@ public class FgmapValhallaPlugin: NSObject, FlutterPlugin {
         return result(FlutterError(code: "bad_args", message: "request is required", details: nil))
       }
       run(result) { try self.route(json) }
+    case "traceAttributes":
+      guard let json = args?["request"] as? String else {
+        return result(FlutterError(code: "bad_args", message: "request is required", details: nil))
+      }
+      run(result) { try self.traceAttributes(json) }
     case "close":
       run(result) { self.closeEngine(); return nil }
     default:
@@ -64,6 +69,17 @@ public class FgmapValhallaPlugin: NSObject, FlutterPlugin {
     }
     do {
       return try engine.route(rawRequest: requestJson)
+    } catch {
+      throw EngineError(code: "route_failed", message: Self.describe(error))
+    }
+  }
+
+  private func traceAttributes(_ requestJson: String) throws -> Any? {
+    guard let engine = engine else {
+      throw EngineError(code: "not_open", message: "Offline engine is not open")
+    }
+    do {
+      return try engine.traceAttributes(rawRequest: requestJson)
     } catch {
       throw EngineError(code: "route_failed", message: Self.describe(error))
     }

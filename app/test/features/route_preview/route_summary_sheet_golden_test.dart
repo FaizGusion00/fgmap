@@ -18,12 +18,43 @@ void main() {
   setUpAll(loadAppFonts);
 
   const query = RouteQuery(origin: klcc, destination: klia);
-  final ready = RouteReady(
+  final readyMany = RouteReady(
     query: query,
     options: [
-      sampleOption(),
-      sampleOption(durationS: 3722, distanceM: 72447),
-      sampleOption(durationS: 12840, distanceM: 359300, hasTolls: false),
+      sampleOption(via: 'Lebuhraya KLIA'),
+      sampleOption(
+        durationS: 3722,
+        distanceM: 58100,
+        label: RouteLabel.shortest,
+      ),
+      sampleOption(
+        durationS: 4380,
+        distanceM: 72447,
+        hasTolls: false,
+        label: RouteLabel.noTolls,
+      ),
+      sampleOption(
+        durationS: 5100,
+        distanceM: 80200,
+        label: RouteLabel.noHighways,
+      ),
+    ],
+  );
+  final readyThree = RouteReady(
+    query: query,
+    options: [
+      sampleOption(via: 'Lebuhraya KLIA'),
+      sampleOption(
+        durationS: 3722,
+        distanceM: 58100,
+        label: RouteLabel.shortest,
+      ),
+      sampleOption(
+        durationS: 4380,
+        distanceM: 72447,
+        hasTolls: false,
+        label: RouteLabel.noTolls,
+      ),
     ],
   );
   const readyWithLocationUnavailable = RouteLocationUnavailable(
@@ -31,7 +62,12 @@ void main() {
     destinationLabel: 'KLIA',
   );
   final readyLocation = RouteReady(
-    query: const RouteQuery(origin: klcc, destination: klia, avoidTolls: true),
+    query: const RouteQuery(
+      origin: klcc,
+      destination: klia,
+      destinationLabel: 'KLIA Terminal 1',
+      vehicle: RouteVehicle.motorcycle,
+    ),
     options: [sampleOption(durationS: 3840, distanceM: 69200, hasTolls: false)],
   );
   final readyOffline = RouteReady(
@@ -42,10 +78,15 @@ void main() {
         durationS: 3900,
         distanceM: 72000,
         source: RouteSource.offline,
+        label: RouteLabel.alternative,
       ),
     ],
   );
-  const loading = RouteLoading(destination: klia, query: query);
+  const loading = RouteLoading(
+    destination: klia,
+    query: query,
+    destinationLabel: 'KLIA Terminal 1',
+  );
   const offlineRequired = RouteFailed(
     query: query,
     kind: RoutingFailureKind.offlineRequired,
@@ -68,10 +109,13 @@ void main() {
               child: RouteSummarySheet(
                 state: state,
                 onSelect: (_) {},
-                onAvoidTollsChanged: (_) {},
+                onVehicleChanged: (_) {},
                 onRetry: () {},
                 onClear: () {},
                 onOpenOfflineMaps: () {},
+                onStart: () {},
+                onSimulate: () {},
+                now: DateTime(2026, 10, 26, 14, 5),
               ),
             ),
         ],
@@ -89,14 +133,15 @@ void main() {
     testWidgets('lembaran ringkasan laluan (${entry.key}, Bahasa Melayu)', (
       tester,
     ) async {
-      usePhoneSurface(tester, size: const Size(390, 1450));
+      usePhoneSurface(tester, size: const Size(390, 1800));
       reduceMotion(tester);
       await withShadows(() async {
         await pumpApp(
           tester,
           SingleChildScrollView(
             child: board([
-              ready,
+              readyThree,
+              readyMany,
               readyOffline,
               readyWithLocationUnavailable,
               readyLocation,
@@ -110,7 +155,7 @@ void main() {
         await tester.pumpAndSettle();
 
         await expectLater(
-          find.byType(SingleChildScrollView),
+          find.byType(SingleChildScrollView).first,
           matchesGoldenFile('goldens/route_summary_sheet_${entry.key}.png'),
         );
       });
@@ -134,7 +179,7 @@ void main() {
       await tester.pumpAndSettle();
 
       await expectLater(
-        find.byType(SingleChildScrollView),
+        find.byType(SingleChildScrollView).first,
         matchesGoldenFile('goldens/route_summary_sheet_light_en.png'),
       );
     });
@@ -152,7 +197,7 @@ void main() {
       tester,
       SingleChildScrollView(
         child: board([
-          ready,
+          readyMany,
           readyOffline,
           readyWithLocationUnavailable,
           loading,

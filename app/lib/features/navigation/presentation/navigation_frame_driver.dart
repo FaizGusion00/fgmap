@@ -48,9 +48,27 @@ class NavigationFrameDriver {
   /// Keadaan semasa untuk UI (butang "Pusatkan").
   final ValueNotifier<NavFollow> follow = ValueNotifier(NavFollow.following);
 
+  /// Kedudukan sepanjang laluan (m) pada bingkai semasa, dibundar ke 5 m; null jika di luar laluan.
+  /// Fix GPS tiba ~1 Hz tetapi kenderaan dilukis 60 fps, jadi kad manuver membaca ini supaya kiraan
+  /// jarak turun lancar. Dibundar supaya pendengar tidak dibina semula setiap bingkai.
+  final ValueNotifier<double?> alongM = ValueNotifier(null);
+
   CameraRig? _rig;
   Duration? _lastElapsed;
   DateTime? _lastInteraction;
+
+  // Nilai terakhir yang dihantar ke peta. Setiap bingkai = dua panggilan platform (marker + kamera);
+  // apabila kenderaan berhenti (lampu isyarat, jam) nilainya sama 60 kali sesaat, jadi bingkai yang
+  // tidak mengubah apa-apa tidak dihantar. Peranti lemah dan bateri menanggung kos setiap panggilan itu.
+  VehicleMarker? _sentMarker;
+  CameraPose? _sentCamera;
+  int _markerSkipped = 0;
+  int _cameraSkipped = 0;
+
+  /// Pose yang tidak berubah dihantar semula selepas sekian bingkai (~0.5 saat pada 60 fps). Peta
+  /// menggabungkan hantaran (nilai terkini tidak digugurkan), jadi ini hanya jaring keselamatan
+  /// apabila peta digerakkan di luar kawalan kita (cth. isyarat pengguna).
+  static const _heartbeatFrames = 30;
 
   /// Pengguna menggerakkan peta.
   void userInteracted() {
@@ -62,6 +80,8 @@ class NavigationFrameDriver {
   void recenter() {
     _rig = null; // dibina semula daripada pose peta semasa => terbang masuk
     _lastInteraction = null;
+    // Peta mungkin telah digerakkan pengguna: pose "terakhir dihantar" tidak lagi menggambarkannya.
+    _sentCamera = null;
     follow.value = NavFollow.following;
   }
 
@@ -83,13 +103,26 @@ class NavigationFrameDriver {
     final pose = poseAt(now);
     if (pose == null) return;
 
-    camera.showVehicle(VehicleMarker(point: pose.point, bearing: pose.bearing));
+    final liveAlong = pose.onRoute ? (pose.alongM / 5).floor() * 5.0 : null;
+    if (alongM.value != liveAlong) alongM.value = liveAlong;
+
+    final marker = VehicleMarker(point: pose.point, bearing: pose.bearing);
+    if (!_sameMarker(_sentMarker, marker) ||
+        ++_markerSkipped >= _heartbeatFrames) {
+      camera.showVehicle(marker);
+      _sentMarker = marker;
+      _markerSkipped = 0;
+    }
 
     if (follow.value == NavFollow.free) {
       final last = _lastInteraction;
       if (last != null && now.difference(last) >= autoRecenter) recenter();
     }
-    if (follow.value != NavFollow.following) return;
+    if (follow.value != NavFollow.following) {
+      // Kamera dilepaskan (pengguna/ikhtisar): ia tidak lagi di tempat yang terakhir kita hantar.
+      _sentCamera = null;
+      return;
+    }
 
     final entry =
         camera.pose ??
@@ -108,19 +141,43 @@ class NavigationFrameDriver {
         ? (next.startM - pose.alongM).clamp(0.0, double.infinity)
         : null;
 
-    camera.moveTo(
-      rig.step(
-        dt: dt,
-        vehicle: pose.point,
-        vehicleBearing: pose.bearing,
-        speedMps: pose.speedMps,
-        distanceToNextM: distanceToNext,
-        nextKind: pose.onRoute ? next?.kind : null,
-        viewportHeightPx: viewportHeight(),
-        mode: cameraMode(),
-      ),
+    // rig.step mesti dipanggil setiap bingkai (ia memajukan keadaan dalamannya); hanya penghantaran
+    // ke peta yang digugurkan apabila hasilnya sama.
+    final target = rig.step(
+      dt: dt,
+      vehicle: pose.point,
+      vehicleBearing: pose.bearing,
+      speedMps: pose.speedMps,
+      distanceToNextM: distanceToNext,
+      nextKind: pose.onRoute ? next?.kind : null,
+      viewportHeightPx: viewportHeight(),
+      mode: cameraMode(),
     );
+    if (!_sameCamera(_sentCamera, target) ||
+        ++_cameraSkipped >= _heartbeatFrames) {
+      camera.moveTo(target);
+      _sentCamera = target;
+      _cameraSkipped = 0;
+    }
   }
 
-  void dispose() => follow.dispose();
+  // Ambang jauh di bawah apa-apa yang boleh dilihat: 1e-8 darjah ~ 1 mm; 1e-3 darjah/zum.
+  static bool _sameMarker(VehicleMarker? a, VehicleMarker b) =>
+      a != null &&
+      (a.point.lat - b.point.lat).abs() < 1e-8 &&
+      (a.point.lng - b.point.lng).abs() < 1e-8 &&
+      (a.bearing - b.bearing).abs() < 1e-3;
+
+  static bool _sameCamera(CameraPose? a, CameraPose b) =>
+      a != null &&
+      (a.center.lat - b.center.lat).abs() < 1e-8 &&
+      (a.center.lng - b.center.lng).abs() < 1e-8 &&
+      (a.zoom - b.zoom).abs() < 1e-3 &&
+      (a.tilt - b.tilt).abs() < 1e-3 &&
+      (a.bearing - b.bearing).abs() < 1e-3;
+
+  void dispose() {
+    follow.dispose();
+    alongM.dispose();
+  }
 }

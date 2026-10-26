@@ -1,9 +1,15 @@
+import 'dart:async';
+
 import 'package:fgmap/core/config/app_config.dart';
 import 'package:fgmap/core/location/location_service.dart';
 import 'package:fgmap/features/route_preview/domain/routing_failure.dart';
 import 'package:fgmap/core/storage/preferences.dart';
+import 'package:fgmap/core/utils/geo.dart';
 import 'package:fgmap/core/theme/theme_controller.dart';
+import 'package:fgmap/features/map/presentation/idle_follow.dart';
 import 'package:fgmap/features/map/presentation/map_screen.dart';
+import 'package:fgmap/features/navigation/domain/camera_planner.dart'
+    show CameraPose;
 import 'package:fgmap/features/route_preview/data/route_planner.dart';
 import 'package:fgmap/features/route_preview/domain/route_option.dart';
 import 'package:flutter/material.dart';
@@ -31,6 +37,7 @@ void main() {
           durationS: 3722,
           distanceM: 72447,
           points: const [klcc, batuCaves, klia],
+          label: RouteLabel.alternative,
         ),
       ],
     );
@@ -38,7 +45,10 @@ void main() {
     prefs = await SharedPreferences.getInstance();
   });
 
-  Future<ProviderContainer> pumpScreen(WidgetTester tester) async {
+  Future<ProviderContainer> pumpScreen(
+    WidgetTester tester, {
+    Duration recenterAfter = const Duration(hours: 1),
+  }) async {
     usePhoneSurface(tester);
     reduceMotion(tester);
     await pumpApp(
@@ -47,8 +57,9 @@ void main() {
       overrides: [
         map.override,
         locationServiceProvider.overrideWithValue(location),
-        routePlannerProvider.overrideWithValue(repo),
+        routeOptionsPlannerProvider.overrideWithValue(repo),
         sharedPreferencesProvider.overrideWithValue(prefs),
+        idleRecenterAfterProvider.overrideWithValue(recenterAfter),
       ],
     );
     await tester.pumpAndSettle();
@@ -70,7 +81,7 @@ void main() {
     expect(find.byTooltip('Lokasi saya'), findsOneWidget);
     expect(find.byTooltip('Zum masuk'), findsOneWidget);
     expect(find.byTooltip('Zum keluar'), findsOneWidget);
-    expect(find.byTooltip('Paparan'), findsOneWidget);
+    expect(find.byTooltip('Tetapan'), findsOneWidget);
     expect(
       tester.getSize(find.byKey(const ValueKey('search-pill'))).height,
       lessThanOrEqualTo(52),
@@ -103,10 +114,15 @@ void main() {
         find.text('58 min'),
         findsWidgets,
       ); // tajuk lembaran + chip laluan 1
-      expect(find.text('67.0 km'), findsOneWidget);
+      expect(find.text('67.0 km'), findsWidgets); // tajuk + kad laluan 1
       expect(find.text('Ada tol'), findsOneWidget);
-      expect(find.text('Laluan 1 · 58 min'), findsOneWidget);
-      expect(find.text('Laluan 2 · 1 j 2 min'), findsOneWidget);
+      expect(find.byKey(const ValueKey('route-option-0')), findsOneWidget);
+      expect(find.byKey(const ValueKey('route-option-1')), findsOneWidget);
+      // Semua pilihan terpapar serta-merta dengan label bermakna, tanpa menekan sebarang butang.
+      expect(find.text('Terpantas'), findsOneWidget);
+      expect(find.text('Alternatif'), findsOneWidget);
+      expect(find.text('Elak tol'), findsNothing);
+      expect(repo.queries, hasLength(1));
 
       final cfg = map.config!;
       expect(cfg.destination, klia);
@@ -132,20 +148,20 @@ void main() {
   );
 
   testWidgets(
-    'memilih Laluan 2 menukar laluan utama tanpa menyesuaikan semula kamera',
+    'memilih kad laluan kedua menukar laluan utama tanpa menyesuaikan semula kamera',
     (tester) async {
       await pumpScreen(tester);
       map.config!.onLongPress(klia);
       await tester.pumpAndSettle();
       final mainBefore = map.config!.routes.last.points;
 
-      await tester.tap(find.text('Laluan 2 · 1 j 2 min'));
+      await tester.tap(find.byKey(const ValueKey('route-option-1')));
       await tester.pumpAndSettle();
 
       expect(
         find.text('1 j 2 min'),
-        findsOneWidget,
-      ); // 3722 s -> 62 min -> 1 j 2 min
+        findsWidgets,
+      ); // 3722 s -> 62 min -> 1 j 2 min (tajuk + kad)
       expect(map.config!.routes.last.points, isNot(same(mainBefore)));
       expect(
         map.camera.fitToCalls,
@@ -155,17 +171,76 @@ void main() {
     },
   );
 
-  testWidgets('Elak tol mengira semula dengan pilihan baharu', (tester) async {
+  testWidgets('mengetuk laluan alternatif pada peta memilihnya', (
+    tester,
+  ) async {
+    await pumpScreen(tester);
+    map.config!.onLongPress(klia);
+    await tester.pumpAndSettle();
+    final mainBefore = map.config!.routes.last.points;
+    expect(map.config!.onTap, isNotNull);
+
+    // Titik pada garis klcc -> batuCaves, yang hanya dilalui laluan alternatif.
+    map.config!.onTap!(
+      GeoPoint((klcc.lat + batuCaves.lat) / 2, (klcc.lng + batuCaves.lng) / 2),
+    );
+    await tester.pumpAndSettle();
+
+    expect(map.config!.routes.last.points, isNot(same(mainBefore)));
+    expect(map.config!.routes.last.points, contains(batuCaves));
+  });
+
+  testWidgets(
+    'mengetuk peta jauh dari mana-mana laluan tidak mengubah pilihan',
+    (tester) async {
+      await pumpScreen(tester);
+      map.config!.onLongPress(klia);
+      await tester.pumpAndSettle();
+      final mainBefore = map.config!.routes.last.points;
+
+      map.config!.onTap!(const GeoPoint(5.0, 100.0));
+      await tester.pumpAndSettle();
+
+      expect(map.config!.routes.last.points, same(mainBefore));
+    },
+  );
+
+  testWidgets('menukar kenderaan mengira semula untuk kenderaan baharu', (
+    tester,
+  ) async {
     await pumpScreen(tester);
     map.config!.onLongPress(klia);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Elak tol'));
+    await tester.tap(find.byTooltip('Motosikal'));
     await tester.pumpAndSettle();
 
     expect(repo.queries, hasLength(2));
-    expect(repo.queries.last.avoidTolls, isTrue);
+    expect(repo.queries.last.vehicle, RouteVehicle.motorcycle);
   });
+
+  testWidgets(
+    'semasa mengira laluan: destinasi dipaparkan dan boleh dibatalkan',
+    (tester) async {
+      final pending = Completer<List<RouteOption>>();
+      repo.handler = (_) => pending.future;
+      await pumpScreen(tester);
+      map.config!.onLongPress(klia);
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.byKey(const ValueKey('route-cancel')), findsOneWidget);
+      expect(map.config!.destination, klia);
+
+      await tester.tap(find.byKey(const ValueKey('route-cancel')));
+      await tester.pumpAndSettle();
+      pending.complete([sampleOption()]);
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('route-cancel')), findsNothing);
+      expect(map.config!.routes, isEmpty);
+    },
+  );
 
   testWidgets('padam laluan menutup lembaran dan mengosongkan peta', (
     tester,
@@ -244,6 +319,166 @@ void main() {
     expect(map.config!.destination, klia);
   });
 
+  group('ikut lokasi semasa idle (gaya Waze)', () {
+    const farAway = GeoPoint(3.20, 101.70); // ~6 km dari klcc
+    LocationFix at(GeoPoint p) => LocationFix(point: p, accuracyMeters: 6);
+
+    Future<void> moveTo(WidgetTester tester, GeoPoint p) async {
+      location.trackingController.add(at(p));
+      await tester.pump();
+    }
+
+    testWidgets('selepas pelancaran kamera terus mengikut pengguna bergerak', (
+      tester,
+    ) async {
+      await pumpScreen(tester);
+      expect(location.trackingListens, 1);
+
+      await moveTo(tester, farAway);
+
+      expect(map.camera.animateToCalls, hasLength(1));
+      expect(map.camera.animateToCalls.single.center, farAway);
+    });
+
+    testWidgets('zum, condongan dan arah pilihan pengguna dikekalkan', (
+      tester,
+    ) async {
+      await pumpScreen(tester);
+      map.camera.pose = const CameraPose(
+        center: klcc,
+        zoom: 17.5,
+        tilt: 30,
+        bearing: 120,
+      );
+
+      await moveTo(tester, farAway);
+
+      final pose = map.camera.animateToCalls.single;
+      expect((pose.zoom, pose.tilt, pose.bearing), (17.5, 30.0, 120.0));
+    });
+
+    testWidgets('hingar GPS ketika pegun (< 4 m) tidak menggoyang kamera', (
+      tester,
+    ) async {
+      await pumpScreen(tester);
+      map.camera.pose = const CameraPose(
+        center: klcc,
+        zoom: 15,
+        tilt: 0,
+        bearing: 0,
+      );
+      await moveTo(tester, GeoPoint(klcc.lat + 0.00001, klcc.lng)); // ~1 m
+      expect(map.camera.animateToCalls, isEmpty);
+    });
+
+    testWidgets(
+      'pengguna menggerakkan peta: berhenti mengikut dan GPS dilepaskan',
+      (tester) async {
+        await pumpScreen(tester);
+        expect(location.trackingController.hasListener, isTrue);
+
+        map.config!.onUserGesture!();
+        await tester.pump();
+
+        expect(location.trackingController.hasListener, isFalse);
+        await moveTo(tester, farAway);
+        expect(map.camera.animateToCalls, isEmpty);
+      },
+    );
+
+    testWidgets('"Lokasi saya" mula mengikut semula selepas dilepaskan', (
+      tester,
+    ) async {
+      await pumpScreen(tester);
+      map.config!.onUserGesture!();
+      await tester.pump();
+      expect(location.trackingController.hasListener, isFalse);
+
+      await tester.tap(find.byTooltip('Lokasi saya'));
+      await tester.pumpAndSettle();
+
+      expect(location.trackingController.hasListener, isTrue);
+      await moveTo(tester, farAway);
+      expect(map.camera.animateToCalls.single.center, farAway);
+    });
+
+    testWidgets('kebenaran tiada: tiada strim GPS dibuka', (tester) async {
+      location.accessValue = LocationAccess.deniedForever;
+      await pumpScreen(tester);
+      expect(location.trackingListens, 0);
+    });
+
+    testWidgets(
+      'laluan dipratonton menggantung ikutan; kamera dipegang oleh paparan laluan',
+      (tester) async {
+        await pumpScreen(tester);
+        map.config!.onLongPress(klia);
+        await tester.pumpAndSettle();
+
+        expect(location.trackingController.hasListener, isFalse);
+        map.camera.animateToCalls.clear();
+        await moveTo(tester, farAway);
+        expect(map.camera.animateToCalls, isEmpty);
+      },
+    );
+
+    testWidgets(
+      'app ke latar belakang melepaskan GPS dan kembali menyambungnya',
+      (tester) async {
+        await pumpScreen(tester);
+        expect(location.trackingController.hasListener, isTrue);
+
+        tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+        await tester.pump();
+        expect(location.trackingController.hasListener, isFalse);
+
+        tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.resumed,
+        );
+        await tester.pumpAndSettle();
+        expect(location.trackingController.hasListener, isTrue);
+      },
+    );
+
+    testWidgets('kembali dari latar belakang sebentar: kamera tidak dialih', (
+      tester,
+    ) async {
+      await pumpScreen(tester); // ambang 1 jam
+      map.camera.flyToCalls.clear();
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+
+      expect(map.camera.flyToCalls, isEmpty);
+    });
+
+    testWidgets(
+      'kembali dari latar belakang lama: peta dipusatkan semula pada pengguna',
+      (tester) async {
+        await pumpScreen(tester, recenterAfter: Duration.zero);
+        map
+            .config!
+            .onUserGesture!(); // pengguna sempat menggeser peta ke tempat lain
+        map.camera.flyToCalls.clear();
+        location.fix = LocationFix(
+          point: batuCaves,
+          accuracyMeters: 6,
+          timestamp: DateTime.now(),
+        );
+
+        tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+        tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.resumed,
+        );
+        await tester.pumpAndSettle();
+
+        expect(map.camera.flyToCalls.last, (batuCaves, 15.0));
+        expect(location.trackingController.hasListener, isTrue);
+      },
+    );
+  });
+
   group('kebenaran lokasi', () {
     testWidgets('sudah diberi: tiada dialog, kamera terus ke lokasi pengguna', (
       tester,
@@ -256,24 +491,18 @@ void main() {
     });
 
     testWidgets(
-      'kebenaran ditangguh sehingga pengguna minta lokasi; penjelasan mendahului dialog sistem',
+      'pelancaran pertama: penjelasan mendahului dialog sistem, kemudian kamera terus ke lokasi pengguna',
       (tester) async {
         location
           ..accessValue = LocationAccess.askable
           ..requestResult = LocationAccess.granted;
         await pumpScreen(tester);
 
-        expect(find.byType(AlertDialog), findsNothing);
         expect(
-          location.requestCalls,
-          0,
-          reason: 'jangan minta lokasi sebelum pengguna memilih fungsinya',
+          find.text('Benarkan akses lokasi?'),
+          findsOneWidget,
+          reason: 'app minta lokasi sendiri semasa pelancaran (gaya Waze)',
         );
-        expect(map.config!.showUserLocation, isFalse);
-
-        await tester.tap(find.byTooltip('Lokasi saya'));
-        await tester.pumpAndSettle();
-        expect(find.text('Benarkan akses lokasi?'), findsOneWidget);
         expect(
           location.requestCalls,
           0,
@@ -291,18 +520,52 @@ void main() {
     );
 
     testWidgets(
-      'Bukan sekarang: tidak meminta kebenaran sistem dan app kekal berfungsi',
+      'Bukan sekarang: tidak meminta kebenaran sistem, app kekal berfungsi dan butang lokasi bertanya semula',
       (tester) async {
         location.accessValue = LocationAccess.askable;
         await pumpScreen(tester);
 
-        expect(find.byType(AlertDialog), findsNothing);
-        await tester.tap(find.byTooltip('Lokasi saya'));
-        await tester.pumpAndSettle();
+        expect(find.text('Benarkan akses lokasi?'), findsOneWidget);
         await tester.tap(find.text('Bukan sekarang'));
         await tester.pumpAndSettle();
 
         expect(location.requestCalls, 0);
+        expect(map.camera.flyToCalls, isEmpty);
+        expect(find.byKey(const ValueKey('fake-map')), findsOneWidget);
+
+        await tester.tap(find.byTooltip('Lokasi saya'));
+        await tester.pumpAndSettle();
+        expect(find.text('Benarkan akses lokasi?'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'pelancaran: lompat dahulu ke lokasi terakhir diketahui, kemudian diperhalusi dengan fix segar',
+      (tester) async {
+        location.lastKnown = const LocationFix(point: batuCaves);
+        await pumpScreen(tester);
+
+        expect(map.camera.flyToCalls, [(batuCaves, 15.0), (klcc, 15.0)]);
+      },
+    );
+
+    testWidgets(
+      'pelancaran: fix segar yang hampir dengan lokasi terakhir tidak mencetus animasi kedua',
+      (tester) async {
+        final nearKlcc = GeoPoint(klcc.lat + 0.0001, klcc.lng); // ~11 m
+        location.lastKnown = LocationFix(point: nearKlcc);
+        await pumpScreen(tester);
+
+        expect(map.camera.flyToCalls, [(nearKlcc, 15.0)]);
+      },
+    );
+
+    testWidgets(
+      'pelancaran tanpa fix terakhir mahupun fix segar: kamera kekal dan app tidak ranap',
+      (tester) async {
+        location.fix = null;
+        await pumpScreen(tester);
+
         expect(map.camera.flyToCalls, isEmpty);
         expect(find.byKey(const ValueKey('fake-map')), findsOneWidget);
       },
@@ -388,9 +651,11 @@ void main() {
     testWidgets('halaman About boleh dibuka dari tetapan', (tester) async {
       await pumpScreen(tester);
 
-      await tester.tap(find.byTooltip('Paparan'));
+      await tester.tap(find.byTooltip('Tetapan'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Tentang FGMap'));
+      await tester.ensureVisible(find.text('Tentang FGMaps'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Tentang FGMaps'));
       await tester.pumpAndSettle();
 
       expect(find.text('Dibangunkan oleh'), findsOneWidget);
@@ -406,14 +671,14 @@ void main() {
       final container = await pumpScreen(tester);
       expect(map.config!.styleUrl, AppConfig.mapStyleLight);
 
-      await tester.tap(find.byTooltip('Paparan'));
+      await tester.tap(find.byTooltip('Tetapan'));
       await tester.pumpAndSettle();
       expect(find.text('Hitam AMOLED'), findsOneWidget);
 
       await tester.tap(find.text('Gelap'));
       await tester.pumpAndSettle();
       expect(map.config!.styleUrl, AppConfig.mapStyleDark);
-      await tester.tap(find.byType(Switch));
+      await tester.tap(find.byKey(const ValueKey('amoled-switch')));
       await tester.pumpAndSettle();
 
       expect(
@@ -444,7 +709,7 @@ void main() {
         overrides: [
           map.override,
           locationServiceProvider.overrideWithValue(location),
-          routePlannerProvider.overrideWithValue(repo),
+          routeOptionsPlannerProvider.overrideWithValue(repo),
           sharedPreferencesProvider.overrideWithValue(prefs),
         ],
       );

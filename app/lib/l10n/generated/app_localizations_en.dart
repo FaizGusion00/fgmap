@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appName => 'FGMap';
+  String get appName => 'FGMaps';
 
   @override
   String get mapHintLongPress => 'Long-press the map to choose a destination';
@@ -40,7 +40,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get locationRationaleBody =>
-      'Your location is used to show where you are on the map and as the starting point of a route. It is sent to the FGMap server only to calculate the route.';
+      'Your location is used to show where you are on the map and as the starting point of a route. It is sent to the FGMaps server only to calculate the route.';
 
   @override
   String get locationAllow => 'Allow';
@@ -68,14 +68,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get routeLocationUnavailable =>
       'Can\'t get an accurate GPS fix. Check location access and GPS, then try again.';
-
-  @override
-  String routeOptionLabel(int index) {
-    return 'Route $index';
-  }
-
-  @override
-  String get routeAvoidTolls => 'Avoid tolls';
 
   @override
   String get routeHasTolls => 'Has tolls';
@@ -133,13 +125,13 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get appearanceTooltip => 'Appearance';
+  String get appearanceTooltip => 'Settings';
 
   @override
   String get appearanceTitle => 'Appearance';
 
   @override
-  String get aboutTitle => 'About FGMap';
+  String get aboutTitle => 'About FGMaps';
 
   @override
   String get aboutDescription => 'Community navigation for Malaysia';
@@ -452,7 +444,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navVoiceFollowApp => 'Follow app';
 
   @override
-  String get navVoiceMalay => 'Bahasa Melayu';
+  String get navVoiceMalay => 'Malay';
 
   @override
   String get navVoiceEnglish => 'English';
@@ -477,4 +469,146 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get navAcquiring => 'Finding GPS signal…';
+
+  @override
+  String get routeFastest => 'Fastest';
+
+  @override
+  String get routeShortest => 'Shortest';
+
+  @override
+  String get routeNoHighways => 'No highways';
+
+  @override
+  String get routeAlternative => 'Alternative';
+
+  @override
+  String routeVia(String road) {
+    return 'via $road';
+  }
+
+  @override
+  String routeFindingTo(String place) {
+    return 'Finding routes to $place…';
+  }
+
+  @override
+  String get routeVehicleCar => 'Car';
+
+  @override
+  String get routeVehicleMotorcycle => 'Motorcycle';
+
+  @override
+  String get settingsTitle => 'Settings';
+
+  @override
+  String get settingsAppearance => 'Appearance';
+
+  @override
+  String get settingsNavigation => 'Navigation';
+
+  @override
+  String get settingsMaps => 'Maps';
+
+  @override
+  String get settingsOfflineHint =>
+      'Download maps to navigate without internet';
+
+  @override
+  String get settingsAboutHint => 'Version, developer and copyright';
+
+  @override
+  String get themeSystemShort => 'Auto';
+
+  @override
+  String get searchCatFuel => 'Fuel';
+
+  @override
+  String get searchCatFood => 'Food';
+
+  @override
+  String get searchCatMosque => 'Mosque';
+
+  @override
+  String get searchCatToilet => 'Toilets';
+
+  @override
+  String get searchCatParking => 'Parking';
+
+  @override
+  String get searchCatHospital => 'Hospital';
+
+  @override
+  String get searchCategories => 'Search nearby';
+
+  @override
+  String get reportTitle => 'Report here';
+
+  @override
+  String get reportButtonTooltip => 'Report';
+
+  @override
+  String get reportTypePolice => 'Police';
+
+  @override
+  String get reportTypeAccident => 'Accident';
+
+  @override
+  String get reportTypeHazard => 'Hazard';
+
+  @override
+  String get reportTypeJam => 'Traffic jam';
+
+  @override
+  String get reportTypeClosed => 'Road closed';
+
+  @override
+  String get reportTypeBrokenDown => 'Broken-down vehicle';
+
+  @override
+  String get reportTypeFlood => 'Flood';
+
+  @override
+  String get reportCreated => 'Report sent. Thank you!';
+
+  @override
+  String get reportConfirmedExisting =>
+      'A similar report is already nearby; it has been confirmed.';
+
+  @override
+  String get reportNoLocation =>
+      'Your location isn\'t available. Reports must be made from your real location.';
+
+  @override
+  String get reportLocalOnlyNote =>
+      'Reports are stored on this device only and aren\'t shared with other drivers yet.';
+
+  @override
+  String reportStillThereTitle(String type) {
+    return 'Is the $type still there?';
+  }
+
+  @override
+  String get reportStillThereYes => 'Yes, still there';
+
+  @override
+  String get reportStillThereNo => 'It\'s gone';
+
+  @override
+  String reportAhead(String type, String distance) {
+    return '$type $distance ahead';
+  }
+
+  @override
+  String get navSpeedLimit => 'Speed limit';
+
+  @override
+  String get navOverspeedTitle => 'Speeding alert';
+
+  @override
+  String get navOverspeedOff => 'Off';
+
+  @override
+  String get navOverspeedHint =>
+      'Chime and red sign when over the speed limit. Limits are not available on every road.';
 }

@@ -7,6 +7,7 @@ import 'package:fgmap/features/navigation/domain/camera_planner.dart';
 import 'package:fgmap/features/navigation/presentation/navigation_controller.dart';
 import 'package:fgmap/features/navigation/presentation/navigation_hud.dart';
 import 'package:fgmap/features/route_preview/data/route_planner.dart';
+import 'package:fgmap/features/speed_limits/data/speed_limit_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -22,12 +23,14 @@ void main() {
   late FakeMapHarness map;
   late FakeVoice voice;
   late FakeAwake awake;
+  late FakeLocationService location;
   late SharedPreferences prefs;
 
   setUp(() async {
     map = FakeMapHarness();
     voice = FakeVoice();
     awake = FakeAwake();
+    location = FakeLocationService(fix: const LocationFix(point: klcc));
     SharedPreferences.setMockInitialValues({});
     prefs = await SharedPreferences.getInstance();
   });
@@ -40,14 +43,13 @@ void main() {
       const MapScreen(),
       overrides: [
         map.override,
-        locationServiceProvider.overrideWithValue(
-          FakeLocationService(fix: const LocationFix(point: klcc)),
-        ),
+        locationServiceProvider.overrideWithValue(location),
         routePlannerProvider.overrideWithValue(
           FakeRoutePlanner((_) async => [lShapedRoute(legM: 800)]),
         ),
         sharedPreferencesProvider.overrideWithValue(prefs),
         voiceGuideProvider.overrideWithValue(voice),
+        speedLimitServiceProvider.overrideWithValue(FakeSpeedLimitService()),
         screenAwakeProvider.overrideWithValue(awake),
       ],
     );
@@ -255,6 +257,33 @@ void main() {
     await finish(tester);
   });
 
+  testWidgets(
+    'navigasi menggantung ikutan idle (satu sahaja pemilik kamera); tamat navigasi menyambungnya',
+    (tester) async {
+      final container = await pumpScreen(tester);
+      expect(
+        location.trackingController.hasListener,
+        isTrue,
+        reason: 'idle: kamera mengikut pengguna',
+      );
+
+      await planRoute(tester);
+      await tester.tap(find.byKey(const ValueKey('nav-simulate')));
+      await tester.pump();
+      expect(container.read(navigationControllerProvider).isActive, isTrue);
+      expect(
+        location.trackingController.hasListener,
+        isFalse,
+        reason: 'navigasi memandu kamera; strim GPS kedua membazir bateri',
+      );
+
+      await container.read(navigationControllerProvider.notifier).stop();
+      await tester.pumpAndSettle();
+      expect(location.trackingController.hasListener, isTrue);
+      await finish(tester);
+    },
+  );
+
   testWidgets('tema gelap dan English: HUD dipaparkan tanpa overflow', (
     tester,
   ) async {
@@ -274,6 +303,7 @@ void main() {
         ),
         sharedPreferencesProvider.overrideWithValue(prefs),
         voiceGuideProvider.overrideWithValue(voice),
+        speedLimitServiceProvider.overrideWithValue(FakeSpeedLimitService()),
         screenAwakeProvider.overrideWithValue(awake),
       ],
     );

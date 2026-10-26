@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:math' as math;
-import 'dart:ui' show ImageFilter;
 
 import 'package:app_links/app_links.dart';
 import 'package:dio/dio.dart';
@@ -17,12 +16,14 @@ import '../../../core/theme/motion.dart';
 import '../../../core/theme/theme_controller.dart';
 import '../../../core/utils/geo.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../route_preview/domain/route_options_merge.dart';
 import '../../route_preview/presentation/route_preview_controller.dart';
 import '../../route_preview/presentation/route_summary_sheet.dart';
 import '../../offline_maps/presentation/offline_maps_sheet.dart';
 import '../../search/domain/location_link.dart';
+import '../../search/presentation/recent_places_bar.dart';
 import '../../search/presentation/trip_planner_page.dart';
-import '../../settings/presentation/appearance_sheet.dart';
+import '../../settings/presentation/settings_sheet.dart';
 import '../../navigation/data/location_sources.dart';
 import '../../navigation/data/navigation_settings.dart';
 import '../../navigation/domain/camera_planner.dart';
@@ -32,6 +33,7 @@ import '../../navigation/presentation/navigation_controller.dart';
 import '../../navigation/presentation/navigation_frame_driver.dart';
 import '../../navigation/presentation/navigation_hud.dart';
 import '../../navigation/presentation/navigation_settings_sheet.dart';
+import 'idle_follow.dart';
 import 'location_prompt.dart';
 import 'map_view.dart';
 
@@ -53,6 +55,14 @@ class _MapScreenState extends ConsumerState<MapScreen>
   bool _incomingLocationReceived = false;
   bool _locating = false;
 
+  /// Kamera mengikut pengguna semasa tidak bernavigasi (gaya Waze). Strim lokasinya hanya hidup
+  /// ketika pengguna benar-benar diikuti; lihat [IdleFollow].
+  late final IdleFollow _idle = IdleFollow(
+    fixes: () => ref.read(locationServiceProvider).trackingFixes(),
+    onFix: _followFix,
+  );
+  DateTime? _backgroundedAt;
+
   @override
   void initState() {
     super.initState();
@@ -70,6 +80,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
 
   @override
   void dispose() {
+    _idle.dispose();
     _ticker?.dispose();
     _driver?.dispose();
     unawaited(_linkSubscription?.cancel());
@@ -79,8 +90,15 @@ class _MapScreenState extends ConsumerState<MapScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      // Di latar belakang tanpa navigasi, peta tidak kelihatan: lepaskan GPS.
+      _backgroundedAt = DateTime.now();
+      _idle.suspend(_IdleSuspend.background);
+    }
     // Pengguna mungkin menukar kebenaran di Tetapan sistem lalu kembali.
     if (state == AppLifecycleState.resumed) {
+      _idle.resume(_IdleSuspend.background);
+      unawaited(_recenterAfterBackground());
       ref.read(locationAccessProvider.notifier).refresh();
       final navigation = ref.read(navigationControllerProvider);
       if (navigation.phase == NavPhase.active && !navigation.simulated) {
@@ -93,21 +111,105 @@ class _MapScreenState extends ConsumerState<MapScreen>
     }
   }
 
-  /// Pada pelancaran, hanya gunakan lokasi jika kebenaran sudah diberi. Minta kebenaran apabila
-  /// pengguna sendiri memilih tindakan yang memerlukan lokasi.
+  /// Pada pelancaran app terus membuka peta di lokasi pengguna (gaya Waze), tanpa perlu menekan
+  /// "Lokasi saya".
+  ///
+  /// Kebenaran yang belum diminta dimohon di sini (penjelasan dahulu, kemudian dialog sistem); ditolak
+  /// kekal atau GPS dimatikan tidak mengganggu pelancaran. Kamera pergi dahulu ke lokasi terakhir yang
+  /// diketahui (serta-merta, walaupun lapuk) supaya peta tidak tersangkut di Kuala Lumpur sementara
+  /// menunggu GPS, kemudian diperhalusi dengan fix segar.
   Future<void> _handleStartupLocation() async {
     if (_startupLocationHandled || !mounted) return;
     _startupLocationHandled = true;
 
-    final access = await ref.read(locationServiceProvider).access();
-    if (access == LocationAccess.granted) await _flyToUser();
+    final service = ref.read(locationServiceProvider);
+    var access = await service.access();
+    if (access == LocationAccess.askable && mounted) {
+      access = await ensureLocationAccess(context, ref);
+    } else {
+      await ref.read(locationAccessProvider.notifier).refresh();
+    }
+    if (access != LocationAccess.granted || !mounted) return;
+
+    await _centerOnUser();
+    // Selepas itu kamera terus mengikut pengguna sehingga mereka menggerakkan peta sendiri.
+    if (mounted && !_incomingLocationReceived) _idle.engage();
   }
 
-  Future<void> _flyToUser({bool showFailure = false}) async {
+  /// Letakkan kamera pada pengguna: lokasi terakhir diketahui dahulu (serta-merta), kemudian fix segar.
+  Future<void> _centerOnUser() async {
+    final last = await ref.read(locationServiceProvider).lastKnownFix();
+    if (!mounted) return;
+    if (last != null && !_incomingLocationReceived) {
+      final camera = await _camera.future;
+      if (!mounted) return;
+      await camera.flyTo(last.point, zoom: 15);
+    }
+    await _flyToUser(alreadyAt: last?.point);
+  }
+
+  /// Kamera mengikut pengguna: anjakkan pusat sahaja, zum/condongan/arah pilihan pengguna dikekalkan.
+  void _followFix(LocationFix fix) {
+    final camera = _readyCamera;
+    if (camera == null || !mounted) return;
+    // Navigasi memiliki kamera sepenuhnya; fix lewat (sebelum langganan dibatalkan) tidak boleh menyentuhnya.
+    if (ref.read(navigationControllerProvider).isActive) return;
+    final pose = camera.pose;
+    if (pose == null) {
+      unawaited(camera.flyTo(fix.point, zoom: 15));
+      return;
+    }
+    // Hingar GPS ketika pegun tidak patut menggoyang kamera.
+    if (distanceMeters(pose.center, fix.point) < 4) return;
+    unawaited(
+      camera.animateTo(
+        CameraPose(
+          center: fix.point,
+          zoom: pose.zoom,
+          tilt: pose.tilt,
+          bearing: pose.bearing,
+        ),
+      ),
+    );
+  }
+
+  /// App dibuka semula selepas lama di latar belakang: pengguna mungkin sudah berpindah jauh, jadi
+  /// pusatkan peta dan mula mengikut semula (kecuali navigasi/laluan sedang berjalan atau lokasi dikongsi).
+  Future<void> _recenterAfterBackground() async {
+    final since = _backgroundedAt;
+    _backgroundedAt = null;
+    if (since == null || !mounted || _incomingLocationReceived) return;
+    if (DateTime.now().difference(since) <
+        ref.read(idleRecenterAfterProvider)) {
+      return;
+    }
+    if (ref.read(navigationControllerProvider).isActive ||
+        ref.read(routePreviewControllerProvider) is! RouteIdle) {
+      return;
+    }
+    if (await ref.read(locationServiceProvider).access() !=
+            LocationAccess.granted ||
+        !mounted) {
+      return;
+    }
+    _idle.engage();
+    await _centerOnUser();
+  }
+
+  /// [alreadyAt]: kamera sudah di titik ini; fix segar yang sangat hampir tidak perlu animasi kedua.
+  Future<void> _flyToUser({
+    bool showFailure = false,
+    GeoPoint? alreadyAt,
+  }) async {
     final fix = await ref
         .read(locationServiceProvider)
         .currentFix(timeout: const Duration(seconds: 12));
     if (!mounted || (!showFailure && _incomingLocationReceived)) return;
+    if (fix != null &&
+        alreadyAt != null &&
+        distanceMeters(alreadyAt, fix.point) < 30) {
+      return;
+    }
     if (fix == null) {
       if (showFailure) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -149,6 +251,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
     setState(() => _locating = true);
     try {
       await _flyToUser(showFailure: true);
+      if (mounted) _idle.engage();
     } finally {
       if (mounted) setState(() => _locating = false);
     }
@@ -196,6 +299,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
     var shared = sharedLocationFromUri(uri);
     if (shared != null || _isShortMapLink(uri)) {
       _incomingLocationReceived = true;
+      _idle.release();
     }
     if (shared == null && _isShortMapLink(uri)) {
       try {
@@ -287,8 +391,14 @@ class _MapScreenState extends ConsumerState<MapScreen>
 
   void _onNavigationChanged(NavigationState? prev, NavigationState next) {
     final wasActive = prev?.isActive ?? false;
-    if (next.isActive && !wasActive) unawaited(_beginDriving());
-    if (!next.isActive && wasActive) _endDriving();
+    if (next.isActive && !wasActive) {
+      _idle.suspend(_IdleSuspend.navigation);
+      unawaited(_beginDriving());
+    }
+    if (!next.isActive && wasActive) {
+      _endDriving();
+      _idle.resume(_IdleSuspend.navigation);
+    }
   }
 
   Future<void> _beginDriving() async {
@@ -359,7 +469,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
         .read(navigationControllerProvider.notifier)
         .start(
           route,
-          ready.query,
+          ready.selectedQuery,
           uiLanguage: uiLanguage,
           source: simulate ? routeSimulation(NavRoute(route)) : null,
         );
@@ -401,7 +511,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
       shape,
       padding: EdgeInsets.fromLTRB(
         40,
-        media.padding.top + 220,
+        media.padding.top + 260,
         40,
         140 + media.padding.bottom,
       ),
@@ -444,19 +554,44 @@ class _MapScreenState extends ConsumerState<MapScreen>
     if (!_camera.isCompleted) _camera.complete(controller);
   }
 
-  Future<void> _fitRoute(List<GeoPoint> points) async {
+  /// Memuatkan semua pilihan laluan dalam pandangan di atas lembaran ringkasan. Lembaran dengan
+  /// kad pilihan lebih tinggi daripada lembaran satu laluan, dan membesar mengikut saiz teks sistem.
+  Future<void> _fitRoutes(RouteReady ready) async {
     final camera = await _camera.future;
     if (!mounted) return;
     final media = MediaQuery.of(context);
+    final sheetHeight =
+        (ready.options.length > 1 ? 420.0 : 360.0) *
+        media.textScaler.scale(1).clamp(1.0, 1.4);
     await camera.fitTo(
-      points,
+      [for (final option in ready.options) ...option.points],
       padding: EdgeInsets.fromLTRB(
         40,
         media.padding.top + 80,
-        40,
-        300 + media.padding.bottom,
+        // Ruang untuk butang zum dan lokasi di kanan supaya destinasi tidak tertutup.
+        88,
+        sheetHeight + media.padding.bottom,
       ),
     );
+  }
+
+  /// Mengetuk laluan alternatif pada peta memilihnya (seperti aplikasi peta lain).
+  void _onMapTap(GeoPoint point) {
+    final state = ref.read(routePreviewControllerProvider);
+    if (state is! RouteReady || state.options.length < 2) return;
+    final zoom = _readyCamera?.pose?.zoom ?? 12;
+    final index = nearestRouteIndex(
+      [for (final o in state.options) o.points],
+      point,
+      toleranceM: metersPerPixel(zoom, point.lat) * 28,
+    );
+    if (index == null || index == state.selectedIndex) return;
+    _selectRoute(index);
+  }
+
+  void _selectRoute(int index) {
+    HapticFeedback.selectionClick();
+    ref.read(routePreviewControllerProvider.notifier).select(index);
   }
 
   @override
@@ -484,11 +619,18 @@ class _MapScreenState extends ConsumerState<MapScreen>
     );
 
     ref.listen<RoutePreviewState>(routePreviewControllerProvider, (prev, next) {
+      // Semasa laluan dipratonton, kamera dipegang oleh paparan laluan, bukan pengguna.
+      if (next is RouteIdle) {
+        _idle.resume(_IdleSuspend.route);
+        if (prev is! RouteIdle && _idle.following) unawaited(_flyToUser());
+      } else {
+        _idle.suspend(_IdleSuspend.route);
+      }
       // Muatkan laluan dalam pandangan hanya bila set pilihan baharu tiba, bukan bila pengguna
       // sekadar bertukar antara laluan yang sama.
       if (next is RouteReady &&
           (prev is! RouteReady || !identical(prev.options, next.options))) {
-        _fitRoute(next.selected.points);
+        unawaited(_fitRoutes(next));
       }
     });
 
@@ -510,8 +652,9 @@ class _MapScreenState extends ConsumerState<MapScreen>
         vehicle: theme.colorScheme.primary,
       ),
       onLongPress: navigating ? (_) {} : _onLongPress,
+      onTap: navigating ? null : _onMapTap,
       onReady: _onMapReady,
-      onUserGesture: navigating ? _driver?.userInteracted : null,
+      onUserGesture: navigating ? _driver?.userInteracted : _idle.release,
     );
 
     return Scaffold(
@@ -525,33 +668,46 @@ class _MapScreenState extends ConsumerState<MapScreen>
               bottom: false,
               child: Padding(
                 padding: const EdgeInsets.all(12),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _GlassIconButton(
-                      icon: Icons.tune_rounded,
-                      tooltip: l10n.appearanceTooltip,
-                      onPressed: () => showAppearanceSheet(context),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _GlassIconButton(
+                          icon: Icons.tune_rounded,
+                          tooltip: l10n.appearanceTooltip,
+                          onPressed: () => showSettingsSheet(context),
+                        ),
+                        Expanded(
+                          // topCenter, bukan Center: Row mengisi seluruh tinggi skrin, jadi Center
+                          // meletakkan pil di tengah peta.
+                          child: Align(
+                            alignment: Alignment.topCenter,
+                            child: _SearchPill(
+                              label: l10n.searchPillHint,
+                              hint: !_hintDismissed && state is RouteIdle
+                                  ? l10n.mapHintLongPress
+                                  : null,
+                              onTap: _openPlanner,
+                            ),
+                          ),
+                        ),
+                        _GlassIconButton(
+                          icon: Icons.cloud_download_outlined,
+                          tooltip: l10n.offlineMapsOpen,
+                          onPressed: () => showOfflineMapsSheet(context),
+                        ),
+                      ],
                     ),
-                    Expanded(
-                      // topCenter, bukan Center: Row mengisi seluruh tinggi skrin, jadi Center
-                      // meletakkan pil di tengah peta.
-                      child: Align(
-                        alignment: Alignment.topCenter,
-                        child: _SearchPill(
-                          label: l10n.searchPillHint,
-                          hint: !_hintDismissed && state is RouteIdle
-                              ? l10n.mapHintLongPress
-                              : null,
-                          onTap: _openPlanner,
+                    if (state is RouteIdle) ...[
+                      const SizedBox(height: 10),
+                      RecentPlacesBar(
+                        onPick: (place) => unawaited(
+                          _planSelection(TripSelection(destination: place)),
                         ),
                       ),
-                    ),
-                    _GlassIconButton(
-                      icon: Icons.cloud_download_outlined,
-                      tooltip: l10n.offlineMapsOpen,
-                      onPressed: () => showOfflineMapsSheet(context),
-                    ),
+                    ],
                   ],
                 ),
               ),
@@ -594,15 +750,6 @@ class _MapScreenState extends ConsumerState<MapScreen>
                       ],
                     ),
                   ),
-                  if (state is RouteReady)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                      child: NavStartBar(
-                        onStart: () => _startNavigation(state, simulate: false),
-                        onSimulate: () =>
-                            _startNavigation(state, simulate: true),
-                      ),
-                    ),
                   AnimatedSwitcher(
                     duration: Motion.of(context, Motion.normal),
                     switchInCurve: Motion.enter,
@@ -618,12 +765,19 @@ class _MapScreenState extends ConsumerState<MapScreen>
                         ? RouteSummarySheet(
                             key: const ValueKey('route-sheet'),
                             state: state,
-                            onSelect: controller.select,
-                            onAvoidTollsChanged: controller.setAvoidTolls,
+                            onSelect: _selectRoute,
+                            onVehicleChanged: (v) =>
+                                unawaited(controller.setVehicle(v)),
                             onRetry: controller.retry,
                             onClear: controller.clear,
                             onOpenOfflineMaps: () =>
                                 showOfflineMapsSheet(context),
+                            onStart: state is RouteReady
+                                ? () => _startNavigation(state, simulate: false)
+                                : null,
+                            onSimulate: state is RouteReady
+                                ? () => _startNavigation(state, simulate: true)
+                                : null,
                           )
                         : const SizedBox.shrink(key: ValueKey('no-sheet')),
                   ),
@@ -661,7 +815,10 @@ class _MapScreenState extends ConsumerState<MapScreen>
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   if (progress != null && !arrived)
-                    ManeuverBanner(progress: progress),
+                    ManeuverBanner(
+                      progress: progress,
+                      liveAlongM: _driver?.alongM,
+                    ),
                   NavStatusChip(state: nav),
                 ],
               ),
@@ -681,7 +838,11 @@ class _MapScreenState extends ConsumerState<MapScreen>
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   if (progress != null && !arrived)
-                    SpeedBubble(speedMps: progress.speedMps),
+                    SpeedBubble(
+                      speedMps: progress.speedMps,
+                      limitKmh: nav.currentLimitKmh,
+                      overspeed: nav.overspeed,
+                    ),
                   const SizedBox(width: 12),
                   const Spacer(),
                   const SizedBox(width: 12),
@@ -862,63 +1023,62 @@ class _SearchPill extends StatelessWidget {
         shadowColor: Colors.black.withValues(alpha: 0.16),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(22),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Material(
-              color: fg.glassSurface,
-              shape: RoundedRectangleBorder(
+          // Tanpa BackdropFilter: kabur di atas pandangan peta asli dirender semula setiap kali peta
+          // bergerak dan menjejaskan telefon lemah; permukaan kaca sudah separa lutsinar.
+          child: Material(
+            color: fg.glassSurface,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(22),
+              side: BorderSide(color: fg.glassBorder),
+            ),
+            child: InkWell(
+              key: const ValueKey('search-pill'),
+              customBorder: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(22),
-                side: BorderSide(color: fg.glassBorder),
               ),
-              child: InkWell(
-                key: const ValueKey('search-pill'),
-                customBorder: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(22),
-                ),
-                onTap: onTap,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(minHeight: 48),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    child: Row(
-                      children: [
-                        DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primary.withValues(
-                              alpha: 0.12,
-                            ),
-                            borderRadius: BorderRadius.circular(14),
+              onTap: onTap,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 48),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  child: Row(
+                    children: [
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.12,
                           ),
-                          child: SizedBox(
-                            width: 34,
-                            height: 34,
-                            child: Icon(
-                              Icons.search_rounded,
-                              color: theme.colorScheme.primary,
-                            ),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: SizedBox(
+                          width: 34,
+                          height: 34,
+                          child: Icon(
+                            Icons.search_rounded,
+                            color: theme.colorScheme.primary,
                           ),
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            label,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              color: theme.colorScheme.onSurface,
-                            ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            color: theme.colorScheme.onSurface,
                           ),
                         ),
-                        Icon(
-                          Icons.arrow_forward_rounded,
-                          size: 20,
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ],
-                    ),
+                      ),
+                      Icon(
+                        Icons.arrow_forward_rounded,
+                        size: 20,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -928,4 +1088,11 @@ class _SearchPill extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Sebab [IdleFollow] digantung sementara.
+abstract final class _IdleSuspend {
+  static const background = 'background';
+  static const navigation = 'navigation';
+  static const route = 'route';
 }

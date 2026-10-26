@@ -11,6 +11,7 @@ class NavigationSettings {
     this.voiceEnabled = true,
     this.voiceLanguage,
     this.cameraMode = NavCameraMode.auto,
+    this.overspeedToleranceKmh = 5,
   });
 
   final bool voiceEnabled;
@@ -19,11 +20,15 @@ class NavigationSettings {
   final VoiceLanguage? voiceLanguage;
   final NavCameraMode cameraMode;
 
+  /// Berapa km/j di atas had laju sebelum amaran; -1 = amaran dimatikan.
+  final int overspeedToleranceKmh;
+
   NavigationSettings copyWith({
     bool? voiceEnabled,
     VoiceLanguage? voiceLanguage,
     bool clearVoiceLanguage = false,
     NavCameraMode? cameraMode,
+    int? overspeedToleranceKmh,
   }) {
     return NavigationSettings(
       voiceEnabled: voiceEnabled ?? this.voiceEnabled,
@@ -31,6 +36,8 @@ class NavigationSettings {
           ? null
           : (voiceLanguage ?? this.voiceLanguage),
       cameraMode: cameraMode ?? this.cameraMode,
+      overspeedToleranceKmh:
+          overspeedToleranceKmh ?? this.overspeedToleranceKmh,
     );
   }
 
@@ -39,15 +46,22 @@ class NavigationSettings {
       other is NavigationSettings &&
       other.voiceEnabled == voiceEnabled &&
       other.voiceLanguage == voiceLanguage &&
-      other.cameraMode == cameraMode;
+      other.cameraMode == cameraMode &&
+      other.overspeedToleranceKmh == overspeedToleranceKmh;
 
   @override
-  int get hashCode => Object.hash(voiceEnabled, voiceLanguage, cameraMode);
+  int get hashCode => Object.hash(
+    voiceEnabled,
+    voiceLanguage,
+    cameraMode,
+    overspeedToleranceKmh,
+  );
 }
 
 const _voiceKey = 'nav.voice';
 const _languageKey = 'nav.voiceLanguage';
 const _cameraKey = 'nav.cameraMode';
+const _overspeedKey = 'nav.overspeedTolerance';
 
 class NavigationSettingsController extends Notifier<NavigationSettings> {
   @override
@@ -58,6 +72,7 @@ class NavigationSettingsController extends Notifier<NavigationSettings> {
       voiceEnabled: prefs.getBool(_voiceKey) ?? true,
       voiceLanguage: lang == null ? null : VoiceLanguage.fromCode(lang),
       cameraMode: NavCameraMode.fromName(prefs.getString(_cameraKey)),
+      overspeedToleranceKmh: prefs.getInt(_overspeedKey) ?? 5,
     );
   }
 
@@ -77,6 +92,11 @@ class NavigationSettingsController extends Notifier<NavigationSettings> {
     } else {
       await prefs.setString(_languageKey, language.code);
     }
+  }
+
+  Future<void> setOverspeedTolerance(int kmh) async {
+    state = state.copyWith(overspeedToleranceKmh: kmh);
+    await ref.read(sharedPreferencesProvider).setInt(_overspeedKey, kmh);
   }
 
   Future<void> setCameraMode(NavCameraMode mode) async {

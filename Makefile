@@ -1,4 +1,4 @@
-.PHONY: help test analyze l10n tiles serve-tiles run-android
+.PHONY: help test analyze l10n tiles serve-tiles run-android release-android
 
 help:
 	@echo "make test           ujian app (tanpa golden)"
@@ -7,6 +7,7 @@ help:
 	@echo "make tiles          bina pek tile offline (Docker, ~10 min) ke tools/tiles/out"
 	@echo "make serve-tiles    sajikan tools/tiles/out di :8099 (menyokong Range) untuk menguji muat turun"
 	@echo "make run-android    jalankan app pada emulator dengan pek tile setempat"
+	@echo "make release-android  bina APK release (arm64 + armv7), simbol dipisah; tandatangan: app/android/key.properties"
 
 test:
 	cd app && flutter test --exclude-tags golden
@@ -41,3 +42,9 @@ run-android:
 		done; \
 		fi; \
 	cd app && flutter run --dart-define=OFFLINE_MANIFEST_URL=http://10.0.2.2:8099/manifest.json
+
+# APK release per-ABI (lebih kecil pada peranti): simbol debug Dart dipisah ke app/build/symbols
+# (simpan untuk menyahobfuskan jejak ranap). Tanpa app/android/key.properties ia ditandatangani dengan
+# kunci debug dan tidak boleh diterbitkan.
+release-android:
+	cd app && flutter build apk --release --split-per-abi --split-debug-info=build/symbols

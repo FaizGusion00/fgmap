@@ -9,6 +9,9 @@ import 'offline_map_store.dart';
 abstract interface class OfflineEngine {
   Future<void> open(String tarPath);
   Future<String> route(String requestJson);
+
+  /// Atribut tepi jalan sepanjang jejak (had laju dsb.).
+  Future<String> traceAttributes(String requestJson);
   Future<void> close();
 }
 
@@ -22,6 +25,10 @@ class PluginOfflineEngine implements OfflineEngine {
 
   @override
   Future<String> route(String requestJson) => _plugin.route(requestJson);
+
+  @override
+  Future<String> traceAttributes(String requestJson) =>
+      _plugin.traceAttributes(requestJson);
 
   @override
   Future<void> close() => _plugin.close();
@@ -49,6 +56,11 @@ class OfflineEngineHost {
 
   /// Memulangkan JSON respons Valhalla. Melempar [OfflineEngineUnavailable] jika tiada pek dipasang.
   Future<String> route(String requestJson) => _serial(() async {
+    final engine = await _openIfNeeded();
+    return engine.route(requestJson);
+  });
+
+  Future<OfflineEngine> _openIfNeeded() async {
     final installed = await _store.readInstalled();
     if (installed == null) throw const OfflineEngineUnavailable();
 
@@ -58,7 +70,13 @@ class OfflineEngineHost {
       await _engine.open(installed.tarPath);
       _openedKey = key;
     }
-    return _engine.route(requestJson);
+    return _engine;
+  }
+
+  /// Atribut tepi jalan; syarat sama dengan [route] (pek mesti dipasang).
+  Future<String> traceAttributes(String requestJson) => _serial(() async {
+    final engine = await _openIfNeeded();
+    return engine.traceAttributes(requestJson);
   });
 
   /// Menjalankan [action] dengan enjin tertutup (cth. mengganti atau memadam pek).

@@ -1,6 +1,6 @@
 {
   "@@locale": "en",
-  "appName": "FGMap",
+  "appName": "FGMaps",
   "mapHintLongPress": "Long-press the map to choose a destination",
   "mapZoomIn": "Zoom in",
   "mapZoomOut": "Zoom out",
@@ -16,7 +16,7 @@
   },
   "mapAttribution": "© OpenStreetMap contributors · OpenFreeMap",
   "locationRationaleTitle": "Allow location access?",
-  "locationRationaleBody": "Your location is used to show where you are on the map and as the starting point of a route. It is sent to the FGMap server only to calculate the route.",
+  "locationRationaleBody": "Your location is used to show where you are on the map and as the starting point of a route. It is sent to the FGMaps server only to calculate the route.",
   "locationAllow": "Allow",
   "locationNotNow": "Not now",
   "locationOpenSettings": "Open Settings",
@@ -25,8 +25,6 @@
   "routeSheetSemantics": "Route summary",
   "routeCalculating": "Calculating route…",
   "routeLocationUnavailable": "Can't get an accurate GPS fix. Check location access and GPS, then try again.",
-  "routeOptionLabel": "Route {index}",
-  "routeAvoidTolls": "Avoid tolls",
   "routeHasTolls": "Has tolls",
   "routeNoTolls": "No tolls",
   "routeClear": "Clear route",
@@ -41,9 +39,9 @@
   "distanceKilometers": "{km} km",
   "durationMinutes": "{minutes} min",
   "durationHoursMinutes": "{hours} h {minutes} min",
-  "appearanceTooltip": "Appearance",
+  "appearanceTooltip": "Settings",
   "appearanceTitle": "Appearance",
-  "aboutTitle": "About FGMap",
+  "aboutTitle": "About FGMaps",
   "aboutDescription": "Community navigation for Malaysia",
   "aboutVersion": "Version",
   "aboutVersionLoading": "Loading…",
@@ -143,7 +141,7 @@
   "navVoiceTitle": "Voice guidance",
   "navVoiceLanguage": "Voice language",
   "navVoiceFollowApp": "Follow app",
-  "navVoiceMalay": "Bahasa Melayu",
+  "navVoiceMalay": "Malay",
   "navVoiceEnglish": "English",
   "navCameraTitle": "Camera view",
   "navCameraAutoHint": "3D on straights, 2D approaching turns and roundabouts",
@@ -157,5 +155,62 @@
       }
     }
   },
-  "navAcquiring": "Finding GPS signal…"
+  "navAcquiring": "Finding GPS signal…",
+  "routeFastest": "Fastest",
+  "routeShortest": "Shortest",
+  "routeNoHighways": "No highways",
+  "routeAlternative": "Alternative",
+  "routeVia": "via {road}",
+  "@routeVia": {
+    "placeholders": {
+      "road": {
+        "type": "String"
+      }
+    }
+  },
+  "routeFindingTo": "Finding routes to {place}…",
+  "@routeFindingTo": {
+    "placeholders": {
+      "place": {
+        "type": "String"
+      }
+    }
+  },
+  "routeVehicleCar": "Car",
+  "routeVehicleMotorcycle": "Motorcycle",
+  "settingsTitle": "Settings",
+  "settingsAppearance": "Appearance",
+  "settingsNavigation": "Navigation",
+  "settingsMaps": "Maps",
+  "settingsOfflineHint": "Download maps to navigate without internet",
+  "settingsAboutHint": "Version, developer and copyright",
+  "themeSystemShort": "Auto",
+  "searchCatFuel": "Fuel",
+  "searchCatFood": "Food",
+  "searchCatMosque": "Mosque",
+  "searchCatToilet": "Toilets",
+  "searchCatParking": "Parking",
+  "searchCatHospital": "Hospital",
+  "searchCategories": "Search nearby",
+  "reportTitle": "Report here",
+  "reportButtonTooltip": "Report",
+  "reportTypePolice": "Police",
+  "reportTypeAccident": "Accident",
+  "reportTypeHazard": "Hazard",
+  "reportTypeJam": "Traffic jam",
+  "reportTypeClosed": "Road closed",
+  "reportTypeBrokenDown": "Broken-down vehicle",
+  "reportTypeFlood": "Flood",
+  "reportCreated": "Report sent. Thank you!",
+  "reportConfirmedExisting": "A similar report is already nearby; it has been confirmed.",
+  "reportNoLocation": "Your location isn't available. Reports must be made from your real location.",
+  "reportLocalOnlyNote": "Reports are stored on this device only and aren't shared with other drivers yet.",
+  "reportStillThereTitle": "Is the {type} still there?",
+  "reportStillThereYes": "Yes, still there",
+  "reportStillThereNo": "It's gone",
+  "reportAhead": "{type} {distance} ahead",
+  "navSpeedLimit": "Speed limit",
+  "navOverspeedTitle": "Speeding alert",
+  "navOverspeedOff": "Off",
+  "navOverspeedHint": "Chime and red sign when over the speed limit. Limits are not available on every road."
 }

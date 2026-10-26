@@ -21,6 +21,9 @@ class _Engine implements OfflineEngine {
   Future<String> route(String requestJson) async => '{}';
 
   @override
+  Future<String> traceAttributes(String requestJson) async => '{}';
+
+  @override
   Future<void> close() async => log.add('close');
 }
 

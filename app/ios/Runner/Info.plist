@@ -7,16 +7,16 @@
 		<key>CFBundleDevelopmentRegion</key>
 		<string>$(DEVELOPMENT_LANGUAGE)</string>
 		<key>NSLocationWhenInUseUsageDescription</key>
-		<string>FGMap uses your location to show where you are on the map and as the starting point of a route.</string>
+		<string>FGMaps uses your location to show where you are on the map and as the starting point of a route.</string>
 		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>FGMap uses your location during navigation, including when the screen is off, to guide you turn by turn.</string>
+	<string>FGMaps uses your location during navigation, including when the screen is off, to guide you turn by turn.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>location</string>
 		<string>audio</string>
 	</array>
 	<key>CFBundleDisplayName</key>
-		<string>FGMap</string>
+		<string>FGMaps</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
