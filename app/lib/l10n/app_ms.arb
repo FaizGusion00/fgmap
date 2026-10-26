@@ -451,5 +451,27 @@
   "navSpeedLimit": "Had laju",
   "navOverspeedTitle": "Amaran laju lebih",
   "navOverspeedOff": "Mati",
-  "navOverspeedHint": "Bunyi dan tanda merah apabila melebihi had laju. Had laju tidak lengkap di semua jalan."
+  "navOverspeedHint": "Bunyi dan tanda merah apabila melebihi had laju. Had laju tidak lengkap di semua jalan.",
+  "savedBySearch": "Cari alamat",
+  "savedBySearchHint": "Taip nama tempat atau alamat",
+  "savedByCurrent": "Guna lokasi semasa",
+  "savedByCurrentHint": "Simpan kedudukan anda sekarang",
+  "savedCurrentLocation": "Lokasi semasa",
+  "savedLocating": "Mencari lokasi anda…",
+  "savedGoHint": "Ketik untuk mula navigasi · tekan lama untuk tukar",
+  "autoStartCancel": "Batal",
+  "navThemeTitle": "Paparan peta",
+  "settingsSavedPlaces": "Rumah dan Kerja",
+  "savedNotSet": "Belum ditetapkan",
+  "autoStartCountdown": "Memulakan navigasi ke {name} dalam {seconds}…",
+  "@autoStartCountdown": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "seconds": {
+        "type": "int"
+      }
+    }
+  }
 }

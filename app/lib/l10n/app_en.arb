@@ -351,5 +351,27 @@
   "navSpeedLimit": "Speed limit",
   "navOverspeedTitle": "Speeding alert",
   "navOverspeedOff": "Off",
-  "navOverspeedHint": "Chime and red sign when over the speed limit. Limits are not available on every road."
+  "navOverspeedHint": "Chime and red sign when over the speed limit. Limits are not available on every road.",
+  "savedBySearch": "Search for an address",
+  "savedBySearchHint": "Type a place name or address",
+  "savedByCurrent": "Use current location",
+  "savedByCurrentHint": "Save where you are right now",
+  "savedCurrentLocation": "Current location",
+  "savedLocating": "Finding your location…",
+  "savedGoHint": "Tap to start navigating · long-press to change",
+  "autoStartCancel": "Cancel",
+  "navThemeTitle": "Map appearance",
+  "settingsSavedPlaces": "Home and Work",
+  "savedNotSet": "Not set",
+  "autoStartCountdown": "Starting navigation to {name} in {seconds}…",
+  "@autoStartCountdown": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "seconds": {
+        "type": "int"
+      }
+    }
+  }
 }

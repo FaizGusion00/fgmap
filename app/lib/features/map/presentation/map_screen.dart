@@ -38,10 +38,12 @@ import '../../navigation/presentation/car/car_mesh.dart' show VehicleKind;
 import '../../navigation/presentation/car/car_renderer.dart';
 import '../../navigation/presentation/car/vehicle_overlay.dart';
 import '../../navigation/presentation/navigation_settings_sheet.dart';
+import 'auto_start_banner.dart';
 import 'idle_follow.dart';
 import 'location_prompt.dart';
 import '../../saved_places/domain/saved_place.dart';
 import '../../search/domain/place.dart';
+import '../../saved_places/presentation/assign_place_flow.dart';
 import '../../saved_places/presentation/save_place_sheet.dart';
 import '../../reports/domain/report.dart';
 import '../../reports/presentation/report_alerts_controller.dart';
@@ -67,6 +69,9 @@ class _MapScreenState extends ConsumerState<MapScreen>
   final AppLinks _appLinks = AppLinks();
   StreamSubscription<Uri>? _linkSubscription;
   bool _hintDismissed = false;
+
+  /// Nama destinasi yang sedang dikira mundur untuk navigasi automatik (Rumah/Kerja); null = tiada.
+  String? _autoStart;
   bool _startupLocationHandled = false;
   bool _incomingLocationReceived = false;
   bool _locating = false;
@@ -365,6 +370,35 @@ class _MapScreenState extends ConsumerState<MapScreen>
           destinationLabel: selection.destination.name,
           radiusM: selection.destination.routingRadiusM,
         );
+  }
+
+  /// Rumah/Kerja diketik: kira laluan, kemudian mula navigasi selepas kiraan 3 saat yang boleh
+  /// dibatalkan. Jika laluan gagal atau kebenaran lokasi tiada, kekal pada pratonton biasa.
+  Future<void> _goNow(Place place) async {
+    await _planSelection(TripSelection(destination: place));
+    if (!mounted) return;
+    final state = ref.read(routePreviewControllerProvider);
+    if (state is RouteReady &&
+        !ref.read(navigationControllerProvider).isActive) {
+      unawaited(Haptics.selection());
+      setState(() => _autoStart = place.name);
+    }
+  }
+
+  void _cancelAutoStart() {
+    if (_autoStart != null) setState(() => _autoStart = null);
+  }
+
+  Future<void> _finishAutoStart() async {
+    if (!mounted || _autoStart == null) return;
+    setState(() => _autoStart = null);
+    // Keadaan terkini (pengguna mungkin menukar kenderaan atau laluan dalam 3 saat itu).
+    final state = ref.read(routePreviewControllerProvider);
+    if (state is! RouteReady ||
+        ref.read(navigationControllerProvider).isActive) {
+      return;
+    }
+    await _startNavigation(state, simulate: false);
   }
 
   Future<void> _planToDestination(
@@ -770,7 +804,6 @@ class _MapScreenState extends ConsumerState<MapScreen>
     final theme = Theme.of(context);
     final fg = context.fg;
     final l10n = AppLocalizations.of(context);
-    final themeSettings = ref.watch(themeControllerProvider);
     final state = ref.watch(routePreviewControllerProvider);
     final access = ref.watch(locationAccessProvider);
     final controller = ref.read(routePreviewControllerProvider.notifier);
@@ -784,18 +817,25 @@ class _MapScreenState extends ConsumerState<MapScreen>
     final vehicleKind = vehicle == RouteVehicle.motorcycle
         ? VehicleKind.motorcycle
         : VehicleKind.car;
-    final mapIsDark = switch (themeSettings.mode) {
-      AppThemeMode.light => false,
-      AppThemeMode.dark => true,
-      AppThemeMode.sun => ref.watch(sunDarkProvider),
-      AppThemeMode.system =>
-        MediaQuery.platformBrightnessOf(context) == Brightness.dark,
-    };
+    // Sumber tunggal dengan app.dart: mod matahari sudah dipetakan kepada cerah/gelap di sana.
+    final mapIsDark = isDarkTheme(
+      ref.watch(effectiveThemeModeProvider),
+      MediaQuery.platformBrightnessOf(context),
+    );
 
     ref.listen<NavigationState>(
       navigationControllerProvider,
       _onNavigationChanged,
     );
+    // Sebarang tindakan pengguna pada laluan (tukar kenderaan, pilih laluan lain, padam) membatalkan
+    // kiraan mundur; navigasi tidak boleh bermula di luar kehendaknya.
+    ref.listen<RoutePreviewState>(routePreviewControllerProvider, (prev, next) {
+      if (_autoStart == null) return;
+      final changed =
+          next is! RouteReady ||
+          (prev is RouteReady && prev.selectedIndex != next.selectedIndex);
+      if (changed) _cancelAutoStart();
+    });
 
     // Penjejak lokasi hidup selagi kebenaran ada (ia juga digantung sendiri di latar belakang dan
     // semasa navigasi); berhenti sepenuhnya jika kebenaran ditarik balik.
@@ -938,8 +978,16 @@ class _MapScreenState extends ConsumerState<MapScreen>
                         onPick: (place) => unawaited(
                           _planSelection(TripSelection(destination: place)),
                         ),
-                        onAssign: (kind) =>
-                            unawaited(_openPlanner(assign: kind)),
+                        onGo: (place) => unawaited(_goNow(place)),
+                        onAssign: (kind) => unawaited(
+                          assignSavedPlace(
+                            context,
+                            ref,
+                            kind,
+                            near: _userPoint() ?? _cameraCenterOrDefault(),
+                            userLocation: _userPoint(),
+                          ),
+                        ),
                       ),
                     ],
                   ],
@@ -994,6 +1042,12 @@ class _MapScreenState extends ConsumerState<MapScreen>
                       ],
                     ),
                   ),
+                  if (_autoStart != null && state is RouteReady)
+                    AutoStartBanner(
+                      name: _autoStart!,
+                      onDone: () => unawaited(_finishAutoStart()),
+                      onCancel: _cancelAutoStart,
+                    ),
                   Flexible(
                     child: AnimatedSwitcher(
                       duration: Motion.of(context, Motion.normal),

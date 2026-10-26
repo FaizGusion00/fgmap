@@ -15,6 +15,9 @@ import '../../offline_maps/presentation/offline_maps_sheet.dart';
 import '../../onboarding/data/onboarding_controller.dart';
 import '../../reports/presentation/reports_controller.dart';
 import '../../saved_places/data/saved_places_controller.dart';
+import '../../saved_places/domain/saved_place.dart';
+import '../../saved_places/presentation/assign_place_flow.dart';
+import '../../saved_places/presentation/save_place_sheet.dart';
 import '../../search/presentation/search_history_controller.dart';
 import 'about_page.dart';
 
@@ -44,11 +47,12 @@ class SettingsPage extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
               children: const [
                 FadeSlideIn(index: 0, child: _AppearanceGroup()),
-                FadeSlideIn(index: 1, child: _NavigationGroup()),
-                FadeSlideIn(index: 2, child: _ReportsGroup()),
-                FadeSlideIn(index: 3, child: _MapsGroup()),
-                FadeSlideIn(index: 4, child: _PrivacyGroup()),
-                FadeSlideIn(index: 5, child: _HelpGroup()),
+                FadeSlideIn(index: 1, child: _SavedPlacesGroup()),
+                FadeSlideIn(index: 2, child: _NavigationGroup()),
+                FadeSlideIn(index: 3, child: _ReportsGroup()),
+                FadeSlideIn(index: 4, child: _MapsGroup()),
+                FadeSlideIn(index: 5, child: _PrivacyGroup()),
+                FadeSlideIn(index: 6, child: _HelpGroup()),
               ],
             ),
           ),
@@ -265,6 +269,56 @@ class _AppearanceGroup extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+}
+
+/// Rumah dan Kerja: boleh ditetapkan dengan carian atau lokasi semasa, ditukar, atau dipadam.
+class _SavedPlacesGroup extends ConsumerWidget {
+  const _SavedPlacesGroup();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final saved = ref.watch(savedPlacesControllerProvider);
+    SavedPlace? byId(String id) {
+      for (final s in saved) {
+        if (s.id == id) return s;
+      }
+      return null;
+    }
+
+    Widget row(SavedKind kind, String id) {
+      final item = byId(id);
+      void assign() => unawaited(assignSavedPlace(context, ref, kind));
+      return ListTile(
+        key: ValueKey('saved-row-${kind.name}'),
+        contentPadding: EdgeInsets.zero,
+        leading: Icon(savedKindIcon(kind)),
+        title: Text(savedKindLabel(l10n, kind)),
+        subtitle: Text(
+          item?.place.name ?? l10n.savedNotSet,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: Icon(item == null ? Icons.add_rounded : Icons.edit_outlined),
+        onTap: item == null
+            ? assign
+            : () => unawaited(
+                manageSavedPlace(context, ref, item, onChange: assign),
+              ),
+      );
+    }
+
+    return _Group(
+      icon: Icons.home_outlined,
+      title: l10n.settingsSavedPlaces,
+      child: Column(
+        children: [
+          row(SavedKind.home, SavedPlace.homeId),
+          row(SavedKind.work, SavedPlace.workId),
         ],
       ),
     );

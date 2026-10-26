@@ -138,3 +138,9 @@ final effectiveThemeModeProvider = Provider<ThemeMode>((ref) {
       ref.watch(sunDarkProvider) ? ThemeMode.dark : ThemeMode.light,
   };
 });
+
+/// Benar jika [mode] menghasilkan paparan gelap di bawah kecerahan sistem [platform]. Digunakan oleh
+/// app (tema) dan peta supaya keputusan cerah/gelap hanya ada satu sumber.
+bool isDarkTheme(ThemeMode mode, Brightness platform) =>
+    mode == ThemeMode.dark ||
+    (mode == ThemeMode.system && platform == Brightness.dark);

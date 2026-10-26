@@ -167,6 +167,40 @@ void main() {
     expect(c.read(navigationSettingsProvider).reportAlerts, isFalse);
   });
 
+  testWidgets(
+    'Rumah dan Kerja: belum ditetapkan -> pilihan; ditetapkan -> urus',
+    (tester) async {
+      final c = await pumpPage(tester);
+      expect(find.text('Rumah dan Kerja'), findsOneWidget);
+      expect(find.text('Belum ditetapkan'), findsNWidgets(2));
+
+      await tester.tap(find.byKey(const ValueKey('saved-row-home')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('assign-search')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('assign-current')));
+      await tester.pumpAndSettle();
+      final home = c.read(savedPlacesControllerProvider.notifier).home!;
+      expect(home.place.point, klcc);
+
+      // Kini ditetapkan: ketik membuka Tukar/Padam.
+      await tester.tap(find.byKey(const ValueKey('saved-row-home')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('manage-remove')));
+      await tester.pumpAndSettle();
+      expect(c.read(savedPlacesControllerProvider.notifier).home, isNull);
+    },
+  );
+
+  testWidgets(
+    'halaman Tetapan tidak memaparkan pilihan tema dalam bahagian navigasi',
+    (tester) async {
+      await pumpPage(tester);
+      // Hanya satu pilihan tema (kumpulan Paparan); baris tema navigasi khusus lembaran navigasi.
+      expect(find.byKey(const ValueKey('theme-mode')), findsOneWidget);
+      expect(find.byKey(const ValueKey('nav-theme-mode')), findsNothing);
+    },
+  );
+
   group('privasi: padam data', () {
     Future<void> openTile(WidgetTester tester, String key) async {
       await tester.scrollUntilVisible(
@@ -174,6 +208,9 @@ void main() {
         300,
         scrollable: find.byType(Scrollable).first,
       );
+      // `scrollUntilVisible` hanya memastikan widget dibina (cache); bawa ia ke dalam skrin dahulu.
+      await tester.ensureVisible(find.byKey(ValueKey(key)));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(ValueKey(key)));
       await tester.pumpAndSettle();
     }
@@ -226,6 +263,10 @@ void main() {
           300,
           scrollable: find.byType(Scrollable).first,
         );
+        await tester.ensureVisible(
+          find.byKey(const ValueKey('location-status')),
+        );
+        await tester.pumpAndSettle();
         expect(find.text('Akses lokasi: dibenarkan'), findsOneWidget);
         await tester.tap(find.byKey(const ValueKey('location-status')));
         await tester.pump();

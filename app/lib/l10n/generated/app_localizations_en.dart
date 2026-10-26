@@ -916,4 +916,42 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get navOverspeedHint =>
       'Chime and red sign when over the speed limit. Limits are not available on every road.';
+
+  @override
+  String get savedBySearch => 'Search for an address';
+
+  @override
+  String get savedBySearchHint => 'Type a place name or address';
+
+  @override
+  String get savedByCurrent => 'Use current location';
+
+  @override
+  String get savedByCurrentHint => 'Save where you are right now';
+
+  @override
+  String get savedCurrentLocation => 'Current location';
+
+  @override
+  String get savedLocating => 'Finding your location…';
+
+  @override
+  String get savedGoHint => 'Tap to start navigating · long-press to change';
+
+  @override
+  String get autoStartCancel => 'Cancel';
+
+  @override
+  String get navThemeTitle => 'Map appearance';
+
+  @override
+  String get settingsSavedPlaces => 'Home and Work';
+
+  @override
+  String get savedNotSet => 'Not set';
+
+  @override
+  String autoStartCountdown(String name, int seconds) {
+    return 'Starting navigation to $name in $seconds…';
+  }
 }

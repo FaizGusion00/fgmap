@@ -916,4 +916,43 @@ class AppLocalizationsMs extends AppLocalizations {
   @override
   String get navOverspeedHint =>
       'Bunyi dan tanda merah apabila melebihi had laju. Had laju tidak lengkap di semua jalan.';
+
+  @override
+  String get savedBySearch => 'Cari alamat';
+
+  @override
+  String get savedBySearchHint => 'Taip nama tempat atau alamat';
+
+  @override
+  String get savedByCurrent => 'Guna lokasi semasa';
+
+  @override
+  String get savedByCurrentHint => 'Simpan kedudukan anda sekarang';
+
+  @override
+  String get savedCurrentLocation => 'Lokasi semasa';
+
+  @override
+  String get savedLocating => 'Mencari lokasi anda…';
+
+  @override
+  String get savedGoHint =>
+      'Ketik untuk mula navigasi · tekan lama untuk tukar';
+
+  @override
+  String get autoStartCancel => 'Batal';
+
+  @override
+  String get navThemeTitle => 'Paparan peta';
+
+  @override
+  String get settingsSavedPlaces => 'Rumah dan Kerja';
+
+  @override
+  String get savedNotSet => 'Belum ditetapkan';
+
+  @override
+  String autoStartCountdown(String name, int seconds) {
+    return 'Memulakan navigasi ke $name dalam $seconds…';
+  }
 }

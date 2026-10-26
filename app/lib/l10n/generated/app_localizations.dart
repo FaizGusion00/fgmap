@@ -1729,6 +1729,78 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'Bunyi dan tanda merah apabila melebihi had laju. Had laju tidak lengkap di semua jalan.'**
   String get navOverspeedHint;
+
+  /// No description provided for @savedBySearch.
+  ///
+  /// In ms, this message translates to:
+  /// **'Cari alamat'**
+  String get savedBySearch;
+
+  /// No description provided for @savedBySearchHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Taip nama tempat atau alamat'**
+  String get savedBySearchHint;
+
+  /// No description provided for @savedByCurrent.
+  ///
+  /// In ms, this message translates to:
+  /// **'Guna lokasi semasa'**
+  String get savedByCurrent;
+
+  /// No description provided for @savedByCurrentHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Simpan kedudukan anda sekarang'**
+  String get savedByCurrentHint;
+
+  /// No description provided for @savedCurrentLocation.
+  ///
+  /// In ms, this message translates to:
+  /// **'Lokasi semasa'**
+  String get savedCurrentLocation;
+
+  /// No description provided for @savedLocating.
+  ///
+  /// In ms, this message translates to:
+  /// **'Mencari lokasi anda…'**
+  String get savedLocating;
+
+  /// No description provided for @savedGoHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Ketik untuk mula navigasi · tekan lama untuk tukar'**
+  String get savedGoHint;
+
+  /// No description provided for @autoStartCancel.
+  ///
+  /// In ms, this message translates to:
+  /// **'Batal'**
+  String get autoStartCancel;
+
+  /// No description provided for @navThemeTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Paparan peta'**
+  String get navThemeTitle;
+
+  /// No description provided for @settingsSavedPlaces.
+  ///
+  /// In ms, this message translates to:
+  /// **'Rumah dan Kerja'**
+  String get settingsSavedPlaces;
+
+  /// No description provided for @savedNotSet.
+  ///
+  /// In ms, this message translates to:
+  /// **'Belum ditetapkan'**
+  String get savedNotSet;
+
+  /// No description provided for @autoStartCountdown.
+  ///
+  /// In ms, this message translates to:
+  /// **'Memulakan navigasi ke {name} dalam {seconds}…'**
+  String autoStartCountdown(String name, int seconds);
 }
 
 class _AppLocalizationsDelegate
