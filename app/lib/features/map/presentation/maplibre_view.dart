@@ -139,7 +139,9 @@ class _MapLibreViewState extends State<MapLibreView> {
     if (_activeStyleUrl != _initialStyleUrl) {
       _enqueue(() => controller.setStyle(_activeStyleUrl));
     }
-    widget.config.onReady(_MapLibreCamera(controller, pump: _pump));
+    widget.config.onReady(
+      _MapLibreCamera(controller, pump: _pump, pixelRatio: () => _pixelRatio),
+    );
   }
 
   @override
@@ -391,10 +393,33 @@ class _MapLibreViewState extends State<MapLibreView> {
 }
 
 class _MapLibreCamera implements MapCameraController {
-  _MapLibreCamera(this._controller, {required this.pump});
+  _MapLibreCamera(
+    this._controller, {
+    required this.pump,
+    required this.pixelRatio,
+  });
 
   final MapLibreMapController _controller;
   final MapFramePump pump;
+  final double Function() pixelRatio;
+
+  @override
+  Future<Offset?> screenPointOf(GeoPoint point) async {
+    try {
+      final p = await _controller.toScreenLocation(
+        LatLng(point.lat, point.lng),
+      );
+      final x = p.x.toDouble(), y = p.y.toDouble();
+      if (!x.isFinite || !y.isFinite) return null;
+      // Android memulangkan piksel fizikal; iOS memulangkan titik logikal.
+      final scale = defaultTargetPlatform == TargetPlatform.android
+          ? pixelRatio()
+          : 1.0;
+      return Offset(x / scale, y / scale);
+    } on Object {
+      return null; // peta dilupuskan atau belum bersedia
+    }
+  }
 
   @override
   CameraPose? get pose {

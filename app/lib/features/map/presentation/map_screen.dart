@@ -469,6 +469,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
       progress: () => ref.read(navigationControllerProvider).progress,
       viewportHeight: () => MediaQuery.sizeOf(context).height,
       screenOffset: () => carScreenOffsetFor(MediaQuery.sizeOf(context)),
+      viewportWidth: () => MediaQuery.sizeOf(context).width,
       cameraMode: () => ref.read(navigationSettingsProvider).cameraMode,
       clock: ref.read(navClockProvider),
       reduceMotion: MediaQuery.disableAnimationsOf(context),

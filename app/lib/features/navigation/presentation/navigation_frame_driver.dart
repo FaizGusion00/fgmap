@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:flutter/widgets.dart' show EdgeInsets;
+import 'package:flutter/widgets.dart' show EdgeInsets, Offset;
 import 'package:flutter/foundation.dart' show ValueNotifier;
 
 import '../../../core/utils/geo.dart';
@@ -34,6 +34,7 @@ class NavigationFrameDriver {
     required this.cameraMode,
     required this.clock,
     this.screenOffset = _defaultScreenOffset,
+    this.viewportWidth,
     this.reduceMotion = false,
     this.autoRecenter = const Duration(seconds: 10),
   });
@@ -47,6 +48,9 @@ class NavigationFrameDriver {
 
   /// Kedudukan menegak kenderaan di bawah tengah skrin (pecahan tinggi) untuk orientasi semasa.
   final double Function() screenOffset;
+
+  /// Lebar paparan peta (piksel logikal); tanpanya kedudukan mendatar kereta tidak diselaraskan.
+  final double Function()? viewportWidth;
   final bool reduceMotion;
 
   static double _defaultScreenOffset() => carScreenOffset;
@@ -82,6 +86,22 @@ class NavigationFrameDriver {
   /// dalam satu bingkai; kamera sudah melicinkannya, tetapi kereta mesti juga.
   double? _yaw;
   static const _yawSmoothing = 0.12;
+
+  // Penentukuran daripada kedudukan skrin kenderaan yang SEBENAR. Kamera dikira daripada model unjuran
+  // MapLibre supaya kenderaan berada ~69% dari atas skrin, tetapi pada peranti sebenar (cth. iOS) kenderaan
+  // boleh jatuh jauh lebih dekat tengah, dan kereta yang dilukis pada titik yang dikira itu terpisah
+  // daripada laluan. Setiap ~0.25 s kedudukan sebenar diukur; kereta mengikutnya (baki ralat dilicinkan)
+  // dan kamera dilaras perlahan sehingga kenderaan benar-benar berada di tempat yang dirancang.
+  static const _measureEveryFrames = 15;
+  int _sinceMeasure = 0;
+  bool _measuring = false;
+  bool _disposed = false;
+  double _groundScale = 1;
+  bool _hasResidual = false;
+  double _resX = 0, _resY = 0;
+
+  /// Pengali ofset tanah yang dipelajari daripada ukuran (1 = model tepat). Untuk diagnostik dan ujian.
+  double get groundScale => _groundScale;
   CameraPose? _sentCamera;
   int _markerSkipped = 0;
   int _cameraSkipped = 0;
@@ -115,6 +135,8 @@ class NavigationFrameDriver {
   void recenter() {
     _rig = null; // dibina semula daripada pose peta semasa => terbang masuk
     _yaw = null;
+    _hasResidual = false;
+    _resX = _resY = 0;
     _lastInteraction = null;
     // Peta mungkin telah digerakkan pengguna: pose "terakhir dihantar" tidak lagi menggambarkannya.
     _sentCamera = null;
@@ -187,6 +209,7 @@ class NavigationFrameDriver {
       mode: cameraMode(),
       zoomBias: _zoomBias,
       screenOffset: screenOffset(),
+      groundScale: _groundScale,
     );
     if (!_sameCamera(_sentCamera, target) ||
         ++_cameraSkipped >= _heartbeatFrames) {
@@ -209,14 +232,66 @@ class NavigationFrameDriver {
     final placement = CarPlacement(
       yawDeg: yaw,
       tiltDeg: target.tilt,
-      anchorY: 0.5 + rig.screenOffset,
+      anchorY: (0.5 + rig.screenOffset + _resY).clamp(0.3, 0.95),
+      anchorX: (0.5 + _resX).clamp(0.2, 0.8),
       opacity: opacity,
     );
     if (!placement.isVisiblySameAs(car.value)) car.value = placement;
     if (progressIn >= 1) {
       _hideMapMarker();
+      if (!_measuring && ++_sinceMeasure >= _measureEveryFrames) {
+        _sinceMeasure = 0;
+        _measure(pose.point);
+      }
     } else {
       _showMapMarker(marker);
+    }
+  }
+
+  void _measure(GeoPoint point) {
+    _measuring = true;
+    final width = viewportWidth?.call();
+    final height = viewportHeight();
+    camera
+        .screenPointOf(point)
+        .then(
+          (p) {
+            _measuring = false;
+            if (p == null || _disposed || follow.value != NavFollow.following) {
+              return;
+            }
+            _onMeasured(p, width, height);
+          },
+          onError: (Object _) {
+            _measuring = false;
+          },
+        );
+  }
+
+  void _onMeasured(Offset p, double? width, double height) {
+    final rig = _rig;
+    if (rig == null || height <= 0) return;
+    final fy = p.dy / height;
+    final fx = (width == null || width <= 0) ? 0.5 : p.dx / width;
+    // Di luar paparan atau mustahil: abaikan.
+    if (!fy.isFinite || !fx.isFinite || fy < 0.3 || fy > 0.98) return;
+    if ((fx - 0.5).abs() > 0.4) return;
+
+    final wantedY = 0.5 + rig.screenOffset;
+    final resY = fy - wantedY;
+    final resX = fx - 0.5;
+    _resY = _hasResidual ? _resY + (resY - _resY) * 0.4 : resY;
+    _resX = _hasResidual ? _resX + (resX - _resX) * 0.4 : resX;
+    _hasResidual = true;
+
+    // Laras kamera perlahan-lahan supaya kenderaan sampai ke kedudukan yang dirancang. Zon mati kecil
+    // dan had per langkah mengelakkan kamera bergoyang akibat hingar ukuran.
+    if (resY.abs() > 0.03) {
+      final actual = fy - 0.5;
+      final ratio = actual > 0.02
+          ? (rig.screenOffset / actual).clamp(0.6, 1.8)
+          : 1.8;
+      _groundScale = (_groundScale * (1 + 0.15 * (ratio - 1))).clamp(0.5, 3.0);
     }
   }
 
@@ -254,6 +329,7 @@ class NavigationFrameDriver {
       (a.bearing - b.bearing).abs() < 1e-3;
 
   void dispose() {
+    _disposed = true;
     follow.dispose();
     alongM.dispose();
     car.dispose();

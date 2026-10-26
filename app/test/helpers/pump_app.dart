@@ -111,6 +111,16 @@ class FakeCamera implements MapCameraController {
   @override
   void showVehicle(VehicleMarker? marker) => vehicleCalls.add(marker);
 
+  /// Pengganti unjuran peta sebenar; null (lalai) = tidak diketahui.
+  Offset? Function(GeoPoint point)? screenPoint;
+  int screenPointCalls = 0;
+
+  @override
+  Future<Offset?> screenPointOf(GeoPoint point) async {
+    screenPointCalls++;
+    return screenPoint?.call(point);
+  }
+
   @override
   Future<void> flyTo(GeoPoint target, {double zoom = 15}) async =>
       flyToCalls.add((target, zoom));

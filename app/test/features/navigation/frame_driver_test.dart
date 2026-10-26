@@ -1,4 +1,6 @@
-import 'package:flutter/widgets.dart' show EdgeInsets;
+import 'dart:math' as math;
+
+import 'package:flutter/widgets.dart' show EdgeInsets, Offset;
 import 'package:fgmap/core/utils/geo.dart';
 import 'package:fgmap/features/navigation/domain/camera_planner.dart';
 import 'package:fgmap/features/navigation/domain/instruction_text.dart';
@@ -383,6 +385,134 @@ void main() {
         frames(driver, 200, from: 205);
         expect(driver.car.value!.opacity, closeTo(1, 1e-6));
         expect(camera.vehicleCalls.last, isNull);
+      },
+    );
+  });
+
+  group('selaras dengan kedudukan skrin kenderaan yang sebenar', () {
+    const width = 400.0, height = 800.0;
+
+    /// Unjuran "peranti sebenar": sama seperti model kamera MapLibre, tetapi satu piksel mewakili
+    /// [mppError] kali lebih banyak meter daripada yang dijangka model, jadi kenderaan jatuh lebih dekat
+    /// tengah skrin daripada yang dirancang (apa yang dilihat pada iOS).
+    Offset? Function(GeoPoint) realProjection(double mppError) {
+      return (point) {
+        final pose = camera.pose!;
+        final groundM = distanceMeters(point, pose.center);
+        final px = groundM / (metersPerPixel(pose.zoom, point.lat) * mppError);
+        final tilt = pose.tilt * math.pi / 180;
+        const altitude = 1.5;
+        final a = altitude * height;
+        final below = a * px * math.cos(tilt) / (a - px * math.sin(tilt));
+        return Offset(width / 2, height / 2 + below);
+      };
+    }
+
+    NavigationFrameDriver measuring() {
+      final d = NavigationFrameDriver(
+        camera: camera,
+        poseAt: session.poseAt,
+        progress: () => session.progress,
+        viewportHeight: () => height,
+        viewportWidth: () => width,
+        cameraMode: () => NavCameraMode.auto,
+        clock: clock.call,
+        reduceMotion: true,
+      );
+      addTearDown(d.dispose);
+      return d;
+    }
+
+    Future<void> run(NavigationFrameDriver d, int frames) async {
+      for (var i = 0; i < frames; i++) {
+        clock.advance(const Duration(milliseconds: 16));
+        d.step(t(16 * i));
+        // Jawapan platform tiba tak segerak.
+        await Future<void>.delayed(Duration.zero);
+      }
+    }
+
+    test(
+      'kereta mengikut kedudukan sebenar, bukan titik yang dikira, dan kamera belajar membetulkannya',
+      () async {
+        final real = realProjection(
+          2,
+        ); // kenderaan jatuh jauh lebih dekat tengah
+        camera.screenPoint = (p) => real(p);
+        final d = measuring();
+
+        await run(d, 40);
+        // Awal-awal: kamera masih tersasar, tetapi kereta sudah di atas kedudukan sebenar.
+        final early = real(session.poseAt(clock.now).point)!;
+        expect(d.car.value!.anchorY, closeTo(early.dy / height, 0.04));
+        expect(
+          early.dy / height,
+          lessThan(0.66),
+          reason: 'ralat model disimulasikan',
+        );
+
+        await run(d, 1500);
+        // Kamera dilaras sehingga kenderaan benar-benar berada pada ~69% skrin.
+        final late = real(session.poseAt(clock.now).point)!;
+        expect(late.dy / height, closeTo(0.5 + carScreenOffset, 0.05));
+        expect(d.groundScale, greaterThan(1.4));
+        expect(d.groundScale, lessThanOrEqualTo(3.0));
+        // Dan kereta tetap berada di atas kedudukan sebenar.
+        expect(d.car.value!.anchorY, closeTo(late.dy / height, 0.03));
+        expect(d.car.value!.anchorX, closeTo(0.5, 0.01));
+      },
+    );
+
+    test(
+      'model tepat: tiada penentukuran dan kereta kekal pada titik yang dirancang',
+      () async {
+        final real = realProjection(1);
+        camera.screenPoint = (p) => real(p);
+        final d = measuring();
+
+        await run(d, 600);
+        expect(d.groundScale, closeTo(1, 0.1));
+        expect(d.car.value!.anchorY, closeTo(0.5 + carScreenOffset, 0.03));
+      },
+    );
+
+    test(
+      'ukuran hanya sekali pada satu masa dan jarang (bukan setiap bingkai)',
+      () async {
+        camera.screenPoint = realProjection(1);
+        final d = measuring();
+        await run(d, 300);
+        expect(camera.screenPointCalls, inInclusiveRange(10, 25));
+      },
+    );
+
+    test(
+      'tiada ukuran (null) atau di luar skrin: kereta guna kedudukan model, tiada ranap',
+      () async {
+        camera.screenPoint = (_) => null;
+        var d = measuring();
+        await run(d, 300);
+        expect(d.car.value!.anchorY, closeTo(0.5 + carScreenOffset, 0.001));
+        expect(d.groundScale, 1);
+
+        camera.screenPoint = (_) => const Offset(-500, 5000);
+        d = measuring();
+        await run(d, 300);
+        expect(d.car.value!.anchorY, closeTo(0.5 + carScreenOffset, 0.001));
+        expect(d.groundScale, 1);
+      },
+    );
+
+    test(
+      'pengguna menggeser peta: ukuran diabaikan, penentukuran tidak berubah',
+      () async {
+        camera.screenPoint = realProjection(2);
+        final d = measuring();
+        await run(d, 120);
+        final before = d.groundScale;
+        d.userInteracted();
+        await run(d, 300);
+        expect(d.groundScale, before);
       },
     );
   });
