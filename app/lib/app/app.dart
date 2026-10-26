@@ -23,8 +23,8 @@ class FgmapApp extends ConsumerWidget {
       onGenerateTitle: (context) => AppLocalizations.of(context).appName,
       theme: _lightTheme,
       darkTheme: settings.amoled ? _amoledTheme : _darkTheme,
-      themeMode: settings.mode,
-      themeAnimationDuration: Duration.zero,
+      themeMode: ref.watch(effectiveThemeModeProvider),
+      themeAnimationDuration: _themeAnimation(),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       localeResolutionCallback: resolveLocale,
@@ -34,6 +34,16 @@ class FgmapApp extends ConsumerWidget {
     );
   }
 }
+
+/// Peralihan tema lembut (~300 ms, Bahagian 14.6); tiada peralihan jika pengguna meminta Reduce Motion.
+Duration _themeAnimation() =>
+    WidgetsBinding
+        .instance
+        .platformDispatcher
+        .accessibilityFeatures
+        .disableAnimations
+    ? Duration.zero
+    : const Duration(milliseconds: 300);
 
 /// Bahasa Melayu ialah bahasa lalai (Bahagian 14.5): hanya English jika peranti memintanya;
 /// bahasa lain (cth. Mandarin, Tamil, yang belum disokong) jatuh balik kepada Bahasa Melayu.

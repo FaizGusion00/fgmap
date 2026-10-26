@@ -80,6 +80,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _tracker.location.addListener(_feedSunLocation);
     _linkSubscription = _appLinks.uriLinkStream.listen(
       (uri) => unawaited(_openSharedLocation(uri)),
       onError: (Object error, StackTrace stackTrace) {
@@ -91,8 +92,16 @@ class _MapScreenState extends ConsumerState<MapScreen>
     );
   }
 
+  /// Menyimpan lokasi terakhir untuk mod tema matahari (hanya berubah jika berpindah jauh).
+  void _feedSunLocation() {
+    final location = _tracker.location.value;
+    if (location == null || location.stale || !mounted) return;
+    ref.read(sunLocationProvider.notifier).update(location.point);
+  }
+
   @override
   void dispose() {
+    _tracker.location.removeListener(_feedSunLocation);
     _idle.dispose();
     _tracker.dispose();
     _ticker?.dispose();
@@ -693,9 +702,10 @@ class _MapScreenState extends ConsumerState<MapScreen>
         ? VehicleKind.motorcycle
         : VehicleKind.car;
     final mapIsDark = switch (themeSettings.mode) {
-      ThemeMode.light => false,
-      ThemeMode.dark => true,
-      ThemeMode.system =>
+      AppThemeMode.light => false,
+      AppThemeMode.dark => true,
+      AppThemeMode.sun => ref.watch(sunDarkProvider),
+      AppThemeMode.system =>
         MediaQuery.platformBrightnessOf(context) == Brightness.dark,
     };
 

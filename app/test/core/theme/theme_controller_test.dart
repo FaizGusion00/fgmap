@@ -1,6 +1,7 @@
 import 'package:fgmap/app/app.dart';
 import 'package:fgmap/core/storage/preferences.dart';
 import 'package:fgmap/core/theme/theme_controller.dart';
+import 'package:fgmap/core/utils/geo.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -23,7 +24,7 @@ void main() {
     test('lalai: ikut sistem, bukan AMOLED', () async {
       final (c, _) = await _container();
       expect(c.read(themeControllerProvider), const ThemeSettings());
-      expect(c.read(themeControllerProvider).mode, ThemeMode.system);
+      expect(c.read(themeControllerProvider).mode, AppThemeMode.system);
       expect(c.read(themeControllerProvider).amoled, isFalse);
     });
 
@@ -36,7 +37,7 @@ void main() {
         });
         // Nilai tersedia pada bacaan pertama, sebelum sebarang await.
         final settings = c.read(themeControllerProvider);
-        expect(settings.mode, ThemeMode.dark);
+        expect(settings.mode, AppThemeMode.dark);
         expect(settings.amoled, isTrue);
       },
     );
@@ -45,12 +46,14 @@ void main() {
       'setMode dan setAmoled disimpan dan dipulihkan oleh bekas baharu',
       () async {
         final (c, prefs) = await _container();
-        await c.read(themeControllerProvider.notifier).setMode(ThemeMode.light);
+        await c
+            .read(themeControllerProvider.notifier)
+            .setMode(AppThemeMode.light);
         await c.read(themeControllerProvider.notifier).setAmoled(true);
 
         expect(
           c.read(themeControllerProvider),
-          const ThemeSettings(mode: ThemeMode.light, amoled: true),
+          const ThemeSettings(mode: AppThemeMode.light, amoled: true),
         );
 
         final restored = ProviderContainer(
@@ -59,7 +62,7 @@ void main() {
         addTearDown(restored.dispose);
         expect(
           restored.read(themeControllerProvider),
-          const ThemeSettings(mode: ThemeMode.light, amoled: true),
+          const ThemeSettings(mode: AppThemeMode.light, amoled: true),
         );
       },
     );
@@ -68,14 +71,14 @@ void main() {
       'nilai tersimpan yang tidak dikenali jatuh balik kepada ikut sistem',
       () async {
         final (c, _) = await _container({'theme.mode': 'sunset'});
-        expect(c.read(themeControllerProvider).mode, ThemeMode.system);
+        expect(c.read(themeControllerProvider).mode, AppThemeMode.system);
       },
     );
 
     test('ThemeSettings kesamaan nilai', () {
       expect(
-        const ThemeSettings(mode: ThemeMode.dark),
-        const ThemeSettings(mode: ThemeMode.dark),
+        const ThemeSettings(mode: AppThemeMode.dark),
+        const ThemeSettings(mode: AppThemeMode.dark),
       );
       expect(const ThemeSettings(), isNot(const ThemeSettings(amoled: true)));
     });
@@ -119,5 +122,71 @@ void main() {
     test('tiada locale -> Melayu', () {
       expect(resolveLocale(null, supported), const Locale('ms'));
     });
+  });
+
+  group('mod matahari', () {
+    test(
+      'nilai disimpan dan dibaca semula; nilai tidak dikenali -> sistem',
+      () async {
+        final (c, prefs) = await _container();
+        await c
+            .read(themeControllerProvider.notifier)
+            .setMode(AppThemeMode.sun);
+        expect(prefs.getString('theme.mode'), 'sun');
+        expect(readThemeSettings(prefs).mode, AppThemeMode.sun);
+        await prefs.setString('theme.mode', 'tidak-wujud');
+        expect(readThemeSettings(prefs).mode, AppThemeMode.system);
+      },
+    );
+
+    test('effectiveThemeMode: sun mengikut jam (Kuala Lumpur lalai)', () async {
+      // 14:00 MYT = 06:00 UTC: siang. 21:00 MYT = 13:00 UTC: malam. Jam diberi sebagai instan tempatan.
+      final (c, _) = await _container({'theme.mode': 'sun'});
+      final noon = DateTime.utc(2026, 10, 26, 6).toLocal();
+      final c2 = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(
+            await SharedPreferences.getInstance(),
+          ),
+          themeClockProvider.overrideWithValue(() => noon),
+        ],
+      );
+      addTearDown(c2.dispose);
+      addTearDown(c.dispose);
+      expect(c2.read(effectiveThemeModeProvider), ThemeMode.light);
+
+      final night = DateTime.utc(2026, 10, 26, 13).toLocal();
+      final c3 = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(
+            await SharedPreferences.getInstance(),
+          ),
+          themeClockProvider.overrideWithValue(() => night),
+        ],
+      );
+      addTearDown(c3.dispose);
+      expect(c3.read(effectiveThemeModeProvider), ThemeMode.dark);
+    });
+
+    test('mod lain tidak bergantung pada jam', () async {
+      final (c, _) = await _container({'theme.mode': 'dark'});
+      addTearDown(c.dispose);
+      expect(c.read(effectiveThemeModeProvider), ThemeMode.dark);
+    });
+
+    test(
+      'lokasi matahari: hanya dikemas kini jika berpindah > 30 km',
+      () async {
+        final (c, prefs) = await _container();
+        addTearDown(c.dispose);
+        final notifier = c.read(sunLocationProvider.notifier);
+        final start = c.read(sunLocationProvider);
+        notifier.update(GeoPoint(start.lat + 0.05, start.lng));
+        expect(c.read(sunLocationProvider), start, reason: 'kira-kira 5.5 km');
+        notifier.update(const GeoPoint(5.98, 116.07));
+        expect(c.read(sunLocationProvider), const GeoPoint(5.98, 116.07));
+        expect(prefs.getDouble('theme.sunLat'), 5.98);
+      },
+    );
   });
 }

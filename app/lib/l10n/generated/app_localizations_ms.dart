@@ -527,7 +527,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get settingsAboutHint => 'Versi, pembangun dan hak cipta';
 
   @override
-  String get themeSystemShort => 'Auto';
+  String get themeSystemShort => 'Sistem';
 
   @override
   String get searchCatFuel => 'Stesen minyak';
@@ -585,6 +585,13 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get placeOppositeSide => 'seberang jalan';
+
+  @override
+  String get themeSun => 'Matahari';
+
+  @override
+  String get themeSunHint =>
+      'Gelap antara matahari terbenam dan terbit di lokasi anda. Dikira dalam peranti, tanpa internet.';
 
   @override
   String get searchCategories => 'Cari berhampiran';

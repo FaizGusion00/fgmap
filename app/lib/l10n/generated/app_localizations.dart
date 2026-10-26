@@ -1007,7 +1007,7 @@ abstract class AppLocalizations {
   /// No description provided for @themeSystemShort.
   ///
   /// In ms, this message translates to:
-  /// **'Auto'**
+  /// **'Sistem'**
   String get themeSystemShort;
 
   /// No description provided for @searchCatFuel.
@@ -1123,6 +1123,18 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'seberang jalan'**
   String get placeOppositeSide;
+
+  /// No description provided for @themeSun.
+  ///
+  /// In ms, this message translates to:
+  /// **'Matahari'**
+  String get themeSun;
+
+  /// No description provided for @themeSunHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Gelap antara matahari terbenam dan terbit di lokasi anda. Dikira dalam peranti, tanpa internet.'**
+  String get themeSunHint;
 
   /// No description provided for @searchCategories.
   ///

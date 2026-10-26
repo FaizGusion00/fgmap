@@ -528,7 +528,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsAboutHint => 'Version, developer and copyright';
 
   @override
-  String get themeSystemShort => 'Auto';
+  String get themeSystemShort => 'System';
 
   @override
   String get searchCatFuel => 'Fuel';
@@ -586,6 +586,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get placeOppositeSide => 'opposite side of the road';
+
+  @override
+  String get themeSun => 'Sun';
+
+  @override
+  String get themeSunHint =>
+      'Dark between sunset and sunrise at your location. Calculated on your device, no internet needed.';
 
   @override
   String get searchCategories => 'Search nearby';

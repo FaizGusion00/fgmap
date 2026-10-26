@@ -56,29 +56,45 @@ class SettingsSheet extends ConsumerWidget {
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
-            child: SegmentedButton<ThemeMode>(
+            child: SegmentedButton<AppThemeMode>(
               showSelectedIcon: false,
               segments: [
                 ButtonSegment(
-                  value: ThemeMode.system,
+                  value: AppThemeMode.system,
                   icon: const Icon(Icons.brightness_auto_rounded),
                   label: Text(l10n.themeSystemShort),
                 ),
                 ButtonSegment(
-                  value: ThemeMode.light,
+                  value: AppThemeMode.light,
                   icon: const Icon(Icons.light_mode_rounded),
                   label: Text(l10n.themeLight),
                 ),
                 ButtonSegment(
-                  value: ThemeMode.dark,
+                  value: AppThemeMode.dark,
                   icon: const Icon(Icons.dark_mode_rounded),
                   label: Text(l10n.themeDark),
+                ),
+                ButtonSegment(
+                  value: AppThemeMode.sun,
+                  icon: const Icon(Icons.wb_twilight_rounded),
+                  label: Text(l10n.themeSun),
                 ),
               ],
               selected: {settings.mode},
               onSelectionChanged: (s) => controller.setMode(s.first),
             ),
           ),
+          if (settings.mode == AppThemeMode.sun)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                l10n.themeSunHint,
+                key: const ValueKey('sun-hint'),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
           SwitchListTile(
             key: const ValueKey('amoled-switch'),
             contentPadding: EdgeInsets.zero,

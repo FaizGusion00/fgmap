@@ -765,7 +765,7 @@ void main() {
 
       expect(
         container.read(themeControllerProvider),
-        const ThemeSettings(mode: ThemeMode.dark, amoled: true),
+        const ThemeSettings(mode: AppThemeMode.dark, amoled: true),
       );
       expect(prefs.getString('theme.mode'), 'dark');
       expect(prefs.getBool('theme.amoled'), isTrue);
@@ -774,6 +774,38 @@ void main() {
       await tester.pumpAndSettle();
       expect(map.config!.styleUrl, AppConfig.mapStyleLight);
     });
+  });
+
+  testWidgets('mod Matahari: disimpan, petunjuk dipaparkan, peta mengikut jam', (
+    tester,
+  ) async {
+    // 21:00 waktu Malaysia (13:00 UTC): malam di Kuala Lumpur (lokasi lalai mod matahari).
+    final night = DateTime.utc(2026, 10, 26, 13).toLocal();
+    usePhoneSurface(tester);
+    reduceMotion(tester);
+    await pumpApp(
+      tester,
+      const MapScreen(),
+      overrides: [
+        map.override,
+        locationServiceProvider.overrideWithValue(location),
+        routeOptionsPlannerProvider.overrideWithValue(repo),
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        idleRecenterAfterProvider.overrideWithValue(const Duration(hours: 1)),
+        themeClockProvider.overrideWithValue(() => night),
+        mapStyleLoaderProvider.overrideWithValue(_NightLoader()),
+      ],
+    );
+    await tester.pumpAndSettle();
+    expect(map.config!.styleUrl, AppConfig.mapStyleLight);
+
+    await tester.tap(find.byTooltip('Tetapan'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Matahari'));
+    await tester.pumpAndSettle();
+    expect(prefs.getString('theme.mode'), 'sun');
+    expect(find.byKey(const ValueKey('sun-hint')), findsOneWidget);
+    expect(map.config!.styleId, 'night:test');
   });
 
   testWidgets('mod gelap menghantar gaya malam JSON; kunci stabil', (
