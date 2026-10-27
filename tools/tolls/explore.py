@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-"""Penerokaan sementara (dijalankan dalam GitHub Actions): titik akhir kalkulator LLM dan Overpass."""
+"""Penerokaan sementara (Actions), pusingan 2: bagaimana kalkulator LLM mendapatkan kadar harga tetap."""
 import json
 import re
-import sys
 import urllib.parse
 import urllib.request
 
@@ -10,62 +9,64 @@ UA = "fgmap-tolls/0.1 (+https://github.com/FaizGusion00/fgmap)"
 B = "https://www.llm.gov.my/Calculator"
 
 
-def get(url, timeout=40, data=None):
+def get(url, timeout=30, data=None):
     req = urllib.request.Request(url, headers={"User-Agent": UA}, data=data)
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
             return r.status, r.read().decode("utf-8-sig", "replace")
     except urllib.error.HTTPError as e:
-        return e.code, e.read().decode("utf-8", "replace")[:600]
+        return e.code, e.read().decode("utf-8", "replace")[:300]
     except Exception as e:  # noqa: BLE001
         return 0, repr(e)
 
 
-def jget(path):
-    s, t = get(f"{B}/{path}")
-    try:
-        return s, json.loads(t)
-    except Exception:  # noqa: BLE001
-        return s, t[:500]
+# 1. Halaman utama: semua pautan dan skrip.
+s, home = get("https://www.llm.gov.my/")
+print("HOME", s, len(home))
+hrefs = sorted(set(re.findall(r'href="([^"#]+)"', home)))
+print("HREFS", [h for h in hrefs if not h.endswith((".css", ".png", ".jpg", ".ico"))][:120])
+scripts = sorted(set(re.findall(r'<script[^>]+src="([^"]+)"', home)))
+print("SCRIPTS", scripts)
+inline = re.findall(r"<script(?![^>]+src)[^>]*>(.*?)</script>", home, flags=re.S)
+for i, code in enumerate(inline):
+    if re.search(r"getTollRate|Calculator|plaza", code, re.I):
+        print(f"INLINE {i}:", code[:2500])
 
-
-s, hw = jget("getHighway")
-print("getHighway", s, json.dumps(hw, ensure_ascii=False)[:2500])
-if isinstance(hw, list):
-    for h in hw:
-        hid = h.get("id")
-        if hid in ("", None):
-            continue
-        s1, enter = jget(f"getPlazaEnter/{hid}")
-        plazas = [p for p in enter if p.get("id") != ""] if isinstance(enter, list) else enter
-        n = len(plazas) if isinstance(plazas, list) else "?"
-        print(f"\n== {hid} {h.get('name')}: enter {s1} n={n}")
-        if isinstance(plazas, list) and plazas and hid in (2, 4, 11, 7, 17, 5, 23, 25, 15, 13, 36, 9, 12, 20, 18):
-            print("  plazas:", [p.get("name") for p in plazas][:12])
-            p0 = plazas[0]["id"]
-            s2, ex = jget(f"getPlazaExit/{hid}/{p0}")
-            print("  exit", s2, json.dumps(ex, ensure_ascii=False)[:500])
-            ex_ids = [e["id"] for e in ex if isinstance(ex, list) and e.get("id") != ""] if isinstance(ex, list) else []
-            for e_id in (ex_ids[:2] or [p0]):
-                s3, rate = jget(f"getTollRate/{hid}/{p0}/{e_id}")
-                print(f"  rate {p0}->{e_id}", s3, json.dumps(rate, ensure_ascii=False)[:500])
-
-for url in ("https://www.llm.gov.my/", "https://www.llm.gov.my/Calculator", "https://www.llm.gov.my/Calculator/Index"):
-    s, t = get(url)
-    print("\nPAGE", url, s, len(t))
-    print(sorted(set(re.findall(r'(?:href|src)="([^"]*(?:[Tt]ol|[Cc]alc|[Kk]adar)[^"]*)"', t)))[:40])
-    print(sorted(set(re.findall(r"(?:Calculator/[A-Za-z]+|get[A-Z][A-Za-z]+)", t)))[:40])
-
-q = '[out:json][timeout:90];area["ISO3166-1"="MY"]->.a;(node["barrier"="toll_booth"](area.a);node["highway"="toll_gantry"](area.a););out body;'
-for u in ("https://overpass-api.de/api/interpreter", "https://overpass.private.coffee/api/interpreter"):
-    s, t = get(u, timeout=120, data=urllib.parse.urlencode({"data": q}).encode())
-    print("\nOVERPASS", u, s, len(t))
-    if s == 200:
-        els = json.loads(t).get("elements", [])
-        print("nodes", len(els), "named", sum(1 for e in els if e.get("tags", {}).get("name")),
-              "charge", sum(1 for e in els if any(k.startswith("charge") for k in e.get("tags", {}))))
-        for e in els[:70]:
-            tg = e.get("tags", {})
-            print(e["id"], round(e["lat"], 5), round(e["lon"], 5), tg.get("name"), tg.get("operator"), tg.get("ref"))
+cands = [h for h in hrefs if re.search(r"calc|tol|kalkul|kadar", h, re.I)]
+print("CANDIDATE PAGES", cands)
+for h in cands[:6]:
+    u = urllib.parse.urljoin("https://www.llm.gov.my/", h)
+    s, t = get(u)
+    print("\nPAGE", u, s, len(t))
+    for m in re.finditer(r"getTollRate|getPlazaExit|getPlazaEnter", t):
+        print("  ...", t[max(0, m.start() - 300): m.start() + 500].replace("\n", " "))
         break
-sys.exit(0)
+    for src in sorted(set(re.findall(r'<script[^>]+src="([^"]+)"', t)))[:10]:
+        su = urllib.parse.urljoin(u, src)
+        s2, js = get(su)
+        if re.search(r"getTollRate", js):
+            print("  JS", su, s2, len(js))
+            i = js.index("getTollRate")
+            print("  ", js[max(0, i - 1200): i + 1500])
+
+# 2. Varian panggilan untuk lebuh raya harga tetap (LDP=4, plaza 010).
+for path in ("getTollRate/4/010/010", "getTollRate/4/010/0", "getTollRate/4/010/", "getTollRate/4/010",
+             "getPlazaExit/4/010", "getTollRate/4/010/011", "getTollRate/4/011/010",
+             "getTollRate/17/101/101", "getTollRate/5/200/200"):
+    s, t = get(f"{B}/{path}")
+    t = re.sub(r"<[^>]+>", " ", t)
+    print("\nVARIANT", path, s, re.sub(r"\s+", " ", t)[:300])
+for hid in (4, 17, 5):
+    s, t = get(f"{B}/getPlazaEnter/{hid}")
+    print("ENTER", hid, s, t[:700])
+
+# 3. OSM: nod bercaj.
+q = '[out:json][timeout:90];area["ISO3166-1"="MY"]->.a;(node["barrier"="toll_booth"](area.a);node["highway"="toll_gantry"](area.a););out body;'
+s, t = get("https://overpass-api.de/api/interpreter", timeout=120, data=urllib.parse.urlencode({"data": q}).encode())
+if s == 200:
+    els = json.loads(t).get("elements", [])
+    for e in els:
+        tg = e.get("tags", {})
+        ch = {k: v for k, v in tg.items() if k.startswith("charge") or k == "fee"}
+        if any(k.startswith("charge") for k in ch):
+            print("CHARGE", e["id"], tg.get("name"), ch)

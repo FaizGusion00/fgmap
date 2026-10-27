@@ -551,14 +551,7 @@
       }
     }
   },
-  "routeTollDisclaimer": "Anggaran sahaja (kelas {cls}); semak harga di plaza.",
-  "@routeTollDisclaimer": {
-    "placeholders": {
-      "cls": {
-        "type": "String"
-      }
-    }
-  },
+  "routeTollDisclaimer": "Anggaran untuk kereta (kelas 1) daripada kadar Lembaga Lebuhraya Malaysia; semak harga di plaza.",
   "settingsClearAll": "Padam semua data saya",
   "settingsClearAllHint": "Sejarah carian, tempat disimpan, laporan dan data simpanan lokasi pada peranti ini.",
   "legalPrivacyTitle": "Dasar Privasi",

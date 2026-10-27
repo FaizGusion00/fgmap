@@ -1030,9 +1030,8 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
-  String routeTollDisclaimer(String cls) {
-    return 'Anggaran sahaja (kelas $cls); semak harga di plaza.';
-  }
+  String get routeTollDisclaimer =>
+      'Anggaran untuk kereta (kelas 1) daripada kadar Lembaga Lebuhraya Malaysia; semak harga di plaza.';
 
   @override
   String get settingsClearAll => 'Padam semua data saya';

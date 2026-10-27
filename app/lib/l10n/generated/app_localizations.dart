@@ -1889,8 +1889,8 @@ abstract class AppLocalizations {
   /// No description provided for @routeTollDisclaimer.
   ///
   /// In ms, this message translates to:
-  /// **'Anggaran sahaja (kelas {cls}); semak harga di plaza.'**
-  String routeTollDisclaimer(String cls);
+  /// **'Anggaran untuk kereta (kelas 1) daripada kadar Lembaga Lebuhraya Malaysia; semak harga di plaza.'**
+  String get routeTollDisclaimer;
 
   /// No description provided for @settingsClearAll.
   ///
