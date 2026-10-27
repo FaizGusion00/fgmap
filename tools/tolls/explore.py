@@ -1,62 +1,46 @@
 #!/usr/bin/env python3
-"""Penerokaan sementara (Actions), pusingan 5: kadar tol lebuh raya harga tetap daripada pengendali + OSM."""
-import json
+"""Penerokaan sementara (Actions), pusingan 6: halaman tambang tol rasmi pengendali (teks atau gambar?)."""
 import re
-import urllib.parse
 import urllib.request
 
-UA = "Mozilla/5.0 (compatible; fgmap-tolls/0.1; +https://github.com/FaizGusion00/fgmap)"
+UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+PAGES = [
+    "https://litrak.com.my/our-highways/litrak/toll-fares/",
+    "https://litrak.com.my/our-highways/sprint/toll-fares/",
+    "https://www.duke.com.my/page/143/Toll-Fare/",
+    "https://www.duke.com.my/page/192/Toll-Fare/",
+    "https://llb.com.my/tambang-tol/",
+    "https://kesas.com.my/toll-lane/",
+]
 
 
-def get(url, data=None, timeout=40):
-    req = urllib.request.Request(url, data=data, headers={"User-Agent": UA})
+def get(url):
+    req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "text/html,*/*"})
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:
+        with urllib.request.urlopen(req, timeout=40) as r:
             return r.status, r.read().decode("utf-8-sig", "replace")
     except Exception as e:  # noqa: BLE001
         return 0, repr(e)
 
 
 def text_of(html):
-    html = re.sub(r"<(script|style)[^>]*>.*?</\1>", " ", html, flags=re.S | re.I)
+    html = re.sub(r"<(script|style|nav|footer|header)[^>]*>.*?</\1>", " ", html, flags=re.S | re.I)
     return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", html))
 
 
-# 1) Nod OSM dengan tag charge (ringkas).
-q = ('[out:json][timeout:120];area["ISO3166-1"="MY"]->.a;'
-     '(node(area.a)["barrier"="toll_booth"]["charge"];node(area.a)["highway"="toll_gantry"]["charge"];);out body;')
-s, body = get("https://overpass-api.de/api/interpreter", urllib.parse.urlencode({"data": q}).encode(), 150)
-print("OSM charge status", s)
-try:
-    for e in json.loads(body)["elements"]:
-        t = e["tags"]
-        print("CHG", e["lat"], e["lon"], "|", t.get("name"), "|", t.get("operator"), "|", t.get("charge"),
-              "|", {k: v for k, v in t.items() if k.startswith("charge") and k != "charge"}, "|", t.get("check_date") or t.get("source"))
-except Exception as ex:  # noqa: BLE001
-    print("OSM parse gagal", repr(ex), body[:200])
-
-# 2) Halaman pengendali (URL daripada halaman LLM) + pautan berkaitan kadar.
-OPS = {
-    "LDP/LITRAK": "http://www.litrak.com.my",
-    "BESRAYA/NPE/KLK (IJM)": "http://www.ijm.com/infrastructure/toll/besraya/",
-    "NPE": "http://www.ijm.com/infrastructure/toll/npe/",
-    "SPE/DUKE": "https://www.duke.com.my/page/175/SETIAWANGSA-PANTAI-EXPRESSWAY-(SPE)/",
-    "SILK/Prolintas": "http://www.prolintas.com.my",
-    "KESAS": "https://www.kesas.com.my",
-    "JPP2": "http://www.jambatankedua.com.my",
-    "LLB/JPP1": "http://www.llb.com.my",
-    "SMART": "https://smarttunnel.com.my",
-    "SKVE": "https://www.skve.com.my",
-}
-for name, url in OPS.items():
-    s, t = get(url)
-    print(f"\n=== {name} {url} -> {s} len={len(t)}")
+for u in PAGES:
+    s, t = get(u)
+    print(f"\n=== {u} -> {s} len={len(t)}")
     if s != 200:
-        print("  ", t[:150])
+        print("  ", t[:200])
         continue
-    links = sorted(set(re.findall(r'href="([^"#]+)"', t)))
-    rate_links = [l for l in links if re.search(r"(?i)rate|kadar|toll|tol|fare|tariff", l)][:15]
-    print("  RATE LINKS:", rate_links)
     tx = text_of(t)
-    for m in list(re.finditer(r"(?i)rm ?\d+\.\d{2}", tx))[:3]:
-        print("  RM:", tx[max(0, m.start() - 80): m.start() + 120])
+    rms = len(re.findall(r"(?i)rm ?\d+\.\d{2}|\b\d+\.\d{2}\b", tx))
+    print("  tables:", len(re.findall(r"<table", t, flags=re.I)), "angka harga:", rms,
+          "img:", len(re.findall(r"<img", t, flags=re.I)),
+          "pdf/xls:", sorted(set(re.findall(r'href="([^"]+\.(?:pdf|xlsx?))"', t, flags=re.I)))[:10])
+    i = tx.lower().find("class 1")
+    i = i if i >= 0 else tx.lower().find("kelas 1")
+    print("  TEXT:", tx[max(0, i - 400): i + 2500] if i >= 0 else tx[:2000])
+    imgs = [m for m in re.findall(r'<img[^>]+src="([^"]+)"', t) if re.search(r"(?i)fare|tol|toll|tambang|rate", m)]
+    print("  IMGS:", imgs[:10])
