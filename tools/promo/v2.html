@@ -554,10 +554,10 @@ S.s14 = {
     headline(c, COPY.s14.h, cx, cy, PORT ? 170 : 200, lt, { d: .15 });
     const items = COPY.s14.items, cues = [/akaun|account/, /iklan|ads/, /langganan|subscription/, /penjejakan|tracking/];
     const endT = (sc.t1 - sc.t0) - 1.9, ea = clamp(eback((lt - endT) / .6));
-    if (ea > 0) { const px = PORT ? 72 : W / 2 - 400, py = (PORT ? 680 : 570) + 4 * (PORT ? 150 : 110) + 10; pillBox(c, (LANG === 'ms' ? '100% percuma' : '100% free'), px, py, { size: PORT ? 50 : 44, w: 800, color: '#04302B', bg: TEAL, a: ea, shadow: true }); }
+    if (ea > 0) { const px = PORT ? 72 : W / 2 - 400, py = (PORT ? 680 : 520) + 4 * (PORT ? 150 : 98) + 10; pillBox(c, (LANG === 'ms' ? '100% percuma' : '100% free'), px, py, { size: PORT ? 50 : 44, w: 800, color: '#04302B', bg: TEAL, a: ea, shadow: true }); }
     items.forEach((it, i) => {
       const t = (wt(sc, cues[i]) ?? sc.t0 + 2 + i) - sc.t0 - .25, a = clamp(eback((lt - t) / .5)); if (a <= 0) return;
-      const y = (PORT ? 680 : 570) + i * (PORT ? 150 : 110), x = PORT ? 72 : W / 2 - 400, label = `${COPY.s14.none} ${it.toLowerCase()}`;
+      const y = (PORT ? 680 : 520) + i * (PORT ? 150 : 98), x = PORT ? 72 : W / 2 - 400, label = `${COPY.s14.none} ${it.toLowerCase()}`;
       c.save(); c.globalAlpha = clamp(a); c.translate((1 - clamp(a)) * 60, 0);
       c.fillStyle = 'rgba(255,90,95,.16)'; c.beginPath(); c.arc(x + 36, y - 14, 36, 0, 7); c.fill(); c.strokeStyle = '#FF5A5F'; c.lineWidth = 6; c.lineCap = 'round'; c.beginPath(); c.moveTo(x + 22, y - 28); c.lineTo(x + 50, y); c.moveTo(x + 50, y - 28); c.lineTo(x + 22, y); c.stroke();
       T(c, label, x + 100, y + 4, { size: PORT ? 74 : 66, w: 700 }); c.restore();
@@ -575,7 +575,7 @@ S.s15 = {
     const nm = fadeIn(lt, .6, .7); T(c, 'FGMaps', cx, cy + s / 2 + (PORT ? 190 : 165), { size: PORT ? 190 : 170, w: 800, align: 'center', ls: '-0.03em', a: nm });
     T(c, COPY.s15.tagline, cx, cy + s / 2 + (PORT ? 270 : 235), { size: PORT ? 52 : 44, w: 600, align: 'center', color: '#CFE0FF', a: fadeIn(lt, 1.0) });
     const pa = eback((lt - 1.5) / .7); if (pa > 0) { c.save(); c.globalAlpha = clamp(pa); const sz = PORT ? 56 : 48, w = meas(c, COPY.s15.soon, sz, 800) + 120, y = cy + s / 2 + (PORT ? 400 : 340); c.shadowColor = 'rgba(25,211,184,.5)'; c.shadowBlur = 50; c.fillStyle = TEAL; rr(c, cx - w / 2, y - sz * 1.05, w, sz * 2.1, sz * 1.05); c.fill(); c.shadowColor = 'transparent'; T(c, COPY.s15.soon, cx, y + sz * .35, { size: sz, w: 800, align: 'center', color: '#04302B' }); c.restore(); }
-    T(c, COPY.s15.credit, cx, H - (PORT ? 330 : 70), { size: PORT ? 30 : 26, w: 500, align: 'center', color: '#8FA0C4', a: fadeIn(lt, 2.0) });
+    T(c, COPY.s15.credit, cx, H - (PORT ? 330 : 160), { size: PORT ? 30 : 26, w: 500, align: 'center', color: '#8FA0C4', a: fadeIn(lt, 2.0) });
   }
 };
 
