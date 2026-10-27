@@ -127,13 +127,86 @@ void main() {
       expect(rates.isEmpty, isTrue);
     });
 
-    test('aset yang dihantar sah dan kosong (tiada angka direka)', () {
-      final file = File('assets/tolls/my_tolls.json').readAsStringSync();
-      final json = jsonDecode(file) as Map<String, dynamic>;
-      expect(json['version'], 1);
-      expect(json['plazas'], isEmpty);
-      expect(TollRates.parse(file).isEmpty, isTrue);
-    });
+    test(
+      'aset yang dihantar: sistem tertutup LLM, kadar sah, koordinat di Malaysia',
+      () {
+        final file = File('assets/tolls/my_tolls.json').readAsStringSync();
+        final json = jsonDecode(file) as Map<String, dynamic>;
+        expect(json['version'], 2);
+        expect(json['source'], contains('Lembaga Lebuhraya Malaysia'));
+        expect(json['lastVerified'], matches(RegExp(r'^\d{4}-\d{2}-\d{2}$')));
+        final closed = (json['closed'] as List).cast<Map<String, dynamic>>();
+        expect(closed.length, greaterThanOrEqualTo(6));
+        for (final sys in closed) {
+          final plazas = (sys['plazas'] as List).cast<Map<String, dynamic>>();
+          final matrix = sys['matrix'] as List;
+          expect(
+            matrix.length,
+            plazas.length * plazas.length,
+            reason: '${sys['name']}',
+          );
+          for (final v in matrix) {
+            expect(
+              v == null || (v is num && v > 0),
+              isTrue,
+              reason: '${sys['name']}',
+            );
+          }
+          var located = 0;
+          for (final p in plazas) {
+            if (!p.containsKey('lat')) continue;
+            located++;
+            expect(
+              p['lat'],
+              inInclusiveRange(0.8, 7.5),
+              reason: '${p['name']}',
+            );
+            expect(
+              p['lng'],
+              inInclusiveRange(99.0, 120.0),
+              reason: '${p['name']}',
+            );
+          }
+          expect(located, greaterThan(0), reason: '${sys['name']}');
+        }
+        final plus = closed.firstWhere(
+          (s) => (s['name'] as String).contains('PLUS'),
+        );
+        expect((plus['plazas'] as List).length, greaterThanOrEqualTo(80));
+        expect(TollRates.parse(file).isEmpty, isFalse);
+      },
+    );
+
+    test(
+      'aset sebenar: Alor Pongsu -> Bukit Merah kelas 1 = RM1.64 (LLM); motosikal tidak diketahui',
+      () {
+        final file = File('assets/tolls/my_tolls.json').readAsStringSync();
+        final json = jsonDecode(file) as Map<String, dynamic>;
+        final plus = (json['closed'] as List)
+            .cast<Map<String, dynamic>>()
+            .firstWhere((s) => (s['name'] as String).contains('PLUS'));
+        Map<String, dynamic> plaza(String name) => (plus['plazas'] as List)
+            .cast<Map<String, dynamic>>()
+            .firstWhere((p) => p['name'] == name);
+        TollPlaza at(Map<String, dynamic> p) => TollPlaza(
+          id: p['id'] as String,
+          point: GeoPoint(
+            (p['lat'] as num).toDouble(),
+            (p['lng'] as num).toDouble(),
+          ),
+          alongM: 0,
+        );
+        final rates = TollRates.parse(file);
+        final route = [at(plaza('ALOR PONGSU')), at(plaza('BUKIT MERAH'))];
+        final car = rates.estimate(route, RouteVehicle.car);
+        expect(car.isExact, isTrue);
+        expect(car.knownRm, 1.64);
+        expect(
+          rates.estimate(route, RouteVehicle.motorcycle).isUnknown,
+          isTrue,
+        );
+      },
+    );
   });
 
   group('TollRates.estimate', () {

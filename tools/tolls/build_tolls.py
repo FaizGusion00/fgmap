@@ -14,6 +14,7 @@ Penggunaan:
   (tanpa --dataset-dir / --overpass-file: dimuat turun)
 """
 import argparse
+import datetime
 import json
 import math
 import os
@@ -219,6 +220,53 @@ def build_system(sysdata, osm_nodes, aliases, report):
     return {"id": sid, "name": name, "plazas": out, "matrix": matrix}
 
 
+def name_words(name):
+    return {ABBREVIATIONS.get(w, w) for w in re.findall(r"[a-z0-9]+", name.lower())}
+
+
+def build_open(osm_nodes, aliases, report, verified_on):
+    """Plaza harga tetap daripada halaman tambang rasmi pengendali (tools/tolls/open_sources.py)."""
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import open_sources  # noqa: PLC0415
+
+    out = []
+    for src in open_sources.SOURCES:
+        try:
+            rates = src["parse"](open_sources.fetch_text(src["url"]))
+        except Exception as e:  # noqa: BLE001 - sumber gagal: dilaporkan, plaza kekal tidak diketahui
+            report.append(f"- SUMBER GAGAL `{src['id']}` {src['url']}: {e!r}")
+            continue
+        for label, rate in rates.items():
+            key = f"open:{src['id']}:{label}"
+            points = []
+            if aliases.get(key, {}).get("lat") is not None:
+                points = [(aliases[key]["lat"], aliases[key]["lon"])]
+            else:
+                prefixes = src["osm"][label]
+                cands = [
+                    e for e in osm_nodes
+                    if e.get("tags", {}).get("name") and in_malaysia(e["lat"], e["lon"])
+                    and any(e["tags"]["name"].lower().startswith(pf) for pf in prefixes)
+                ]
+                clusters = cluster(cands, 600)
+                if 1 <= len(clusters) <= 2:
+                    points = [c["center"] for c in clusters]
+            if not points:
+                report.append(f"- TIDAK DIPADANKAN `{key}` (RM{rate:.2f})")
+                report.extend(candidate_lines(label, osm_nodes))
+                continue
+            for i, (lat, lon) in enumerate(points):
+                out.append({
+                    "id": f"{src['id']}:{label}" + (f"#{i + 1}" if len(points) > 1 else ""),
+                    "name": f"{src['name']} - {label}",
+                    "lat": round(lat, 5), "lng": round(lon, 5),
+                    "type": "open", "ratesRm": {"1": round(rate, 2)},
+                    "source": src["url"], "verifiedOn": verified_on,
+                })
+            report.append(f"- dipadankan `{key}` RM{rate:.2f}: {len(points)} lokasi")
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dataset-dir")
@@ -237,6 +285,8 @@ def main():
 
     report = ["# Laporan padanan plaza tol\n"]
     closed = [build_system(s, osm, aliases, report) for s in systems]
+    report.append("\n## Lebuh raya harga tetap (halaman tambang pengendali)\n")
+    opens = build_open(osm, aliases, report, datetime.datetime.now(datetime.timezone.utc).date().isoformat())
     # Sistem tanpa satu pun koordinat tidak berguna dalam app; dilaporkan tetapi tetap ditulis.
     generated = index.get("generatedAt", "")
     doc = {
@@ -245,7 +295,7 @@ def main():
         "source": SOURCE,
         "lastVerified": generated[:10] if generated else None,
         "closed": closed,
-        "open": [],
+        "open": opens,
     }
     with open(args.out, "w", encoding="utf-8") as f:
         json.dump(doc, f, ensure_ascii=False, separators=(",", ":"))

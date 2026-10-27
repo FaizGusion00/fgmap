@@ -224,7 +224,6 @@ class _ReadyBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final fg = context.fg;
     final route = state.selected;
     final via = route.via;
 

@@ -34,7 +34,7 @@ You may not: use the app for unlawful purposes; attack, overload or disrupt the 
 
 ## 8. Copyright and open-source licences
 
-Copyright in the app belongs to {{entity}}. Map data © OpenStreetMap contributors, licensed under the ODbL. Map styles and tiles from OpenFreeMap and OpenMapTiles. The Valhalla routing engine (MIT licence) and other open-source packages are used under their own licences; the full list is in Settings > Help > Licences.
+Copyright in the app belongs to {{entity}}. Map data © OpenStreetMap contributors, licensed under the ODbL. Toll rates come from the official Lembaga Lebuhraya Malaysia calculator and the highway operators' official fare pages, and may differ from current rates. Map styles and tiles from OpenFreeMap and OpenMapTiles. The Valhalla routing engine (MIT licence) and other open-source packages are used under their own licences; the full list is in Settings > Help > Licences.
 
 ## 9. Disclaimer of warranties
 

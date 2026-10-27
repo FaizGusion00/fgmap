@@ -2,7 +2,6 @@ import 'package:fgmap/core/platform/external_actions.dart';
 import 'package:fgmap/core/utils/geo.dart';
 import 'package:fgmap/features/safety/presentation/emergency_sheet.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/fakes.dart';

@@ -10,5 +10,9 @@
   },
   "33:BERUAS": {
     "osmName": "Beruas Toll Beruas"
+  },
+  "open:mex:Putrajaya": {
+    "lat": 2.95009,
+    "lon": 101.65189
   }
 }

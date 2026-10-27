@@ -5,14 +5,15 @@
 | Liputan | Sumber | Status |
 |---|---|---|
 | Sistem **tertutup**: PLUS (Utara-Selatan, ELITE, KLIA), LPT1, WCE, LEKAS, SKVE, SDE | Kalkulator tol rasmi Lembaga Lebuhraya Malaysia (LLM), melalui rangkak awam `mohdsyahid/kadar-tol-malaysia` (MIT) | Ada, kelas 1 (kereta) |
-| Lebuh raya **harga tetap** (LDP, KESAS, SPRINT, NPE, DUKE, MEX, GCE, SILK, AKLEH, SPE, BESRAYA, jambatan Pulau Pinang, dll.) | Tiada sumber rasmi boleh-baca-mesin ditemui | **Tidak diketahui** |
+| Lebuh raya **harga tetap** yang pengendalinya menyiarkan jadual teks: LDP, SPRINT (LITRAK), KESAS, LLB (Butterworth), MEX, GCE, LKSA, AKLEH, SILK (Sungai Balak), DASH (Kota Damansara) | Halaman tambang rasmi pengendali (URL dan tarikh ambil disimpan bagi setiap entri) | Ada, kelas 1 |
+| Lain-lain harga tetap (NPE, BESRAYA, DUKE, SPE, SUKE, LATAR, KLK, jambatan Pulau Pinang, SMART, plaza SILK/DASH lain, dll.) | Tiada jadual teks rasmi ditemui (DUKE hanya imej tidak bertarikh; LLM tiada kadarnya) | **Tidak diketahui** |
 | Motosikal | LLM tiada kelas motosikal | **Tidak diketahui** (bukan percuma, bukan kelas lain) |
 
 Tiada angka direka. Sumber pihak ketiga yang menyenaraikan kadar saling **bercanggah** (cth. Jalan Duta ke
 Ipoh Kelas 1: RM21.73 pada satu tapak, RM17.50 pada yang lain), jadi tiada satu pun dipakai.
 
 Kelas kenderaan LLM (`transCode`): 1 = kereta, 2 = van/lori kecil, 3 = lori besar, 4 = teksi (50% kelas 1),
-5 = bas (75% kelas 1). Disahkan daripada data (Alor Pongsu ke Alor Setar: kelas 1 RM1.64, kelas 4 RM0.82,
+5 = bas (75% kelas 1). Disahkan daripada data (Alor Pongsu ke Bukit Merah: kelas 1 RM1.64, kelas 4 RM0.82,
 kelas 5 RM1.23). Pembetulan: versi 0.5.0 tersilap memetakan motosikal ke kelas 4 (teksi).
 
 ## Cara data dijana
@@ -29,6 +30,11 @@ persekitaran pembangunan tidak boleh.
    `lat`/`lon` yang diambil daripada nod OSM sebenar).
 4. Tulis `my_tolls.json` (skema 2) dan laporan padanan (plaza **tidak dipadankan** / **ambigu**, beserta calon
    OSM). Workflow meng-commit hasilnya ke branch supaya perubahan data kelihatan dalam kajian kod.
+
+Lebuh raya harga tetap: `tools/tolls/open_sources.py` memuat turun halaman tambang pengendali dan menghurai
+jadual kelas 1 dengan corak yang ketat; jika bentuk halaman berubah penghurai **gagal dengan jelas** (dilaporkan,
+tiada angka lapuk ditulis). Koordinat plaza diambil daripada nod OSM yang namanya mengandungi kata kunci plaza DAN
+pengendalinya sepadan (nama sahaja bercampur, cth. "Pantai" pada NPE dan SPRINT).
 
 Plaza tanpa koordinat kekal dalam matriks tetapi tidak boleh dipadankan dengan laluan, jadi laluan yang
 melaluinya dipaparkan sebagai sebahagian/tidak diketahui.
@@ -78,9 +84,16 @@ Anggaran dipaparkan sebagai "Tol RM x" hanya jika SEMUA plaza pada laluan ada ha
 
 ## Had yang diketahui
 
-- **Plaza masuk tidak dipadankan**: jika plaza masuk sistem tertutup tiada koordinat atau tidak dikesan OSM,
-  larian bermula di plaza seterusnya dan kos boleh **kurang daripada sebenar** tanpa amaran. Plaza yang
-  tidak dipadankan disenaraikan dalam laporan workflow; tambah alias jika perlu.
+- **Plaza tidak dipadankan / tiada dalam OSM**: plaza OSM pada laluan yang tidak sepadan dengan dataset dikira
+  "tidak diketahui" dan memecahkan larian sistem tertutup, jadi jumlah dipaparkan "RM x+" (had bawah), bukan
+  angka tepat. Kes senyap hanya jika plaza itu tiada langsung dalam OSM (tidak dikesan pada laluan): kos boleh
+  kurang daripada sebenar tanpa penanda. Plaza yang tidak dipadankan disenaraikan dalam laporan workflow.
+- Plaza OSM bernama sama pada lebuh raya berbeza (cth. "Putrajaya": ELITE dan MEX) dipadankan dengan koordinat
+  manual dalam `aliases.json` (disahkan dengan laluan KLCC ke KLIA dalam `test/fixtures`).
+- Kadar lebuh raya harga tetap diambil daripada halaman pengendali dan boleh lapuk jika pengendali lambat
+  mengemas kini; setiap entri menyimpan URL sumber dan `verifiedOn`. Untuk SILK dan DASH hanya plaza yang
+  disahkan (Sungai Balak; Kota Damansara) diberi harga; plaza lain kekal tidak diketahui kerana halaman
+  pengendali tidak menyatakan plaza mana yang dimaksudkan.
 - Lebuh raya harga tetap: perjalanan campuran (cth. KLCC ke KLIA melalui AKLEH, SPE, MEX) dipaparkan "RM x+".
 - Anggaran ialah kelas 1, lalu lintas biasa; tiada diskaun/hari kenaan/kad diskaun.
 - Kadar baharu (gazet) hanya masuk selepas sumber LLM dan workflow dijalankan semula.

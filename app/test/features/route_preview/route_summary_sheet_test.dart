@@ -231,7 +231,9 @@ void main() {
       );
       expect(find.textContaining('Tol RM 5.50'), findsWidgets);
       expect(
-        find.text('Anggaran sahaja (kelas 1); semak harga di plaza.'),
+        find.text(
+          'Anggaran untuk kereta (kelas 1) daripada kadar Lembaga Lebuhraya Malaysia; semak harga di plaza.',
+        ),
         findsOneWidget,
       );
     });
@@ -261,7 +263,7 @@ void main() {
           findsOneWidget,
         );
         expect(find.text('2 plaza'), findsOneWidget);
-        expect(find.textContaining('Anggaran sahaja'), findsNothing);
+        expect(find.textContaining('Anggaran untuk kereta'), findsNothing);
         expect(find.text('RM 0.00'), findsNothing);
       },
     );
