@@ -205,6 +205,7 @@ class RouteQuery {
     this.destinationRadiusM,
     this.shortest = false,
     this.exclusions = const [],
+    this.via = const [],
   });
 
   final GeoPoint origin;
@@ -231,6 +232,10 @@ class RouteQuery {
   /// berbeza). Kosong untuk permintaan biasa.
   final List<RouteExclusion> exclusions;
 
+  /// Titik lalu (Valhalla `through`) yang memaksa laluan melalui sisi lain jalan utama; menghasilkan
+  /// alternatif yang benar-benar berbeza. Kosong untuk permintaan biasa.
+  final List<GeoPoint> via;
+
   RouteQuery copyWith({
     bool? avoidTolls,
     bool? avoidHighways,
@@ -238,6 +243,7 @@ class RouteQuery {
     int? alternates,
     bool? shortest,
     List<RouteExclusion>? exclusions,
+    List<GeoPoint>? via,
   }) {
     return RouteQuery(
       origin: origin,
@@ -251,6 +257,7 @@ class RouteQuery {
       destinationRadiusM: destinationRadiusM,
       shortest: shortest ?? this.shortest,
       exclusions: exclusions ?? this.exclusions,
+      via: via ?? this.via,
     );
   }
 

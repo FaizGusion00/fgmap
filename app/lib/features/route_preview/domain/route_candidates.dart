@@ -13,25 +13,37 @@ class CandidateRequest {
 }
 
 /// Perjalanan di bawah jarak ini jarang ada pilihan lebuh raya / jarak terpendek yang bermakna.
-const _minHighwayTripM = 5000;
-const _minShortestTripM = 3000;
+const _minHighwayTripM = 3000;
+const _minShortestTripM = 1500;
+const _minViaTripM = 1500;
 const _minDetourTripM = 3000;
-const _longDetourTripM = 8000;
+
+/// Susunan titik lalu: (pecahan sepanjang laluan, sisi) dengan sisi +1 = kiri dan -1 = kanan. Berselang
+/// sisi supaya setiap kumpulan pertama sudah menghasilkan kedua-dua arah lencongan.
+const _viaPlan = [
+  (0.35, 1),
+  (0.65, -1),
+  (0.5, 1),
+  (0.5, -1),
+  (0.25, -1),
+  (0.75, 1),
+];
 
 /// Merancang permintaan tambahan DIHAD ([maxExtra]) selepas laluan biasa tiba. Susunan keutamaan:
 ///  1. tanpa tol (jika laluan biasa ada tol);
 ///  2. elak lebuh raya;
 ///  3. jarak terpendek;
-///  4. lencongan paksa: bulatan yang dielakkan pada 20-80% sepanjang laluan utama, bermula dari
-///     tengah (yang paling menghasilkan laluan berbeza) ke hujung.
+///  4. titik lalu (`through`) di kiri/kanan laluan utama: memaksa laluan melalui jalan lain;
+///  5. satu lencongan paksa (bulatan dielakkan) di tengah laluan.
 ///
-/// Lencongan paksa menjadikan alternatif benar-benar berbeza, bukan variasi kecil laluan yang sama.
-/// Bulatan tidak meliputi asal atau destinasi (jika tidak, tiada laluan boleh dikira), dan jejarinya
-/// dihadkan 250-1400 m kerana had perimeter `exclude_polygons` pelayan awam ialah 10 km.
+/// Titik lalu menghasilkan laluan yang benar-benar berbeza (disahkan terhadap Valhalla awam: 8 perjalanan
+/// KL/Johor/Pulau Pinang, 4-330 km), tidak seperti lencongan bulatan yang sering kembali ke laluan sama.
+/// Ofset titik lalu ialah 7% daripada jarak (400 m - 5 km). Bulatan tidak meliputi asal atau destinasi dan
+/// jejarinya dihadkan 250-1400 m kerana had perimeter `exclude_polygons` pelayan awam ialah 10 km.
 List<CandidateRequest> planCandidateRequests(
   RouteQuery base,
   List<RouteOption> standard, {
-  int maxExtra = 8,
+  int maxExtra = 10,
 }) {
   if (standard.isEmpty) return const [];
   final main = standard.first;
@@ -62,7 +74,15 @@ List<CandidateRequest> planCandidateRequests(
     );
   }
 
-  for (final e in _detourExclusions(base, main)) {
+  for (final v in _viaPoints(main)) {
+    out.add(
+      CandidateRequest(
+        base.copyWith(alternates: 0, via: [v]),
+        RouteCandidateOrigin.detour,
+      ),
+    );
+  }
+  for (final e in _detourExclusions(base, main).take(1)) {
     out.add(
       CandidateRequest(
         base.copyWith(alternates: 0, exclusions: [e]),
@@ -73,13 +93,41 @@ List<CandidateRequest> planCandidateRequests(
   return out.take(maxExtra).toList();
 }
 
+/// Titik di kiri/kanan [main] (serenjang) pada pecahan [_viaPlan]. Titik yang terlalu hampir dengan asal
+/// atau destinasi dilangkau (laluan akan berpatah balik).
+List<GeoPoint> _viaPoints(RouteOption main) {
+  if (main.distanceM < _minViaTripM || main.points.length < 2) {
+    return const [];
+  }
+  final along = _cumulative(main.points);
+  final total = along.last;
+  if (total <= 0) return const [];
+  final offset = (main.distanceM * 0.07).clamp(400.0, 5000.0);
+  final origin = main.points.first;
+  final destination = main.points.last;
+
+  final out = <GeoPoint>[];
+  for (final (fraction, side) in _viaPlan) {
+    final at = total * fraction;
+    final here = _pointAt(main.points, along, at);
+    final ahead = _pointAt(main.points, along, math.min(total, at + 50));
+    final behind = _pointAt(main.points, along, math.max(0, at - 50));
+    final bearing = bearingDegrees(behind, ahead);
+    final via = destinationPoint(here, bearing + 90.0 * side, offset);
+    if (distanceMeters(via, origin) < offset * 0.9 ||
+        distanceMeters(via, destination) < offset * 0.9) {
+      continue;
+    }
+    out.add(via);
+  }
+  return out;
+}
+
 List<RouteExclusion> _detourExclusions(RouteQuery base, RouteOption main) {
   if (main.distanceM < _minDetourTripM || main.points.length < 2) {
     return const [];
   }
-  final fractions = main.distanceM >= _longDetourTripM
-      ? const [0.5, 0.35, 0.65, 0.2, 0.8]
-      : const [0.5, 0.3, 0.7];
+  const fractions = [0.5];
   final radius = (main.distanceM * 0.02).clamp(250.0, 1400.0);
   final origin = main.points.first;
   final destination = main.points.last;
