@@ -224,7 +224,10 @@ class MultiRoutePlanner implements ProgressiveRoutePlanner {
         maxExtra: maxExtra,
       );
       final found = <RouteCandidateOrigin, List<RouteOption>>{};
+      // Laluan utama kelompok sebelumnya: kad pertama tidak bertukar kecuali calon baharu jelas lebih baik.
+      RouteOption? lastPrimary;
       List<RouteOption> merged() => mergeRouteCandidates(
+        incumbent: lastPrimary,
         standard: standard,
         noTolls: found[RouteCandidateOrigin.noTolls] ?? const [],
         noHighways: found[RouteCandidateOrigin.noHighways] ?? const [],
@@ -236,6 +239,7 @@ class MultiRoutePlanner implements ProgressiveRoutePlanner {
       var lastSignature = '';
       void emit({required bool done}) {
         final options = merged();
+        if (options.isNotEmpty) lastPrimary = options.first;
         final signature = _signature(options);
         if (!done && signature == lastSignature) return;
         lastSignature = signature;

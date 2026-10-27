@@ -231,6 +231,9 @@ class _ReadyBody extends StatelessWidget {
     final fastestS = state.options
         .map((o) => o.durationS)
         .reduce((a, b) => a < b ? a : b);
+    final shortestM = state.options
+        .map((o) => o.distanceM)
+        .reduce((a, b) => a < b ? a : b);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -346,6 +349,7 @@ class _ReadyBody extends StatelessWidget {
           _RouteOptionCards(
             options: state.visibleOptions,
             fastestS: fastestS,
+            shortestM: shortestM,
             selectedIndex: state.selectedIndex,
             onSelect: onSelect,
             tolls: state.tolls,
@@ -460,6 +464,7 @@ class _RouteOptionCards extends StatelessWidget {
   const _RouteOptionCards({
     required this.options,
     required this.fastestS,
+    required this.shortestM,
     required this.selectedIndex,
     required this.onSelect,
     this.tolls = const {},
@@ -471,6 +476,7 @@ class _RouteOptionCards extends StatelessWidget {
 
   final List<RouteOption> options;
   final int fastestS;
+  final int shortestM;
   final int selectedIndex;
   final ValueChanged<int> onSelect;
 
@@ -497,6 +503,7 @@ class _RouteOptionCards extends StatelessWidget {
           option: options[i],
           toll: tolls[routeKey(options[i])],
           slowerByS: options[i].durationS - fastestS,
+          longerByM: options[i].distanceM - shortestM,
           selected: i == selectedIndex,
           onTap: () => onSelect(i),
         );
@@ -578,6 +585,7 @@ class _RouteOptionCard extends StatelessWidget {
     super.key,
     required this.option,
     required this.slowerByS,
+    required this.longerByM,
     required this.selected,
     required this.onTap,
     this.toll,
@@ -590,6 +598,9 @@ class _RouteOptionCard extends StatelessWidget {
 
   /// Beza masa berbanding laluan terpantas (0 untuk yang terpantas sendiri).
   final int slowerByS;
+
+  /// Beza jarak berbanding laluan terpendek (0 untuk yang terpendek sendiri).
+  final int longerByM;
   final bool selected;
   final VoidCallback onTap;
 
@@ -602,6 +613,10 @@ class _RouteOptionCard extends StatelessWidget {
     final label = routeLabelText(l10n, option.label);
     final duration = formatDuration(l10n, option.durationS);
     final distance = formatDistance(l10n, option.distanceM);
+    // Beza jarak di bawah 1 km tidak bermakna.
+    final longer = longerByM >= 1000
+        ? '+${formatDistance(l10n, longerByM)}'
+        : null;
     // Beza di bawah semenit tidak bermakna kepada pemandu.
     final slower = slowerByS >= 60
         ? '+${formatDuration(l10n, slowerByS)}'
@@ -618,6 +633,7 @@ class _RouteOptionCard extends StatelessWidget {
         duration,
         ?slower,
         distance,
+        ?longer,
         turnsText,
         _tollLong(l10n, toll) ?? tollText,
         if (option.hasHighway) l10n.routeHasHighway,
@@ -690,7 +706,7 @@ class _RouteOptionCard extends StatelessWidget {
                     ],
                   ),
                   Text(
-                    '$distance · $turnsText',
+                    '$distance${longer != null ? ' ($longer)' : ''} · $turnsText',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodySmall,

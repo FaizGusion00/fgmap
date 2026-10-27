@@ -386,6 +386,126 @@ void main() {
     });
   });
 
+  group('label dan pilihan laluan (ujian jalanan 0.5.1)', () {
+    test('laluan jauh yang sedikit lebih laju tidak menjadi "Disyorkan"', () {
+      final merged = mergeRouteCandidates(
+        standard: [
+          _route(durationS: 2600, distanceM: 55000, points: direct),
+          _route(durationS: 2700, distanceM: 40000, points: north),
+        ],
+      );
+      expect(merged.first.distanceM, 40000);
+      expect(merged.first.label, RouteLabel.recommended);
+      expect(merged[1].label, RouteLabel.fastest);
+    });
+
+    test(
+      'laluan yang lebih jauh DAN lebih lama tidak pernah dilabel istimewa',
+      () {
+        final merged = mergeRouteCandidates(
+          standard: [
+            _route(durationS: 2800, distanceM: 50000, points: direct),
+            _route(durationS: 3300, distanceM: 70000, points: north),
+            _route(durationS: 3000, distanceM: 52000, points: south),
+          ],
+        );
+        expect(merged.first.durationS, 2800);
+        final worst = merged.firstWhere((r) => r.distanceM == 70000);
+        expect(worst.label, RouteLabel.alternative);
+      },
+    );
+
+    test(
+      '"Terpendek" diberi kepada laluan jarak minimum walaupun bebas tol',
+      () {
+        final merged = mergeRouteCandidates(
+          standard: [
+            _route(
+              durationS: 2400,
+              distanceM: 60000,
+              points: direct,
+              hasTolls: true,
+            ),
+            _route(durationS: 2700, distanceM: 48000, points: north),
+          ],
+        );
+        expect(merged.first.durationS, 2400);
+        final other = merged[1];
+        expect(other.distanceM, 48000);
+        expect(other.label, RouteLabel.shortest);
+      },
+    );
+
+    test('hanya satu laluan "Disyorkan", "Terpantas" ialah masa minimum', () {
+      final merged = mergeRouteCandidates(
+        standard: [
+          _route(durationS: 3000, distanceM: 50000, points: direct),
+          _route(durationS: 2950, distanceM: 49000, points: north),
+          _route(durationS: 3200, distanceM: 47000, points: south),
+        ],
+      );
+      expect(
+        merged.where((r) => r.label == RouteLabel.recommended),
+        hasLength(1),
+      );
+      final fastest = merged
+          .map((r) => r.durationS)
+          .reduce((a, b) => a < b ? a : b);
+      for (final r in merged) {
+        if (r.label == RouteLabel.fastest) expect(r.durationS, fastest);
+        if (r.label == RouteLabel.shortest) {
+          expect(
+            r.distanceM,
+            merged.map((x) => x.distanceM).reduce((a, b) => a < b ? a : b),
+          );
+        }
+      }
+    });
+
+    test(
+      'laluan utama sebelumnya dikekalkan kecuali yang baharu jelas lebih baik',
+      () {
+        final first = mergeRouteCandidates(
+          standard: [_route(durationS: 3000, distanceM: 50000, points: direct)],
+        ).first;
+        final stable = mergeRouteCandidates(
+          standard: [
+            _route(durationS: 3000, distanceM: 50000, points: direct),
+            _route(durationS: 2990, distanceM: 50000, points: north),
+          ],
+          incumbent: first,
+        );
+        expect(stable.first.durationS, 3000);
+        final better = mergeRouteCandidates(
+          standard: [
+            _route(durationS: 3000, distanceM: 50000, points: direct),
+            _route(durationS: 2800, distanceM: 49000, points: north),
+          ],
+          incumbent: first,
+        );
+        expect(better.first.durationS, 2800);
+      },
+    );
+
+    test('"Tanpa lebuh raya" hanya jika laluan sebenar tiada lebuh raya', () {
+      final merged = mergeRouteCandidates(
+        standard: [_route(durationS: 2400, distanceM: 60000, points: direct)],
+        noHighways: [
+          sampleOption(
+            durationS: 2900,
+            distanceM: 62000,
+            points: north,
+            hasHighway: true,
+          ),
+        ],
+      );
+      expect(
+        merged.map((r) => r.label),
+        isNot(contains(RouteLabel.noHighways)),
+      );
+    });
+  });
+
   group('planCandidateRequests', () {
     RouteOption mainRoute({int distanceM = 60000, bool tolls = true}) => _route(
       durationS: 3000,
