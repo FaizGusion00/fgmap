@@ -1,0 +1,64 @@
+name: tolls-data
+
+# Membina app/assets/tolls/my_tolls.json (kadar tol rasmi LLM + koordinat plaza OSM) dan laporan padanan.
+# Runner GitHub boleh mencapai Overpass; container pembangunan tidak. Hasilnya di-commit ke branch yang
+# sama supaya perubahan data kelihatan dalam kajian kod (bukan senyap).
+on:
+  push:
+    branches: [claude/practical-bardeen-kmtow6]
+    paths: ["tools/tolls/build_tolls.py", "tools/tolls/aliases.json", ".github/workflows/tolls-data.yml"]
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Muat turun nod plaza OSM (Overpass)
+        run: |
+          python3 - <<'PY'
+          import json, time, urllib.parse, urllib.request
+          q = ('[out:json][timeout:120];area["ISO3166-1"="MY"]->.a;'
+               '(node(area.a)["barrier"="toll_booth"];node(area.a)["highway"="toll_gantry"];);out body;')
+          last = None
+          for host in ("https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter"):
+              for attempt in range(3):
+                  try:
+                      req = urllib.request.Request(host, data=urllib.parse.urlencode({"data": q}).encode(),
+                                                   headers={"User-Agent": "fgmap-tolls/0.1 (+https://github.com/FaizGusion00/fgmap)"})
+                      with urllib.request.urlopen(req, timeout=150) as r:
+                          data = json.loads(r.read())
+                      assert data.get("elements"), "Overpass memulangkan 0 elemen"
+                      json.dump(data, open("overpass.json", "w"))
+                      print("nod OSM:", len(data["elements"]))
+                      raise SystemExit(0)
+                  except SystemExit:
+                      raise
+                  except Exception as e:  # noqa: BLE001
+                      last = e
+                      print("cuba semula:", host, attempt, repr(e))
+                      time.sleep(5 * (attempt + 1))
+          raise SystemExit(f"Overpass gagal: {last!r}")
+          PY
+      - name: Bina dataset
+        run: python3 tools/tolls/build_tolls.py --overpass-file overpass.json --out app/assets/tolls/my_tolls.json --report tolls-report.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tolls-report
+          path: |
+            tolls-report.md
+            app/assets/tolls/my_tolls.json
+      - name: Commit dataset jika berubah
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/assets/tolls/my_tolls.json
+          if git diff --cached --quiet; then echo "tiada perubahan"; else
+            git commit -m "chore(tolls): kemas kini dataset kadar tol (dijana oleh workflow)"
+            git push
+          fi

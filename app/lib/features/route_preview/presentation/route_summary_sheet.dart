@@ -1098,7 +1098,7 @@ class _TollSummary extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(left: 22, top: 2),
             child: Text(
-              l10n.routeTollDisclaimer(tollClassOf(vehicle)),
+              l10n.routeTollDisclaimer,
               style: theme.textTheme.labelSmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),

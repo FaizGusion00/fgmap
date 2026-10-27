@@ -475,14 +475,7 @@
       }
     }
   },
-  "routeTollDisclaimer": "Estimate only (class {cls}); check the price at the plaza.",
-  "@routeTollDisclaimer": {
-    "placeholders": {
-      "cls": {
-        "type": "String"
-      }
-    }
-  },
+  "routeTollDisclaimer": "Estimate for cars (class 1) from Malaysian Highway Authority rates; check the price at the plaza.",
   "settingsClearAll": "Delete all my data",
   "settingsClearAllHint": "Search history, saved places, reports and cached location data on this device.",
   "legalPrivacyTitle": "Privacy Policy",

@@ -1063,9 +1063,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String routeTollDisclaimer(String cls) {
-    return 'Estimate only (class $cls); check the price at the plaza.';
-  }
+  String get routeTollDisclaimer =>
+      'Estimate for cars (class 1) from Malaysian Highway Authority rates; check the price at the plaza.';
 
   @override
   String get settingsClearAll => 'Delete all my data';
