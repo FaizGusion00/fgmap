@@ -158,16 +158,14 @@ for name, (o, d) in TRIPS.items():
     main = base[0]["pts"] if base else []
     if main:
         L = base[0]["km"] * 1000
-        off = max(500, min(8000, 0.12 * L))
-        for frac in (0.35, 0.5, 0.65):
-            for side in (1, -1):
-                v = offset_point(main, frac, side, off)
-                body = req(o, d)
-                body["locations"] = [loc(o), loc(v, type="through"), loc(d)]
-                run(f"via{int(frac*100)}{'L' if side > 0 else 'R'}", body)
-        for frac in (0.5, 0.35, 0.65, 0.2, 0.8):
-            c = main[int(len(main) * frac)]
-            run(f"excl{int(frac*100)}", req(o, d, exclude_polygons=circle(c, max(250, min(1400, 0.02 * L)))))
+        off = max(400, min(5000, 0.07 * L))
+        for frac, side in ((0.35, 1), (0.65, -1), (0.5, 1), (0.5, -1), (0.25, -1), (0.75, 1)):
+            v = offset_point(main, frac, side, off)
+            body = req(o, d)
+            body["locations"] = [loc(o), loc(v, type="through"), loc(d)]
+            run(f"via{int(frac*100)}{'L' if side > 0 else 'R'}", body)
+        c = main[int(len(main) * 0.5)]
+        run("excl50", req(o, d, exclude_polygons=circle(c, max(250, min(1400, 0.02 * L)))))
     run("nohw", req(o, d, costing_options={"auto": {"use_highways": 0}}))
     run("notoll", req(o, d, costing_options={"auto": {"use_tolls": 0}}))
     run("shortest", req(o, d, costing_options={"auto": {"shortest": True}}))
@@ -188,11 +186,13 @@ for name, (o, d) in TRIPS.items():
             kept.append((s, r))
         return kept
 
-    strict = merge(False, 0.75, (1.4, 15))
-    relaxed = merge(True, 0.75, (1.6, 25))
-    print(f"MERGE|{name}|raw={len(cands)}|strict={len(strict)}|relaxed={len(relaxed)}|"
-          f"strict_by={[s for s,_ in strict]}|relaxed_by={[s for s,_ in relaxed]}", flush=True)
-    summary.append({"trip": name, "raw": len(cands), "strict": len(strict), "relaxed": len(relaxed), "log": log})
+    t1 = merge(False, 0.75, (1.4, 15))
+    t2 = merge(True, 0.75, (1.6, 25))
+    t3 = merge(True, 0.85, (1.8, 35))
+    final = t1 if len(t1) >= 5 else (t2 if len(t2) >= 5 else t3)
+    print(f"PLAN|{name}|raw={len(cands)}|t1={len(t1)}|t2={len(t2)}|t3={len(t3)}|final={len(final)}|"
+          f"final={[(s, round(r['min']), round(r['km'])) for s, r in final]}", flush=True)
+    summary.append({"trip": name, "raw": len(cands), "t1": len(t1), "t2": len(t2), "t3": len(t3), "log": log})
     json.dump(summary, open(os.path.join(OUT, "summary.json"), "w"), indent=1)
     # simpan respons mentah laluan utama + alternatif untuk fixture
     st, resp = post(req(o, d, alternates=2, directions_type="maneuvers"))
