@@ -1,7 +1,8 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show immutable;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/utils/geo.dart';
+import '../../../core/utils/log.dart';
 import '../../route_preview/domain/route_option.dart';
 import '../../route_preview/domain/route_options_merge.dart';
 import '../../route_preview/domain/routing_failure.dart';
@@ -61,7 +62,7 @@ class NavAlternativesController extends Notifier<NavAlternativesState> {
       if (seq != _seq || !ref.mounted) return;
       state = const NavAlternativesState(status: NavAlternativesStatus.failed);
     } on Object catch (e) {
-      debugPrint('Mencari laluan alternatif gagal: $e');
+      logDiag('Mencari laluan alternatif gagal: $e');
       if (seq != _seq || !ref.mounted) return;
       state = const NavAlternativesState(status: NavAlternativesStatus.failed);
     }

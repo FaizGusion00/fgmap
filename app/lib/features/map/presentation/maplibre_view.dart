@@ -621,7 +621,7 @@ class _MapLibreViewState extends State<MapLibreView> {
     try {
       await _setChunkFilters(c, _noChunk);
     } on Object catch (e) {
-      debugPrint('Tetapan semula penapis keping gagal: $e');
+      logDiag('Tetapan semula penapis keping gagal: $e');
     }
     _trimChunk = null;
   }
@@ -651,7 +651,7 @@ class _MapLibreViewState extends State<MapLibreView> {
             await _setChunkFilters(c, nav.chunkIndexAt(along));
             await _setTrim(c, nav.chunkFractionAt(along));
           } on Object catch (e) {
-            debugPrint('Penapis keping ditolak, guna sandaran: $e');
+            logDiag('Penapis keping ditolak, guna sandaran: $e');
             _gradientOk = false;
             await _resetChunkFilters(c);
           }
