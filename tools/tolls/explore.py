@@ -1,69 +1,33 @@
 #!/usr/bin/env python3
-"""Penerokaan sementara (Actions), pusingan 8: jadual tambang Prolintas / MEX / IJM dan imej DUKE."""
-import os
-import re
+"""Penerokaan sementara (Actions), pusingan 9: senarai ringkas semua plaza tol OSM Malaysia (nama, pengendali)."""
+import json
+import math
 import urllib.parse
 import urllib.request
 
-UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
-OUT = "tools/tolls/cache"
-os.makedirs(OUT, exist_ok=True)
+UA = "fgmap-tolls/0.1 (+https://github.com/FaizGusion00/fgmap)"
+q = ('[out:json][timeout:120];area["ISO3166-1"="MY"]->.a;'
+     '(node(area.a)["barrier"="toll_booth"];node(area.a)["highway"="toll_gantry"];);out body;')
+req = urllib.request.Request("https://overpass-api.de/api/interpreter",
+                             data=urllib.parse.urlencode({"data": q}).encode(), headers={"User-Agent": UA})
+els = json.loads(urllib.request.urlopen(req, timeout=150).read())["elements"]
 
 
-def fetch(url, binary=False):
-    req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "*/*"})
-    try:
-        with urllib.request.urlopen(req, timeout=40) as r:
-            b = r.read()
-            return r.status, (b if binary else b.decode("utf-8-sig", "replace"))
-    except Exception as e:  # noqa: BLE001
-        return 0, (b"" if binary else repr(e))
+def d(a, b):
+    return math.hypot((a[0] - b[0]) * 111000, (a[1] - b[1]) * 111000 * math.cos(math.radians(a[0])))
 
 
-def text_of(html):
-    html = re.sub(r"<(script|style|nav|footer|header)[^>]*>.*?</\1>", " ", html, flags=re.S | re.I)
-    return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", html))
-
-
-def anchors(html):
-    return [(h, re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", a)).strip())
-            for h, a in re.findall(r'<a[^>]+href="([^"#]+)"[^>]*>(.*?)</a>', html, flags=re.S | re.I)]
-
-
-# Prolintas: pautan lebuh raya + jadual.
-s, t = fetch("https://www.prolintas.com.my/")
-hw = {}
-for h, a in anchors(t):
-    if re.search(r"(?i)^(AKLEH|GCE|LKSA|SILK|SUKE|DASH|KAJANG)\b", a) and h not in hw:
-        hw[h] = a
-print("PROLINTAS pautan lebuh raya:", hw)
-for h in list(hw)[:8]:
-    s, t = fetch(h)
-    print(f"\n== {h} {s} len={len(t)}")
-    for m in re.finditer(r"(?is)<table.*?</table>", t):
-        tb = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " | ", m.group(0)))
-        print("  TABLE:", tb[:1500])
-    for h2, a2 in anchors(t):
-        if re.search(r"(?i)toll|fare|tol|tambang|rate", a2 + h2) and "prolintas" in h2 and len(a2) < 60:
-            print("   link:", a2, h2)
-
-# MEX
-s, t = fetch("https://www.mex.com.my/features-and-facilities/toll-operations/")
-tx = text_of(t)
-print("\n== MEX toll-operations", s, len(t), "tables", len(re.findall("<table", t, flags=re.I)))
-i = tx.lower().find("class 1")
-print(tx[max(0, i - 500): i + 1800] if i >= 0 else tx[:1500])
-
-# IJM
-s, t = fetch("https://www.ijm.com/our-businesses/infrastructure-toll")
-print("\n== IJM", s, len(t))
-for h, a in anchors(t):
-    if re.search(r"(?i)npe|besraya|kl-?k|karak|toll|tol", a + h):
-        print("   ", a[:50], h)
-
-# DUKE imej tambang (disimpan supaya boleh dibaca secara visual).
-for u in ("https://www.duke.com.my/files/editor_files//images/The%20Highway/kadartol.jpg",):
-    s, b = fetch(u, binary=True)
-    print("\n== DUKE image", u, s, len(b))
-    if s == 200 and b:
-        open(os.path.join(OUT, "duke_kadartol.jpg"), "wb").write(b)
+clusters = []
+for e in els:
+    p = (e["lat"], e["lon"])
+    for c in clusters:
+        if d(p, c["p"]) < 600 and (e["tags"].get("name") or "") == c["name"]:
+            c["n"] += 1
+            break
+    else:
+        clusters.append({"p": p, "name": e["tags"].get("name") or "", "op": e["tags"].get("operator") or "", "n": 1,
+                         "ref": e["tags"].get("ref") or ""})
+clusters.sort(key=lambda c: (c["p"][0] > 5.5, -c["p"][1] if False else c["p"][1], c["p"][0]))
+print("KLUSTER", len(clusters))
+for c in sorted(clusters, key=lambda c: c["name"].lower()):
+    print(f'CL|{c["name"]}|{c["op"]}|{c["p"][0]:.5f},{c["p"][1]:.5f}|{c["n"]}')
