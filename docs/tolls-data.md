@@ -5,8 +5,8 @@
 | Liputan | Sumber | Status |
 |---|---|---|
 | Sistem **tertutup**: PLUS (Utara-Selatan, ELITE, KLIA), LPT1, WCE, LEKAS, SKVE, SDE | Kalkulator tol rasmi Lembaga Lebuhraya Malaysia (LLM), melalui rangkak awam `mohdsyahid/kadar-tol-malaysia` (MIT) | Ada, kelas 1 (kereta) |
-| Lebuh raya **harga tetap** yang pengendalinya menyiarkan jadual teks: LDP, SPRINT (LITRAK), KESAS, LLB (Butterworth), MEX, AKLEH, GCE, LKSA, SILK, SUKE, DASH (Prolintas) | Halaman tambang rasmi pengendali (URL dan tarikh ambil disimpan bagi setiap entri) | Ada, kelas 1 |
-| Lain-lain harga tetap (NPE, BESRAYA, DUKE, SPE, KLK, GCE/LATAR lain, jambatan Pulau Pinang, SMART, dll.) | Tiada jadual teks rasmi ditemui (DUKE hanya imej tidak bertarikh; LLM tiada kadarnya) | **Tidak diketahui** |
+| Lebuh raya **harga tetap** yang pengendalinya menyiarkan jadual teks: LDP, SPRINT (LITRAK), KESAS, LLB (Butterworth), MEX, GCE, LKSA, AKLEH, SILK (Sungai Balak), DASH (Kota Damansara) | Halaman tambang rasmi pengendali (URL dan tarikh ambil disimpan bagi setiap entri) | Ada, kelas 1 |
+| Lain-lain harga tetap (NPE, BESRAYA, DUKE, SPE, SUKE, LATAR, KLK, jambatan Pulau Pinang, SMART, plaza SILK/DASH lain, dll.) | Tiada jadual teks rasmi ditemui (DUKE hanya imej tidak bertarikh; LLM tiada kadarnya) | **Tidak diketahui** |
 | Motosikal | LLM tiada kelas motosikal | **Tidak diketahui** (bukan percuma, bukan kelas lain) |
 
 Tiada angka direka. Sumber pihak ketiga yang menyenaraikan kadar saling **bercanggah** (cth. Jalan Duta ke
@@ -84,9 +84,16 @@ Anggaran dipaparkan sebagai "Tol RM x" hanya jika SEMUA plaza pada laluan ada ha
 
 ## Had yang diketahui
 
-- **Plaza masuk tidak dipadankan**: jika plaza masuk sistem tertutup tiada koordinat atau tidak dikesan OSM,
-  larian bermula di plaza seterusnya dan kos boleh **kurang daripada sebenar** tanpa amaran. Plaza yang
-  tidak dipadankan disenaraikan dalam laporan workflow; tambah alias jika perlu.
+- **Plaza tidak dipadankan / tiada dalam OSM**: plaza OSM pada laluan yang tidak sepadan dengan dataset dikira
+  "tidak diketahui" dan memecahkan larian sistem tertutup, jadi jumlah dipaparkan "RM x+" (had bawah), bukan
+  angka tepat. Kes senyap hanya jika plaza itu tiada langsung dalam OSM (tidak dikesan pada laluan): kos boleh
+  kurang daripada sebenar tanpa penanda. Plaza yang tidak dipadankan disenaraikan dalam laporan workflow.
+- Plaza OSM bernama sama pada lebuh raya berbeza (cth. "Putrajaya": ELITE dan MEX) dipadankan dengan koordinat
+  manual dalam `aliases.json` (disahkan dengan laluan KLCC ke KLIA dalam `test/fixtures`).
+- Kadar lebuh raya harga tetap diambil daripada halaman pengendali dan boleh lapuk jika pengendali lambat
+  mengemas kini; setiap entri menyimpan URL sumber dan `verifiedOn`. Untuk SILK dan DASH hanya plaza yang
+  disahkan (Sungai Balak; Kota Damansara) diberi harga; plaza lain kekal tidak diketahui kerana halaman
+  pengendali tidak menyatakan plaza mana yang dimaksudkan.
 - Lebuh raya harga tetap: perjalanan campuran (cth. KLCC ke KLIA melalui AKLEH, SPE, MEX) dipaparkan "RM x+".
 - Anggaran ialah kelas 1, lalu lintas biasa; tiada diskaun/hari kenaan/kad diskaun.
 - Kadar baharu (gazet) hanya masuk selepas sumber LLM dan workflow dijalankan semula.
