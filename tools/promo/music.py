@@ -58,7 +58,10 @@ def env(n, a, d, s=0.0, r=0.0):
 
 def put(buf, start, sig, gain=1.0, pan=0.0):
     i = int(start * SR)
-    if i >= buf.shape[1]:
+    if i < 0:
+        sig = sig[-i:]
+        i = 0
+    if i >= buf.shape[1] or len(sig) == 0:
         return
     j = min(buf.shape[1], i + len(sig))
     sig = sig[: j - i] * gain
@@ -149,12 +152,7 @@ def pluck(f, n=int(.4 * SR)):
     return (tone(f, n, 4) * np.exp(-t * 9) + .35 * np.sin(2 * np.pi * f * 2 * t) * np.exp(-t * 14)) * .5
 
 
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--aspect", default="16x9")
-    ap.add_argument("--out", required=True)
-    a = ap.parse_args()
-    tl = TL[a.aspect]
+def render(tl, feat):
     dur = tl[-1][2]
     n = int(dur * SR)
     pad_b, arp_b, bass_b, drum_b, fx_b = (np.zeros((2, n)) for _ in range(5))
@@ -163,8 +161,8 @@ def main():
     def feat_at(t):
         for name, t0, t1 in tl:
             if t0 <= t < t1:
-                return name, FEAT[name]
-        return tl[-1][0], FEAT[tl[-1][0]]
+                return name, feat[name]
+        return tl[-1][0], feat[tl[-1][0]]
 
     nb = int(dur / BEAT)
     # kick + sidechain, dram
@@ -238,6 +236,17 @@ def main():
     fin, fout = int(.08 * SR), int(1.8 * SR)
     bus[:, :fin] *= np.linspace(0, 1, fin)
     bus[:, -fout:] *= np.linspace(1, 0, fout) ** 1.5
+    return bus
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--aspect", default="16x9")
+    ap.add_argument("--out", required=True)
+    a = ap.parse_args()
+    tl = TL[a.aspect]
+    dur = tl[-1][2]
+    bus = render(tl, FEAT)
     peak = np.abs(bus).max()
     bus = bus / peak * .89
     pcm = (np.clip(bus.T, -1, 1) * 32767).astype("<i2")

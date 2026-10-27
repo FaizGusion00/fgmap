@@ -1,0 +1,36 @@
+{
+  "ms": {
+    "s01": {"k": "NAVIGASI UNTUK MALAYSIA", "h": ["Tiada internet?", "Tetap sampai."], "brand": "FGMaps", "tag": "Navigasi untuk Malaysia", "noSignal": "Tiada internet"},
+    "s02": {"k": "MULA", "h": ["Buka.", "Terus bersedia."]},
+    "s03": {"k": "CARI", "h": ["Taip.", "Terus ada."], "s": "Cadangan muncul semasa anda menaip"},
+    "s04": {"k": "LALUAN", "h": ["Sehingga 10", "pilihan laluan."], "labels": ["Disyorkan", "Terpantas", "Terpendek", "Tanpa tol"], "s": "Beza masa dan jarak pada setiap kad"},
+    "s05": {"k": "KOS", "h": ["Tahu kos", "sebelum jalan."], "chips": ["Anggaran tol", "Anggaran minyak"]},
+    "s06": {"k": "KENDERAAN", "h": ["Kereta atau", "motosikal."]},
+    "s07": {"k": "NAVIGASI", "h": ["Tekan Mula.", "Kami pandu."], "chips": ["Belok demi belok", "Suara BM / English", "Kereta 3D", "Kamera automatik"]},
+    "s08": {"k": "LALUAN SEMULA", "h": ["Tersasar?", "Tak apa."], "s": "Laluan dikira semula secara automatik"},
+    "s09": {"k": "HAD LAJU", "h": ["Pandu lebih", "selamat."], "s": "Had laju dipaparkan apabila tersedia"},
+    "s10": {"k": "SAMPAI", "h": ["Anda dah", "sampai."]},
+    "s11": {"k": "SEMUANYA ADA", "h": ["Satu app,", "banyak ciri."], "chips": ["Rumah & Kerja", "Cari berhampiran", "Kongsi masa tiba", "Butang kecemasan"]},
+    "s12": {"k": "TANPA INTERNET", "h": ["Tiada internet?", "Tiada masalah."], "s": "Muat turun sekali, laluan dikira dalam telefon", "stat": "254 MB", "statLabel": "pek peta Malaysia, sekali sahaja", "airplane": "Mod pesawat"},
+    "s13": {"k": "TEMA", "h": ["Siang", "atau malam."], "chips": ["Cerah", "Gelap", "Hitam AMOLED", "Matahari"]},
+    "s14": {"k": "PERCUMA", "h": ["Percuma."], "items": ["Akaun", "Iklan", "Langganan", "Penjejakan"], "none": "Tiada"},
+    "s15": {"tagline": "Navigasi untuk Malaysia", "soon": "Segera hadir", "credit": "Dibangunkan oleh Faiz Nasir · FG Universal Empire Company"}
+  },
+  "en": {
+    "s01": {"k": "NAVIGATION FOR MALAYSIA", "h": ["No internet?", "Still arrive."], "brand": "FGMaps", "tag": "Navigation for Malaysia", "noSignal": "No internet"},
+    "s02": {"k": "START", "h": ["Open.", "Ready to go."]},
+    "s03": {"k": "SEARCH", "h": ["Type.", "Instantly there."], "s": "Suggestions appear as you type"},
+    "s04": {"k": "ROUTES", "h": ["Up to 10", "route options."], "labels": ["Recommended", "Fastest", "Shortest", "No tolls"], "s": "Time and distance differences on every card"},
+    "s05": {"k": "COST", "h": ["Know the cost", "before you go."], "chips": ["Toll estimate", "Fuel estimate"]},
+    "s06": {"k": "VEHICLE", "h": ["Car or", "motorcycle."]},
+    "s07": {"k": "NAVIGATION", "h": ["Tap Start.", "We guide you."], "chips": ["Turn by turn", "Malay / English voice", "3D car", "Auto camera"]},
+    "s08": {"k": "REROUTING", "h": ["Missed a turn?", "No problem."], "s": "Routes are recalculated automatically"},
+    "s09": {"k": "SPEED LIMIT", "h": ["Drive", "safer."], "s": "Speed limits shown when available"},
+    "s10": {"k": "ARRIVAL", "h": ["You've", "arrived."]},
+    "s11": {"k": "EVERYTHING INCLUDED", "h": ["One app,", "many features."], "chips": ["Home & Work", "Nearby search", "Share arrival time", "Emergency button"]},
+    "s12": {"k": "NO INTERNET", "h": ["No internet?", "No problem."], "s": "Download once, routes calculated on your phone", "stat": "254 MB", "statLabel": "Malaysia pack, once only", "airplane": "Airplane mode"},
+    "s13": {"k": "THEMES", "h": ["Day or", "night."], "chips": ["Light", "Dark", "AMOLED black", "Sun"]},
+    "s14": {"k": "FREE", "h": ["Free."], "items": ["Account", "Ads", "Subscription", "Tracking"], "none": "No"},
+    "s15": {"tagline": "Navigation for Malaysia", "soon": "Coming soon", "credit": "Built by Faiz Nasir · FG Universal Empire Company"}
+  }
+}
