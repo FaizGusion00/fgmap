@@ -3,8 +3,6 @@ import 'dart:math' as math;
 
 import 'package:fgmap/core/location/location_service.dart';
 import 'package:fgmap/features/navigation/data/screen_awake.dart';
-import 'package:fgmap/features/route_preview/domain/route_option.dart'
-    show RouteVehicle;
 import 'package:fgmap/features/speed_limits/data/speed_limit_service.dart';
 import 'package:fgmap/features/speed_limits/domain/speed_limits.dart';
 import 'package:fgmap/features/navigation/data/voice_guide.dart';

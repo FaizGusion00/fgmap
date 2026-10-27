@@ -3,8 +3,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 
-import 'package:flutter/foundation.dart';
-
 import '../../../core/utils/geo.dart';
 import '../domain/report.dart';
 import '../../../core/utils/log.dart';

@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:dio/dio.dart';
 import 'package:fgmap/core/storage/preferences.dart';
 import 'package:fgmap/features/fuel/data/fuel_price_service.dart';
