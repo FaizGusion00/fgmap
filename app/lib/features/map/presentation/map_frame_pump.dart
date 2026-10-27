@@ -1,9 +1,8 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart' show debugPrint;
-
 import '../../navigation/domain/camera_planner.dart' show CameraPose;
 import 'map_view.dart';
+import '../../../core/utils/log.dart';
 
 /// Menghantar kedudukan marker dan pose kamera ke peta semasa navigasi (60 kali sesaat) dengan
 /// panggilan platform yang tak segerak.
@@ -101,7 +100,7 @@ class MapFramePump {
     final nowMs = _diagClock.elapsedMilliseconds;
     if (nowMs - _diagReportedAtMs >= 5000) {
       final seconds = (nowMs - _diagReportedAtMs) / 1000;
-      debugPrint(
+      logDiag(
         'FGDIAG kamera: ${(_diagSends / seconds).toStringAsFixed(1)}/s, '
         'RTT purata ${(_diagRttUs / _diagSends / 1000).toStringAsFixed(1)} ms, '
         'maks ${(_diagMaxRttUs / 1000).toStringAsFixed(1)} ms',
@@ -118,7 +117,7 @@ class MapFramePump {
       await send();
     } on Object catch (e) {
       // Peta boleh dilupuskan di tengah hantaran; satu hantaran gagal tidak menghentikan yang lain.
-      debugPrint('$what gagal: $e');
+      logDiag('$what gagal: $e');
     }
   }
 }

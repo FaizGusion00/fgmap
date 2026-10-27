@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/location/location_service.dart';
 import '../../../core/theme/motion.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../legal/presentation/legal_page.dart';
 import '../../map/presentation/location_prompt.dart';
 import '../../navigation/data/navigation_settings.dart';
 import '../../navigation/domain/instruction_text.dart';
@@ -252,6 +253,27 @@ class _PrivacyPage extends StatelessWidget {
         _Bullet(icon: Icons.phone_android_rounded, text: l10n.onbPrivacyLocal),
         _Bullet(icon: Icons.public_rounded, text: l10n.onbPrivacyServers),
         _Bullet(icon: Icons.my_location_rounded, text: l10n.onbPrivacyLocation),
+        const SizedBox(height: 8),
+        Text(
+          l10n.legalConsent,
+          key: const ValueKey('legal-consent'),
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        Wrap(
+          spacing: 8,
+          children: [
+            TextButton(
+              key: const ValueKey('onb-terms'),
+              onPressed: () => showLegalPage(context, LegalDoc.terms),
+              child: Text(l10n.legalTermsTitle),
+            ),
+            TextButton(
+              key: const ValueKey('onb-privacy'),
+              onPressed: () => showLegalPage(context, LegalDoc.privacy),
+              child: Text(l10n.legalPrivacyTitle),
+            ),
+          ],
+        ),
       ],
     );
   }

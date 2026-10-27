@@ -11,7 +11,7 @@ import '../../../core/utils/geo.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../domain/place.dart';
 import '../../route_preview/presentation/route_format.dart';
-import '../../../core/config/app_config.dart';
+import '../data/nearby_search.dart';
 import '../domain/nearby_category.dart';
 import '../../saved_places/data/saved_places_controller.dart';
 import '../../saved_places/domain/saved_place.dart';
@@ -96,6 +96,9 @@ class TripPlannerPage extends ConsumerStatefulWidget {
   ConsumerState<TripPlannerPage> createState() => _TripPlannerPageState();
 }
 
+/// Pemanasan simpanan carian berhampiran semasa perancang dibuka; dimatikan dalam ujian.
+final nearbyWarmUpProvider = Provider<bool>((ref) => true);
+
 class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
   final _destText = TextEditingController();
   final _destFocus = FocusNode();
@@ -109,6 +112,7 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _destFocus.requestFocus();
     });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _warmUp());
     if (initialQuery != null && initialQuery.isNotEmpty) {
       _destText.text = initialQuery;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -117,6 +121,31 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
             .read(placeSearchControllerProvider.notifier)
             .onQueryChanged(initialQuery, near: widget.near);
       });
+    }
+  }
+
+  /// Memanaskan simpanan untuk dua kategori paling kerap (minyak, makan) sebaik perancang dibuka,
+  /// supaya ketukan pertama serta-merta. Senyap: hanya menulis simpanan, gagal diabaikan. Tiada
+  /// permintaan jika simpanan masih segar (ditentukan oleh `CachedNearbySearch`).
+  void _warmUp() {
+    final center = widget.userLocation;
+    if (!mounted ||
+        center == null ||
+        widget.assign != null ||
+        !ref.read(nearbyWarmUpProvider)) {
+      return;
+    }
+    final l10n = AppLocalizations.of(context);
+    final search = ref.read(nearbySearchProvider);
+    for (final (category, name) in [
+      (NearbyCategory.fuel, l10n.searchCatFuel),
+      (NearbyCategory.food, l10n.searchCatFood),
+    ]) {
+      unawaited(
+        search
+            .search(category, center, fallbackName: name)
+            .then<void>((_) {}, onError: (Object _) {}),
+      );
     }
   }
 
@@ -137,6 +166,16 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
 
   /// Carian kategori sebenar (tag OSM di sekitar lokasi anda), bukan carian nama.
   void _searchNearby(NearbyCategory category, String label) {
+    // Tanpa lokasi sebenar, "berhampiran" tidak bermakna: jangan jatuh senyap ke Kuala Lumpur.
+    final center = widget.userLocation ?? widget.near;
+    if (center == null) {
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).searchNeedLocation),
+        ),
+      );
+      return;
+    }
     Haptics.selection();
     _destination = null;
     _destText.text = label;
@@ -145,7 +184,7 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
         .read(placeSearchControllerProvider.notifier)
         .searchNearby(
           category,
-          center: widget.userLocation ?? widget.near ?? AppConfig.initialCenter,
+          center: center,
           label: label,
           fallbackName: label,
         );
@@ -438,6 +477,7 @@ class _ResultsList extends StatelessWidget {
       SearchStatus.results => Column(
         children: [
           if (state.cachedAt != null) _SavedBanner(at: state.cachedAt!),
+          if (state.refreshing) const _RefiningRibbon(),
           for (final (i, place) in state.results.indexed)
             FadeSlideIn(
               key: ValueKey('place-${place.point.lat}-${place.point.lng}'),
@@ -587,6 +627,43 @@ class _SavedBanner extends StatelessWidget {
               child: Text(
                 l10n.searchNearbySaved(when),
                 style: theme.textTheme.bodySmall,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Pita kecil semasa hasil sementara dipaparkan dan carian lebih luas masih berjalan.
+class _RefiningRibbon extends StatelessWidget {
+  const _RefiningRibbon();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    return Semantics(
+      liveRegion: true,
+      label: l10n.searchNearbyRefining,
+      child: Padding(
+        key: const ValueKey('nearby-refining'),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+        child: Row(
+          children: [
+            const SizedBox(
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                l10n.searchNearbyRefining,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
           ],

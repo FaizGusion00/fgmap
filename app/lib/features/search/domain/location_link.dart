@@ -65,8 +65,9 @@ SharedLocation? sharedLocationFromUri(Uri uri) {
       (invalidGeoQuery || geoPlaceholder
           ? null
           : _coordinates(candidate) ?? _coordinatesFromMapPath(uri.path));
-  if (point == null && (label == null || label.isEmpty)) return null;
-  return SharedLocation(point: point, label: label);
+  final cleanLabel = sanitizeSharedLabel(label);
+  if (point == null && (cleanLabel == null || cleanLabel.isEmpty)) return null;
+  return SharedLocation(point: point, label: cleanLabel);
 }
 
 GeoPoint? _coordinatesFromMapPath(String path) {
@@ -138,3 +139,25 @@ String? _placeLabel(Uri uri, Map<String, String> params) {
   }
   return null;
 }
+
+/// Membersihkan label daripada pautan luaran yang tidak dipercayai sebelum dipaparkan atau dicari:
+/// membuang aksara kawalan dan aksara arah teks dua hala (boleh memalsukan teks yang dipaparkan),
+/// mengemas ruang kosong dan menghad panjang kepada [maxSharedLabelLength] aksara.
+String? sanitizeSharedLabel(String? label) {
+  if (label == null) return null;
+  final cleaned = label
+      .replaceAll(
+        RegExp(
+          '[\\u0000-\\u001F\\u007F-\\u009F\\u200B-\\u200F\\u202A-\\u202E\\u2066-\\u2069]',
+        ),
+        ' ',
+      )
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
+  if (cleaned.isEmpty) return null;
+  final runes = cleaned.runes.toList();
+  if (runes.length <= maxSharedLabelLength) return cleaned;
+  return '${String.fromCharCodes(runes.take(maxSharedLabelLength)).trimRight()}…';
+}
+
+const maxSharedLabelLength = 80;

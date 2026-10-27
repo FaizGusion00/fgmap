@@ -23,6 +23,7 @@ class PlaceSearchState {
     this.nearby,
     this.origin,
     this.cachedAt,
+    this.refreshing = false,
   });
 
   final SearchStatus status;
@@ -38,6 +39,9 @@ class PlaceSearchState {
 
   /// Bukan null apabila pelayan tidak dapat dicapai dan [results] ialah simpanan lama dalam peranti.
   final DateTime? cachedAt;
+
+  /// Benar apabila [results] sementara dan hasil lebih lengkap masih dicari.
+  final bool refreshing;
 }
 
 /// Jeda menaip sebelum carian dihantar. Photon awam ialah sumber kongsi; setiap ketukan kekunci
@@ -133,19 +137,30 @@ class PlaceSearchController extends Notifier<PlaceSearchState> {
     final cancel = CancelToken();
     _cancel = cancel;
     try {
-      final result = await ref
-          .read(nearbySearchProvider)
-          .search(category, center, fallbackName: fallbackName, cancel: cancel);
-      if (seq != _seq || !ref.mounted) return;
-      // Simpanan lama tidak dicache dalam sesi supaya ketukan seterusnya mencuba pelayan semula.
-      if (!result.fromCache) _cache[key] = result.places;
-      state = _ready(
-        label,
-        result.places,
-        nearby: category,
-        origin: center,
-        cachedAt: result.cachedAt,
-      );
+      await for (final result in watchNearby(
+        ref.read(nearbySearchProvider),
+        category,
+        center,
+        fallbackName: fallbackName,
+        cancel: cancel,
+      )) {
+        if (seq != _seq || !ref.mounted) return;
+        // Simpanan lama tidak dicache dalam sesi supaya ketukan seterusnya mencuba pelayan semula;
+        // hasil sementara juga tidak.
+        if (!result.fromCache && !result.refreshing) {
+          _cache[key] = result.places;
+        }
+        // Hasil sementara yang kosong: kekal "memuatkan" (bukan "tiada hasil") sehingga peringkat akhir.
+        if (result.refreshing && result.places.isEmpty) continue;
+        state = _ready(
+          label,
+          result.places,
+          nearby: category,
+          origin: center,
+          cachedAt: result.cachedAt,
+          refreshing: result.refreshing,
+        );
+      }
     } on GeocodeFailure catch (f) {
       if (seq != _seq || !ref.mounted) return;
       state = PlaceSearchState(
@@ -234,6 +249,7 @@ class PlaceSearchController extends Notifier<PlaceSearchState> {
     NearbyCategory? nearby,
     GeoPoint? origin,
     DateTime? cachedAt,
+    bool refreshing = false,
   }) => PlaceSearchState(
     status: results.isEmpty ? SearchStatus.empty : SearchStatus.results,
     query: query,
@@ -241,6 +257,7 @@ class PlaceSearchController extends Notifier<PlaceSearchState> {
     nearby: nearby,
     origin: origin,
     cachedAt: cachedAt,
+    refreshing: refreshing,
   );
 
   // Bundar ke ~1 km (2 perpuluhan ≈ 1.1 km) supaya pergerakan kecil tidak menggugurkan cache.

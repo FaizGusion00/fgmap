@@ -10,7 +10,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/location/location_service.dart';
 import '../../../core/network/dio_provider.dart';
+import '../../../core/network/retry_interceptor.dart';
 import '../../../core/theme/fgmap_theme_extension.dart';
+import '../../../core/platform/external_actions.dart';
+import '../../../core/utils/map_links.dart';
+import '../../fuel/data/fuel_settings.dart';
+import '../../fuel/domain/fuel.dart';
+import '../../route_preview/presentation/route_format.dart';
+import '../../safety/presentation/emergency_sheet.dart';
+
 import '../../../core/theme/motion.dart';
 import '../../../core/widgets/press_scale.dart';
 import '../../../core/theme/theme_controller.dart';
@@ -40,10 +48,12 @@ import '../../navigation/presentation/car/car_mesh.dart' show VehicleKind;
 import '../../navigation/presentation/car/car_renderer.dart';
 import '../../navigation/presentation/car/vehicle_overlay.dart';
 import '../../navigation/presentation/navigation_settings_sheet.dart';
+import 'auto_start_banner.dart';
 import 'idle_follow.dart';
 import 'location_prompt.dart';
 import '../../saved_places/domain/saved_place.dart';
 import '../../search/domain/place.dart';
+import '../../saved_places/presentation/assign_place_flow.dart';
 import '../../saved_places/presentation/save_place_sheet.dart';
 import '../../reports/domain/report.dart';
 import '../../reports/presentation/report_alerts_controller.dart';
@@ -54,6 +64,7 @@ import 'map_view.dart';
 import 'nav_route_line.dart';
 import 'user_location.dart';
 import '../../../core/utils/haptics.dart';
+import '../../../core/utils/log.dart';
 
 class MapScreen extends ConsumerStatefulWidget {
   const MapScreen({super.key});
@@ -69,6 +80,12 @@ class _MapScreenState extends ConsumerState<MapScreen>
   final AppLinks _appLinks = AppLinks();
   StreamSubscription<Uri>? _linkSubscription;
   bool _hintDismissed = false;
+
+  /// Nama destinasi yang sedang dikira mundur untuk navigasi automatik (Rumah/Kerja); null = tiada.
+  String? _autoStart;
+
+  /// Bilangan pilihan laluan semasa kamera terakhir dimuatkan (untuk memuat semula selepas alternatif tiba).
+  int _fittedRouteCount = 0;
   bool _startupLocationHandled = false;
   bool _incomingLocationReceived = false;
   bool _locating = false;
@@ -94,7 +111,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
     _linkSubscription = _appLinks.uriLinkStream.listen(
       (uri) => unawaited(_openSharedLocation(uri)),
       onError: (Object error, StackTrace stackTrace) {
-        debugPrint('Incoming location link failed: $error');
+        logDiag('Incoming location link failed: $error');
       },
     );
     WidgetsBinding.instance.addPostFrameCallback(
@@ -369,6 +386,35 @@ class _MapScreenState extends ConsumerState<MapScreen>
         );
   }
 
+  /// Rumah/Kerja diketik: kira laluan, kemudian mula navigasi selepas kiraan 3 saat yang boleh
+  /// dibatalkan. Jika laluan gagal atau kebenaran lokasi tiada, kekal pada pratonton biasa.
+  Future<void> _goNow(Place place) async {
+    await _planSelection(TripSelection(destination: place));
+    if (!mounted) return;
+    final state = ref.read(routePreviewControllerProvider);
+    if (state is RouteReady &&
+        !ref.read(navigationControllerProvider).isActive) {
+      unawaited(Haptics.selection());
+      setState(() => _autoStart = place.name);
+    }
+  }
+
+  void _cancelAutoStart() {
+    if (_autoStart != null) setState(() => _autoStart = null);
+  }
+
+  Future<void> _finishAutoStart() async {
+    if (!mounted || _autoStart == null) return;
+    setState(() => _autoStart = null);
+    // Keadaan terkini (pengguna mungkin menukar kenderaan atau laluan dalam 3 saat itu).
+    final state = ref.read(routePreviewControllerProvider);
+    if (state is! RouteReady ||
+        ref.read(navigationControllerProvider).isActive) {
+      return;
+    }
+    await _startNavigation(state, simulate: false);
+  }
+
   Future<void> _planToDestination(
     GeoPoint point, {
     String? destinationLabel,
@@ -392,14 +438,16 @@ class _MapScreenState extends ConsumerState<MapScreen>
             .read(dioProvider)
             .headUri<Object?>(
               uri,
-              options: Options(followRedirects: true, maxRedirects: 5),
+              options: RetryInterceptor.options(
+                Options(followRedirects: true, maxRedirects: 5),
+              ),
             );
         final resolved = response.realUri;
         if (_isSupportedMapLink(resolved)) {
           shared = sharedLocationFromUri(resolved);
         }
       } on DioException catch (error) {
-        debugPrint('Shared map link could not be resolved: ${error.type.name}');
+        logDiag('Shared map link could not be resolved: ${error.type.name}');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -709,10 +757,10 @@ class _MapScreenState extends ConsumerState<MapScreen>
     if (!mounted || _navigationOwnsCamera) return;
     final media = MediaQuery.of(context);
     final sheetHeight =
-        (ready.options.length > 1 ? 420.0 : 360.0) *
+        (ready.visibleOptions.length > 1 ? 440.0 : 360.0) *
         media.textScaler.scale(1).clamp(1.0, 1.4);
     await camera.fitTo(
-      [for (final option in ready.options) ...option.points],
+      [for (final option in ready.visibleOptions) ...option.points],
       padding: EdgeInsets.fromLTRB(
         40,
         media.padding.top + 80,
@@ -732,9 +780,9 @@ class _MapScreenState extends ConsumerState<MapScreen>
       return;
     }
     final state = ref.read(routePreviewControllerProvider);
-    if (state is! RouteReady || state.options.length < 2) return;
+    if (state is! RouteReady || state.visibleOptions.length < 2) return;
     final index = nearestRouteIndex(
-      [for (final o in state.options) o.points],
+      [for (final o in state.visibleOptions) o.points],
       point,
       toleranceM: metersPerPixel(zoom, point.lat) * 28,
     );
@@ -799,6 +847,75 @@ class _MapScreenState extends ConsumerState<MapScreen>
     await ref.read(reportAlertsProvider.notifier).answer(confirm: answer);
   }
 
+  /// Kedudukan semasa untuk kecemasan: penjejak jika ada, jika tidak GPS (lebih lambat).
+  Future<GeoPoint?> _emergencyLocate() async {
+    final known = _userPoint();
+    if (known != null) return known;
+    return (await _freshFix())?.point;
+  }
+
+  void _openEmergency() {
+    Haptics.medium();
+    unawaited(showEmergencySheet(context, locate: _emergencyLocate));
+  }
+
+  Rect? _shareOrigin() {
+    final box = context.findRenderObject() as RenderBox?;
+    return box == null ? null : box.localToGlobal(Offset.zero) & box.size;
+  }
+
+  Future<void> _share(String text) async {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    final failed = AppLocalizations.of(context).shareFailed;
+    try {
+      await ref
+          .read(shareServiceProvider)
+          .shareText(text, origin: _shareOrigin());
+    } on Object {
+      messenger?.showSnackBar(SnackBar(content: Text(failed)));
+    }
+  }
+
+  String _etaText(Duration remaining) =>
+      MaterialLocalizations.of(context).formatTimeOfDay(
+        TimeOfDay.fromDateTime(ref.read(navClockProvider)().add(remaining)),
+      );
+
+  /// Kongsi destinasi dan masa tiba laluan terpilih (teks + pautan OpenStreetMap; tiada pengesanan langsung).
+  Future<void> _shareDestination(RouteReady ready) {
+    final l10n = AppLocalizations.of(context);
+    final route = ready.selected;
+    final name =
+        ready.query.destinationLabel ?? coordinateText(ready.query.destination);
+    return _share(
+      l10n.shareDestinationText(
+        name,
+        _etaText(Duration(seconds: route.durationS)),
+        formatDuration(l10n, route.durationS),
+        formatDistance(l10n, route.distanceM),
+        osmPointLink(ready.query.destination),
+      ),
+    );
+  }
+
+  /// Semasa navigasi: kongsi masa tiba yang dikemas kini dan baki jarak.
+  Future<void> _shareEta() {
+    final l10n = AppLocalizations.of(context);
+    final nav = ref.read(navigationControllerProvider);
+    final query = nav.query;
+    final progress = nav.progress;
+    if (query == null || progress == null) return Future.value();
+    final name = query.destinationLabel ?? coordinateText(query.destination);
+    return _share(
+      l10n.shareEtaText(
+        name,
+        _etaText(Duration(seconds: progress.remainingS.round())),
+        formatDistance(l10n, progress.remainingM.round()),
+        osmPointLink(query.destination),
+      ),
+    );
+  }
+
   void _selectRoute(int index) {
     Haptics.selection();
     ref.read(routePreviewControllerProvider.notifier).select(index);
@@ -809,12 +926,16 @@ class _MapScreenState extends ConsumerState<MapScreen>
     final theme = Theme.of(context);
     final fg = context.fg;
     final l10n = AppLocalizations.of(context);
-    final themeSettings = ref.watch(themeControllerProvider);
     final state = ref.watch(routePreviewControllerProvider);
     final access = ref.watch(locationAccessProvider);
     final controller = ref.read(routePreviewControllerProvider.notifier);
     final nav = ref.watch(navigationControllerProvider);
     final navSettings = ref.watch(navigationSettingsProvider);
+    // Harga minyak hanya diambil (rangkaian) apabila laluan sedia, bukan semasa app dibuka.
+    final fuelSettings = ref.watch(fuelSettingsProvider);
+    final fuelPrice = state is RouteReady
+        ? ref.watch(effectiveFuelPriceProvider)
+        : null;
     final navigating = nav.isActive;
     // Kenderaan yang dipilih (kereta/motosikal): sama dengan yang digunakan untuk mengira laluan.
     final vehicle = navigating
@@ -823,18 +944,25 @@ class _MapScreenState extends ConsumerState<MapScreen>
     final vehicleKind = vehicle == RouteVehicle.motorcycle
         ? VehicleKind.motorcycle
         : VehicleKind.car;
-    final mapIsDark = switch (themeSettings.mode) {
-      AppThemeMode.light => false,
-      AppThemeMode.dark => true,
-      AppThemeMode.sun => ref.watch(sunDarkProvider),
-      AppThemeMode.system =>
-        MediaQuery.platformBrightnessOf(context) == Brightness.dark,
-    };
+    // Sumber tunggal dengan app.dart: mod matahari sudah dipetakan kepada cerah/gelap di sana.
+    final mapIsDark = isDarkTheme(
+      ref.watch(effectiveThemeModeProvider),
+      MediaQuery.platformBrightnessOf(context),
+    );
 
     ref.listen<NavigationState>(
       navigationControllerProvider,
       _onNavigationChanged,
     );
+    // Sebarang tindakan pengguna pada laluan (tukar kenderaan, pilih laluan lain, padam) membatalkan
+    // kiraan mundur; navigasi tidak boleh bermula di luar kehendaknya.
+    ref.listen<RoutePreviewState>(routePreviewControllerProvider, (prev, next) {
+      if (_autoStart == null) return;
+      final changed =
+          next is! RouteReady ||
+          (prev is RouteReady && prev.selectedIndex != next.selectedIndex);
+      if (changed) _cancelAutoStart();
+    });
 
     // Penjejak lokasi hidup selagi kebenaran ada (ia juga digantung sendiri di latar belakang dan
     // semasa navigasi); berhenti sepenuhnya jika kebenaran ditarik balik.
@@ -859,11 +987,20 @@ class _MapScreenState extends ConsumerState<MapScreen>
       } else {
         _idle.suspend(_Suspend.route);
       }
-      // Muatkan laluan dalam pandangan hanya bila set pilihan baharu tiba, bukan bila pengguna
-      // sekadar bertukar antara laluan yang sama.
-      if (next is RouteReady &&
-          (prev is! RouteReady || !identical(prev.options, next.options))) {
-        unawaited(_fitRoutes(next));
+      // Muatkan laluan dalam pandangan apabila set pilihan pertama tiba, dan sekali lagi apabila
+      // pencarian alternatif selesai dengan lebih banyak laluan (bukan pada setiap laluan yang tiba
+      // atau bila pengguna sekadar bertukar antara laluan).
+      if (next is RouteReady) {
+        final first = prev is! RouteReady;
+        final finished =
+            prev is RouteReady &&
+            prev.loadingMore &&
+            !next.loadingMore &&
+            next.options.length > _fittedRouteCount;
+        if (first || finished) {
+          _fittedRouteCount = next.options.length;
+          unawaited(_fitRoutes(next));
+        }
       }
     });
 
@@ -984,8 +1121,16 @@ class _MapScreenState extends ConsumerState<MapScreen>
                         onPick: (place) => unawaited(
                           _planSelection(TripSelection(destination: place)),
                         ),
-                        onAssign: (kind) =>
-                            unawaited(_openPlanner(assign: kind)),
+                        onGo: (place) => unawaited(_goNow(place)),
+                        onAssign: (kind) => unawaited(
+                          assignSavedPlace(
+                            context,
+                            ref,
+                            kind,
+                            near: _userPoint() ?? _cameraCenterOrDefault(),
+                            userLocation: _userPoint(),
+                          ),
+                        ),
                       ),
                     ],
                   ],
@@ -1024,6 +1169,12 @@ class _MapScreenState extends ConsumerState<MapScreen>
                               const SizedBox(height: 8),
                             ],
                             _GlassIconButton(
+                              icon: Icons.emergency_rounded,
+                              tooltip: l10n.emergencyTooltip,
+                              onPressed: _openEmergency,
+                            ),
+                            const SizedBox(height: 8),
+                            _GlassIconButton(
                               icon: Icons.add_alert_rounded,
                               tooltip: l10n.reportButtonTooltip,
                               onPressed: _openReport,
@@ -1040,6 +1191,12 @@ class _MapScreenState extends ConsumerState<MapScreen>
                       ],
                     ),
                   ),
+                  if (_autoStart != null && state is RouteReady)
+                    AutoStartBanner(
+                      name: _autoStart!,
+                      onDone: () => unawaited(_finishAutoStart()),
+                      onCancel: _cancelAutoStart,
+                    ),
                   Flexible(
                     child: AnimatedSwitcher(
                       duration: Motion.of(context, Motion.normal),
@@ -1058,6 +1215,18 @@ class _MapScreenState extends ConsumerState<MapScreen>
                               key: const ValueKey('route-sheet'),
                               state: state,
                               onSelect: _selectRoute,
+                              onShowMore: controller.showMore,
+                              onShare: state is RouteReady
+                                  ? () => unawaited(_shareDestination(state))
+                                  : null,
+                              fuelCostRm: state is RouteReady
+                                  ? estimateFuelCostRm(
+                                      distanceM: state.selected.distanceM,
+                                      litersPer100Km: fuelSettings
+                                          .litersPer100Km(state.query.vehicle),
+                                      pricePerLiter: fuelPrice,
+                                    )
+                                  : null,
                               onVehicleChanged: (v) =>
                                   unawaited(controller.setVehicle(v)),
                               onRetry: controller.retry,
@@ -1160,7 +1329,11 @@ class _MapScreenState extends ConsumerState<MapScreen>
           .setVoiceEnabled(!settings.voiceEnabled),
       onCycleCamera: _cycleCameraMode,
       onOverview: _showOverview,
-      onSettings: () => showNavigationSettingsSheet(context),
+      onSettings: () => showNavigationSettingsSheet(
+        context,
+        onShareEta: () => unawaited(_shareEta()),
+        onEmergency: _openEmergency,
+      ),
       onReport: _openReport,
       onChangeRoute: _changeRoute,
     );
@@ -1302,9 +1475,9 @@ class _MapScreenState extends ConsumerState<MapScreen>
     if (state is! RouteReady) return const [];
     return [
       // Alternatif dahulu, laluan terpilih terakhir (dilukis paling atas).
-      for (var i = 0; i < state.options.length; i++)
+      for (var i = 0; i < state.visibleOptions.length; i++)
         if (i != state.selectedIndex)
-          MapRouteLine(points: state.options[i].points, isMain: false),
+          MapRouteLine(points: state.visibleOptions[i].points, isMain: false),
       MapRouteLine(points: state.selected.points, isMain: true),
     ];
   }

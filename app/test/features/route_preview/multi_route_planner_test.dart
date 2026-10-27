@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:fgmap/core/utils/geo.dart';
 import 'package:fgmap/features/route_preview/data/route_planner.dart';
 import 'package:fgmap/features/route_preview/domain/route_option.dart';
@@ -33,7 +35,7 @@ void main() {
       if (q.avoidTolls) {
         return [
           sampleOption(
-            durationS: 3900,
+            durationS: 3800,
             distanceM: 64000,
             hasTolls: false,
             points: _path(0.06),
@@ -43,7 +45,7 @@ void main() {
       if (q.avoidHighways) {
         return [
           sampleOption(
-            durationS: 4300,
+            durationS: 3700,
             distanceM: 70000,
             hasTolls: false,
             points: _path(-0.06),
@@ -56,28 +58,169 @@ void main() {
     planner = MultiRoutePlanner(
       primary: online,
       forSource: (s) => s == RouteSource.online ? online : offline,
+      stagger: Duration.zero,
     );
   });
 
   test(
-    'semua pilihan terpapar dalam satu panggilan: terpantas, tanpa tol, tanpa lebuh raya',
+    'semua pilihan terpapar: utama, tanpa tol, tanpa lebuh raya (permintaan dihad)',
     () async {
       final options = await planner.plan(_query);
 
-      expect(options.map((o) => o.label), [
-        RouteLabel.fastest,
-        RouteLabel.noTolls,
-        RouteLabel.noHighways,
-      ]);
+      expect(
+        options.map((o) => o.label),
+        containsAll([
+          RouteLabel.recommended,
+          RouteLabel.noTolls,
+          RouteLabel.noHighways,
+        ]),
+      );
       // Permintaan asas membawa alternatif Valhalla; permintaan tambahan hanya satu laluan.
       expect(online.queries.first.alternates, 2);
       final extra = online.queries.skip(1).toList();
-      expect(extra, hasLength(2));
+      expect(options.first.label, RouteLabel.recommended);
+      expect(extra, hasLength(8), reason: 'dihadkan maxExtra');
       expect(extra.every((q) => q.alternates == 0), isTrue);
       expect(extra.any((q) => q.avoidTolls && !q.avoidHighways), isTrue);
       expect(extra.any((q) => q.avoidHighways && !q.avoidTolls), isTrue);
+      expect(extra.any((q) => q.shortest), isTrue);
+      expect(extra.where((q) => q.exclusions.isNotEmpty), hasLength(5));
     },
   );
+
+  test(
+    'berperingkat: laluan biasa dahulu, kemudian setiap alternatif tiba',
+    () async {
+      final batches = await planner.watch(_query).toList();
+
+      expect(batches.first.done, isFalse);
+      expect(
+        batches.first.options,
+        hasLength(1),
+        reason: 'laluan biasa sahaja',
+      );
+      expect(batches.last.done, isTrue);
+      expect(batches.last.options.length, greaterThan(1));
+      // Bilangan pilihan tidak pernah berkurang semasa alternatif tiba.
+      final counts = [for (final b in batches) b.options.length];
+      expect([...counts]..sort(), counts);
+      // Hanya kumpulan terakhir ditandakan siap.
+      expect(batches.where((b) => b.done), hasLength(1));
+    },
+  );
+
+  test('lencongan paksa menghasilkan laluan alternatif yang berbeza', () async {
+    online.handler = (q) async {
+      if (q.exclusions.isNotEmpty) {
+        // Laluan yang mengelilingi bulatan: geometri berbeza bergantung pada kedudukan bulatan.
+        final bulge = q.exclusions.single.center.lat > (klcc.lat + klia.lat) / 2
+            ? 0.05
+            : -0.05;
+        return [
+          sampleOption(
+            durationS: 3200,
+            distanceM: 63000,
+            hasTolls: false,
+            points: _path(bulge),
+          ),
+        ];
+      }
+      return [tolled()];
+    };
+
+    final options = await planner.plan(_query);
+
+    // Utama + 2 arah lencongan yang berbeza (utara/selatan) + (kemungkinan) tanpa tol dsb.
+    expect(options.length, greaterThanOrEqualTo(3));
+    expect(options.first.label, RouteLabel.recommended);
+  });
+
+  test(
+    'kegagalan sistem (429) menghentikan permintaan tambahan seterusnya',
+    () async {
+      planner = MultiRoutePlanner(
+        primary: online,
+        forSource: (_) => online,
+        maxConcurrent: 1,
+        stagger: Duration.zero,
+      );
+      online.handler = (q) async {
+        if (q.alternates == 0) {
+          throw const RoutingFailure(RoutingFailureKind.rateLimited);
+        }
+        return [tolled()];
+      };
+
+      final batches = await planner.watch(_query).toList();
+
+      // 1 asas + hanya 1 permintaan tambahan sebelum berhenti.
+      expect(online.queries, hasLength(2));
+      expect(batches.last.done, isTrue);
+      expect(batches.last.options, hasLength(1));
+    },
+  );
+
+  test(
+    'tiada laluan untuk satu lencongan (442): yang lain diteruskan',
+    () async {
+      var detourCalls = 0;
+      online.handler = (q) async {
+        if (q.exclusions.isNotEmpty) {
+          detourCalls++;
+          throw const RoutingFailure(RoutingFailureKind.noRoute);
+        }
+        return [tolled()];
+      };
+
+      await planner.plan(_query);
+
+      expect(detourCalls, 5, reason: 'noRoute bukan kegagalan sistem');
+    },
+  );
+
+  test('serentak tidak melebihi maxConcurrent', () async {
+    var inFlight = 0;
+    var peak = 0;
+    online.handler = (q) async {
+      if (q.alternates == 2) return [tolled()];
+      inFlight++;
+      if (inFlight > peak) peak = inFlight;
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      inFlight--;
+      return [tolled()];
+    };
+
+    await planner.plan(_query);
+
+    expect(peak, 2);
+  });
+
+  test('membatalkan langganan menghentikan permintaan tambahan', () async {
+    planner = MultiRoutePlanner(
+      primary: online,
+      forSource: (_) => online,
+      maxConcurrent: 1,
+      stagger: Duration.zero,
+    );
+    final firstExtra = Completer<void>();
+    online.handler = (q) async {
+      if (q.alternates == 2) return [tolled()];
+      await firstExtra.future;
+      return [tolled()];
+    };
+
+    final sub = planner.watch(_query).listen((_) {});
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    await sub.cancel();
+    firstExtra.complete();
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+
+    expect(
+      online.queries,
+      hasLength(2),
+      reason: 'tiada permintaan selepas batal',
+    );
+  });
 
   test(
     'tiada permintaan tanpa tol bila laluan asas memang bebas tol',
@@ -118,7 +261,7 @@ void main() {
     final options = await planner.plan(_query);
 
     expect(options, hasLength(1));
-    expect(options.single.label, RouteLabel.fastest);
+    expect(options.single.label, RouteLabel.recommended);
   });
 
   test('kegagalan laluan asas dilempar kepada pemanggil', () async {
@@ -159,6 +302,7 @@ void main() {
       planner = MultiRoutePlanner(
         primary: primary,
         forSource: (s) => s == RouteSource.online ? online : offline,
+        stagger: Duration.zero,
       );
 
       final options = await planner.plan(

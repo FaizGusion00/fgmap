@@ -1,0 +1,53 @@
+name: security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Mingguan: kerentanan baharu boleh didedahkan walaupun kod tidak berubah.
+    - cron: "17 3 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  codeql:
+    name: CodeQL (Kotlin/Java)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: java-kotlin
+          build-mode: none
+      - uses: github/codeql-action/analyze@v3
+        with:
+          category: /language:java-kotlin
+
+  osv:
+    name: Kebergantungan (OSV)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Imbas pubspec.lock (Dart) dan fail kunci Gradle terhadap pangkalan data kerentanan OSV.
+      - uses: google/osv-scanner-action/osv-scanner-action@v2.0.2
+        with:
+          scan-args: |-
+            --lockfile=app/pubspec.lock
+            --recursive
+            ./app/android
+
+  sbom:
+    name: SBOM (CycloneDX)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: anchore/sbom-action@v0
+        with:
+          path: app
+          format: cyclonedx-json
+          artifact-name: fgmap-sbom.cdx.json

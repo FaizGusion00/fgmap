@@ -5,7 +5,7 @@
 enum NearbyCategory {
   fuel(
     selectors: ['["amenity"="fuel"]'],
-    radiiM: [2500, 6000, 15000],
+    radiiM: [1200, 3500, 10000, 20000],
     enoughResults: 5,
     nominatimPhrases: ['petrol station'],
     nominatimTypes: {'amenity:fuel'},
@@ -14,7 +14,7 @@ enum NearbyCategory {
     selectors: [
       '["amenity"~"^(restaurant|fast_food|cafe|food_court|canteen|ice_cream)\$"]',
     ],
-    radiiM: [800, 2000, 5000],
+    radiiM: [500, 1500, 4000],
     enoughResults: 8,
     nominatimPhrases: ['restaurant'],
     nominatimTypes: {
@@ -31,10 +31,13 @@ enum NearbyCategory {
       '["amenity"="place_of_worship"]["religion"="muslim"]',
       '["building"="mosque"]',
       '["amenity"="prayer_room"]',
-      // Surau/masjid yang tiada tag agama dalam OSM.
+    ],
+    // Surau/masjid yang tiada tag agama dalam OSM: padanan regex nama mahal pada pelayan, jadi hanya
+    // dalam peringkat carian yang lebih luas (bukan hasil pertama yang pantas).
+    slowSelectors: [
       '["amenity"="place_of_worship"]["name"~"surau|masjid|mosque|musolla|musalla",i]',
     ],
-    radiiM: [2000, 5000, 15000],
+    radiiM: [1200, 3500, 10000, 20000],
     enoughResults: 5,
     nominatimPhrases: ['mosque', 'surau'],
     nominatimTypes: {
@@ -45,7 +48,7 @@ enum NearbyCategory {
   ),
   toilets(
     selectors: ['["amenity"="toilets"]'],
-    radiiM: [1500, 5000, 15000],
+    radiiM: [1000, 3000, 10000],
     enoughResults: 5,
     nominatimPhrases: ['toilets'],
     nominatimTypes: {'amenity:toilets'},
@@ -54,14 +57,14 @@ enum NearbyCategory {
     selectors: [
       '["amenity"="parking"]["access"!~"^(private|no|customers|permit)\$"]',
     ],
-    radiiM: [600, 1500, 4000],
+    radiiM: [400, 1200, 3500],
     enoughResults: 8,
     nominatimPhrases: ['parking'],
     nominatimTypes: {'amenity:parking', 'amenity:parking_space'},
   ),
   hospital(
     selectors: ['["amenity"="hospital"]', '["healthcare"="hospital"]'],
-    radiiM: [5000, 15000, 30000],
+    radiiM: [3000, 10000, 30000],
     enoughResults: 3,
     nominatimPhrases: ['hospital'],
     nominatimTypes: {'amenity:hospital', 'healthcare:hospital'},
@@ -69,6 +72,7 @@ enum NearbyCategory {
 
   const NearbyCategory({
     required this.selectors,
+    this.slowSelectors = const [],
     required this.radiiM,
     required this.enoughResults,
     required this.nominatimPhrases,
@@ -77,6 +81,9 @@ enum NearbyCategory {
 
   /// Penapis tag Overpass; hasil ialah gabungan semuanya.
   final List<String> selectors;
+
+  /// Penapis yang mahal (regex nama); digugurkan daripada pertanyaan "pantas" peringkat pertama.
+  final List<String> slowSelectors;
 
   /// Radius carian berperingkat (meter): radius seterusnya hanya dicuba jika hasil kurang daripada
   /// [enoughResults]. Radius kecil dahulu supaya kawasan padat tidak terpotong oleh had hasil Overpass.
@@ -97,10 +104,19 @@ enum NearbyCategory {
       nominatimTypes.contains('$osmKey:$type');
 
   /// Pertanyaan Overpass QL. `out tags center` memberi satu koordinat bagi bangunan dan kawasan.
-  String overpassQuery(double lat, double lng, int radius) {
+  ///
+  /// [fast]: peringkat pertama (radius kecil): masa tamat 5 s, 60 hasil, tanpa penapis mahal. Peringkat
+  /// lebih luas: masa tamat 10 s dan sehingga 1000 hasil.
+  String overpassQuery(
+    double lat,
+    double lng,
+    int radius, {
+    bool fast = false,
+  }) {
     final around = '(around:$radius,$lat,$lng)';
-    return '[out:json][timeout:10];('
-        '${selectors.map((s) => 'nwr$s$around;').join()}'
-        ');out tags center 1000;';
+    final all = fast ? selectors : [...selectors, ...slowSelectors];
+    return '[out:json][timeout:${fast ? 5 : 10}];('
+        '${all.map((s) => 'nwr$s$around;').join()}'
+        ');out tags center ${fast ? 60 : 1000};';
   }
 }

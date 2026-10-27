@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +9,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app/app.dart';
+import 'core/config/app_config.dart';
+import 'core/diagnostics/error_log.dart';
+import 'core/diagnostics/frame_monitor.dart';
+import 'core/diagnostics/global_errors.dart';
 import 'core/licenses.dart';
 import 'core/storage/preferences.dart';
 import 'features/map/data/map_style_loader.dart';
@@ -20,6 +25,8 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   registerBundledLicenses();
+  _requireSecureEndpoints();
+  if (FrameMonitor.enabled) FrameMonitor().start();
 
   // Dimuat sebelum frame pertama supaya tema yang disimpan digunakan serta-merta; jika tidak,
   // app yang dibuka dalam mod gelap akan berkelip putih seketika.
@@ -32,6 +39,10 @@ Future<void> main() async {
     SharedPreferences.getInstance(),
     getApplicationSupportDirectory(),
   ).wait;
+  // Log ralat tempatan (tidak dihantar); pengendali global memasangnya sebelum apa-apa kod app berjalan.
+  final errorLog = ErrorLog(prefs: prefs);
+  installGlobalErrorHandling(errorLog);
+
   final offlineStore = OfflineMapStore(
     Directory(p.join(support.path, 'offline_maps')),
   );
@@ -43,6 +54,7 @@ Future<void> main() async {
     ProviderScope(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
+        errorLogProvider.overrideWithValue(errorLog),
         mapStyleCacheDirProvider.overrideWithValue(styleCache),
         offlineMapStoreProvider.overrideWithValue(offlineStore),
         // Laporan komuniti: simpanan tempatan pada peranti ini (belum dikongsi; lihat ADR 0005).
@@ -53,4 +65,15 @@ Future<void> main() async {
       child: const FgmapApp(),
     ),
   );
+}
+
+/// Build release menolak konfigurasi titik akhir bukan-HTTPS (lihat [AppConfig.insecureEndpoints]).
+void _requireSecureEndpoints() {
+  if (!kReleaseMode) return;
+  final insecure = AppConfig.insecureEndpoints();
+  if (insecure.isNotEmpty) {
+    throw StateError(
+      'Titik akhir bukan HTTPS dalam build release: ${insecure.join(', ')}',
+    );
+  }
 }

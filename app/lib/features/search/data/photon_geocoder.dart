@@ -20,9 +20,16 @@ abstract interface class Geocoder {
   });
 }
 
+/// Geokod songsang: nama/alamat bagi satu titik (cth. lokasi semasa pengguna).
+abstract interface class ReverseGeocoder {
+  /// Tempat terdekat pada [point], atau null jika tiada. Titik pada [Place] ialah titik hasil
+  /// geokod (alamat terdekat); pemanggil yang mahu mengekalkan titik tepat menggunakan nama sahaja.
+  Future<Place?> reverse(GeoPoint point, {CancelToken? cancel});
+}
+
 /// Carian tempat melalui Photon awam (komoot). Dasar penggunaan wajar: tiada had keras diterbitkan,
 /// tetapi pengguna diminta tidak membanjiri; pemanggil mesti debounce dan membatalkan permintaan lapuk.
-class PhotonGeocoder implements Geocoder {
+class PhotonGeocoder implements Geocoder, ReverseGeocoder {
   PhotonGeocoder(this._dio, this._url, {this.limit = 20});
 
   final Dio _dio;
@@ -61,6 +68,39 @@ class PhotonGeocoder implements Geocoder {
         ),
       );
       return parsePhotonResponse(responseText(response.data));
+    } on DioException catch (e) {
+      throw geocodeFailureOf(e);
+    }
+  }
+
+  /// Photon: `/reverse?lat=&lon=` (titik akhir berasingan daripada `/api`).
+  Uri get _reverseUri {
+    final base = Uri.parse(_url);
+    var path = base.path.replaceAll(RegExp(r'/+$'), '');
+    if (path.endsWith('/api')) path = path.substring(0, path.length - 4);
+    return base.replace(path: '$path/reverse', query: '');
+  }
+
+  @override
+  Future<Place?> reverse(GeoPoint point, {CancelToken? cancel}) async {
+    try {
+      final response = await _dio.getUri<Object>(
+        _reverseUri.replace(
+          queryParameters: {
+            'lat': '${point.lat}',
+            'lon': '${point.lng}',
+            'lang': 'en',
+            'limit': '1',
+          },
+        ),
+        cancelToken: cancel,
+        options: Options(
+          responseType: ResponseType.bytes,
+          receiveTimeout: const Duration(seconds: 5),
+        ),
+      );
+      final places = parsePhotonResponse(responseText(response.data));
+      return places.isEmpty ? null : places.first;
     } on DioException catch (e) {
       throw geocodeFailureOf(e);
     }
@@ -195,6 +235,10 @@ double? _extentDiagonalM(Object? extent) {
   );
   return d.isFinite && d > 0 ? d : null;
 }
+
+final reverseGeocoderProvider = Provider<ReverseGeocoder>(
+  (ref) => PhotonGeocoder(ref.watch(dioProvider), AppConfig.photonUrl),
+);
 
 final geocoderProvider = Provider<Geocoder>((ref) {
   final dio = ref.watch(dioProvider);

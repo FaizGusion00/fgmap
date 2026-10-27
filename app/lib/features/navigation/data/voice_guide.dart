@@ -8,6 +8,7 @@ import 'package:flutter_tts/flutter_tts.dart';
 import '../domain/announcement_planner.dart';
 import '../domain/instruction_text.dart';
 import 'sound_synth.dart';
+import '../../../core/utils/log.dart';
 
 /// Pembantu suara navigasi: bunyi isyarat + arahan bersuara.
 abstract interface class VoiceGuide {
@@ -84,7 +85,7 @@ class QueuedVoiceGuide implements VoiceGuide {
           if (a.text.isNotEmpty) await _tts.speak(a.text, language);
         } on Object catch (e) {
           // Kegagalan audio tidak boleh menjatuhkan navigasi.
-          debugPrint('Suara navigasi gagal: $e');
+          logDiag('Suara navigasi gagal: $e');
         }
       }
     } finally {
@@ -105,7 +106,7 @@ class QueuedVoiceGuide implements VoiceGuide {
     try {
       await Future.wait([_tts.stop(), _chimes.stop()]);
     } on Object catch (e) {
-      debugPrint('Menghentikan audio gagal: $e');
+      logDiag('Menghentikan audio gagal: $e');
     }
   }
 

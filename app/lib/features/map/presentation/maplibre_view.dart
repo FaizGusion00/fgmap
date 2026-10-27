@@ -15,6 +15,7 @@ import 'map_frame_pump.dart';
 import 'map_view.dart';
 import 'nav_route_line.dart';
 import 'vehicle_icon.dart';
+import '../../../core/utils/log.dart';
 
 const _altSource = 'fg-route-alt-src';
 const _mainSource = 'fg-route-main-src';
@@ -164,7 +165,7 @@ class _MapLibreViewState extends State<MapLibreView> {
   void _enqueue(Future<void> Function() task) {
     _queue = _queue.then((_) => task()).catchError((Object e, StackTrace s) {
       // Peta boleh dilupuskan di tengah operasi (cth. skrin ditutup); itu bukan ralat pengguna.
-      debugPrint('Overlay peta gagal: $e');
+      logDiag('Overlay peta gagal: $e');
     });
   }
 
@@ -211,7 +212,7 @@ class _MapLibreViewState extends State<MapLibreView> {
           )
           .catchError((Object e) {
             // Komponen belum aktif (peta/gaya baru dimuat): kemas kini seterusnya akan berjaya.
-            debugPrint('Titik lokasi belum sedia: $e');
+            logDiag('Titik lokasi belum sedia: $e');
           }),
     );
   }
@@ -253,7 +254,7 @@ class _MapLibreViewState extends State<MapLibreView> {
     _labelAnchor = firstSymbolLayerId(widget.config.styleUrl);
     if (MapFramePump.diagnostics) {
       // Untuk menala gaya peta (cth. kontras mod gelap) tanpa meneka id lapisan.
-      debugPrint('FGDIAG lapisan gaya: ${(await c.getLayerIds()).join(', ')}');
+      logDiag('FGDIAG lapisan gaya: ${(await c.getLayerIds()).join(', ')}');
     }
 
     // Buang dahulu jika wujud (onStyleLoaded boleh dipanggil lebih daripada sekali bagi gaya yang sama).
@@ -403,7 +404,7 @@ class _MapLibreViewState extends State<MapLibreView> {
         ),
       );
     } on Object catch (e) {
-      debugPrint('Sumber lineMetrics tidak disokong, guna sandaran: $e');
+      logDiag('Sumber lineMetrics tidak disokong, guna sandaran: $e');
       _gradientOk = false;
       await _tryRemoveSource(c, _mainSource);
       await c.addGeoJsonSource(_mainSource, _emptyCollection);
@@ -459,7 +460,7 @@ class _MapLibreViewState extends State<MapLibreView> {
       await add(_gradientOk);
     } on Object catch (e) {
       if (!_gradientOk) rethrow;
-      debugPrint('line-gradient ditolak, guna sandaran: $e');
+      logDiag('line-gradient ditolak, guna sandaran: $e');
       _gradientOk = false;
       for (final id in [
         _mainLayer,
@@ -590,7 +591,7 @@ class _MapLibreViewState extends State<MapLibreView> {
         await _setTrim(c, nav.chunkFractionAt(along));
         return;
       } on Object catch (e) {
-        debugPrint('Pemangkasan line-gradient gagal, guna sandaran: $e');
+        logDiag('Pemangkasan line-gradient gagal, guna sandaran: $e');
         _gradientOk = false;
         await _resetChunkFilters(c);
       }

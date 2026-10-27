@@ -184,8 +184,9 @@ void main() {
         notifier.update(GeoPoint(start.lat + 0.05, start.lng));
         expect(c.read(sunLocationProvider), start, reason: 'kira-kira 5.5 km');
         notifier.update(const GeoPoint(5.98, 116.07));
-        expect(c.read(sunLocationProvider), const GeoPoint(5.98, 116.07));
-        expect(prefs.getDouble('theme.sunLat'), 5.98);
+        // Disimpan dikaburkan ke 0.1 darjah (privasi).
+        expect(c.read(sunLocationProvider), const GeoPoint(6.0, 116.1));
+        expect(prefs.getDouble('theme.sunLat'), 6.0);
       },
     );
   });

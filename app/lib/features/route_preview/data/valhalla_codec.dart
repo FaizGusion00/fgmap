@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 
 import '../../../core/utils/geo.dart';
 import '../domain/route_option.dart';
@@ -36,20 +37,43 @@ Map<String, Object?> buildRouteRequest(RouteQuery query) {
     // lebuh raya mengikut tag OSM yang dihormati costing `motorcycle`.
     if (query.avoidTolls ||
         query.avoidHighways ||
+        query.shortest ||
         query.vehicle == RouteVehicle.motorcycle)
       'costing_options': {
         query.vehicle.costing: {
           if (query.avoidTolls) 'use_tolls': 0,
           if (query.avoidHighways) 'use_highways': 0,
+          if (query.shortest) 'shortest': true,
           if (query.vehicle == RouteVehicle.motorcycle) 'use_trails': 0,
         },
       },
+    // Lencongan paksa: semua jalan yang bersilang dengan bulatan dielakkan. Had pelayan awam ialah
+    // jumlah perimeter 10 km, jadi jejari dihadkan oleh pembina (lihat RouteCandidateGenerator).
+    if (query.exclusions.isNotEmpty)
+      'exclude_polygons': [
+        for (final e in query.exclusions) _circlePolygon(e.center, e.radiusM),
+      ],
     'alternates': query.alternates,
     // Teks arahan Valhalla tidak digunakan; ayat BM/EN dijana dalam app. `directions_type` mesti di
     // peringkat atas (di dalam directions_options ia diabaikan; disahkan terhadap Valhalla 3.5.1).
     'directions_type': 'maneuvers',
     'directions_options': {'units': 'kilometers', 'language': 'en-US'},
   };
+}
+
+/// Poligon 16 sisi (cincin tertutup `[lon, lat]`) menghampiri bulatan.
+List<List<double>> _circlePolygon(GeoPoint center, double radiusM) {
+  const sides = 16;
+  final dLat = radiusM / 111320;
+  final dLng = radiusM / (111320 * math.cos(center.lat * math.pi / 180));
+  final ring = <List<double>>[
+    for (var i = 0; i < sides; i++)
+      [
+        center.lng + dLng * math.cos(2 * math.pi * i / sides),
+        center.lat + dLat * math.sin(2 * math.pi * i / sides),
+      ],
+  ];
+  return [...ring, ring.first];
 }
 
 /// Menghurai badan respons Valhalla `/route` yang berjaya.
@@ -115,6 +139,12 @@ RouteOption _parseTrip(Map<String, dynamic> trip, RouteSource source) {
     distanceM: _kmToMeters(summary['length'] as num),
     durationS: (summary['time'] as num).round(),
     hasTolls: summary['has_toll'] == true || legSummary?['has_toll'] == true,
+    hasHighway:
+        summary['has_highway'] == true || legSummary?['has_highway'] == true,
+    hasFerry: summary['has_ferry'] == true || legSummary?['has_ferry'] == true,
+    hasTimeRestrictions:
+        summary['has_time_restrictions'] == true ||
+        legSummary?['has_time_restrictions'] == true,
     points: decodePolyline(leg['shape'] as String),
     source: source,
     maneuvers: [
@@ -129,6 +159,7 @@ RouteOption _parseTrip(Map<String, dynamic> trip, RouteSource source) {
           timeS: (m['time'] as num).round(),
           beginShapeIndex: m['begin_shape_index'] as int,
           roundaboutExitCount: m['roundabout_exit_count'] as int?,
+          toll: m['toll'] == true,
         ),
     ],
   );

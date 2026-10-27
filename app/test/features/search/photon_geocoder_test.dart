@@ -285,4 +285,62 @@ void main() {
       expect(failure.kind, GeocodeFailureKind.network);
     });
   });
+
+  group('PhotonGeocoder.reverse', () {
+    test(
+      'GET /reverse (bukan /api) dengan lat/lon; hasil pertama dihurai',
+      () async {
+        final adapter = StubAdapter(
+          (_) => StubAdapter.json({
+            'type': 'FeatureCollection',
+            'features': [
+              _feature(
+                coords: const [101.4260, 3.2290],
+                props: const {
+                  'street': 'Persiaran Puncak Alam',
+                  'housenumber': '12',
+                  'city': 'Puncak Alam',
+                },
+              ),
+            ],
+          }),
+        );
+        final geocoder = PhotonGeocoder(
+          Dio()..httpClientAdapter = adapter,
+          'https://photon.example/api/',
+        );
+        final place = await geocoder.reverse(const GeoPoint(3.2291, 101.4261));
+        expect(place!.name, '12 Persiaran Puncak Alam');
+        final uri = adapter.lastRequest!.uri;
+        expect(uri.path, '/reverse');
+        expect(uri.queryParameters['lat'], '3.2291');
+        expect(uri.queryParameters['lon'], '101.4261');
+        expect(uri.queryParameters['limit'], '1');
+      },
+    );
+
+    test('tiada ciri -> null; ralat pelayan -> GeocodeFailure', () async {
+      final empty = PhotonGeocoder(
+        Dio()
+          ..httpClientAdapter = StubAdapter(
+            (_) =>
+                StubAdapter.json({'type': 'FeatureCollection', 'features': []}),
+          ),
+        'https://photon.example/api/',
+      );
+      expect(await empty.reverse(const GeoPoint(3, 101)), isNull);
+
+      final down = PhotonGeocoder(
+        Dio()
+          ..httpClientAdapter = StubAdapter(
+            (_) => StubAdapter.text('x', status: 503),
+          ),
+        'https://photon.example/api/',
+      );
+      expect(
+        () => down.reverse(const GeoPoint(3, 101)),
+        throwsA(isA<GeocodeFailure>()),
+      );
+    });
+  });
 }

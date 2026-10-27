@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/diagnostics/error_log.dart';
 import '../../../core/location/location_service.dart';
 import '../../../core/settings/app_preferences.dart';
 import '../../../core/theme/theme_controller.dart';
@@ -15,6 +17,12 @@ import '../../offline_maps/presentation/offline_maps_sheet.dart';
 import '../../onboarding/data/onboarding_controller.dart';
 import '../../reports/presentation/reports_controller.dart';
 import '../../saved_places/data/saved_places_controller.dart';
+import '../../fuel/presentation/fuel_settings_group.dart';
+import '../../legal/presentation/legal_page.dart';
+import '../data/data_eraser.dart';
+import '../../saved_places/domain/saved_place.dart';
+import '../../saved_places/presentation/assign_place_flow.dart';
+import '../../saved_places/presentation/save_place_sheet.dart';
 import '../../search/presentation/search_history_controller.dart';
 import 'about_page.dart';
 
@@ -44,11 +52,13 @@ class SettingsPage extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
               children: const [
                 FadeSlideIn(index: 0, child: _AppearanceGroup()),
-                FadeSlideIn(index: 1, child: _NavigationGroup()),
-                FadeSlideIn(index: 2, child: _ReportsGroup()),
-                FadeSlideIn(index: 3, child: _MapsGroup()),
-                FadeSlideIn(index: 4, child: _PrivacyGroup()),
-                FadeSlideIn(index: 5, child: _HelpGroup()),
+                FadeSlideIn(index: 1, child: _SavedPlacesGroup()),
+                FadeSlideIn(index: 2, child: _NavigationGroup()),
+                FadeSlideIn(index: 3, child: _FuelGroup()),
+                FadeSlideIn(index: 4, child: _ReportsGroup()),
+                FadeSlideIn(index: 5, child: _MapsGroup()),
+                FadeSlideIn(index: 6, child: _PrivacyGroup()),
+                FadeSlideIn(index: 7, child: _HelpGroup()),
               ],
             ),
           ),
@@ -271,6 +281,70 @@ class _AppearanceGroup extends ConsumerWidget {
   }
 }
 
+/// Rumah dan Kerja: boleh ditetapkan dengan carian atau lokasi semasa, ditukar, atau dipadam.
+class _SavedPlacesGroup extends ConsumerWidget {
+  const _SavedPlacesGroup();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final saved = ref.watch(savedPlacesControllerProvider);
+    SavedPlace? byId(String id) {
+      for (final s in saved) {
+        if (s.id == id) return s;
+      }
+      return null;
+    }
+
+    Widget row(SavedKind kind, String id) {
+      final item = byId(id);
+      void assign() => unawaited(assignSavedPlace(context, ref, kind));
+      return ListTile(
+        key: ValueKey('saved-row-${kind.name}'),
+        contentPadding: EdgeInsets.zero,
+        leading: Icon(savedKindIcon(kind)),
+        title: Text(savedKindLabel(l10n, kind)),
+        subtitle: Text(
+          item?.place.name ?? l10n.savedNotSet,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: Icon(item == null ? Icons.add_rounded : Icons.edit_outlined),
+        onTap: item == null
+            ? assign
+            : () => unawaited(
+                manageSavedPlace(context, ref, item, onChange: assign),
+              ),
+      );
+    }
+
+    return _Group(
+      icon: Icons.home_outlined,
+      title: l10n.settingsSavedPlaces,
+      child: Column(
+        children: [
+          row(SavedKind.home, SavedPlace.homeId),
+          row(SavedKind.work, SavedPlace.workId),
+        ],
+      ),
+    );
+  }
+}
+
+class _FuelGroup extends StatelessWidget {
+  const _FuelGroup();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return _Group(
+      icon: Icons.local_gas_station_outlined,
+      title: l10n.settingsFuel,
+      child: const FuelSettingsSection(),
+    );
+  }
+}
+
 class _NavigationGroup extends StatelessWidget {
   const _NavigationGroup();
 
@@ -421,6 +495,37 @@ class _PrivacyGroup extends ConsumerWidget {
               ref.read(reportsControllerProvider.notifier).clear,
             ),
           ),
+          ListTile(
+            key: const ValueKey('privacy-policy'),
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.policy_outlined),
+            title: Text(l10n.legalPrivacyTitle),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => unawaited(showLegalPage(context, LegalDoc.privacy)),
+          ),
+          ListTile(
+            key: const ValueKey('terms-of-use'),
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.gavel_outlined),
+            title: Text(l10n.legalTermsTitle),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => unawaited(showLegalPage(context, LegalDoc.terms)),
+          ),
+          const Divider(height: 24),
+          ListTile(
+            key: const ValueKey('clear-all'),
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(
+              Icons.delete_forever_outlined,
+              color: Theme.of(context).colorScheme.error,
+            ),
+            title: Text(
+              l10n.settingsClearAll,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+            subtitle: Text(l10n.settingsClearAllHint),
+            onTap: () => _clear(context, () => eraseAllUserData(ref)),
+          ),
         ],
       ),
     );
@@ -448,6 +553,36 @@ class _HelpGroup extends ConsumerWidget {
               await ref.read(onboardingDoneProvider.notifier).reset();
               // Tutup Tetapan supaya penghala (yang kini mengalihkan ke sambutan) kelihatan.
               if (navigator.mounted && navigator.canPop()) navigator.pop();
+            },
+          ),
+          ListTile(
+            key: const ValueKey('copy-error-report'),
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.bug_report_outlined),
+            title: Text(l10n.settingsCopyErrorReport),
+            subtitle: Text(l10n.settingsCopyErrorReportHint),
+            onTap: () async {
+              final log = ref.read(errorLogProvider);
+              final messenger = ScaffoldMessenger.maybeOf(context);
+              if (log.length == 0) {
+                messenger?.showSnackBar(
+                  SnackBar(content: Text(l10n.settingsErrorReportEmpty)),
+                );
+                return;
+              }
+              final info = ref.read(appPackageInfoProvider).value;
+              await Clipboard.setData(
+                ClipboardData(
+                  text: log.report(
+                    appVersion: info == null
+                        ? null
+                        : '${info.version}+${info.buildNumber}',
+                  ),
+                ),
+              );
+              messenger?.showSnackBar(
+                SnackBar(content: Text(l10n.settingsErrorReportCopied)),
+              );
             },
           ),
           ListTile(

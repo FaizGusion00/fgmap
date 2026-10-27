@@ -1,7 +1,7 @@
 name: fgmap
 description: "FGMap: aplikasi navigasi komuniti Malaysia."
 publish_to: 'none'
-version: 0.4.1+9
+version: 0.5.0+10
 
 environment:
   sdk: ^3.11.5
@@ -30,6 +30,8 @@ dependencies:
   shared_preferences: ^2.5.6
   wakelock_plus: ^1.7.0
   app_links: ^6.4.1
+  share_plus: ^13.3.1
+  url_launcher: ^6.3.3
 
 dev_dependencies:
   flutter_test:
@@ -43,6 +45,8 @@ flutter:
   assets:
     - assets/branding/fgmap-app-icon.png
     - assets/fonts/OFL-PlusJakartaSans.txt
+    - assets/tolls/my_tolls.json
+    - assets/legal/
 
   fonts:
     # Fon variabel (paksi wght 200-800), dibundel supaya tidak dimuat turun masa jalan.

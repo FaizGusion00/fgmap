@@ -118,6 +118,8 @@
       }
     }
   },
+  "searchNearbyRefining": "Searching farther…",
+  "searchNeedLocation": "Your location isn’t known yet. Turn on location to find places nearby.",
   "searchNearbySaved": "Can’t reach the map data servers. Showing saved results from {when}.",
   "@searchNearbySaved": {
     "placeholders": {
@@ -373,5 +375,233 @@
   "navSpeedLimit": "Speed limit",
   "navOverspeedTitle": "Speeding alert",
   "navOverspeedOff": "Off",
-  "navOverspeedHint": "Chime and red sign when over the speed limit. Limits are not available on every road."
+  "navOverspeedHint": "Chime and red sign when over the speed limit. Limits are not available on every road.",
+  "savedBySearch": "Search for an address",
+  "savedBySearchHint": "Type a place name or address",
+  "savedByCurrent": "Use current location",
+  "savedByCurrentHint": "Save where you are right now",
+  "savedCurrentLocation": "Current location",
+  "savedLocating": "Finding your location…",
+  "savedGoHint": "Tap to start navigating · long-press to change",
+  "autoStartCancel": "Cancel",
+  "navThemeTitle": "Map appearance",
+  "settingsSavedPlaces": "Home and Work",
+  "savedNotSet": "Not set",
+  "autoStartCountdown": "Starting navigation to {name} in {seconds}…",
+  "@autoStartCountdown": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "routeRecommended": "Recommended",
+  "routeSimplest": "Simplest",
+  "routeSearchingMore": "Finding other routes…",
+  "routeHasHighway": "Highway",
+  "routeHasFerry": "Ferry",
+  "routeTurns": "{count, plural, =0{No turns} =1{1 turn} other{{count} turns}}",
+  "@routeTurns": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "routeMore": "{count} more",
+  "@routeMore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "routeTollRm": "RM {amount}",
+  "@routeTollRm": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "routeTollRmPartial": "RM {amount}+",
+  "@routeTollRmPartial": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "routeTollPlazaCount": "{count} plazas",
+  "@routeTollPlazaCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "routeTollEstimateExact": "Toll RM {amount}",
+  "@routeTollEstimateExact": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "routeTollEstimatePartial": "Toll RM {amount}+ (partial)",
+  "@routeTollEstimatePartial": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "routeTollPlazasUnknown": "{count, plural, =1{1 toll plaza} other{{count} toll plazas}}, price unknown",
+  "@routeTollPlazasUnknown": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "routeTollOn": "Toll: {roads}",
+  "@routeTollOn": {
+    "placeholders": {
+      "roads": {
+        "type": "String"
+      }
+    }
+  },
+  "routeTollDisclaimer": "Estimate only (class {cls}); check the price at the plaza.",
+  "@routeTollDisclaimer": {
+    "placeholders": {
+      "cls": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsClearAll": "Delete all my data",
+  "settingsClearAllHint": "Search history, saved places, reports and cached location data on this device.",
+  "legalPrivacyTitle": "Privacy Policy",
+  "legalTermsTitle": "Terms of Use",
+  "legalLoadFailed": "The document could not be loaded.",
+  "legalDraftNotice": "Draft: this document has not been reviewed by a lawyer and is not legal advice.",
+  "legalConsent": "By continuing you agree to the Terms of Use and the Privacy Policy.",
+  "legalAttribution": "Map data © OpenStreetMap contributors (ODbL). Styles and tiles: OpenFreeMap, OpenMapTiles. Routing: Valhalla. Search: Photon (komoot) and Nominatim. Fuel prices: data.gov.my.",
+  "aboutAttributionTitle": "Data sources",
+  "settingsFuel": "Fuel cost",
+  "fuelTypeRon95": "RON95",
+  "fuelTypeRon97": "RON97",
+  "fuelTypeDiesel": "Diesel",
+  "fuelConsumptionCar": "Car consumption (L/100 km)",
+  "fuelConsumptionMoto": "Motorcycle consumption (L/100 km)",
+  "fuelManualPrice": "My price per litre (RM)",
+  "fuelManualPriceHint": "Leave empty to use the data.gov.my price. Fill it in if you pay a different price (e.g. subsidised RON95).",
+  "fuelPriceUnavailable": "The latest price could not be fetched. Enter your own price to see a fuel cost estimate.",
+  "fuelEstimateNote": "Fuel cost estimate based on distance, consumption and the price above.",
+  "shareDestinationTooltip": "Share destination",
+  "shareEtaAction": "Share arrival time",
+  "shareFailed": "Couldn't open the share sheet.",
+  "emergencyTooltip": "Emergency",
+  "emergencyTitle": "Emergency",
+  "emergencyBody": "In an emergency, call directly. This button is only a shortcut and does not guarantee a call, an accurate location or that help arrives.",
+  "emergencyCall999": "Call 999",
+  "emergencyCall999Hint": "Police, fire, ambulance",
+  "emergencyCall112": "Call 112",
+  "emergencyCall112Hint": "International emergency number for mobile phones",
+  "emergencyConfirmCall": "Call",
+  "emergencyConfirmBody": "The dialler will open. Press the call button to connect.",
+  "emergencyShareLocation": "Share my exact location",
+  "emergencyNoLocation": "Your location isn't known yet. Try somewhere open or turn on location.",
+  "routeFuelCost": "≈ RM {amount} fuel",
+  "@routeFuelCost": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "fuelPriceSource": "data.gov.my price: RM {price}/L ({date})",
+  "@fuelPriceSource": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "emergencyConfirmTitle": "Call {number} now?",
+  "@emergencyConfirmTitle": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "shareDestinationText": "I'm heading to {name}. Estimated arrival {eta} ({duration}, {distance}).\n{link}",
+  "@shareDestinationText": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "eta": {
+        "type": "String"
+      },
+      "duration": {
+        "type": "String"
+      },
+      "distance": {
+        "type": "String"
+      },
+      "link": {
+        "type": "String"
+      }
+    }
+  },
+  "shareEtaText": "I'm on my way to {name}. Estimated arrival {eta}, {distance} to go.\n{link}",
+  "@shareEtaText": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "eta": {
+        "type": "String"
+      },
+      "distance": {
+        "type": "String"
+      },
+      "link": {
+        "type": "String"
+      }
+    }
+  },
+  "emergencyShareText": "I need help. My location: {coords}\n{link}",
+  "@emergencyShareText": {
+    "placeholders": {
+      "coords": {
+        "type": "String"
+      },
+      "link": {
+        "type": "String"
+      }
+    }
+  },
+  "emergencyDialFailed": "Couldn't open the dialler. Dial {number} manually.",
+  "@emergencyDialFailed": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "errorWidgetMessage": "This part couldn't be displayed.",
+  "settingsCopyErrorReport": "Copy error report",
+  "settingsCopyErrorReportHint": "The error log is kept on this phone only and is never sent. Copy and send it yourself if needed.",
+  "settingsErrorReportCopied": "Error report copied",
+  "settingsErrorReportEmpty": "No errors recorded"
 }

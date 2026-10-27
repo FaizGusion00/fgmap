@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:fgmap/core/config/app_config.dart';
 import 'package:fgmap/core/location/location_service.dart';
+import 'package:fgmap/core/platform/external_actions.dart';
 import 'package:fgmap/features/route_preview/domain/routing_failure.dart';
 import 'package:fgmap/core/storage/preferences.dart';
 import 'package:dio/dio.dart';
@@ -12,14 +13,17 @@ import 'package:fgmap/features/reports/presentation/report_alerts_controller.dar
 import 'package:fgmap/features/reports/presentation/reports_controller.dart';
 import 'package:fgmap/features/saved_places/data/saved_places_controller.dart';
 import 'package:fgmap/features/settings/presentation/settings_page.dart';
+import 'package:fgmap/features/search/data/photon_geocoder.dart';
 import 'package:fgmap/features/search/domain/place.dart';
 import 'package:fgmap/features/map/data/map_style_loader.dart';
 import 'package:fgmap/core/theme/theme_controller.dart';
 import 'package:fgmap/features/map/presentation/idle_follow.dart';
 import 'package:fgmap/features/map/presentation/map_screen.dart';
+import 'package:fgmap/features/navigation/presentation/navigation_controller.dart';
 import 'package:fgmap/features/navigation/domain/camera_planner.dart'
     show CameraPose;
 import 'package:fgmap/features/route_preview/data/route_planner.dart';
+import 'package:fgmap/features/route_preview/presentation/route_preview_controller.dart';
 import 'package:fgmap/features/route_preview/domain/route_option.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -51,13 +55,30 @@ class _NightLoader extends MapStyleLoader {
       : light();
 }
 
+class _Reverse implements ReverseGeocoder {
+  Place? result;
+  bool fail = false;
+
+  @override
+  Future<Place?> reverse(GeoPoint point, {CancelToken? cancel}) async {
+    if (fail) throw const GeocodeFailure(GeocodeFailureKind.network);
+    return result;
+  }
+}
+
 void main() {
+  late _Reverse reverse;
+  late FakeShareService share;
+  late FakePhoneDialer dialer;
   late FakeMapHarness map;
   late FakeLocationService location;
   late FakeRoutePlanner repo;
   late SharedPreferences prefs;
 
   setUp(() async {
+    reverse = _Reverse();
+    share = FakeShareService();
+    dialer = FakePhoneDialer();
     map = FakeMapHarness();
     location = FakeLocationService(fix: const LocationFix(point: klcc));
     repo = FakeRoutePlanner(
@@ -92,6 +113,9 @@ void main() {
         sharedPreferencesProvider.overrideWithValue(prefs),
         idleRecenterAfterProvider.overrideWithValue(recenterAfter),
         mapStyleLoaderProvider.overrideWithValue(_UrlLoader()),
+        reverseGeocoderProvider.overrideWithValue(reverse),
+        shareServiceProvider.overrideWithValue(share),
+        phoneDialerProvider.overrideWithValue(dialer),
       ],
     );
     await tester.pumpAndSettle();
@@ -898,6 +922,96 @@ void main() {
     });
   });
 
+  group('kongsi, kecemasan dan kos minyak', () {
+    testWidgets(
+      'kongsi destinasi: nama, masa tiba, tempoh, jarak dan pautan OSM',
+      (tester) async {
+        await pumpScreen(tester);
+        map.config!.onLongPress(klia);
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const ValueKey('share-destination')));
+        await tester.pumpAndSettle();
+
+        expect(share.shared, hasLength(1));
+        final text = share.shared.single;
+        expect(text, contains('Saya menuju ke'));
+        expect(text, contains('Anggaran tiba'));
+        expect(text, contains('58 min'));
+        expect(
+          text,
+          contains(
+            'https://www.openstreetmap.org/?mlat=2.74560&mlon=101.70720',
+          ),
+        );
+      },
+    );
+
+    testWidgets('lembaran kongsi gagal: mesej, tiada ranap', (tester) async {
+      share.fail = true;
+      await pumpScreen(tester);
+      map.config!.onLongPress(klia);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('share-destination')));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('lembaran kongsi'), findsOneWidget);
+    });
+
+    testWidgets(
+      'butang kecemasan di peta: sahkan dahulu sebelum papan nombor',
+      (tester) async {
+        await pumpScreen(tester);
+        await tester.tap(find.byTooltip('Kecemasan'));
+        await tester.pumpAndSettle();
+        expect(find.text('Hubungi 999'), findsOneWidget);
+        await tester.tap(find.byKey(const ValueKey('emergency-112')));
+        await tester.pumpAndSettle();
+        expect(dialer.dialed, isEmpty);
+        await tester.tap(find.byKey(const ValueKey('emergency-confirm')));
+        await tester.pumpAndSettle();
+        expect(dialer.dialed, ['112']);
+      },
+    );
+
+    testWidgets('kecemasan: kongsi lokasi tepat guna lokasi pengguna', (
+      tester,
+    ) async {
+      await pumpScreen(tester);
+      await tester.tap(find.byTooltip('Kecemasan'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('emergency-share')));
+      await tester.pumpAndSettle();
+      expect(share.shared.single, contains('3.15790, 101.71160'));
+    });
+
+    testWidgets(
+      'tanpa harga minyak: tiada anggaran kos minyak (tidak direka)',
+      (tester) async {
+        await pumpScreen(tester);
+        map.config!.onLongPress(klia);
+        await tester.pumpAndSettle();
+        expect(find.byKey(const ValueKey('fuel-cost')), findsNothing);
+      },
+    );
+
+    testWidgets('dengan harga sendiri: anggaran = jarak x penggunaan x harga', (
+      tester,
+    ) async {
+      await prefs.setDouble('fuel.price.manual', 2.0);
+      await pumpScreen(tester);
+      map.config!.onLongPress(klia);
+      await tester.pumpAndSettle();
+      // 67.049 km x 8.0 / 100 x RM2.00 = RM10.73.
+      expect(find.byKey(const ValueKey('fuel-cost')), findsOneWidget);
+      expect(find.text('≈ RM 10.73 minyak'), findsOneWidget);
+
+      // Motosikal: penggunaan 3.5 L/100 km -> RM4.69.
+      await tester.tap(find.byTooltip('Motosikal'));
+      await tester.pumpAndSettle();
+      expect(find.text('≈ RM 4.69 minyak'), findsOneWidget);
+    });
+  });
+
   group('Rumah/Kerja', () {
     testWidgets(
       'chip dipaparkan; yang belum ditetapkan membuka perancang tetapkan',
@@ -907,6 +1021,10 @@ void main() {
         expect(find.byKey(const ValueKey('shortcut-work')), findsOneWidget);
 
         await tester.tap(find.byKey(const ValueKey('shortcut-home')));
+        await tester.pumpAndSettle();
+        // Pilihan: cari alamat ATAU guna lokasi semasa.
+        expect(find.byKey(const ValueKey('assign-current')), findsOneWidget);
+        await tester.tap(find.byKey(const ValueKey('assign-search')));
         await tester.pumpAndSettle();
         expect(find.text('Cari alamat Rumah anda'), findsWidgets);
       },
@@ -939,6 +1057,173 @@ void main() {
         expect(query.destinationLabel, "Lotus's Puncak Alam");
       },
     );
+
+    const lotus = Place(
+      name: "Lotus's Puncak Alam",
+      subtitle: '',
+      point: GeoPoint(3.2262, 101.4278),
+    );
+
+    testWidgets('ketik Rumah: kiraan 3 saat, kemudian navigasi bermula', (
+      tester,
+    ) async {
+      final container = await pumpScreen(tester);
+      await container
+          .read(savedPlacesControllerProvider.notifier)
+          .setHome(lotus);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('shortcut-home')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(
+        find.text("Memulakan navigasi ke Lotus's Puncak Alam dalam 3…"),
+        findsOneWidget,
+      );
+      expect(container.read(navigationControllerProvider).isActive, isFalse);
+
+      await tester.pump(const Duration(seconds: 1));
+      expect(
+        find.text("Memulakan navigasi ke Lotus's Puncak Alam dalam 2…"),
+        findsOneWidget,
+      );
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.byKey(const ValueKey('auto-start-banner')), findsNothing);
+      expect(container.read(navigationControllerProvider).isActive, isTrue);
+    });
+
+    testWidgets('Batal pada kiraan: kekal di pratonton, tidak mula', (
+      tester,
+    ) async {
+      final container = await pumpScreen(tester);
+      await container
+          .read(savedPlacesControllerProvider.notifier)
+          .setHome(lotus);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('shortcut-home')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(find.byKey(const ValueKey('auto-start-cancel')));
+      await tester.pump();
+      expect(find.byKey(const ValueKey('auto-start-banner')), findsNothing);
+
+      await tester.pump(const Duration(seconds: 5));
+      expect(container.read(navigationControllerProvider).isActive, isFalse);
+      expect(find.byKey(const ValueKey('route-sheet')), findsOneWidget);
+    });
+
+    testWidgets('menukar laluan semasa kiraan membatalkan mula automatik', (
+      tester,
+    ) async {
+      final container = await pumpScreen(tester);
+      await container
+          .read(savedPlacesControllerProvider.notifier)
+          .setHome(lotus);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('shortcut-home')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.byKey(const ValueKey('auto-start-banner')), findsOneWidget);
+
+      container.read(routePreviewControllerProvider.notifier).select(1);
+      await tester.pump();
+      expect(find.byKey(const ValueKey('auto-start-banner')), findsNothing);
+      await tester.pump(const Duration(seconds: 5));
+      expect(container.read(navigationControllerProvider).isActive, isFalse);
+    });
+
+    testWidgets('tiada lokasi: laluan tidak dikira, tiada kiraan', (
+      tester,
+    ) async {
+      location.fix = null;
+      final container = await pumpScreen(tester);
+      await container
+          .read(savedPlacesControllerProvider.notifier)
+          .setHome(lotus);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('shortcut-home')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('auto-start-banner')), findsNothing);
+    });
+
+    testWidgets(
+      'tetapkan Rumah dengan lokasi semasa: nama daripada geokod songsang',
+      (tester) async {
+        reverse.result = const Place(
+          name: 'Jalan Bukit Jelutong',
+          subtitle: 'Shah Alam, Selangor',
+          point: GeoPoint(3.1, 101.5),
+        );
+        final container = await pumpScreen(tester);
+        await tester.tap(find.byKey(const ValueKey('shortcut-home')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('assign-current')));
+        await tester.pumpAndSettle();
+
+        final home = container
+            .read(savedPlacesControllerProvider.notifier)
+            .home!;
+        expect(home.place.name, 'Jalan Bukit Jelutong');
+        // Titik yang disimpan ialah kedudukan tepat pengguna, bukan titik alamat geokod.
+        expect(home.place.point, klcc);
+        expect(find.text('Disimpan sebagai Rumah'), findsOneWidget);
+      },
+    );
+
+    testWidgets('geokod songsang gagal: tetap disimpan dengan nama umum', (
+      tester,
+    ) async {
+      reverse.fail = true;
+      final container = await pumpScreen(tester);
+      await tester.tap(find.byKey(const ValueKey('shortcut-work')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('assign-current')));
+      await tester.pumpAndSettle();
+
+      final work = container.read(savedPlacesControllerProvider.notifier).work!;
+      expect(work.place.name, 'Lokasi semasa');
+      expect(work.place.point, klcc);
+      expect(work.place.subtitle, '3.15790, 101.71160');
+    });
+
+    testWidgets('lokasi semasa tidak dapat ditentukan: tiada simpanan', (
+      tester,
+    ) async {
+      location.fix = null;
+      final container = await pumpScreen(tester);
+      await tester.tap(find.byKey(const ValueKey('shortcut-home')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('assign-current')));
+      await tester.pumpAndSettle();
+      expect(
+        container.read(savedPlacesControllerProvider.notifier).home,
+        isNull,
+      );
+    });
+
+    testWidgets('tekan lama Rumah: Tukar membuka pilihan cari/lokasi semasa', (
+      tester,
+    ) async {
+      final container = await pumpScreen(tester);
+      await container
+          .read(savedPlacesControllerProvider.notifier)
+          .setHome(lotus);
+      await tester.pumpAndSettle();
+
+      await tester.longPress(find.byKey(const ValueKey('shortcut-home')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('manage-change')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('assign-search')), findsOneWidget);
+      expect(find.byKey(const ValueKey('assign-current')), findsOneWidget);
+    });
 
     testWidgets(
       'butang simpan pada lembaran laluan membuka pilihan simpan sebagai',

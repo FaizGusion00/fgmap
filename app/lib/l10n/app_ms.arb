@@ -191,6 +191,8 @@
       }
     }
   },
+  "searchNearbyRefining": "Mencari lebih jauh…",
+  "searchNeedLocation": "Lokasi anda belum diketahui. Hidupkan lokasi untuk mencari tempat berhampiran.",
   "searchNearbySaved": "Pelayan data peta tidak dapat dicapai. Memaparkan hasil tersimpan dari {when}.",
   "@searchNearbySaved": {
     "placeholders": {
@@ -473,5 +475,233 @@
   "navSpeedLimit": "Had laju",
   "navOverspeedTitle": "Amaran laju lebih",
   "navOverspeedOff": "Mati",
-  "navOverspeedHint": "Bunyi dan tanda merah apabila melebihi had laju. Had laju tidak lengkap di semua jalan."
+  "navOverspeedHint": "Bunyi dan tanda merah apabila melebihi had laju. Had laju tidak lengkap di semua jalan.",
+  "savedBySearch": "Cari alamat",
+  "savedBySearchHint": "Taip nama tempat atau alamat",
+  "savedByCurrent": "Guna lokasi semasa",
+  "savedByCurrentHint": "Simpan kedudukan anda sekarang",
+  "savedCurrentLocation": "Lokasi semasa",
+  "savedLocating": "Mencari lokasi anda…",
+  "savedGoHint": "Ketik untuk mula navigasi · tekan lama untuk tukar",
+  "autoStartCancel": "Batal",
+  "navThemeTitle": "Paparan peta",
+  "settingsSavedPlaces": "Rumah dan Kerja",
+  "savedNotSet": "Belum ditetapkan",
+  "autoStartCountdown": "Memulakan navigasi ke {name} dalam {seconds}…",
+  "@autoStartCountdown": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "routeRecommended": "Disyorkan",
+  "routeSimplest": "Paling mudah",
+  "routeSearchingMore": "Mencari laluan lain…",
+  "routeHasHighway": "Lebuh raya",
+  "routeHasFerry": "Feri",
+  "routeTurns": "{count, plural, =0{Tiada belokan} =1{1 belokan} other{{count} belokan}}",
+  "@routeTurns": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "routeMore": "Lagi {count}",
+  "@routeMore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "routeTollRm": "RM {amount}",
+  "@routeTollRm": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "routeTollRmPartial": "RM {amount}+",
+  "@routeTollRmPartial": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "routeTollPlazaCount": "{count} plaza",
+  "@routeTollPlazaCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "routeTollEstimateExact": "Tol RM {amount}",
+  "@routeTollEstimateExact": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "routeTollEstimatePartial": "Tol RM {amount}+ (sebahagian)",
+  "@routeTollEstimatePartial": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "routeTollPlazasUnknown": "{count, plural, =1{1 plaza tol} other{{count} plaza tol}}, harga tidak diketahui",
+  "@routeTollPlazasUnknown": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "routeTollOn": "Tol: {roads}",
+  "@routeTollOn": {
+    "placeholders": {
+      "roads": {
+        "type": "String"
+      }
+    }
+  },
+  "routeTollDisclaimer": "Anggaran sahaja (kelas {cls}); semak harga di plaza.",
+  "@routeTollDisclaimer": {
+    "placeholders": {
+      "cls": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsClearAll": "Padam semua data saya",
+  "settingsClearAllHint": "Sejarah carian, tempat disimpan, laporan dan data simpanan lokasi pada peranti ini.",
+  "legalPrivacyTitle": "Dasar Privasi",
+  "legalTermsTitle": "Terma Penggunaan",
+  "legalLoadFailed": "Dokumen tidak dapat dimuatkan.",
+  "legalDraftNotice": "Draf: dokumen ini belum disemak oleh peguam dan tidak boleh dianggap nasihat undang-undang.",
+  "legalConsent": "Dengan meneruskan, anda bersetuju dengan Terma Penggunaan dan Dasar Privasi.",
+  "legalAttribution": "Data peta © penyumbang OpenStreetMap (ODbL). Gaya dan jubin: OpenFreeMap, OpenMapTiles. Laluan: Valhalla. Carian: Photon (komoot) dan Nominatim. Harga petrol: data.gov.my.",
+  "aboutAttributionTitle": "Sumber data",
+  "settingsFuel": "Kos minyak",
+  "fuelTypeRon95": "RON95",
+  "fuelTypeRon97": "RON97",
+  "fuelTypeDiesel": "Diesel",
+  "fuelConsumptionCar": "Penggunaan kereta (L/100 km)",
+  "fuelConsumptionMoto": "Penggunaan motosikal (L/100 km)",
+  "fuelManualPrice": "Harga seliter saya (RM)",
+  "fuelManualPriceHint": "Kosongkan untuk guna harga data.gov.my. Isi jika harga yang anda bayar berbeza (cth. RON95 subsidi).",
+  "fuelPriceUnavailable": "Harga terkini tidak dapat diambil. Isi harga sendiri untuk melihat anggaran kos minyak.",
+  "fuelEstimateNote": "Anggaran kos minyak berdasarkan jarak, penggunaan dan harga di atas.",
+  "shareDestinationTooltip": "Kongsi destinasi",
+  "shareEtaAction": "Kongsi masa tiba",
+  "shareFailed": "Tidak dapat membuka lembaran kongsi.",
+  "emergencyTooltip": "Kecemasan",
+  "emergencyTitle": "Kecemasan",
+  "emergencyBody": "Dalam kecemasan, hubungi terus. Butang ini hanya jalan pintas dan tidak menjamin panggilan, ketepatan lokasi atau bantuan tiba.",
+  "emergencyCall999": "Hubungi 999",
+  "emergencyCall999Hint": "Polis, bomba, ambulans",
+  "emergencyCall112": "Hubungi 112",
+  "emergencyCall112Hint": "Nombor kecemasan antarabangsa untuk telefon bimbit",
+  "emergencyConfirmCall": "Hubungi",
+  "emergencyConfirmBody": "Papan nombor akan dibuka. Tekan butang panggil untuk menyambung.",
+  "emergencyShareLocation": "Kongsi lokasi tepat saya",
+  "emergencyNoLocation": "Lokasi anda belum diketahui. Cuba di tempat terbuka atau hidupkan lokasi.",
+  "routeFuelCost": "≈ RM {amount} minyak",
+  "@routeFuelCost": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "fuelPriceSource": "Harga data.gov.my: RM {price}/L ({date})",
+  "@fuelPriceSource": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "emergencyConfirmTitle": "Hubungi {number} sekarang?",
+  "@emergencyConfirmTitle": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "shareDestinationText": "Saya menuju ke {name}. Anggaran tiba {eta} ({duration}, {distance}).\n{link}",
+  "@shareDestinationText": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "eta": {
+        "type": "String"
+      },
+      "duration": {
+        "type": "String"
+      },
+      "distance": {
+        "type": "String"
+      },
+      "link": {
+        "type": "String"
+      }
+    }
+  },
+  "shareEtaText": "Saya sedang menuju ke {name}. Anggaran tiba {eta}, baki {distance}.\n{link}",
+  "@shareEtaText": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "eta": {
+        "type": "String"
+      },
+      "distance": {
+        "type": "String"
+      },
+      "link": {
+        "type": "String"
+      }
+    }
+  },
+  "emergencyShareText": "Saya memerlukan bantuan. Lokasi saya: {coords}\n{link}",
+  "@emergencyShareText": {
+    "placeholders": {
+      "coords": {
+        "type": "String"
+      },
+      "link": {
+        "type": "String"
+      }
+    }
+  },
+  "emergencyDialFailed": "Papan nombor tidak dapat dibuka. Dail {number} secara manual.",
+  "@emergencyDialFailed": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "errorWidgetMessage": "Bahagian ini tidak dapat dipaparkan.",
+  "settingsCopyErrorReport": "Salin laporan ralat",
+  "settingsCopyErrorReportHint": "Log ralat disimpan pada telefon ini sahaja dan tidak dihantar. Salin dan hantar sendiri jika perlu.",
+  "settingsErrorReportCopied": "Laporan ralat disalin",
+  "settingsErrorReportEmpty": "Tiada ralat direkodkan"
 }

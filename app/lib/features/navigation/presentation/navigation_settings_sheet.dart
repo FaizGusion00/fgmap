@@ -1,23 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/theme_controller.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../data/navigation_settings.dart';
 import '../domain/camera_planner.dart';
 import '../domain/instruction_text.dart';
 
-Future<void> showNavigationSettingsSheet(BuildContext context) {
+Future<void> showNavigationSettingsSheet(
+  BuildContext context, {
+  VoidCallback? onShareEta,
+  VoidCallback? onEmergency,
+}) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    builder: (_) => const NavigationSettingsSheet(),
+    builder: (_) => NavigationSettingsSheet(
+      onShareEta: onShareEta,
+      onEmergency: onEmergency,
+    ),
   );
 }
 
 /// Tetapan navigasi sebagai lembaran sendiri (dibuka dari butang sisi semasa memandu).
 class NavigationSettingsSheet extends StatelessWidget {
-  const NavigationSettingsSheet({super.key});
+  const NavigationSettingsSheet({super.key, this.onShareEta, this.onEmergency});
+
+  /// Tindakan pantas di bahagian atas (kongsi masa tiba, kecemasan); tersembunyi jika null. Lembaran
+  /// ditutup dahulu, kemudian tindakan dijalankan.
+  final VoidCallback? onShareEta;
+  final VoidCallback? onEmergency;
 
   @override
   Widget build(BuildContext context) {
@@ -32,8 +45,41 @@ class NavigationSettingsSheet extends StatelessWidget {
             l10n.navSettingsTitle,
             style: Theme.of(context).textTheme.titleLarge,
           ),
-          const SizedBox(height: 8),
-          const NavigationSettingsSection(),
+          if (onShareEta != null || onEmergency != null) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (onShareEta != null)
+                  ActionChip(
+                    key: const ValueKey('nav-share-eta'),
+                    avatar: const Icon(Icons.ios_share_rounded, size: 18),
+                    label: Text(l10n.shareEtaAction),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      onShareEta!();
+                    },
+                  ),
+                if (onEmergency != null)
+                  ActionChip(
+                    key: const ValueKey('nav-emergency'),
+                    avatar: Icon(
+                      Icons.emergency_rounded,
+                      size: 18,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                    label: Text(l10n.emergencyTitle),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      onEmergency!();
+                    },
+                  ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 12),
+          const NavigationSettingsSection(showTheme: true),
         ],
       ),
     );
@@ -42,8 +88,13 @@ class NavigationSettingsSheet extends StatelessWidget {
 
 /// Kandungan tetapan navigasi: suara (hidup/mati dan bahasa) dan jenis paparan kamera. Berkuat kuasa
 /// serta-merta. Digunakan oleh lembaran navigasi dan hab Tetapan.
+///
+/// [showTheme]: tambah pilihan paparan siang/malam/auto (matahari). Hanya dalam lembaran navigasi
+/// kerana halaman Tetapan sudah mempunyai kumpulan Paparan sendiri. Pilihan ini ialah tema global app.
 class NavigationSettingsSection extends ConsumerWidget {
-  const NavigationSettingsSection({super.key});
+  const NavigationSettingsSection({super.key, this.showTheme = false});
+
+  final bool showTheme;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -55,6 +106,12 @@ class NavigationSettingsSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (showTheme) ...[
+          Text(l10n.navThemeTitle, style: theme.textTheme.titleSmall),
+          const SizedBox(height: 8),
+          const _NavThemeRow(),
+          const SizedBox(height: 20),
+        ],
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
           secondary: Icon(
@@ -177,6 +234,50 @@ class NavigationSettingsSection extends ConsumerWidget {
         const SizedBox(height: 8),
         Text(l10n.navOverspeedHint, style: theme.textTheme.bodySmall),
       ],
+    );
+  }
+}
+
+/// Pilihan paparan cepat semasa memandu: Siang, Malam, Auto (matahari) dan Sistem. Berkuat kuasa
+/// serta-merta pada app dan peta.
+class _NavThemeRow extends ConsumerWidget {
+  const _NavThemeRow();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final mode = ref.watch(themeControllerProvider.select((s) => s.mode));
+    return SizedBox(
+      width: double.infinity,
+      child: SegmentedButton<AppThemeMode>(
+        key: const ValueKey('nav-theme-mode'),
+        showSelectedIcon: false,
+        segments: [
+          ButtonSegment(
+            value: AppThemeMode.light,
+            icon: const Icon(Icons.light_mode_rounded),
+            label: Text(l10n.themeLight),
+          ),
+          ButtonSegment(
+            value: AppThemeMode.dark,
+            icon: const Icon(Icons.dark_mode_rounded),
+            label: Text(l10n.themeDark),
+          ),
+          ButtonSegment(
+            value: AppThemeMode.sun,
+            icon: const Icon(Icons.wb_twilight_rounded),
+            label: Text(l10n.themeSun),
+          ),
+          ButtonSegment(
+            value: AppThemeMode.system,
+            icon: const Icon(Icons.brightness_auto_rounded),
+            label: Text(l10n.themeSystemShort),
+          ),
+        ],
+        selected: {mode},
+        onSelectionChanged: (s) =>
+            ref.read(themeControllerProvider.notifier).setMode(s.first),
+      ),
     );
   }
 }

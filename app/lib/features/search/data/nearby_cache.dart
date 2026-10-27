@@ -13,7 +13,7 @@ import 'nearby_search.dart';
 /// - Segar (< [freshFor]): dipulangkan terus tanpa rangkaian (menjimatkan kuota pelayan awam).
 /// - Pelayan gagal semua: hasil lama (sehingga [maxStale]) dipulangkan DITANDAI sebagai simpanan, supaya
 ///   pemandu masih mempunyai senarai tempat sekitar walaupun tiada liputan, dan UI memberitahu masanya.
-class CachedNearbySearch implements NearbySearch {
+class CachedNearbySearch implements ProgressiveNearbySearch {
   CachedNearbySearch(
     this.inner,
     this._prefs, {
@@ -41,32 +41,54 @@ class CachedNearbySearch implements NearbySearch {
     GeoPoint center, {
     required String fallbackName,
     CancelToken? cancel,
-  }) async {
+  }) =>
+      watch(category, center, fallbackName: fallbackName, cancel: cancel).last;
+
+  /// Segar (< [freshFor]): satu hasil tanpa rangkaian. Lama tetapi ada: simpanan dipaparkan SERTA-MERTA
+  /// (`refreshing`), kemudian digantikan oleh hasil segar apabila siap; jika pelayan gagal, simpanan
+  /// ditandai sebagai simpanan lama. Tiada simpanan: hasil berperingkat daripada pelayan.
+  @override
+  Stream<NearbyResult> watch(
+    NearbyCategory category,
+    GeoPoint center, {
+    required String fallbackName,
+    CancelToken? cancel,
+  }) async* {
     final key = _key(category, center);
     final entry = _read(key);
     final now = _clock();
 
     if (entry != null && now.difference(entry.at) < freshFor) {
-      return NearbyResult(sortNearby(entry.places, center));
+      yield NearbyResult(sortNearby(entry.places, center));
+      return;
     }
+    final stale = entry != null && now.difference(entry.at) < maxStale;
+    final shown = stale ? sortNearby(entry.places, center) : const <Place>[];
+    if (stale) yield NearbyResult(shown, refreshing: true);
 
+    var gotAny = false;
     try {
-      final result = await inner.search(
+      await for (final r in watchNearby(
+        inner,
         category,
         center,
         fallbackName: fallbackName,
         cancel: cancel,
-      );
-      // Jangan timpa senarai baik dengan hasil kosong daripada sumber sandaran.
-      if (result.places.isNotEmpty) await _write(key, now, result.places);
-      return result;
-    } on GeocodeFailure {
-      if (entry != null && now.difference(entry.at) < maxStale) {
-        return NearbyResult(
-          sortNearby(entry.places, center),
-          cachedAt: entry.at,
-        );
+      )) {
+        gotAny = true;
+        if (!r.refreshing && r.places.isNotEmpty) {
+          await _write(key, now, r.places);
+        }
+        // Simpanan lama sudah di skrin: jangan gantikan dengan hasil sementara yang lebih kecil.
+        if (stale && r.refreshing) continue;
+        yield r;
       }
+    } on GeocodeFailure {
+      if (stale) {
+        yield NearbyResult(shown, cachedAt: entry.at);
+        return;
+      }
+      if (gotAny) return;
       rethrow;
     }
   }

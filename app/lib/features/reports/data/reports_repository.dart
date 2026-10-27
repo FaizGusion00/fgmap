@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../../core/utils/geo.dart';
 import '../domain/report.dart';
+import '../../../core/utils/log.dart';
 
 /// Simpanan laporan. Antara muka supaya backend kongsi (Firebase/Supabase) boleh menggantikan simpanan
 /// tempatan tanpa mengubah UI atau peraturan.
@@ -77,7 +78,7 @@ class LocalReportsRepository implements ReportsRepository {
       }
     } on Object catch (e) {
       // Fail rosak (cth. penulisan terganggu): mulakan kosong, bukan menghalang app.
-      debugPrint('Laporan: fail rosak diabaikan ($e)');
+      logDiag('Laporan: fail rosak diabaikan ($e)');
     }
     return _cache = reports;
   }

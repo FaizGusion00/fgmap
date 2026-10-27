@@ -1,0 +1,19 @@
+name: tolls-explore
+
+# Sementara: meneroka titik akhir kalkulator LLM dan Overpass dari runner GitHub (container
+# pembangunan tidak boleh mencapainya). Dibuang selepas data difahami.
+on:
+  push:
+    branches: [claude/practical-bardeen-kmtow6]
+    paths: [".github/workflows/tolls-explore.yml", "tools/tolls/explore.py"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  explore:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tools/tolls/explore.py

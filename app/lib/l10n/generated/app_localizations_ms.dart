@@ -349,6 +349,13 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
+  String get searchNearbyRefining => 'Mencari lebih jauh…';
+
+  @override
+  String get searchNeedLocation =>
+      'Lokasi anda belum diketahui. Hidupkan lokasi untuk mencari tempat berhampiran.';
+
+  @override
   String searchNearbySaved(String when) {
     return 'Pelayan data peta tidak dapat dicapai. Memaparkan hasil tersimpan dari $when.';
   }
@@ -943,4 +950,288 @@ class AppLocalizationsMs extends AppLocalizations {
   @override
   String get navOverspeedHint =>
       'Bunyi dan tanda merah apabila melebihi had laju. Had laju tidak lengkap di semua jalan.';
+
+  @override
+  String get savedBySearch => 'Cari alamat';
+
+  @override
+  String get savedBySearchHint => 'Taip nama tempat atau alamat';
+
+  @override
+  String get savedByCurrent => 'Guna lokasi semasa';
+
+  @override
+  String get savedByCurrentHint => 'Simpan kedudukan anda sekarang';
+
+  @override
+  String get savedCurrentLocation => 'Lokasi semasa';
+
+  @override
+  String get savedLocating => 'Mencari lokasi anda…';
+
+  @override
+  String get savedGoHint =>
+      'Ketik untuk mula navigasi · tekan lama untuk tukar';
+
+  @override
+  String get autoStartCancel => 'Batal';
+
+  @override
+  String get navThemeTitle => 'Paparan peta';
+
+  @override
+  String get settingsSavedPlaces => 'Rumah dan Kerja';
+
+  @override
+  String get savedNotSet => 'Belum ditetapkan';
+
+  @override
+  String autoStartCountdown(String name, int seconds) {
+    return 'Memulakan navigasi ke $name dalam $seconds…';
+  }
+
+  @override
+  String get routeRecommended => 'Disyorkan';
+
+  @override
+  String get routeSimplest => 'Paling mudah';
+
+  @override
+  String get routeSearchingMore => 'Mencari laluan lain…';
+
+  @override
+  String get routeHasHighway => 'Lebuh raya';
+
+  @override
+  String get routeHasFerry => 'Feri';
+
+  @override
+  String routeTurns(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count belokan',
+      one: '1 belokan',
+      zero: 'Tiada belokan',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String routeMore(int count) {
+    return 'Lagi $count';
+  }
+
+  @override
+  String routeTollRm(String amount) {
+    return 'RM $amount';
+  }
+
+  @override
+  String routeTollRmPartial(String amount) {
+    return 'RM $amount+';
+  }
+
+  @override
+  String routeTollPlazaCount(int count) {
+    return '$count plaza';
+  }
+
+  @override
+  String routeTollEstimateExact(String amount) {
+    return 'Tol RM $amount';
+  }
+
+  @override
+  String routeTollEstimatePartial(String amount) {
+    return 'Tol RM $amount+ (sebahagian)';
+  }
+
+  @override
+  String routeTollPlazasUnknown(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count plaza tol',
+      one: '1 plaza tol',
+    );
+    return '$_temp0, harga tidak diketahui';
+  }
+
+  @override
+  String routeTollOn(String roads) {
+    return 'Tol: $roads';
+  }
+
+  @override
+  String routeTollDisclaimer(String cls) {
+    return 'Anggaran sahaja (kelas $cls); semak harga di plaza.';
+  }
+
+  @override
+  String get settingsClearAll => 'Padam semua data saya';
+
+  @override
+  String get settingsClearAllHint =>
+      'Sejarah carian, tempat disimpan, laporan dan data simpanan lokasi pada peranti ini.';
+
+  @override
+  String get legalPrivacyTitle => 'Dasar Privasi';
+
+  @override
+  String get legalTermsTitle => 'Terma Penggunaan';
+
+  @override
+  String get legalLoadFailed => 'Dokumen tidak dapat dimuatkan.';
+
+  @override
+  String get legalDraftNotice =>
+      'Draf: dokumen ini belum disemak oleh peguam dan tidak boleh dianggap nasihat undang-undang.';
+
+  @override
+  String get legalConsent =>
+      'Dengan meneruskan, anda bersetuju dengan Terma Penggunaan dan Dasar Privasi.';
+
+  @override
+  String get legalAttribution =>
+      'Data peta © penyumbang OpenStreetMap (ODbL). Gaya dan jubin: OpenFreeMap, OpenMapTiles. Laluan: Valhalla. Carian: Photon (komoot) dan Nominatim. Harga petrol: data.gov.my.';
+
+  @override
+  String get aboutAttributionTitle => 'Sumber data';
+
+  @override
+  String get settingsFuel => 'Kos minyak';
+
+  @override
+  String get fuelTypeRon95 => 'RON95';
+
+  @override
+  String get fuelTypeRon97 => 'RON97';
+
+  @override
+  String get fuelTypeDiesel => 'Diesel';
+
+  @override
+  String get fuelConsumptionCar => 'Penggunaan kereta (L/100 km)';
+
+  @override
+  String get fuelConsumptionMoto => 'Penggunaan motosikal (L/100 km)';
+
+  @override
+  String get fuelManualPrice => 'Harga seliter saya (RM)';
+
+  @override
+  String get fuelManualPriceHint =>
+      'Kosongkan untuk guna harga data.gov.my. Isi jika harga yang anda bayar berbeza (cth. RON95 subsidi).';
+
+  @override
+  String get fuelPriceUnavailable =>
+      'Harga terkini tidak dapat diambil. Isi harga sendiri untuk melihat anggaran kos minyak.';
+
+  @override
+  String get fuelEstimateNote =>
+      'Anggaran kos minyak berdasarkan jarak, penggunaan dan harga di atas.';
+
+  @override
+  String get shareDestinationTooltip => 'Kongsi destinasi';
+
+  @override
+  String get shareEtaAction => 'Kongsi masa tiba';
+
+  @override
+  String get shareFailed => 'Tidak dapat membuka lembaran kongsi.';
+
+  @override
+  String get emergencyTooltip => 'Kecemasan';
+
+  @override
+  String get emergencyTitle => 'Kecemasan';
+
+  @override
+  String get emergencyBody =>
+      'Dalam kecemasan, hubungi terus. Butang ini hanya jalan pintas dan tidak menjamin panggilan, ketepatan lokasi atau bantuan tiba.';
+
+  @override
+  String get emergencyCall999 => 'Hubungi 999';
+
+  @override
+  String get emergencyCall999Hint => 'Polis, bomba, ambulans';
+
+  @override
+  String get emergencyCall112 => 'Hubungi 112';
+
+  @override
+  String get emergencyCall112Hint =>
+      'Nombor kecemasan antarabangsa untuk telefon bimbit';
+
+  @override
+  String get emergencyConfirmCall => 'Hubungi';
+
+  @override
+  String get emergencyConfirmBody =>
+      'Papan nombor akan dibuka. Tekan butang panggil untuk menyambung.';
+
+  @override
+  String get emergencyShareLocation => 'Kongsi lokasi tepat saya';
+
+  @override
+  String get emergencyNoLocation =>
+      'Lokasi anda belum diketahui. Cuba di tempat terbuka atau hidupkan lokasi.';
+
+  @override
+  String routeFuelCost(String amount) {
+    return '≈ RM $amount minyak';
+  }
+
+  @override
+  String fuelPriceSource(String price, String date) {
+    return 'Harga data.gov.my: RM $price/L ($date)';
+  }
+
+  @override
+  String emergencyConfirmTitle(String number) {
+    return 'Hubungi $number sekarang?';
+  }
+
+  @override
+  String shareDestinationText(
+    String name,
+    String eta,
+    String duration,
+    String distance,
+    String link,
+  ) {
+    return 'Saya menuju ke $name. Anggaran tiba $eta ($duration, $distance).\n$link';
+  }
+
+  @override
+  String shareEtaText(String name, String eta, String distance, String link) {
+    return 'Saya sedang menuju ke $name. Anggaran tiba $eta, baki $distance.\n$link';
+  }
+
+  @override
+  String emergencyShareText(String coords, String link) {
+    return 'Saya memerlukan bantuan. Lokasi saya: $coords\n$link';
+  }
+
+  @override
+  String emergencyDialFailed(String number) {
+    return 'Papan nombor tidak dapat dibuka. Dail $number secara manual.';
+  }
+
+  @override
+  String get errorWidgetMessage => 'Bahagian ini tidak dapat dipaparkan.';
+
+  @override
+  String get settingsCopyErrorReport => 'Salin laporan ralat';
+
+  @override
+  String get settingsCopyErrorReportHint =>
+      'Log ralat disimpan pada telefon ini sahaja dan tidak dihantar. Salin dan hantar sendiri jika perlu.';
+
+  @override
+  String get settingsErrorReportCopied => 'Laporan ralat disalin';
+
+  @override
+  String get settingsErrorReportEmpty => 'Tiada ralat direkodkan';
 }

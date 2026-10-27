@@ -680,6 +680,18 @@ abstract class AppLocalizations {
   /// **'Tiada “{category}” ditemui berhampiran dalam OpenStreetMap. Cuba kawasan lain atau cari mengikut nama.'**
   String searchNoNearby(String category);
 
+  /// No description provided for @searchNearbyRefining.
+  ///
+  /// In ms, this message translates to:
+  /// **'Mencari lebih jauh…'**
+  String get searchNearbyRefining;
+
+  /// No description provided for @searchNeedLocation.
+  ///
+  /// In ms, this message translates to:
+  /// **'Lokasi anda belum diketahui. Hidupkan lokasi untuk mencari tempat berhampiran.'**
+  String get searchNeedLocation;
+
   /// No description provided for @searchNearbySaved.
   ///
   /// In ms, this message translates to:
@@ -1777,6 +1789,444 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'Bunyi dan tanda merah apabila melebihi had laju. Had laju tidak lengkap di semua jalan.'**
   String get navOverspeedHint;
+
+  /// No description provided for @savedBySearch.
+  ///
+  /// In ms, this message translates to:
+  /// **'Cari alamat'**
+  String get savedBySearch;
+
+  /// No description provided for @savedBySearchHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Taip nama tempat atau alamat'**
+  String get savedBySearchHint;
+
+  /// No description provided for @savedByCurrent.
+  ///
+  /// In ms, this message translates to:
+  /// **'Guna lokasi semasa'**
+  String get savedByCurrent;
+
+  /// No description provided for @savedByCurrentHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Simpan kedudukan anda sekarang'**
+  String get savedByCurrentHint;
+
+  /// No description provided for @savedCurrentLocation.
+  ///
+  /// In ms, this message translates to:
+  /// **'Lokasi semasa'**
+  String get savedCurrentLocation;
+
+  /// No description provided for @savedLocating.
+  ///
+  /// In ms, this message translates to:
+  /// **'Mencari lokasi anda…'**
+  String get savedLocating;
+
+  /// No description provided for @savedGoHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Ketik untuk mula navigasi · tekan lama untuk tukar'**
+  String get savedGoHint;
+
+  /// No description provided for @autoStartCancel.
+  ///
+  /// In ms, this message translates to:
+  /// **'Batal'**
+  String get autoStartCancel;
+
+  /// No description provided for @navThemeTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Paparan peta'**
+  String get navThemeTitle;
+
+  /// No description provided for @settingsSavedPlaces.
+  ///
+  /// In ms, this message translates to:
+  /// **'Rumah dan Kerja'**
+  String get settingsSavedPlaces;
+
+  /// No description provided for @savedNotSet.
+  ///
+  /// In ms, this message translates to:
+  /// **'Belum ditetapkan'**
+  String get savedNotSet;
+
+  /// No description provided for @autoStartCountdown.
+  ///
+  /// In ms, this message translates to:
+  /// **'Memulakan navigasi ke {name} dalam {seconds}…'**
+  String autoStartCountdown(String name, int seconds);
+
+  /// No description provided for @routeRecommended.
+  ///
+  /// In ms, this message translates to:
+  /// **'Disyorkan'**
+  String get routeRecommended;
+
+  /// No description provided for @routeSimplest.
+  ///
+  /// In ms, this message translates to:
+  /// **'Paling mudah'**
+  String get routeSimplest;
+
+  /// No description provided for @routeSearchingMore.
+  ///
+  /// In ms, this message translates to:
+  /// **'Mencari laluan lain…'**
+  String get routeSearchingMore;
+
+  /// No description provided for @routeHasHighway.
+  ///
+  /// In ms, this message translates to:
+  /// **'Lebuh raya'**
+  String get routeHasHighway;
+
+  /// No description provided for @routeHasFerry.
+  ///
+  /// In ms, this message translates to:
+  /// **'Feri'**
+  String get routeHasFerry;
+
+  /// No description provided for @routeTurns.
+  ///
+  /// In ms, this message translates to:
+  /// **'{count, plural, =0{Tiada belokan} =1{1 belokan} other{{count} belokan}}'**
+  String routeTurns(int count);
+
+  /// No description provided for @routeMore.
+  ///
+  /// In ms, this message translates to:
+  /// **'Lagi {count}'**
+  String routeMore(int count);
+
+  /// No description provided for @routeTollRm.
+  ///
+  /// In ms, this message translates to:
+  /// **'RM {amount}'**
+  String routeTollRm(String amount);
+
+  /// No description provided for @routeTollRmPartial.
+  ///
+  /// In ms, this message translates to:
+  /// **'RM {amount}+'**
+  String routeTollRmPartial(String amount);
+
+  /// No description provided for @routeTollPlazaCount.
+  ///
+  /// In ms, this message translates to:
+  /// **'{count} plaza'**
+  String routeTollPlazaCount(int count);
+
+  /// No description provided for @routeTollEstimateExact.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tol RM {amount}'**
+  String routeTollEstimateExact(String amount);
+
+  /// No description provided for @routeTollEstimatePartial.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tol RM {amount}+ (sebahagian)'**
+  String routeTollEstimatePartial(String amount);
+
+  /// No description provided for @routeTollPlazasUnknown.
+  ///
+  /// In ms, this message translates to:
+  /// **'{count, plural, =1{1 plaza tol} other{{count} plaza tol}}, harga tidak diketahui'**
+  String routeTollPlazasUnknown(int count);
+
+  /// No description provided for @routeTollOn.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tol: {roads}'**
+  String routeTollOn(String roads);
+
+  /// No description provided for @routeTollDisclaimer.
+  ///
+  /// In ms, this message translates to:
+  /// **'Anggaran sahaja (kelas {cls}); semak harga di plaza.'**
+  String routeTollDisclaimer(String cls);
+
+  /// No description provided for @settingsClearAll.
+  ///
+  /// In ms, this message translates to:
+  /// **'Padam semua data saya'**
+  String get settingsClearAll;
+
+  /// No description provided for @settingsClearAllHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Sejarah carian, tempat disimpan, laporan dan data simpanan lokasi pada peranti ini.'**
+  String get settingsClearAllHint;
+
+  /// No description provided for @legalPrivacyTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Dasar Privasi'**
+  String get legalPrivacyTitle;
+
+  /// No description provided for @legalTermsTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Terma Penggunaan'**
+  String get legalTermsTitle;
+
+  /// No description provided for @legalLoadFailed.
+  ///
+  /// In ms, this message translates to:
+  /// **'Dokumen tidak dapat dimuatkan.'**
+  String get legalLoadFailed;
+
+  /// No description provided for @legalDraftNotice.
+  ///
+  /// In ms, this message translates to:
+  /// **'Draf: dokumen ini belum disemak oleh peguam dan tidak boleh dianggap nasihat undang-undang.'**
+  String get legalDraftNotice;
+
+  /// No description provided for @legalConsent.
+  ///
+  /// In ms, this message translates to:
+  /// **'Dengan meneruskan, anda bersetuju dengan Terma Penggunaan dan Dasar Privasi.'**
+  String get legalConsent;
+
+  /// No description provided for @legalAttribution.
+  ///
+  /// In ms, this message translates to:
+  /// **'Data peta © penyumbang OpenStreetMap (ODbL). Gaya dan jubin: OpenFreeMap, OpenMapTiles. Laluan: Valhalla. Carian: Photon (komoot) dan Nominatim. Harga petrol: data.gov.my.'**
+  String get legalAttribution;
+
+  /// No description provided for @aboutAttributionTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Sumber data'**
+  String get aboutAttributionTitle;
+
+  /// No description provided for @settingsFuel.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kos minyak'**
+  String get settingsFuel;
+
+  /// No description provided for @fuelTypeRon95.
+  ///
+  /// In ms, this message translates to:
+  /// **'RON95'**
+  String get fuelTypeRon95;
+
+  /// No description provided for @fuelTypeRon97.
+  ///
+  /// In ms, this message translates to:
+  /// **'RON97'**
+  String get fuelTypeRon97;
+
+  /// No description provided for @fuelTypeDiesel.
+  ///
+  /// In ms, this message translates to:
+  /// **'Diesel'**
+  String get fuelTypeDiesel;
+
+  /// No description provided for @fuelConsumptionCar.
+  ///
+  /// In ms, this message translates to:
+  /// **'Penggunaan kereta (L/100 km)'**
+  String get fuelConsumptionCar;
+
+  /// No description provided for @fuelConsumptionMoto.
+  ///
+  /// In ms, this message translates to:
+  /// **'Penggunaan motosikal (L/100 km)'**
+  String get fuelConsumptionMoto;
+
+  /// No description provided for @fuelManualPrice.
+  ///
+  /// In ms, this message translates to:
+  /// **'Harga seliter saya (RM)'**
+  String get fuelManualPrice;
+
+  /// No description provided for @fuelManualPriceHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kosongkan untuk guna harga data.gov.my. Isi jika harga yang anda bayar berbeza (cth. RON95 subsidi).'**
+  String get fuelManualPriceHint;
+
+  /// No description provided for @fuelPriceUnavailable.
+  ///
+  /// In ms, this message translates to:
+  /// **'Harga terkini tidak dapat diambil. Isi harga sendiri untuk melihat anggaran kos minyak.'**
+  String get fuelPriceUnavailable;
+
+  /// No description provided for @fuelEstimateNote.
+  ///
+  /// In ms, this message translates to:
+  /// **'Anggaran kos minyak berdasarkan jarak, penggunaan dan harga di atas.'**
+  String get fuelEstimateNote;
+
+  /// No description provided for @shareDestinationTooltip.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kongsi destinasi'**
+  String get shareDestinationTooltip;
+
+  /// No description provided for @shareEtaAction.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kongsi masa tiba'**
+  String get shareEtaAction;
+
+  /// No description provided for @shareFailed.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tidak dapat membuka lembaran kongsi.'**
+  String get shareFailed;
+
+  /// No description provided for @emergencyTooltip.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kecemasan'**
+  String get emergencyTooltip;
+
+  /// No description provided for @emergencyTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kecemasan'**
+  String get emergencyTitle;
+
+  /// No description provided for @emergencyBody.
+  ///
+  /// In ms, this message translates to:
+  /// **'Dalam kecemasan, hubungi terus. Butang ini hanya jalan pintas dan tidak menjamin panggilan, ketepatan lokasi atau bantuan tiba.'**
+  String get emergencyBody;
+
+  /// No description provided for @emergencyCall999.
+  ///
+  /// In ms, this message translates to:
+  /// **'Hubungi 999'**
+  String get emergencyCall999;
+
+  /// No description provided for @emergencyCall999Hint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Polis, bomba, ambulans'**
+  String get emergencyCall999Hint;
+
+  /// No description provided for @emergencyCall112.
+  ///
+  /// In ms, this message translates to:
+  /// **'Hubungi 112'**
+  String get emergencyCall112;
+
+  /// No description provided for @emergencyCall112Hint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Nombor kecemasan antarabangsa untuk telefon bimbit'**
+  String get emergencyCall112Hint;
+
+  /// No description provided for @emergencyConfirmCall.
+  ///
+  /// In ms, this message translates to:
+  /// **'Hubungi'**
+  String get emergencyConfirmCall;
+
+  /// No description provided for @emergencyConfirmBody.
+  ///
+  /// In ms, this message translates to:
+  /// **'Papan nombor akan dibuka. Tekan butang panggil untuk menyambung.'**
+  String get emergencyConfirmBody;
+
+  /// No description provided for @emergencyShareLocation.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kongsi lokasi tepat saya'**
+  String get emergencyShareLocation;
+
+  /// No description provided for @emergencyNoLocation.
+  ///
+  /// In ms, this message translates to:
+  /// **'Lokasi anda belum diketahui. Cuba di tempat terbuka atau hidupkan lokasi.'**
+  String get emergencyNoLocation;
+
+  /// No description provided for @routeFuelCost.
+  ///
+  /// In ms, this message translates to:
+  /// **'≈ RM {amount} minyak'**
+  String routeFuelCost(String amount);
+
+  /// No description provided for @fuelPriceSource.
+  ///
+  /// In ms, this message translates to:
+  /// **'Harga data.gov.my: RM {price}/L ({date})'**
+  String fuelPriceSource(String price, String date);
+
+  /// No description provided for @emergencyConfirmTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Hubungi {number} sekarang?'**
+  String emergencyConfirmTitle(String number);
+
+  /// No description provided for @shareDestinationText.
+  ///
+  /// In ms, this message translates to:
+  /// **'Saya menuju ke {name}. Anggaran tiba {eta} ({duration}, {distance}).\n{link}'**
+  String shareDestinationText(
+    String name,
+    String eta,
+    String duration,
+    String distance,
+    String link,
+  );
+
+  /// No description provided for @shareEtaText.
+  ///
+  /// In ms, this message translates to:
+  /// **'Saya sedang menuju ke {name}. Anggaran tiba {eta}, baki {distance}.\n{link}'**
+  String shareEtaText(String name, String eta, String distance, String link);
+
+  /// No description provided for @emergencyShareText.
+  ///
+  /// In ms, this message translates to:
+  /// **'Saya memerlukan bantuan. Lokasi saya: {coords}\n{link}'**
+  String emergencyShareText(String coords, String link);
+
+  /// No description provided for @emergencyDialFailed.
+  ///
+  /// In ms, this message translates to:
+  /// **'Papan nombor tidak dapat dibuka. Dail {number} secara manual.'**
+  String emergencyDialFailed(String number);
+
+  /// No description provided for @errorWidgetMessage.
+  ///
+  /// In ms, this message translates to:
+  /// **'Bahagian ini tidak dapat dipaparkan.'**
+  String get errorWidgetMessage;
+
+  /// No description provided for @settingsCopyErrorReport.
+  ///
+  /// In ms, this message translates to:
+  /// **'Salin laporan ralat'**
+  String get settingsCopyErrorReport;
+
+  /// No description provided for @settingsCopyErrorReportHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Log ralat disimpan pada telefon ini sahaja dan tidak dihantar. Salin dan hantar sendiri jika perlu.'**
+  String get settingsCopyErrorReportHint;
+
+  /// No description provided for @settingsErrorReportCopied.
+  ///
+  /// In ms, this message translates to:
+  /// **'Laporan ralat disalin'**
+  String get settingsErrorReportCopied;
+
+  /// No description provided for @settingsErrorReportEmpty.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tiada ralat direkodkan'**
+  String get settingsErrorReportEmpty;
 }
 
 class _AppLocalizationsDelegate

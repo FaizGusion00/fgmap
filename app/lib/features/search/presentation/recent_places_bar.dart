@@ -5,22 +5,28 @@ import '../../../core/theme/fgmap_theme_extension.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../saved_places/data/saved_places_controller.dart';
 import '../../saved_places/domain/saved_place.dart';
-import '../../saved_places/presentation/save_place_sheet.dart';
+import '../../saved_places/presentation/assign_place_flow.dart';
 import '../domain/place.dart';
 import 'search_history_controller.dart';
 
 /// Baris pintasan di atas peta: Rumah, Kerja, kemudian destinasi terkini. Satu ketukan terus mengira
-/// laluan. Rumah/Kerja yang belum ditetapkan membuka perancang untuk menetapkannya; tekan lama pada
+/// laluan (Rumah/Kerja: terus mula navigasi melalui [onGo]). Rumah/Kerja yang belum ditetapkan membuka
+/// pilihan cari alamat atau guna lokasi semasa; tekan lama pada
 /// yang sudah ditetapkan untuk menukar atau memadam. Digunakan di bawah pil carian pada skrin utama.
 class RecentPlacesBar extends ConsumerWidget {
   const RecentPlacesBar({
     super.key,
     required this.onPick,
     this.onAssign,
+    this.onGo,
     this.limit = 6,
   });
 
   final ValueChanged<Place> onPick;
+
+  /// Dipanggil apabila Rumah/Kerja yang sudah ditetapkan diketik (cth. terus mula navigasi). Jika
+  /// null, [onPick] digunakan.
+  final ValueChanged<Place>? onGo;
 
   /// Dipanggil apabila pengguna mahu menetapkan atau menukar Rumah/Kerja.
   final ValueChanged<SavedKind>? onAssign;
@@ -47,12 +53,19 @@ class RecentPlacesBar extends ConsumerWidget {
           set: byId(SavedPlace.homeId) != null,
           onTap: () {
             final home = byId(SavedPlace.homeId);
-            home == null ? onAssign!(SavedKind.home) : onPick(home.place);
+            home == null
+                ? onAssign!(SavedKind.home)
+                : (onGo ?? onPick)(home.place);
           },
           onLongPress: () {
             final home = byId(SavedPlace.homeId);
             if (home != null) {
-              _manage(context, ref, home, () => onAssign!(SavedKind.home));
+              manageSavedPlace(
+                context,
+                ref,
+                home,
+                onChange: () => onAssign!(SavedKind.home),
+              );
             }
           },
         ),
@@ -63,12 +76,19 @@ class RecentPlacesBar extends ConsumerWidget {
           set: byId(SavedPlace.workId) != null,
           onTap: () {
             final work = byId(SavedPlace.workId);
-            work == null ? onAssign!(SavedKind.work) : onPick(work.place);
+            work == null
+                ? onAssign!(SavedKind.work)
+                : (onGo ?? onPick)(work.place);
           },
           onLongPress: () {
             final work = byId(SavedPlace.workId);
             if (work != null) {
-              _manage(context, ref, work, () => onAssign!(SavedKind.work));
+              manageSavedPlace(
+                context,
+                ref,
+                work,
+                onChange: () => onAssign!(SavedKind.work),
+              );
             }
           },
         ),
@@ -92,57 +112,6 @@ class RecentPlacesBar extends ConsumerWidget {
         itemCount: entries.length,
         separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (context, i) => entries[i],
-      ),
-    );
-  }
-
-  static Future<void> _manage(
-    BuildContext context,
-    WidgetRef ref,
-    SavedPlace item,
-    VoidCallback onChange,
-  ) {
-    final l10n = AppLocalizations.of(context);
-    return showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (sheetContext) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: Icon(savedKindIcon(item.kind)),
-              title: Text(savedKindLabel(l10n, item.kind)),
-              subtitle: Text(
-                item.place.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            ListTile(
-              key: const ValueKey('manage-change'),
-              minTileHeight: 56,
-              leading: const Icon(Icons.edit_rounded),
-              title: Text(l10n.savedChange),
-              onTap: () {
-                Navigator.of(sheetContext).pop();
-                onChange();
-              },
-            ),
-            ListTile(
-              key: const ValueKey('manage-remove'),
-              minTileHeight: 56,
-              leading: const Icon(Icons.delete_outline_rounded),
-              title: Text(l10n.savedRemove),
-              onTap: () {
-                Navigator.of(sheetContext).pop();
-                ref
-                    .read(savedPlacesControllerProvider.notifier)
-                    .remove(item.id);
-              },
-            ),
-          ],
-        ),
       ),
     );
   }

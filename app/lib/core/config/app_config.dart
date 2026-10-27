@@ -58,7 +58,7 @@ abstract final class AppConfig {
   /// Pengenalan app kepada server awam. Tukar `+contact` kepada URL/e-mel sebenar sebelum lancar.
   static const userAgent = String.fromEnvironment(
     'USER_AGENT',
-    defaultValue: 'FGMap/0.1 (+https://github.com/fguniversalempire/fgmap)',
+    defaultValue: 'FGMap/0.5 (+https://github.com/FaizGusion00/fgmap)',
   );
 
   static const mapStyleLight = String.fromEnvironment(
@@ -78,6 +78,30 @@ abstract final class AppConfig {
     'MAP_STYLE_NIGHT_BASE',
     defaultValue: 'https://tiles.openfreemap.org/styles/liberty',
   );
+
+  /// Titik akhir yang bukan HTTPS. Dalam build release semuanya mesti HTTPS (data lokasi dan pertanyaan
+  /// tidak boleh dihantar tanpa penyulitan); `--dart-define` dengan `http://` hanya untuk pembangunan
+  /// (cth. pelayan pek tile setempat). Pemanggil melempar ralat dalam release jika senarai ini tidak kosong.
+  static List<String> insecureEndpoints() => insecureOf({
+    'VALHALLA_URL': valhallaUrl,
+    'PHOTON_URL': photonUrl,
+    'NOMINATIM_URL': nominatimUrl,
+    'OVERPASS_URLS': overpassUrls.join(','),
+    'OFFLINE_MANIFEST_URL': offlineManifestUrl,
+    'MAP_STYLE_LIGHT': mapStyleLight,
+    'MAP_STYLE_DARK': mapStyleDark,
+    'MAP_STYLE_NIGHT_BASE': mapStyleNightBase,
+  });
+
+  /// Nama konfigurasi dalam [endpoints] yang mengandungi URL bukan-HTTPS (nilai boleh berbilang URL
+  /// dipisahkan koma). Dipisahkan daripada [insecureEndpoints] supaya boleh diuji.
+  static List<String> insecureOf(Map<String, String> endpoints) => [
+    for (final entry in endpoints.entries)
+      if (entry.value
+          .split(',')
+          .any((u) => u.trim().isNotEmpty && !u.trim().startsWith('https://')))
+        entry.key,
+  ];
 
   /// Pandangan awal: Kuala Lumpur.
   static const initialCenter = GeoPoint(3.139, 101.687);

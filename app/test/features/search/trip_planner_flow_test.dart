@@ -80,6 +80,7 @@ void main() {
     GeoPoint? userLocation,
     List<Override> extraOverrides = const [],
     SavedKind? assign,
+    bool warmUp = false,
   }) async {
     usePhoneSurface(tester);
     reduceMotion(tester);
@@ -101,7 +102,11 @@ void main() {
           ),
         ),
       ),
-      overrides: [...overrides(), ...extraOverrides],
+      overrides: [
+        ...overrides(),
+        nearbyWarmUpProvider.overrideWithValue(warmUp),
+        ...extraOverrides,
+      ],
     );
     await tester.tap(find.text('buka'));
     await tester.pumpAndSettle();
@@ -490,6 +495,7 @@ void main() {
     ) async {
       await pumpHost(
         tester,
+        userLocation: const GeoPoint(3.2290, 101.4260),
         extraOverrides: [
           nearbySearchProvider.overrideWithValue(
             _FakeNearby(cachedAt: DateTime(2026, 10, 20, 9, 30)),
@@ -509,6 +515,7 @@ void main() {
     ) async {
       await pumpHost(
         tester,
+        userLocation: const GeoPoint(3.2290, 101.4260),
         extraOverrides: [
           nearbySearchProvider.overrideWithValue(_FakeNearby(empty: true)),
         ],
@@ -518,11 +525,79 @@ void main() {
       await tester.pump();
       expect(find.textContaining('ditemui berhampiran'), findsOneWidget);
     });
+
+    testWidgets('tanpa lokasi: tidak jatuh senyap ke KL, beri petunjuk', (
+      tester,
+    ) async {
+      final nearby = _FakeNearby();
+      await pumpHost(
+        tester,
+        extraOverrides: [nearbySearchProvider.overrideWithValue(nearby)],
+      );
+      await tester.tap(find.text('Stesen minyak'));
+      await tester.pump();
+      await tester.pump();
+      expect(nearby.calls, isEmpty);
+      expect(
+        find.textContaining('Lokasi anda belum diketahui'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('hasil sementara: pita "Mencari lebih jauh" dipaparkan', (
+      tester,
+    ) async {
+      final nearby = _FakeNearby(refreshing: true);
+      await pumpHost(
+        tester,
+        userLocation: const GeoPoint(3.2290, 101.4260),
+        extraOverrides: [nearbySearchProvider.overrideWithValue(nearby)],
+      );
+      await tester.tap(find.text('Stesen minyak'));
+      await tester.pump();
+      await tester.pump();
+      expect(find.byKey(const ValueKey('nearby-refining')), findsOneWidget);
+      expect(find.text('Petronas Puncak Alam'), findsOneWidget);
+    });
+
+    testWidgets(
+      'pemanasan: buka perancang dengan lokasi memanaskan minyak dan makan',
+      (tester) async {
+        final nearby = _FakeNearby();
+        await pumpHost(
+          tester,
+          userLocation: const GeoPoint(3.2290, 101.4260),
+          extraOverrides: [nearbySearchProvider.overrideWithValue(nearby)],
+          warmUp: true,
+        );
+        expect(nearby.calls.map((c) => c.$1), [
+          NearbyCategory.fuel,
+          NearbyCategory.food,
+        ]);
+      },
+    );
+
+    testWidgets(
+      'pemanasan tidak berjalan tanpa lokasi atau dalam mod tetapkan',
+      (tester) async {
+        final nearby = _FakeNearby();
+        await pumpHost(
+          tester,
+          assign: SavedKind.home,
+          userLocation: const GeoPoint(3.2290, 101.4260),
+          extraOverrides: [nearbySearchProvider.overrideWithValue(nearby)],
+          warmUp: true,
+        );
+        expect(nearby.calls, isEmpty);
+      },
+    );
   });
 }
 
 class _FakeNearby implements NearbySearch {
-  _FakeNearby({this.empty = false, this.cachedAt});
+  _FakeNearby({this.empty = false, this.cachedAt, this.refreshing = false});
+
+  final bool refreshing;
 
   final bool empty;
   final DateTime? cachedAt;
@@ -537,7 +612,7 @@ class _FakeNearby implements NearbySearch {
   }) async {
     calls.add((category, center));
     if (empty) return const NearbyResult([]);
-    return NearbyResult(cachedAt: cachedAt, const [
+    return NearbyResult(cachedAt: cachedAt, refreshing: refreshing, const [
       Place(
         name: 'Petronas Puncak Alam',
         subtitle: 'Persiaran Puncak Alam',

@@ -374,5 +374,121 @@ void routingOptionsTests() {
       expect(r.vehicle, RouteVehicle.motorcycle);
       expect(r.destinationLabel, 'KLIA');
     });
+
+    test('shortest dihantar sebagai pilihan costing', () {
+      final json = buildRouteRequest(
+        const RouteQuery(origin: klcc, destination: klia, shortest: true),
+      );
+      expect(json['costing_options'], {
+        'auto': {'shortest': true},
+      });
+    });
+
+    test(
+      'lencongan paksa: exclude_polygons bulatan tertutup dalam had perimeter',
+      () {
+        final json = buildRouteRequest(
+          const RouteQuery(
+            origin: klcc,
+            destination: klia,
+            exclusions: [RouteExclusion(GeoPoint(3.0, 101.7), 1400)],
+          ),
+        );
+        final polygons = json['exclude_polygons']! as List<Object?>;
+        final ring = (polygons.single! as List).cast<List<double>>();
+        expect(ring.first, ring.last, reason: 'cincin tertutup');
+        expect(ring.length, 17);
+        // [lon, lat]; semua titik ~1400 m dari pusat.
+        for (final point in ring) {
+          final d = distanceMeters(
+            const GeoPoint(3.0, 101.7),
+            GeoPoint(point[1], point[0]),
+          );
+          expect(d, closeTo(1400, 15));
+        }
+        // Had perimeter pelayan awam: 10 km.
+        var perimeter = 0.0;
+        for (var i = 1; i < ring.length; i++) {
+          perimeter += distanceMeters(
+            GeoPoint(ring[i - 1][1], ring[i - 1][0]),
+            GeoPoint(ring[i][1], ring[i][0]),
+          );
+        }
+        expect(perimeter, lessThan(10000));
+      },
+    );
+
+    test('tanpa lencongan: tiada exclude_polygons', () {
+      expect(
+        buildRouteRequest(
+          const RouteQuery(origin: klcc, destination: klia),
+        ).containsKey('exclude_polygons'),
+        isFalse,
+      );
+    });
+
+    test('rerouteFrom mengekalkan shortest tetapi membuang lencongan', () {
+      const q = RouteQuery(
+        origin: klcc,
+        destination: klia,
+        shortest: true,
+        exclusions: [RouteExclusion(GeoPoint(3, 101.7), 500)],
+      );
+      final r = q.rerouteFrom(klcc);
+      expect(r.shortest, isTrue);
+      expect(r.exclusions, isEmpty);
+    });
+  });
+
+  group('ringkasan: lebuh raya, feri, sekatan masa', () {
+    String body({
+      bool highway = false,
+      bool ferry = false,
+      bool timed = false,
+    }) => jsonEncode({
+      'trip': {
+        'summary': {
+          'length': 1.0,
+          'time': 60.0,
+          'has_toll': false,
+          'has_highway': highway,
+          'has_ferry': ferry,
+          'has_time_restrictions': timed,
+        },
+        'legs': [
+          {
+            'shape': '??',
+            'maneuvers': <Object>[],
+            'summary': {'has_toll': false},
+          },
+        ],
+      },
+    });
+
+    test('dihuraikan daripada summary', () {
+      final route = parseRouteResponse(
+        body(highway: true, ferry: true, timed: true),
+        source: RouteSource.online,
+      ).single;
+      expect(route.hasHighway, isTrue);
+      expect(route.hasFerry, isTrue);
+      expect(route.hasTimeRestrictions, isTrue);
+
+      final plain = parseRouteResponse(
+        body(),
+        source: RouteSource.online,
+      ).single;
+      expect(plain.hasHighway, isFalse);
+      expect(plain.hasFerry, isFalse);
+    });
+
+    test('respons sebenar KLCC-KLIA: lebuh raya benar', () {
+      final route = parseRouteResponse(
+        _fixture('valhalla_public_klcc_klia.json'),
+        source: RouteSource.online,
+      ).first;
+      expect(route.hasHighway, isTrue);
+      expect(route.hasFerry, isFalse);
+    });
   });
 }

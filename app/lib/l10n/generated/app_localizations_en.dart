@@ -351,6 +351,13 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get searchNearbyRefining => 'Searching farther…';
+
+  @override
+  String get searchNeedLocation =>
+      'Your location isn’t known yet. Turn on location to find places nearby.';
+
+  @override
   String searchNearbySaved(String when) {
     return 'Can’t reach the map data servers. Showing saved results from $when.';
   }
@@ -943,4 +950,287 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get navOverspeedHint =>
       'Chime and red sign when over the speed limit. Limits are not available on every road.';
+
+  @override
+  String get savedBySearch => 'Search for an address';
+
+  @override
+  String get savedBySearchHint => 'Type a place name or address';
+
+  @override
+  String get savedByCurrent => 'Use current location';
+
+  @override
+  String get savedByCurrentHint => 'Save where you are right now';
+
+  @override
+  String get savedCurrentLocation => 'Current location';
+
+  @override
+  String get savedLocating => 'Finding your location…';
+
+  @override
+  String get savedGoHint => 'Tap to start navigating · long-press to change';
+
+  @override
+  String get autoStartCancel => 'Cancel';
+
+  @override
+  String get navThemeTitle => 'Map appearance';
+
+  @override
+  String get settingsSavedPlaces => 'Home and Work';
+
+  @override
+  String get savedNotSet => 'Not set';
+
+  @override
+  String autoStartCountdown(String name, int seconds) {
+    return 'Starting navigation to $name in $seconds…';
+  }
+
+  @override
+  String get routeRecommended => 'Recommended';
+
+  @override
+  String get routeSimplest => 'Simplest';
+
+  @override
+  String get routeSearchingMore => 'Finding other routes…';
+
+  @override
+  String get routeHasHighway => 'Highway';
+
+  @override
+  String get routeHasFerry => 'Ferry';
+
+  @override
+  String routeTurns(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count turns',
+      one: '1 turn',
+      zero: 'No turns',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String routeMore(int count) {
+    return '$count more';
+  }
+
+  @override
+  String routeTollRm(String amount) {
+    return 'RM $amount';
+  }
+
+  @override
+  String routeTollRmPartial(String amount) {
+    return 'RM $amount+';
+  }
+
+  @override
+  String routeTollPlazaCount(int count) {
+    return '$count plazas';
+  }
+
+  @override
+  String routeTollEstimateExact(String amount) {
+    return 'Toll RM $amount';
+  }
+
+  @override
+  String routeTollEstimatePartial(String amount) {
+    return 'Toll RM $amount+ (partial)';
+  }
+
+  @override
+  String routeTollPlazasUnknown(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count toll plazas',
+      one: '1 toll plaza',
+    );
+    return '$_temp0, price unknown';
+  }
+
+  @override
+  String routeTollOn(String roads) {
+    return 'Toll: $roads';
+  }
+
+  @override
+  String routeTollDisclaimer(String cls) {
+    return 'Estimate only (class $cls); check the price at the plaza.';
+  }
+
+  @override
+  String get settingsClearAll => 'Delete all my data';
+
+  @override
+  String get settingsClearAllHint =>
+      'Search history, saved places, reports and cached location data on this device.';
+
+  @override
+  String get legalPrivacyTitle => 'Privacy Policy';
+
+  @override
+  String get legalTermsTitle => 'Terms of Use';
+
+  @override
+  String get legalLoadFailed => 'The document could not be loaded.';
+
+  @override
+  String get legalDraftNotice =>
+      'Draft: this document has not been reviewed by a lawyer and is not legal advice.';
+
+  @override
+  String get legalConsent =>
+      'By continuing you agree to the Terms of Use and the Privacy Policy.';
+
+  @override
+  String get legalAttribution =>
+      'Map data © OpenStreetMap contributors (ODbL). Styles and tiles: OpenFreeMap, OpenMapTiles. Routing: Valhalla. Search: Photon (komoot) and Nominatim. Fuel prices: data.gov.my.';
+
+  @override
+  String get aboutAttributionTitle => 'Data sources';
+
+  @override
+  String get settingsFuel => 'Fuel cost';
+
+  @override
+  String get fuelTypeRon95 => 'RON95';
+
+  @override
+  String get fuelTypeRon97 => 'RON97';
+
+  @override
+  String get fuelTypeDiesel => 'Diesel';
+
+  @override
+  String get fuelConsumptionCar => 'Car consumption (L/100 km)';
+
+  @override
+  String get fuelConsumptionMoto => 'Motorcycle consumption (L/100 km)';
+
+  @override
+  String get fuelManualPrice => 'My price per litre (RM)';
+
+  @override
+  String get fuelManualPriceHint =>
+      'Leave empty to use the data.gov.my price. Fill it in if you pay a different price (e.g. subsidised RON95).';
+
+  @override
+  String get fuelPriceUnavailable =>
+      'The latest price could not be fetched. Enter your own price to see a fuel cost estimate.';
+
+  @override
+  String get fuelEstimateNote =>
+      'Fuel cost estimate based on distance, consumption and the price above.';
+
+  @override
+  String get shareDestinationTooltip => 'Share destination';
+
+  @override
+  String get shareEtaAction => 'Share arrival time';
+
+  @override
+  String get shareFailed => 'Couldn\'t open the share sheet.';
+
+  @override
+  String get emergencyTooltip => 'Emergency';
+
+  @override
+  String get emergencyTitle => 'Emergency';
+
+  @override
+  String get emergencyBody =>
+      'In an emergency, call directly. This button is only a shortcut and does not guarantee a call, an accurate location or that help arrives.';
+
+  @override
+  String get emergencyCall999 => 'Call 999';
+
+  @override
+  String get emergencyCall999Hint => 'Police, fire, ambulance';
+
+  @override
+  String get emergencyCall112 => 'Call 112';
+
+  @override
+  String get emergencyCall112Hint =>
+      'International emergency number for mobile phones';
+
+  @override
+  String get emergencyConfirmCall => 'Call';
+
+  @override
+  String get emergencyConfirmBody =>
+      'The dialler will open. Press the call button to connect.';
+
+  @override
+  String get emergencyShareLocation => 'Share my exact location';
+
+  @override
+  String get emergencyNoLocation =>
+      'Your location isn\'t known yet. Try somewhere open or turn on location.';
+
+  @override
+  String routeFuelCost(String amount) {
+    return '≈ RM $amount fuel';
+  }
+
+  @override
+  String fuelPriceSource(String price, String date) {
+    return 'data.gov.my price: RM $price/L ($date)';
+  }
+
+  @override
+  String emergencyConfirmTitle(String number) {
+    return 'Call $number now?';
+  }
+
+  @override
+  String shareDestinationText(
+    String name,
+    String eta,
+    String duration,
+    String distance,
+    String link,
+  ) {
+    return 'I\'m heading to $name. Estimated arrival $eta ($duration, $distance).\n$link';
+  }
+
+  @override
+  String shareEtaText(String name, String eta, String distance, String link) {
+    return 'I\'m on my way to $name. Estimated arrival $eta, $distance to go.\n$link';
+  }
+
+  @override
+  String emergencyShareText(String coords, String link) {
+    return 'I need help. My location: $coords\n$link';
+  }
+
+  @override
+  String emergencyDialFailed(String number) {
+    return 'Couldn\'t open the dialler. Dial $number manually.';
+  }
+
+  @override
+  String get errorWidgetMessage => 'This part couldn\'t be displayed.';
+
+  @override
+  String get settingsCopyErrorReport => 'Copy error report';
+
+  @override
+  String get settingsCopyErrorReportHint =>
+      'The error log is kept on this phone only and is never sent. Copy and send it yourself if needed.';
+
+  @override
+  String get settingsErrorReportCopied => 'Error report copied';
+
+  @override
+  String get settingsErrorReportEmpty => 'No errors recorded';
 }

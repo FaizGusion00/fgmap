@@ -85,15 +85,32 @@ class SunLocationController extends Notifier<GeoPoint> {
     final lat = prefs.getDouble(_sunLatKey);
     final lng = prefs.getDouble(_sunLngKey);
     if (lat == null || lng == null) return _kualaLumpur;
-    return GeoPoint(lat, lng);
+    final stored = GeoPoint(lat, lng);
+    final coarse = coarsen(stored);
+    // Nilai tepat yang disimpan oleh versi lama dikaburkan semula dan ditulis ganti.
+    if (coarse != stored) _persist(prefs, coarse);
+    return coarse;
+  }
+
+  /// Privasi: lokasi untuk mengira matahari dibundarkan ke 0.1 darjah (~11 km). Ralat waktu
+  /// matahari terbit/terbenam beberapa minit sahaja, tetapi kedudukan tepat pengguna tidak disimpan
+  /// (dan tidak tersandar ke pelayan sandaran peranti).
+  @visibleForTesting
+  static GeoPoint coarsen(GeoPoint p) => GeoPoint(
+    (p.lat * 10).roundToDouble() / 10,
+    (p.lng * 10).roundToDouble() / 10,
+  );
+
+  static void _persist(SharedPreferences prefs, GeoPoint p) {
+    unawaited(prefs.setDouble(_sunLatKey, p.lat));
+    unawaited(prefs.setDouble(_sunLngKey, p.lng));
   }
 
   void update(GeoPoint point) {
     if (distanceMeters(state, point) < _updateAfterMeters) return;
-    state = point;
-    final prefs = ref.read(sharedPreferencesProvider);
-    unawaited(prefs.setDouble(_sunLatKey, point.lat));
-    unawaited(prefs.setDouble(_sunLngKey, point.lng));
+    final coarse = coarsen(point);
+    state = coarse;
+    _persist(ref.read(sharedPreferencesProvider), coarse);
   }
 }
 
@@ -138,3 +155,9 @@ final effectiveThemeModeProvider = Provider<ThemeMode>((ref) {
       ref.watch(sunDarkProvider) ? ThemeMode.dark : ThemeMode.light,
   };
 });
+
+/// Benar jika [mode] menghasilkan paparan gelap di bawah kecerahan sistem [platform]. Digunakan oleh
+/// app (tema) dan peta supaya keputusan cerah/gelap hanya ada satu sumber.
+bool isDarkTheme(ThemeMode mode, Brightness platform) =>
+    mode == ThemeMode.dark ||
+    (mode == ThemeMode.system && platform == Brightness.dark);

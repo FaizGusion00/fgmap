@@ -1,7 +1,9 @@
 import 'package:fgmap/core/theme/app_theme.dart';
 import 'package:fgmap/core/utils/geo.dart';
 import 'package:fgmap/features/navigation/domain/camera_planner.dart';
+import 'package:fgmap/features/fuel/data/fuel_price_service.dart';
 import 'package:fgmap/features/map/presentation/map_view.dart';
+import 'package:fgmap/features/route_preview/presentation/route_preview_controller.dart';
 import 'package:fgmap/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -35,7 +37,13 @@ Future<void> pumpApp(
 }) async {
   await tester.pumpWidget(
     ProviderScope(
-      overrides: overrides,
+      // Ujian tidak boleh menyentuh rangkaian sebenar: harga minyak (data.gov.my) dan carian plaza
+      // tol (Overpass) dimatikan secara lalai. Ujian khusus menguji perkhidmatan ini terus.
+      overrides: [
+        fuelPricesProvider.overrideWith((ref) async => null),
+        tollLookupEnabledProvider.overrideWithValue(false),
+        ...overrides,
+      ],
       child: MaterialApp(
         theme: theme ?? AppTheme.light(),
         locale: locale,
