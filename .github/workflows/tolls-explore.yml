@@ -1,0 +1,59 @@
+name: tolls-explore
+
+# Sementara: meneroka titik akhir kalkulator LLM dan Overpass dari runner GitHub (container
+# pembangunan tidak boleh mencapainya). Dibuang selepas data difahami.
+on:
+  push:
+    branches: [claude/practical-bardeen-kmtow6]
+    paths: [".github/workflows/tolls-explore.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  explore:
+    runs-on: ubuntu-latest
+    steps:
+      - name: LLM getHighway
+        run: |
+          B=https://www.llm.gov.my/Calculator
+          curl -sS -m 30 -A "fgmap-tolls/0.1" "$B/getHighway" -o hw.json -w "getHighway %{http_code} %{size_download}\n" || true
+          head -c 3000 hw.json || true; echo
+      - name: LLM flat highways
+        run: |
+          B=https://www.llm.gov.my/Calculator
+          for id in 2 4 11 7 17 5 23 25 15; do
+            echo "=== highway $id"
+            curl -sS -m 30 -A "fgmap-tolls/0.1" "$B/getPlazaEnter/$id" -w "\nenter %{http_code}\n" | head -c 1500 || true
+            P=$(curl -sS -m 30 -A "fgmap-tolls/0.1" "$B/getPlazaEnter/$id" | python3 -c "import sys,json
+t=sys.stdin.read().lstrip('﻿')
+d=[x for x in json.loads(t) if x.get('id')!='']
+print(d[0]['id'] if d else '')" 2>/dev/null || true)
+            echo "first plaza: $P"
+            if [ -n "$P" ]; then
+              curl -sS -m 30 -A "fgmap-tolls/0.1" "$B/getPlazaExit/$id/$P" -w "\nexit %{http_code}\n" | head -c 1500 || true
+              curl -sS -m 30 -A "fgmap-tolls/0.1" "$B/getTollRate/$id/$P/$P" -w "\nrate %{http_code}\n" | head -c 1500 || true
+            fi
+          done
+      - name: LLM site pages
+        run: |
+          curl -sS -m 30 -A "Mozilla/5.0" -L https://www.llm.gov.my/ -o home.html -w "home %{http_code} %{size_download}\n" || true
+          grep -oiE 'href="[^"]*(tol|toll|kadar|calculator)[^"]*"' home.html | sort -u | head -40 || true
+          curl -sS -m 30 -A "Mozilla/5.0" -L https://www.llm.gov.my/Calculator -o calc.html -w "calc %{http_code} %{size_download}\n" || true
+          grep -oiE '(getTollRate|getPlaza[A-Za-z]*|getHighway|[a-zA-Z/]*Calculator/[a-zA-Z]+)' calc.html | sort -u | head -40 || true
+      - name: Overpass toll booths in Malaysia
+        run: |
+          Q='[out:json][timeout:60];area["ISO3166-1"="MY"]->.a;(node["barrier"="toll_booth"](area.a);node["highway"="toll_gantry"](area.a););out body;'
+          for U in https://overpass-api.de/api/interpreter https://overpass.private.coffee/api/interpreter; do
+            curl -sS -m 90 -A "fgmap-tolls/0.1" --data-urlencode "data=$Q" "$U" -o op.json -w "$U %{http_code} %{size_download}\n" && break || true
+          done
+          python3 - <<'PY'
+          import json
+          d=json.load(open('op.json'))
+          els=d.get('elements',[])
+          print('nodes',len(els),'named',sum(1 for e in els if e.get('tags',{}).get('name')))
+          for e in els[:60]:
+              t=e.get('tags',{})
+              print(e['id'],round(e['lat'],5),round(e['lon'],5),t.get('name'),t.get('operator'),t.get('charge'),t.get('ref'))
+          PY
