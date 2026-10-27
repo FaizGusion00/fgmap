@@ -116,8 +116,14 @@ class RouteTracker {
       if (heading != null && segLen > 0.5) {
         final segBearing = bearingDegrees(pts[i], pts[i + 1]);
         final delta = angleDelta(segBearing, heading).abs();
-        // Berlawanan arah (lorong bertentangan): penalti besar. Selari: penalti kecil.
-        score += delta > 90 ? 30 + (delta - 90) * 0.5 : delta * 0.15;
+        // Penalti arah, sengaja KECIL untuk beza sudut sederhana: heading GPS (kursus Doppler) lewat
+        // ~1 s di selekoh, dan penalti besar menahan padanan pada kaki lama melepasi bucu (kereta
+        // tersangkut lalu melompat). Berlawanan arah (lorong bertentangan, >120 deg): penalti besar.
+        score += delta <= 60
+            ? delta * 0.03
+            : delta <= 120
+            ? 1.8 + (delta - 60) * 0.1
+            : 7.8 + (delta - 120) * 0.6;
       }
       if (last != null) {
         if (along < last - 20) score += (last - along) * 0.5;

@@ -223,7 +223,9 @@ void main() {
         }
         maxOffRoute = math.max(maxOffRoute, best);
       }
-      expect(maxOffRoute, lessThan(1.5), reason: 'kenderaan terkeluar laluan');
+      // Kereta mengikut lengkung selekoh paparan (jejari 12 m), bukan bucu tajam polyline: sisihan
+      // maksimum daripada polyline ialah R(1/cos(theta/2) - 1) ~ 5 m untuk belokan 90 deg.
+      expect(maxOffRoute, lessThan(5.5), reason: 'kenderaan terkeluar laluan');
     },
   );
 }

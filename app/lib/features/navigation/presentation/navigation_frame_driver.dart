@@ -94,7 +94,16 @@ class NavigationFrameDriver {
   /// kord ke hadapan di sepanjang laluan, dan di selekoh/ramp tajam ia boleh berubah belasan darjah
   /// dalam satu bingkai; kamera sudah melicinkannya, tetapi kereta mesti juga.
   double? _yaw;
-  static const _yawSmoothing = 0.12;
+  static const _yawSmoothing = 0.08;
+
+  // Kompensasi latensi kamera native: peta menunjukkan kamera yang dihantar [cameraLatency] lalu, jadi
+  // (a) kamera dihantar pada pose yang diunjur sejauh itu ke hadapan (kedudukan dan arah), dan (b) yaw
+  // kereta dikira berbanding arah kamera yang SEBENARNYA sedang dipaparkan. Tanpa ini jalan lewat di bawah
+  // kereta (dilukis serta-merta oleh Flutter) dan kereta kelihatan hanyut di selekoh.
+  double? _prevBearing;
+  double _yawRate = 0;
+  final List<(double, double)> _sentBearings = [];
+  static const _maxYawRate = 120.0;
 
   // Penentukuran daripada kedudukan skrin kenderaan yang SEBENAR. Kamera dikira daripada model unjuran
   // MapLibre supaya kenderaan berada ~69% dari atas skrin, tetapi pada peranti sebenar (cth. iOS) kenderaan
@@ -144,6 +153,9 @@ class NavigationFrameDriver {
   void recenter() {
     _rig = null; // dibina semula daripada pose peta semasa => terbang masuk
     _yaw = null;
+    _prevBearing = null;
+    _yawRate = 0;
+    _sentBearings.clear();
     _hasResidual = false;
     _resX = _resY = 0;
     _lastInteraction = null;
@@ -206,12 +218,30 @@ class NavigationFrameDriver {
         ? (next.startM - pose.alongM).clamp(0.0, double.infinity)
         : null;
 
+    // Unjuran ke hadapan sepanjang latensi kamera native (lihat medan _yawRate).
+    final latency = camera.cameraLatency.inMicroseconds / 1e6;
+    final previousBearing = _prevBearing;
+    if (previousBearing != null && dt > 0) {
+      final rate = (angleDelta(previousBearing, pose.bearing) / dt).clamp(
+        -_maxYawRate,
+        _maxYawRate,
+      );
+      _yawRate += (rate - _yawRate) * (1 - math.exp(-dt / 0.15));
+    }
+    _prevBearing = pose.bearing;
+    final leadPoint = latency > 0 && pose.speedMps > 0
+        ? destinationPoint(pose.point, pose.bearing, pose.speedMps * latency)
+        : pose.point;
+    final leadBearing = latency > 0
+        ? (pose.bearing + _yawRate * latency + 360) % 360
+        : pose.bearing;
+
     // rig.step mesti dipanggil setiap bingkai (ia memajukan keadaan dalamannya); hanya penghantaran
     // ke peta yang digugurkan apabila hasilnya sama.
     final target = rig.step(
       dt: dt,
-      vehicle: pose.point,
-      vehicleBearing: pose.bearing,
+      vehicle: leadPoint,
+      vehicleBearing: leadBearing,
       speedMps: pose.speedMps,
       distanceToNextM: distanceToNext,
       nextKind: pose.onRoute ? next?.kind : null,
@@ -234,7 +264,23 @@ class NavigationFrameDriver {
     // titik skrin yang sama.
     final progressIn = rig.entryProgress;
     final opacity = ((progressIn - 0.8) / 0.2).clamp(0.0, 1.0);
-    final yawGoal = angleDelta(target.bearing, pose.bearing).clamp(-80.0, 80.0);
+    // Arah kamera yang sedang dipaparkan = yang dihantar [latency] saat lalu.
+    final nowS = elapsed.inMicroseconds / 1e6;
+    _sentBearings.add((nowS, target.bearing));
+    while (_sentBearings.length > 1 && _sentBearings.first.$1 < nowS - 1) {
+      _sentBearings.removeAt(0);
+    }
+    var displayedBearing = target.bearing;
+    if (latency > 0) {
+      displayedBearing = _sentBearings.first.$2;
+      for (final (t, b) in _sentBearings) {
+        if (t <= nowS - latency) displayedBearing = b;
+      }
+    }
+    final yawGoal = angleDelta(
+      displayedBearing,
+      pose.bearing,
+    ).clamp(-80.0, 80.0);
     final yaw = _yaw == null
         ? yawGoal
         : _yaw! + (yawGoal - _yaw!) * (1 - math.exp(-dt / _yawSmoothing));

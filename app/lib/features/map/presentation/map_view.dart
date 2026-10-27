@@ -40,6 +40,10 @@ abstract interface class MapCameraController {
   /// Menetapkan kedudukan dan arah marker kenderaan (null = sembunyikan).
   void showVehicle(VehicleMarker? marker);
 
+  /// Anggaran selang antara [moveTo] dan kamera itu kelihatan pada peta native. Pemacu bingkai
+  /// mengunjur pose kamera sejauh ini ke hadapan supaya peta tidak ketinggalan di bawah kereta.
+  Duration get cameraLatency;
+
   /// Di mana [point] SEBENARNYA berada pada skrin peta (piksel logikal dari kiri atas peta), atau null
   /// jika tidak diketahui / di luar paparan. Kereta 3D diselaraskan dengannya: kedudukan yang dikira
   /// daripada model kamera boleh tersasar pada peranti tertentu (cth. iOS), dan kereta yang tidak

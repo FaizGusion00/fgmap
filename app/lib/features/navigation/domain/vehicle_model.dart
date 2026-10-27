@@ -45,7 +45,23 @@ class VehicleModel {
   /// Beza lebih daripada ini dianggap lompatan sebenar (bukan hingar), lalu terus melompat.
   static const _snapDistanceM = 40.0;
 
+  /// Gandaan fix terhadap ramalan (penapis alfa): 1 = percaya fix sepenuhnya (hingar GPS 3-5 m
+  /// terus ke skrin), kecil = lebih licin tetapi lambat mengikut perubahan sebenar. Kelajuan Doppler
+  /// jauh lebih tepat daripada kedudukan, jadi ramalan dipercayai separuh.
+  static const _positionGain = 0.5;
+
+  /// Inovasi (fix - ramalan) di bawah ini dianggap hingar dan ditapis; lebih besar diterima penuh.
+  static const _noiseGateM = 25.0;
+
+  /// Pecutan (m/s^2) dianggar daripada perubahan kelajuan Doppler antara fix; had fizikal kereta biasa.
+  static const _maxDecel = -4.0;
+  static const _maxAccel = 2.5;
+
+  /// Ufuk pecutan: selepas ini kelajuan dianggap malar (pecutan tidak boleh diunjur tanpa had).
+  static const _accelHorizonS = 2.0;
+
   bool _onRoute = true;
+  double _accel = 0;
   double _anchorAlong = 0;
   DateTime? _anchorTime;
   double _speed = 0;
@@ -67,11 +83,37 @@ class VehicleModel {
     required double speedMps,
     required DateTime time,
   }) {
+    var along = alongM;
+    final previous = _anchorTime;
+    if (_onRoute && previous != null && _display != null) {
+      final dt = time.difference(previous).inMicroseconds / 1e6;
+      if (dt > 0 && dt <= 5) {
+        final predicted = _anchorAlong + _speed * dt;
+        final innovation = alongM - predicted;
+        if (innovation.abs() < _noiseGateM) {
+          along = predicted + _positionGain * innovation;
+        }
+      }
+    }
     _onRoute = true;
-    _anchorAlong = alongM;
+    _anchorAlong = along;
     _anchorTime = time;
     final s = speedMps < 0.5 ? 0.0 : speedMps;
+    final previousSpeed = _speed;
     _speed = _display == null ? s : _speed * 0.4 + s * 0.6;
+    if (previous != null && _display != null) {
+      final dt = time.difference(previous).inMicroseconds / 1e6;
+      if (dt >= 0.3 && dt <= 3) {
+        // Pecutan daripada kelajuan mentah (bukan yang telah dilicinkan) berbanding yang dianggarkan
+        // sebelum ini; ditapis supaya hingar kelajuan tidak menjadi brek palsu.
+        final raw = ((s - previousSpeed) / dt).clamp(_maxDecel, _maxAccel);
+        _accel = _accel * 0.5 + raw * 0.5;
+      } else {
+        _accel = 0;
+      }
+    } else {
+      _accel = 0;
+    }
   }
 
   /// Fix di luar laluan (menyimpang / menunggu re-route).
@@ -104,10 +146,28 @@ class VehicleModel {
     return _onRoute ? _routePose(now, sinceFix) : _freePose(now, sinceFix);
   }
 
+  /// Kelajuan [t] saat selepas fix terakhir, dengan pecutan (membrek ke selekoh) sehingga ufuk.
+  double _speedAfter(double t) {
+    final te = math.min(t, _accelHorizonS);
+    return math.max(0.0, _speed + _accel * te);
+  }
+
+  /// Jarak dilalui [t] saat selepas fix terakhir (pecutan sehingga ufuk, kemudian kelajuan malar).
+  double _distanceAfter(double t) {
+    if (_accel == 0) return _speed * t;
+    var te = math.min(t, _accelHorizonS);
+    // Berhenti sepenuhnya jika membrek melebihi kelajuan.
+    if (_accel < 0) te = math.min(te, _speed / -_accel);
+    final within = _speed * te + 0.5 * _accel * te * te;
+    final vEnd = math.max(0.0, _speed + _accel * te);
+    final rest = math.max(0.0, t - te);
+    return within + (te < math.min(t, _accelHorizonS) ? 0 : vEnd * rest);
+  }
+
   VehiclePose _routePose(DateTime now, Duration sinceFix) {
     final target = math.min(
       route.totalM,
-      _anchorAlong + _speed * sinceFix.inMicroseconds / 1e6,
+      _anchorAlong + _distanceAfter(sinceFix.inMicroseconds / 1e6),
     );
     final previous = _display;
     var display = previous ?? target;
@@ -120,7 +180,10 @@ class VehicleModel {
       // Suapan ke hadapan: kenderaan terus bergerak pada kelajuannya; hanya SELISIH daripada
       // sasaran (ralat GPS) dibetulkan beransur-ansur. Tanpa ini, pelicinan eksponen meninggalkan
       // kenderaan ketinggalan tetap sebanyak kelajuan x pemalar masa.
-      final predicted = math.min(route.totalM, display + _speed * dt);
+      final predicted = math.min(
+        route.totalM,
+        display + _speedAfter(sinceFix.inMicroseconds / 1e6) * dt,
+      );
       final error = target - predicted;
       if (error.abs() > _snapDistanceM) {
         display = target;
@@ -133,10 +196,12 @@ class VehicleModel {
     _display = display;
     _lastFrame = now;
 
-    final lookAhead = (_speed * 1.2).clamp(12.0, 45.0);
+    // Paparan: selekoh dilengkungkan dan arah ialah tangen lengkung (bukan kord panjang yang mula
+    // berputar berpuluh meter sebelum bucu dan kelihatan lewat/tersasar di selekoh).
+    final lookAhead = (_speed * 0.6).clamp(5.0, 12.0);
     return VehiclePose(
-      point: route.pointAt(display),
-      bearing: route.bearingAt(display, lookAheadM: lookAhead),
+      point: route.displayPointAt(display),
+      bearing: route.displayBearingAt(display, lookAheadM: lookAhead),
       speedMps: _speed,
       onRoute: true,
       alongM: display,

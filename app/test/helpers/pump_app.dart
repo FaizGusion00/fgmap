@@ -102,6 +102,10 @@ class FakeCamera implements MapCameraController {
     bearing: 0,
   );
 
+  /// Pengganti latensi peta native (ujian).
+  @override
+  Duration cameraLatency = Duration.zero;
+
   @override
   void moveTo(CameraPose p) {
     moveToCalls.add(p);
