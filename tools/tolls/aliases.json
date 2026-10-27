@@ -1,1 +1,14 @@
-{}
+{
+  "1:PEDAS LINGGI": {
+    "osmName": "Plaza Tol Pedas"
+  },
+  "33:ASSAM JAWA": {
+    "osmName": "WCE Assam Jawa Toll Plaza"
+  },
+  "33:KG LEKIR": {
+    "osmName": "Plaza Tol Lekir"
+  },
+  "33:BERUAS": {
+    "osmName": "Beruas Toll Beruas"
+  }
+}

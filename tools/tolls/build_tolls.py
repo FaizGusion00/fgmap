@@ -31,7 +31,7 @@ SOURCE = (
 
 # Singkatan umum dalam nama plaza OSM dan LLM.
 ABBREVIATIONS = {
-    "sg": "sungai", "tg": "tanjung", "kg": "kampung", "bt": "bukit", "pj": "petaling jaya",
+    "sg": "sungai", "kampong": "kampung", "tg": "tanjung", "kg": "kampung", "bt": "bukit", "pj": "petaling jaya",
     "ayer": "air", "bdr": "bandar", "tmn": "taman", "jln": "jalan", "kl": "kuala lumpur",
 }
 DIRECTIONS = {
@@ -190,10 +190,10 @@ def build_system(sysdata, osm_nodes, aliases, report):
                 if want_dir and d and d != want_dir:
                     continue
                 cands.append(e)
-            if want_dir:
-                # Utamakan nod yang arahnya sepadan; jika OSM tiada arah, terima semua.
-                exact = [e for e in cands if tokens(e["tags"]["name"])[1] == want_dir]
-                cands = exact or cands
+            # Utamakan nod yang arahnya sepadan; jika nama LLM tiada arah, utamakan nod OSM tanpa arah
+            # (cth. "RAWANG" bukan "Rawang Selatan", yang ialah "RAWANG (S)"). Jika tiada, terima semua.
+            exact = [e for e in cands if tokens(e["tags"]["name"])[1] == want_dir]
+            cands = exact or cands
             if cands:
                 clusters = cluster(cands)
                 if len(clusters) > 1:
