@@ -34,7 +34,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       # Imbas pubspec.lock (Dart) dan fail kunci Gradle terhadap pangkalan data kerentanan OSV.
-      - uses: google/osv-scanner-action/osv-scanner-action@v2.0.2
+      - uses: google/osv-scanner-action/osv-scanner-action@v2.7.0
         with:
           scan-args: |-
             --lockfile=app/pubspec.lock
