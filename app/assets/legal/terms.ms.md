@@ -34,7 +34,7 @@ Anda tidak boleh: menggunakan app untuk tujuan menyalahi undang-undang; menyeran
 
 ## 8. Hak cipta dan lesen sumber terbuka
 
-Hak cipta app dimiliki oleh {{entity}}. Data peta © penyumbang OpenStreetMap, dilesenkan di bawah ODbL. Gaya dan jubin peta daripada OpenFreeMap dan OpenMapTiles. Enjin laluan Valhalla (lesen MIT) dan pakej sumber terbuka lain digunakan mengikut lesen masing-masing; senarai penuh ada dalam Tetapan > Bantuan > Lesen.
+Hak cipta app dimiliki oleh {{entity}}. Data peta © penyumbang OpenStreetMap, dilesenkan di bawah ODbL. Kadar tol diambil daripada kalkulator rasmi Lembaga Lebuhraya Malaysia dan halaman tambang rasmi pengendali lebuh raya dan mungkin berbeza daripada kadar semasa. Gaya dan jubin peta daripada OpenFreeMap dan OpenMapTiles. Enjin laluan Valhalla (lesen MIT) dan pakej sumber terbuka lain digunakan mengikut lesen masing-masing; senarai penuh ada dalam Tetapan > Bantuan > Lesen.
 
 ## 9. Penafian jaminan
 
