@@ -1,0 +1,670 @@
+<!doctype html>
+<html lang="ms">
+<head>
+<meta charset="utf-8">
+<title>FGMaps promo scenes</title>
+<style>
+@font-face { font-family: PJS; src: url(/app/assets/fonts/PlusJakartaSans.ttf); font-weight: 200 800; }
+:root { --teal: #19D3B8; --blue: #4F8BFF; --navy: #10244A; --ink: #0B1220; }
+html, body { margin: 0; background: var(--ink); overflow: hidden; }
+#stage { position: relative; overflow: hidden; font-family: PJS, system-ui, sans-serif; color: #fff; background: var(--ink); }
+#stage > * { position: absolute; }
+#bg { left: 0; top: 0; width: 100%; height: 100%; filter: blur(6px) saturate(1.15); }
+#shade { left: 0; top: 0; width: 100%; height: 100%; }
+#glowA, #glowB { border-radius: 50%; filter: blur(90px); }
+#cap { left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; }
+#cap .blk { position: absolute; }
+.kick { display: inline-block; font-weight: 800; letter-spacing: .14em; color: var(--teal); background: rgba(25,211,184,.12); border: 1.5px solid rgba(25,211,184,.38); border-radius: 999px; }
+.hl { font-weight: 800; letter-spacing: -.02em; }
+.hl .ln { display: block; white-space: nowrap; }
+.hl .ln.acc { color: var(--teal); }
+.hl .w, .sub .w { display: inline-block; will-change: transform, opacity; }
+.sub { color: #B8C5E0; font-weight: 500; }
+.chips { display: flex; flex-wrap: wrap; }
+.chip { font-weight: 700; color: #EAF1FF; background: rgba(255,255,255,.1); border: 1.5px solid rgba(255,255,255,.22); border-radius: 999px; backdrop-filter: blur(6px); display: inline-flex; align-items: center; will-change: transform, opacity; }
+.chip i { display: inline-block; border-radius: 50%; background: var(--teal); margin-right: .55em; }
+.note { color: #8FA0C4; font-weight: 600; }
+#phoneWrap { perspective: 2600px; }
+#phone { position: absolute; transform-style: preserve-3d; will-change: transform; }
+#bezel { position: absolute; background: linear-gradient(145deg, #2A3550, #0A0F1C 55%, #1B2540); box-shadow: 0 60px 120px rgba(0,0,0,.55), 0 0 0 2px rgba(255,255,255,.1) inset, 0 0 0 1px #000; }
+#screen { position: absolute; overflow: hidden; background: #000; }
+#scr { position: absolute; left: 0; top: 0; }
+#island { position: absolute; background: #05070D; border-radius: 999px; }
+#sheen { position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: linear-gradient(115deg, rgba(255,255,255,.14) 0%, rgba(255,255,255,0) 32%); pointer-events: none; }
+#foot { left: 0; width: 100%; text-align: center; color: rgba(200,214,240,.62); font-weight: 600; letter-spacing: .02em; }
+#outro { left: 0; top: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+#outro .logo { border-radius: 22%; box-shadow: 0 30px 90px rgba(25,211,184,.35), 0 0 0 2px rgba(255,255,255,.12); }
+#outro .name { font-weight: 800; letter-spacing: -.03em; }
+#outro .tag { color: #CFE0FF; font-weight: 600; }
+#outro .soon { font-weight: 800; color: #04302B; background: linear-gradient(90deg, #19D3B8, #6FE9D6); border-radius: 999px; letter-spacing: .02em; box-shadow: 0 18px 60px rgba(25,211,184,.45); }
+#outro .small { color: #8FA0C4; font-weight: 600; }
+#flash { left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="bg"></canvas>
+  <div id="shade"></div>
+  <div id="glowA"></div><div id="glowB"></div>
+  <div id="phoneWrap"><div id="phone"><div id="bezel"></div><div id="screen"><canvas id="scr"></canvas><div id="sheen"></div></div><div id="island"></div></div></div>
+  <div id="cap"></div>
+  <div id="outro"></div>
+  <div id="foot"></div>
+  <div id="flash"></div>
+</div>
+<script>
+'use strict';
+// ───────────────────────── parameter & tata letak ─────────────────────────
+const Q = new URLSearchParams(location.search);
+const ASPECT = Q.get('a') || '16x9';
+const LANG = Q.get('l') || 'ms';
+const PORT = ASPECT === '9x16';
+const W = PORT ? 1080 : 1920, H = PORT ? 1920 : 1080;
+const DUR = PORT ? 30 : 60;
+const ASSET = '/promo_out/assets/';
+const TL = PORT
+  ? [['s1', 0, 4], ['s2', 4, 8], ['s3', 8, 14], ['s4', 14, 18], ['s5', 18, 22], ['s8', 22, 26], ['s9', 26, 30]]
+  : [['s1', 0, 4], ['s2', 4, 12], ['s3', 12, 22], ['s4', 22, 30], ['s5', 30, 36], ['s6', 36, 44], ['s7', 44, 48], ['s8', 48, 54], ['s9', 54, 60]];
+const stage = document.getElementById('stage');
+stage.style.width = W + 'px'; stage.style.height = H + 'px';
+
+// Skrin telefon: nisbah 390:844 supaya skrin app sebenar muat tepat.
+const SW = PORT ? 499 : 434, SH = PORT ? 1080 : 940;
+const BZ = PORT ? 14 : 12;                    // tebal bezel
+const PH_X = PORT ? (W - SW) / 2 : 1390 - SW / 2;
+const PH_Y = PORT ? 596 : 56;
+const U = SW / 390;                           // piksel setiap unit logik app
+
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, t) => a + (b - a) * t;
+const sstep = (a, b, x) => { const t = clamp((x - a) / (b - a)); return t * t * (3 - 2 * t); };
+const eio = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+const eout = t => 1 - Math.pow(1 - clamp(t), 3);
+const eback = t => { t = clamp(t); const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); };
+const hash = (i, j, s) => { let h = Math.imul(i | 0, 374761393) ^ Math.imul(j | 0, 668265263) ^ Math.imul(s | 0, 2246822519); h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
+
+// ───────────────────────── data & aset ─────────────────────────
+const imgs = {};
+const wanted = new Set();
+function want(p) { wanted.add(p); return p; }
+function img(p) { return imgs[p]; }
+let COPY, ROUTES, HEAD, TRACK;
+let LAT0, LNG0, MX, MY;
+const ll = (lat, lng) => [(lng - LNG0) * MX, (lat - LAT0) * MY];
+
+async function loadAll() {
+  const j = async p => (await fetch(p)).json();
+  COPY = (await j('/tools/promo/copy.json'))[LANG];
+  ROUTES = await j('/promo_out/data/routes.json');
+  HEAD = await j('/promo_out/data/head.json');
+  TRACK = await j('/promo_out/data/nav_track.json');
+  LAT0 = HEAD.origin[0]; LNG0 = HEAD.origin[1];
+  MX = 111320 * Math.cos(LAT0 * Math.PI / 180); MY = 110574;
+  const L = LANG;
+  const names = [];
+  for (const th of ['light', 'dark']) {
+    for (const k of TRACK.map(r => r.k)) for (const part of ['top', 'bub', 'bot']) names.push(`nav/${part}_${L}_${th}_${k}.png`);
+    for (let i = 0; i < ROUTES.length; i++) names.push(`real_sheet_${i}_${L}_${th}.png`);
+    for (const st of ['idle', 'p35', 'p72', 'done']) names.push(`offline_${st}_${L}_${th}.png`);
+    names.push(`trip_planner_${L}_${th}.png`, `onboarding_privacy_${L}_${th}.png`, `onboarding_welcome_${L}_${th}.png`);
+    for (const k of ['light', 'dark']) for (let y = 0; y <= 90; y += 5) { names.push(`car/car_${k}_p${y}.png`); if (y) names.push(`car/car_${k}_m${y}.png`); }
+  }
+  names.push('../../app/assets/branding/fgmap-app-icon.png');
+  await Promise.all([...new Set(names)].map(n => new Promise(res => {
+    const im = new Image();
+    im.onload = () => im.decode().then(res, res);
+    im.onerror = () => res();                 // fail senyap: fail yang tiada (cth. car m0) ditapis semasa lukis
+    im.src = ASSET + n;
+    imgs[n] = im;
+  })));
+  await document.fonts.load('800 40px PJS'); await document.fonts.load('500 20px PJS'); await document.fonts.load('700 20px PJS');
+}
+
+// ───────────────────────── geometri laluan ─────────────────────────
+function chaikin(pts, n) { for (let r = 0; r < n; r++) { const o = [pts[0]]; for (let i = 0; i < pts.length - 1; i++) { const a = pts[i], b = pts[i + 1]; o.push([.75 * a[0] + .25 * b[0], .75 * a[1] + .25 * b[1]], [.25 * a[0] + .75 * b[0], .25 * a[1] + .75 * b[1]]); } o.push(pts[pts.length - 1]); pts = o; } return pts; }
+function withCum(pts) { const c = [0]; for (let i = 1; i < pts.length; i++) c.push(c[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1])); return { pts, cum: c, len: c[c.length - 1] }; }
+function atAlong(r, s) { s = clamp(s, 0, r.len); let lo = 0, hi = r.cum.length - 1; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (r.cum[m] <= s) lo = m; else hi = m; } const t = (s - r.cum[lo]) / Math.max(1e-6, r.cum[hi] - r.cum[lo]); const a = r.pts[lo], b = r.pts[hi]; return { x: lerp(a[0], b[0], t), y: lerp(a[1], b[1], t), brg: Math.atan2(b[0] - a[0], b[1] - a[1]) }; }
+let NAV, OV;                                    // laluan nav resolusi penuh & laluan gambaran keseluruhan
+function buildGeo() {
+  NAV = withCum(chaikin(HEAD.points.map(p => ll(p[0], p[1])), 2));
+  // bearing kamera: purata arah di hadapan, ditapis supaya kamera ketinggalan sedikit (seperti app sebenar).
+  const step = 4, n = Math.floor(NAV.len / step);
+  NAV.camBrg = []; NAV.carBrg = [];
+  let cb = atAlong(NAV, 0).brg;
+  for (let i = 0; i <= n; i++) {
+    const s = i * step; const a = atAlong(NAV, s), b = atAlong(NAV, s + 45);
+    let tgt = Math.atan2(b.x - a.x, b.y - a.y);
+    let d = tgt - cb; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI;
+    cb += d * 0.14;
+    NAV.camBrg.push(cb); NAV.carBrg.push(a.brg);
+  }
+  OV = ROUTES.map(r => withCum(r.points.map(p => ll(p[0], p[1]))));
+}
+function navState(s) {
+  const i = clamp(s / 4, 0, NAV.camBrg.length - 1), i0 = Math.floor(i), i1 = Math.min(NAV.camBrg.length - 1, i0 + 1), f = i - i0;
+  const p = atAlong(NAV, s);
+  let cb = lerp(NAV.camBrg[i0], NAV.camBrg[i1], f);
+  const a = atAlong(NAV, s + 30), b = atAlong(NAV, s + 8);
+  const carB = Math.atan2(b.x - p.x, b.y - p.y);
+  let yaw = carB - cb; while (yaw > Math.PI) yaw -= 2 * Math.PI; while (yaw < -Math.PI) yaw += 2 * Math.PI;
+  return { x: p.x, y: p.y, cam: cb, yawDeg: yaw * 180 / Math.PI };
+}
+function hudIndex(s) { let best = 0, bd = 1e9; for (let i = 0; i < TRACK.length; i++) { const d = Math.abs(TRACK[i].alongM - s); if (d < bd) { bd = d; best = i; } } return TRACK[best].k; }
+
+// ───────────────────────── kamera perspektif & peta ilustrasi ─────────────────────────
+const D_CAM = 1500;
+function mkCam(fx, fy, brg, phiDeg, ppm, cx, cy) {
+  const phi = phiDeg * Math.PI / 180;
+  return { fx, fy, sT: Math.sin(brg), cT: Math.cos(brg), sp: Math.sin(phi), cp: Math.cos(phi), b: D_CAM * Math.cos(phi), hc: D_CAM * Math.sin(phi), F: ppm * D_CAM, cx, cy, ppm, phi, brg };
+}
+function pr(cam, x, y) {                        // dunia -> skrin; z<=0 bermakna di belakang kamera
+  const dx = x - cam.fx, dy = y - cam.fy;
+  const fwd = dx * cam.sT + dy * cam.cT, rgt = dx * cam.cT - dy * cam.sT;
+  const f = fwd + cam.b;
+  const yc = f * cam.sp - cam.hc * cam.cp, z = f * cam.cp + cam.hc * cam.sp;
+  return [cam.cx + cam.F * rgt / z, cam.cy - cam.F * yc / z, z];
+}
+const NEAR = 40;
+function clipSeg(cam, ax, ay, bx, by) {
+  let A = pr(cam, ax, ay), B = pr(cam, bx, by);
+  if (A[2] < NEAR && B[2] < NEAR) return null;
+  if (A[2] < NEAR || B[2] < NEAR) {
+    const t = (NEAR - A[2]) / (B[2] - A[2]);
+    const mx = ax + (bx - ax) * t, my = ay + (by - ay) * t, M = pr(cam, mx, my);
+    if (A[2] < NEAR) A = M; else B = M;
+  }
+  return [A, B];
+}
+const PAL = {
+  light: { land: '#EEF1F6', road: '#FFFFFF', cas: '#D2D9E6', park: '#CDE8D4', water: '#B7D6F0', fog: '#E9EDF5', sky: '#DCE6F7', routeCas: '#FFFFFF', pass: 'rgba(25,211,184,.35)', text: '#10244A', pillBg: '#FFFFFF' },
+  dark: { land: '#0F1A2E', road: '#243653', cas: '#0B1424', park: '#10302F', water: '#0D2A4D', fog: '#0F1A2E', sky: '#0A1326', routeCas: '#081022', pass: 'rgba(25,211,184,.3)', text: '#EAF1FF', pillBg: '#16233D' }
+};
+const ROT = 0.34, cR = Math.cos(ROT), sR = Math.sin(ROT);
+const toUV = (x, y) => [x * cR + y * sR, -x * sR + y * cR];
+const fromUV = (u, v) => [u * cR - v * sR, u * sR + v * cR];
+const LAYERS = [{ C: 90, w: .07, skip: .24, seed: 1 }, { C: 360, w: .09, skip: .15, seed: 2 }, { C: 1500, w: .1, skip: .1, seed: 3 }, { C: 6000, w: .09, skip: .05, seed: 4 }];
+
+function drawMap(ctx, w, h, cam, pal, opt = {}) {
+  ctx.save();
+  ctx.fillStyle = pal.land; ctx.fillRect(0, 0, w, h);
+  const horizon = cam.cy - cam.F * Math.tan(cam.phi);
+  const view = Math.hypot(w, h) / cam.ppm;
+  const R = Math.min(view * 0.95 / Math.max(Math.sin(cam.phi), .42), 9e5);
+  const [fu, fv] = toUV(cam.fx, cam.fy);
+  const poly = pts => { ctx.beginPath(); let ok = true; for (const p of pts) { const q = pr(cam, p[0], p[1]); if (q[2] < NEAR) { ok = false; break; } ctx.lineTo(q[0], q[1]); } if (ok) ctx.closePath(); return ok; };
+  // taman & air (blok besar, mengikut grid berputar)
+  for (const lay of [LAYERS[1], LAYERS[2], LAYERS[3]]) {
+    const cpx = lay.C * cam.ppm; if (cpx < 10 || cpx > 900) continue;
+    const a = clamp((cpx - 10) / 14);
+    const i0 = Math.floor((fu - R) / lay.C), i1 = Math.ceil((fu + R) / lay.C), j0 = Math.floor((fv - R) / lay.C), j1 = Math.ceil((fv + R) / lay.C);
+    if ((i1 - i0) * (j1 - j0) > 2600) continue;
+    ctx.globalAlpha = a;
+    for (let i = i0; i < i1; i++) for (let j = j0; j < j1; j++) {
+      const hv = hash(i, j, lay.seed * 31);
+      if (hv < .9 || (hv > .965 && lay.C < 1500)) continue;
+      const wet = hv > .965 && lay.C >= 1500;
+      const ins = lay.C * (.06 + .1 * hash(i, j, 7));
+      const c = [[i * lay.C + ins, j * lay.C + ins], [(i + 1) * lay.C - ins, j * lay.C + ins], [(i + 1) * lay.C - ins, (j + 1) * lay.C - ins], [i * lay.C + ins, (j + 1) * lay.C - ins]].map(p => fromUV(p[0], p[1]));
+      if (poly(c)) { ctx.fillStyle = wet ? pal.water : pal.park; ctx.fill(); }
+    }
+  }
+  ctx.globalAlpha = 1;
+  // sungai
+  { const wpx = 150 * cam.ppm; if (wpx > 1.4) {
+    ctx.strokeStyle = pal.water; ctx.lineWidth = clamp(wpx, 2, 60); ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.beginPath(); let pen = false;
+    const st = 90 / Math.max(.2, Math.min(1, cam.ppm * 40));
+    for (let u = fu - R; u <= fu + R; u += Math.max(80, st)) { const v = 2600 * Math.sin(u / 3900) + 900 * Math.sin(u / 1300 + 1.3) + 7200; const [x, y] = fromUV(u, v); const q = pr(cam, x, y); if (q[2] < NEAR) { pen = false; continue; } if (!pen) { ctx.moveTo(q[0], q[1]); pen = true; } else ctx.lineTo(q[0], q[1]); }
+    ctx.stroke(); } }
+  // jalan: lapisan ikut skala
+  for (const lay of LAYERS) {
+    const cpx = lay.C * cam.ppm; if (cpx < 14) continue;
+    const a = clamp((cpx - 14) / 16) * (1 - clamp((cpx - 700) / 500));
+    if (a <= 0.01) continue;
+    const i0 = Math.floor((fu - R) / lay.C), i1 = Math.ceil((fu + R) / lay.C), j0 = Math.floor((fv - R) / lay.C), j1 = Math.ceil((fv + R) / lay.C);
+    if ((i1 - i0) * (j1 - j0) > 3400) continue;
+    const wpx = clamp(cpx * lay.w, 1.1, 7);
+    const paths = [new Path2D(), new Path2D()];
+    for (let i = i0; i <= i1; i++) for (let j = j0; j < j1; j++) {
+      if (hash(i, j, lay.seed) < lay.skip) continue;
+      const ju = i * lay.C + (hash(i, 3, lay.seed + 9) - .5) * lay.C * .25;
+      const jv = j * lay.C + (hash(3, j, lay.seed + 5) - .5) * lay.C * .25;
+      const s1 = (() => { const [ax, ay] = fromUV(ju, j * lay.C), [bx, by] = fromUV(ju, (j + 1) * lay.C); return clipSeg(cam, ax, ay, bx, by); })();
+      if (s1) { paths[0].moveTo(s1[0][0], s1[0][1]); paths[0].lineTo(s1[1][0], s1[1][1]); }
+      if (hash(j, i, lay.seed + 77) >= lay.skip) {
+        const [ax, ay] = fromUV(i * lay.C, jv), [bx, by] = fromUV((i + 1) * lay.C, jv);
+        const s2 = clipSeg(cam, ax, ay, bx, by); if (s2) { paths[1].moveTo(s2[0][0], s2[0][1]); paths[1].lineTo(s2[1][0], s2[1][1]); }
+      }
+    }
+    ctx.globalAlpha = a; ctx.lineCap = 'round';
+    for (const pass of [0, 1]) {
+      ctx.strokeStyle = pass === 0 ? pal.cas : pal.road; ctx.lineWidth = pass === 0 ? wpx + 2.2 : wpx;
+      ctx.stroke(paths[0]); ctx.stroke(paths[1]);
+    }
+  }
+  ctx.globalAlpha = 1;
+  // kabus & langit di ufuk
+  if (cam.phi < 1.45) {
+    const hy = horizon;
+    const fogH = Math.max(120, (cam.cy - hy) * .5);
+    if (hy > -10) {
+      ctx.fillStyle = pal.sky; ctx.fillRect(0, 0, w, Math.max(0, hy));
+    }
+    const g = ctx.createLinearGradient(0, Math.max(-5, hy - 4), 0, Math.max(-5, hy) + fogH);
+    g.addColorStop(0, pal.fog); g.addColorStop(1, pal.fog + '00');
+    ctx.fillStyle = g; ctx.fillRect(0, Math.max(-5, hy - 4), w, fogH + 8);
+    if (hy > 30) { const g2 = ctx.createLinearGradient(0, 0, 0, hy); g2.addColorStop(0, pal.sky); g2.addColorStop(1, pal.fog); ctx.fillStyle = g2; ctx.fillRect(0, 0, w, hy); }
+  }
+  ctx.restore();
+}
+
+// Garisan laluan dengan lebar bersandar kedalaman. pts = [[x,y]...]; range [s0,s1] ikut jarak kumulatif.
+function strokeRoute(ctx, cam, r, s0, s1, wpx, color, alpha = 1, cap = 'round') {
+  ctx.save(); ctx.strokeStyle = color; ctx.globalAlpha = alpha; ctx.lineCap = cap; ctx.lineJoin = 'round';
+  const zf = D_CAM;
+  for (let i = 1; i < r.pts.length; i++) {
+    if (r.cum[i] < s0 || r.cum[i - 1] > s1) continue;
+    let a = r.pts[i - 1], b = r.pts[i], ca = r.cum[i - 1], cb = r.cum[i];
+    let ax = a[0], ay = a[1], bx = b[0], by = b[1];
+    if (ca < s0) { const t = (s0 - ca) / (cb - ca); ax = lerp(a[0], b[0], t); ay = lerp(a[1], b[1], t); }
+    if (cb > s1) { const t = (s1 - ca) / (cb - ca); bx = lerp(a[0], b[0], t); by = lerp(a[1], b[1], t); }
+    const sg = clipSeg(cam, ax, ay, bx, by); if (!sg) continue;
+    const zm = (sg[0][2] + sg[1][2]) / 2;
+    ctx.lineWidth = Math.max(1.2, wpx * zf / zm);
+    ctx.beginPath(); ctx.moveTo(sg[0][0], sg[0][1]); ctx.lineTo(sg[1][0], sg[1][1]); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// ───────────────────────── elemen UI yang dilukis ─────────────────────────
+function rr(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); }
+function pill(ctx, text, x, y, o = {}) {              // x,y = tengah-kiri; mengembalikan lebar
+  const fs = o.fs || 13, u = o.u || U;
+  ctx.save(); ctx.font = `${o.wt || 700} ${fs * u}px PJS`; ctx.textBaseline = 'middle';
+  const padX = (o.px ?? 12) * u, hh = (o.h || fs * 2.1) * u, iw = o.icon ? (fs * 1.5) * u : 0;
+  const tw = ctx.measureText(text).width, ww = tw + padX * 2 + iw;
+  const left = o.center ? x - ww / 2 : x;
+  if (o.shadow !== false) { ctx.shadowColor = 'rgba(8,16,40,.28)'; ctx.shadowBlur = 14 * u; ctx.shadowOffsetY = 4 * u; }
+  ctx.fillStyle = o.bg || '#fff'; rr(ctx, left, y - hh / 2, ww, hh, hh / 2); ctx.fill();
+  ctx.shadowColor = 'transparent';
+  if (o.stroke) { ctx.strokeStyle = o.stroke; ctx.lineWidth = 1.5 * u; ctx.stroke(); }
+  if (o.icon) o.icon(ctx, left + padX + iw / 2 - 2 * u, y, fs * u);
+  ctx.fillStyle = o.fg || '#10244A'; ctx.textAlign = 'left'; ctx.fillText(text, left + padX + iw, y + .5 * u);
+  ctx.restore(); return ww;
+}
+const PLANE = new Path2D('M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z');
+function planeIcon(ctx, cx, cy, s, color = '#10244A') { ctx.save(); ctx.translate(cx - s * .55, cy - s * .55); ctx.scale(s * 1.1 / 24, s * 1.1 / 24); ctx.fillStyle = color; ctx.fill(PLANE); ctx.restore(); }
+function pin(ctx, x, y, s, color, label, dark) {
+  ctx.save(); ctx.translate(x, y);
+  ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 10 * s / 20; ctx.shadowOffsetY = 4 * s / 20;
+  ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(0, 0); ctx.bezierCurveTo(-s * .2, -s * .5, -s * .62, -s * .7, -s * .62, -s * 1.15); ctx.arc(0, -s * 1.15, s * .62, Math.PI, 0); ctx.bezierCurveTo(s * .62, -s * .7, s * .2, -s * .5, 0, 0); ctx.fill();
+  ctx.shadowColor = 'transparent'; ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, -s * 1.15, s * .24, 0, 7); ctx.fill();
+  if (label) { ctx.font = `800 ${s * .62}px PJS`; ctx.textAlign = 'center'; ctx.lineWidth = s * .2; ctx.strokeStyle = dark ? '#0B1220' : '#fff'; ctx.lineJoin = 'round'; ctx.strokeText(label, 0, s * .72); ctx.fillStyle = dark ? '#EAF1FF' : '#10244A'; ctx.fillText(label, 0, s * .72); }
+  ctx.restore();
+}
+function statusBar(ctx, sw, dark, noSignal, t) {
+  const fg = dark ? '#EAF1FF' : '#10244A', u = U;
+  ctx.save(); ctx.fillStyle = fg; ctx.font = `700 ${15 * u}px PJS`; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+  ctx.fillText('14:05', 26 * u, 24 * u);
+  let x = sw - 24 * u;
+  // bateri
+  ctx.strokeStyle = fg; ctx.lineWidth = 1.3 * u; rr(ctx, x - 25 * u, 18 * u, 25 * u, 12 * u, 3.5 * u); ctx.stroke(); ctx.fillRect(x - 23 * u, 20 * u, 17 * u, 8 * u); ctx.fillRect(x + 1.5 * u, 21.5 * u, 2 * u, 5 * u);
+  x -= 38 * u;
+  if (noSignal) { planeIcon(ctx, x - 8 * u, 24 * u, 16 * u, fg); x -= 30 * u; }
+  // isyarat selular
+  for (let i = 0; i < 4; i++) { ctx.globalAlpha = noSignal ? .28 : 1; ctx.fillRect(x - 24 * u + i * 6 * u, 30 * u - (4 + i * 3) * u, 4 * u, (4 + i * 3) * u); }
+  if (noSignal) { ctx.globalAlpha = 1; ctx.strokeStyle = '#FF5A5F'; ctx.lineWidth = 2 * u; ctx.beginPath(); ctx.moveTo(x - 27 * u, 31 * u); ctx.lineTo(x + 2 * u, 14 * u); ctx.stroke(); }
+  ctx.restore();
+}
+function ripple(ctx, x, y, t, color, rad) { if (t <= 0 || t >= 1) return; ctx.save(); ctx.strokeStyle = color; ctx.globalAlpha = (1 - t) * .8; ctx.lineWidth = 3 * U; ctx.beginPath(); ctx.arc(x, y, rad * eout(t), 0, 7); ctx.stroke(); ctx.restore(); }
+function ring(ctx, x, y, w, h, r, t, color = '#19D3B8') { const pulse = .5 + .5 * Math.sin(t * 6); ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = (3 + pulse * 2) * U; ctx.shadowColor = color; ctx.shadowBlur = 18 * U; ctx.globalAlpha = .55 + .45 * pulse; rr(ctx, x - 4 * U, y - 4 * U, w + 8 * U, h + 8 * U, r + 4 * U); ctx.stroke(); ctx.restore(); }
+function drawImg(ctx, im, x, y, w) { if (!im || !im.naturalWidth) return 0; const h = w * im.naturalHeight / im.naturalWidth; ctx.drawImage(im, x, y, w, h); return h; }
+
+// ───────────────────────── kamera gambaran keseluruhan ─────────────────────────
+function overviewCam(sw, sh, topFrac, botFrac, routesIdx, pad = .9, phi = 90, brg = 0) {
+  let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+  for (const i of routesIdx) for (const p of OV[i].pts) { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); }
+  const aw = sw * .84, ah = sh * (botFrac - topFrac) * .9;
+  const ppm = Math.min(aw / (x1 - x0), ah / (y1 - y0)) * pad;
+  return mkCam((x0 + x1) / 2, (y0 + y1) / 2, brg, phi, ppm, sw / 2, sh * (topFrac + botFrac) / 2);
+}
+const fmtDur = s => { const m = Math.ceil(s / 60); return m >= 60 ? `${Math.floor(m / 60)} ${LANG === 'ms' ? 'j' : 'h'} ${m % 60} min` : `${m} min`; };
+const ROUTE_COL = ['#19D3B8', '#7C93C4', '#7C93C4', '#7C93C4', '#7C93C4'];
+
+function drawRoutesOverview(ctx, cam, dark, sel, draw, opt = {}) {
+  const pal = PAL[dark ? 'dark' : 'light'];
+  const order = [...Array(OV.length).keys()].filter(i => i !== sel).concat([sel]);
+  for (const i of order) {
+    const r = OV[i], isSel = i === sel, p = Array.isArray(draw) ? draw[i] : draw;
+    const s1 = r.len * p; if (s1 <= 1) continue;
+    if (opt.onlySel && !isSel) continue;
+    strokeRoute(ctx, cam, r, 0, s1, (isSel ? 11 : 8.5) * U, pal.routeCas, 1);
+    strokeRoute(ctx, cam, r, 0, s1, (isSel ? 7.5 : 5.2) * U, isSel ? '#19D3B8' : (dark ? '#4A6396' : '#8EA2CC'), 1);
+  }
+}
+function pillOnRoute(ctx, cam, i, frac, text, sel, dark, a = 1) {
+  const r = OV[i]; const p = atAlong(r, r.len * frac); const q = pr(cam, p.x, p.y);
+  ctx.save(); ctx.globalAlpha = a;
+  pill(ctx, text, q[0], q[1], { center: true, fs: 12.5, u: U, bg: sel ? '#19D3B8' : (dark ? '#1C2B49' : '#fff'), fg: sel ? '#052B26' : (dark ? '#EAF1FF' : '#10244A'), stroke: sel ? null : (dark ? '#3A4C78' : '#C9D2E6') });
+  ctx.restore();
+}
+
+// ───────────────────────── skrin telefon: babak ─────────────────────────
+const sheetY = (sw, sh, im, slide = 1) => { const h = im.naturalHeight * sw / im.naturalWidth; return sh - h * slide; };
+function drawSheetImg(ctx, sw, sh, im, slide) { if (!im || !im.naturalWidth) return; drawImg(ctx, im, 0, sheetY(sw, sh, im, slide), sw); }
+const th = dark => dark ? 'dark' : 'light';
+
+function scrS1(c, sw, sh, lt, dur) {
+  const dark = false, pal = PAL.light;
+  const cam = overviewCam(sw, sh, .12, .74, [0], .92);
+  drawMap(c, sw, sh, cam, pal);
+  const p = eio(clamp((lt - .6) / 2.4));
+  drawRoutesOverview(c, cam, dark, 0, p, { onlySel: true });
+  const o = OV[0]; const a0 = atAlong(o, 0), a1 = atAlong(o, o.len * p);
+  const q0 = pr(cam, a0.x, a0.y), q1 = pr(cam, a1.x, a1.y), qe = pr(cam, o.pts[o.pts.length - 1][0], o.pts[o.pts.length - 1][1]);
+  pin(c, qe[0], qe[1], 16 * U, '#E5484D', 'KLIA', dark);
+  c.save(); c.fillStyle = '#2563EB'; c.strokeStyle = '#fff'; c.lineWidth = 3.5 * U; c.beginPath(); c.arc(q0[0], q0[1], 8 * U, 0, 7); c.fill(); c.stroke(); c.restore();
+  const pulse = (lt * .9) % 1; ripple(c, q0[0], q0[1], pulse, '#2563EB', 38 * U);
+  if (p > 0 && p < 1) { c.save(); c.fillStyle = '#fff'; c.shadowColor = '#19D3B8'; c.shadowBlur = 22 * U; c.beginPath(); c.arc(q1[0], q1[1], 6 * U, 0, 7); c.fill(); c.restore(); }
+  c.save(); c.font = `800 ${13 * U}px PJS`; c.textAlign = 'center'; c.lineWidth = 4 * U; c.strokeStyle = '#fff'; c.strokeText('KLCC', q0[0], q0[1] + 24 * U); c.fillStyle = '#10244A'; c.fillText('KLCC', q0[0], q0[1] + 24 * U); c.restore();
+  // pil ETA sebenar muncul selepas laluan siap
+  const ea = eback(clamp((lt - 3.0) / .5));
+  if (ea > 0) { c.save(); c.globalAlpha = clamp(ea); c.translate(0, (1 - ea) * 20 * U); const t = `${fmtDur(ROUTES[0].durationS)} · ${(ROUTES[0].distanceM / 1000).toFixed(1)} km`; pill(c, t, sw / 2, sh * .79, { center: true, fs: 17, h: 40, px: 18, bg: '#10244A', fg: '#fff', shadow: true, icon: (cc, x, y, s) => { cc.fillStyle = '#19D3B8'; cc.beginPath(); cc.arc(x, y, s * .32, 0, 7); cc.fill(); } }); c.restore(); }
+  // mod pesawat
+  const pa = eout(clamp(lt / .5));
+  c.save(); c.globalAlpha = pa; pill(c, COPY.common.airplane, sw / 2, 74 * U, { center: true, fs: 14, h: 34, bg: '#10244A', fg: '#fff', icon: (cc, x, y, s) => planeIcon(cc, x, y, s, '#19D3B8') }); c.restore();
+  statusBar(c, sw, dark, true, lt);
+}
+
+function scrS2(c, sw, sh, lt, dur) {
+  const dark = false, pal = PAL.light;
+  const cam = overviewCam(sw, sh, .06, .5, [0], .9);
+  drawMap(c, sw, sh, cam, pal);
+  drawRoutesOverview(c, cam, dark, 0, 1, { onlySel: true });
+  const o = OV[0], q0 = pr(cam, o.pts[0][0], o.pts[0][1]), qe = pr(cam, o.pts[o.pts.length - 1][0], o.pts[o.pts.length - 1][1]);
+  pin(c, qe[0], qe[1], 14 * U, '#E5484D', 'KLIA', dark);
+  c.fillStyle = '#2563EB'; c.strokeStyle = '#fff'; c.lineWidth = 3 * U; c.beginPath(); c.arc(q0[0], q0[1], 7 * U, 0, 7); c.fill(); c.stroke();
+  statusBar(c, sw, dark, true, lt);
+  // lembaran offline: idle -> tekan -> kemajuan -> siap
+  const slide = eout(clamp(lt / .8));
+  const tp = dur * .38;
+  const st = lt < tp ? 'idle' : lt < tp + .75 ? 'p35' : lt < tp + 1.5 ? 'p72' : 'done';
+  const im = img(`offline_${st}_${LANG}_light.png`), idle = img(`offline_idle_${LANG}_light.png`);
+  c.save(); c.fillStyle = 'rgba(11,18,32,.18)'; c.fillRect(0, 0, sw, sh); c.restore();
+  const ref = idle; const baseY = sheetY(sw, sh, ref, slide);
+  const hCur = im.naturalHeight * sw / im.naturalWidth;
+  // jaga tepi atas lembaran stabil walaupun tinggi berbeza (anchor bawah)
+  drawImg(c, im, 0, sh - hCur * slide, sw);
+  // butang Muat turun ditekan (kedudukan sebenar pada PNG: ~(125,263) logik)
+  const bx = 125 * U * 1, by = (sh - hCur * slide) + 262 * U * 1.0;
+  if (lt > tp - .4 && lt < tp + .3) ripple(c, 78 * U, by, (lt - tp + .4) / .7, '#2563EB', 46 * U);
+  if (lt > tp + 1.5 && lt < tp + 2.2) ripple(c, 45 * U, sh - hCur * slide + 162 * U, (lt - tp - 1.5) / .7, '#19D3B8', 52 * U);
+}
+
+function scrNav(c, sw, sh, along, dark, lt, opt = {}) {
+  const pal = PAL[dark ? 'dark' : 'light'];
+  const ns = navState(along);
+  const cam = mkCam(ns.x, ns.y, ns.cam, 35, (opt.ppm || .85) * U, sw / 2, sh * .66);
+  drawMap(c, sw, sh, cam, pal);
+  strokeRoute(c, cam, NAV, ns.cam * 0, along, 16 * U, pal.routeCas, .0);
+  // laluan: dilalui (malap) & di hadapan (terang), dengan sarung & pendaran
+  strokeRoute(c, cam, NAV, 0, along, 12 * U, pal.routeCas, .55);
+  strokeRoute(c, cam, NAV, 0, along, 7.5 * U, '#19D3B8', .28);
+  strokeRoute(c, cam, NAV, along, NAV.len, 13.5 * U, pal.routeCas, 1);
+  strokeRoute(c, cam, NAV, along, NAV.len, 8.5 * U, '#19D3B8', 1);
+  // kereta
+  const k = clamp(Math.round(Math.abs(ns.yawDeg) * 0.6 / 5) * 5, 0, 55);
+  const sgn = ns.yawDeg >= 0 ? 'p' : 'm';
+  const car = img(`car/car_${th(dark)}_${k === 0 ? 'p' : sgn}${k}.png`) || img(`car/car_${th(dark)}_p0.png`);
+  const S = 205 * U / 1.0; if (car && car.naturalWidth) c.drawImage(car, sw / 2 - S * .5, cam.cy - S * .62, S, S);
+  // HUD sebenar
+  const hk = hudIndex(along);
+  const tn = `nav/top_${LANG}_${th(dark)}_${hk}.png`, bn = `nav/bot_${LANG}_${th(dark)}_${hk}.png`, un = `nav/bub_${LANG}_${th(dark)}_${hk}.png`;
+  const hs = (opt.hudScale || 1);
+  const tIm = img(tn), bIm = img(bn), uIm = img(un);
+  const hudIn = eout(clamp(lt / .7));
+  if (tIm && tIm.naturalWidth) { const h = tIm.naturalHeight * sw / tIm.naturalWidth; c.drawImage(tIm, 0, 38 * U - (1 - hudIn) * (h + 60 * U), sw, h); }
+  if (bIm && bIm.naturalWidth) { const h = bIm.naturalHeight * sw / bIm.naturalWidth; const y = sh - h - 20 * U + (1 - hudIn) * (h + 40 * U); c.drawImage(bIm, 0, y, sw, h); if (uIm && uIm.naturalWidth) { const h2 = uIm.naturalHeight * sw / uIm.naturalWidth; c.drawImage(uIm, 0, y - h2 + 14 * U, sw, h2); } }
+  statusBar(c, sw, dark, false, lt);
+  return ns;
+}
+
+function scrS3(c, sw, sh, lt, dur) {
+  const along = PORT ? lerp(700, 1480, eio(clamp(lt / (dur - .4)))) : lerp(540, 1720, eio(clamp(lt / (dur - .4))));
+  scrNav(c, sw, sh, along, false, lt);
+}
+
+function scrS4(c, sw, sh, lt, dur) {
+  const dark = false, pal = PAL.light;
+  const n = Math.min(PORT ? 3 : 5, ROUTES.length);
+  const step = (dur - 1.2) / n;
+  const idx = clamp(Math.floor((lt - .9) / step), 0, n - 1);
+  const slide = eout(clamp(lt / .8));
+  const cam = overviewCam(sw, sh, .06, .5, [...Array(n).keys()], .93);
+  drawMap(c, sw, sh, cam, pal);
+  const draw = [...Array(n).keys()].map(i => eout(clamp((lt - .25 - i * .12) / 1.1)));
+  drawRoutesOverview(c, cam, dark, idx, draw);
+  const fr = [.5, .34, .62, .42, .7];
+  pillOnRoute(c, cam, idx, fr[idx], fmtDur(ROUTES[idx].durationS), true, dark, draw[idx] > .95 ? 1 : 0);
+  const o0 = OV[0], qs = pr(cam, o0.pts[0][0], o0.pts[0][1]), qe = pr(cam, o0.pts[o0.pts.length - 1][0], o0.pts[o0.pts.length - 1][1]);
+  pin(c, qe[0], qe[1], 14 * U, '#E5484D', 'KLIA', dark);
+  c.fillStyle = '#2563EB'; c.strokeStyle = '#fff'; c.lineWidth = 3 * U; c.beginPath(); c.arc(qs[0], qs[1], 7 * U, 0, 7); c.fill(); c.stroke();
+  statusBar(c, sw, dark, false, lt);
+  const im = img(`real_sheet_${idx}_${LANG}_light.png`);
+  drawSheetImg(c, sw, sh, im, slide);
+  // anak panah halus pada kad terpilih
+}
+
+function scrS5(c, sw, sh, lt, dur) {
+  // Sheet laluan sebenar (laluan terpilih 0) kemudian zum ke baris tol.
+  const dark = false, pal = PAL.light;
+  const cam = overviewCam(sw, sh, .06, .46, [0], .9);
+  drawMap(c, sw, sh, cam, pal);
+  drawRoutesOverview(c, cam, dark, 0, 1, { onlySel: true });
+  statusBar(c, sw, dark, false, lt);
+  const im = img(`real_sheet_0_${LANG}_light.png`);
+  const z = 1 + .0 * eio(clamp((lt - .5) / .9));
+  const zoom = eio(clamp((lt - .5) / 1.0));
+  const baseH = im.naturalHeight * sw / im.naturalWidth;
+  c.save();
+  // zum ke bahagian tol: anchor pada kira-kira tengah baris tol dalam PNG (y~520/1401)
+  const ay = (520 / 1401) * baseH;
+  const slide = eout(clamp(lt / .7));
+  const sc = lerp(1, 1.2, zoom);
+  const top = sh - baseH * slide;
+  c.translate(0, top + ay); c.scale(sc, sc); c.translate(0, -(top + ay));
+  c.translate(0, -zoom * baseH * .08 * 0);
+  c.drawImage(im, 0, top, sw, baseH);
+  // sorotan baris tol
+  const tx = 18 * U, ty = top + (410 / 1401) * baseH, tw = sw - 36 * U, th_ = (230 / 1401) * baseH;
+  if (zoom > .6) ring(c, tx, ty, tw, th_, 12 * U, lt);
+  c.restore();
+}
+
+function scrS6(c, sw, sh, lt, dur) {
+  const im = img(`trip_planner_${LANG}_light.png`);
+  const slide = eout(clamp(lt / .6));
+  c.fillStyle = '#fff'; c.fillRect(0, 0, sw, sh);
+  c.save(); c.translate(0, (1 - slide) * 40 * U); c.globalAlpha = slide; drawImg(c, im, 0, 0, sw); c.restore();
+  statusBar(c, sw, false, false, lt);
+  // sorotan bergilir: Rumah/Kerja tersimpan, kemudian cip Cari berhampiran
+  const a1 = clamp((lt - 1.0) / .4) * (1 - clamp((lt - 3.4) / .4)), a2 = clamp((lt - 3.8) / .4) * (1 - clamp((lt - 7.2) / .4));
+  if (a1 > 0) { c.save(); c.globalAlpha = a1; ring(c, 8 * U, 250 * U, 374 * U, 150 * U, 14 * U, lt); c.restore(); }
+  if (a2 > 0) { c.save(); c.globalAlpha = a2; ring(c, 8 * U, 458 * U, 374 * U, 158 * U, 14 * U, lt); c.restore(); }
+}
+
+function scrS7(c, sw, sh, lt, dur) {
+  const along = lerp(1720, 2180, eio(clamp(lt / dur)));
+  const wipe = sstep(.7, 2.3, lt);
+  scrNav(c, sw, sh, along, false, 9);
+  if (wipe > 0) {
+    c.save(); c.beginPath();
+    const x0 = lerp(-sh * .6, sw + sh * .6, wipe), sl = sh * .32;
+    c.moveTo(0, 0); c.lineTo(x0 + sl, 0); c.lineTo(x0 - sl, sh); c.lineTo(0, sh); c.closePath(); c.clip();
+    scrNav(c, sw, sh, along, true, 9);
+    c.restore();
+    c.save(); c.strokeStyle = 'rgba(25,211,184,.85)'; c.lineWidth = 3 * U; c.shadowColor = '#19D3B8'; c.shadowBlur = 24 * U; c.beginPath(); c.moveTo(x0 + sl, 0); c.lineTo(x0 - sl, sh); c.stroke(); c.restore();
+  }
+}
+
+function scrS8(c, sw, sh, lt, dur) {
+  const im = img(`onboarding_privacy_${LANG}_light.png`);
+  const slide = eout(clamp(lt / .6));
+  c.fillStyle = '#fff'; c.fillRect(0, 0, sw, sh);
+  c.save(); c.globalAlpha = slide; c.translate(0, (1 - slide) * 36 * U); drawImg(c, im, 0, 0, sw); c.restore();
+  statusBar(c, sw, false, false, lt);
+  const a = clamp((lt - 1.0) / .4);
+  if (a > 0) { c.save(); c.globalAlpha = a; ring(c, 24 * U, 270 * U, 346 * U, 86 * U, 12 * U, lt); c.restore(); }
+}
+
+function scrS9(c, sw, sh, lt, dur) { /* telefon disorok oleh transform */ scrS4(c, sw, sh, 0, 1); }
+
+const SCENES = { s1: scrS1, s2: scrS2, s3: scrS3, s4: scrS4, s5: scrS5, s6: scrS6, s7: scrS7, s8: scrS8, s9: scrS9 };
+
+// ───────────────────────── DOM: kapsyen, telefon, latar ─────────────────────────
+const el = id => document.getElementById(id);
+const scr = el('scr'), sctx = scr.getContext('2d');
+scr.width = SW; scr.height = SH;
+const bg = el('bg'), bctx = bg.getContext('2d');
+const BGW = Math.round(W / 2.4), BGH = Math.round(H / 2.4); bg.width = BGW; bg.height = BGH;
+
+function layout() {
+  // telefon
+  const ph = el('phone'); ph.style.left = PH_X + 'px'; ph.style.top = PH_Y + 'px'; ph.style.width = SW + 'px'; ph.style.height = SH + 'px';
+  const bz = el('bezel'); bz.style.left = -BZ + 'px'; bz.style.top = -BZ + 'px'; bz.style.width = SW + 2 * BZ + 'px'; bz.style.height = SH + 2 * BZ + 'px'; bz.style.borderRadius = (PORT ? 66 : 56) + 'px';
+  const sc = el('screen'); sc.style.left = '0'; sc.style.top = '0'; sc.style.width = SW + 'px'; sc.style.height = SH + 'px'; sc.style.borderRadius = (PORT ? 52 : 44) + 'px';
+  const isl = el('island'); isl.style.width = SW * .27 + 'px'; isl.style.height = SW * .075 + 'px'; isl.style.left = SW * .365 + 'px'; isl.style.top = SW * .028 + 'px';
+  const wrap = el('phoneWrap'); wrap.style.left = '0'; wrap.style.top = '0'; wrap.style.width = W + 'px'; wrap.style.height = H + 'px';
+  // latar
+  const g1 = el('glowA'), g2 = el('glowB');
+  Object.assign(g1.style, { width: W * .55 + 'px', height: W * .55 + 'px' });
+  Object.assign(g2.style, { width: W * .5 + 'px', height: W * .5 + 'px' });
+  const ft = el('foot'); ft.style.top = (PORT ? PH_Y + SH + 2 * BZ + 22 : H - 62) + 'px'; ft.style.fontSize = (PORT ? 25 : 21) + 'px'; if (!PORT) { ft.style.left = '110px'; ft.style.width = '900px'; ft.style.textAlign = 'left'; }
+  ft.textContent = `${COPY.common.illus} · ${COPY.common.osm}`;
+  // kapsyen
+  const cap = el('cap'); cap.innerHTML = '';
+  for (const [id] of TL) {
+    if (id === 's9') continue;
+    const s = COPY[id];
+    const blk = document.createElement('div'); blk.className = 'blk'; blk.dataset.id = id; blk.style.opacity = 0;
+    const k = document.createElement('div'); k.className = 'kick'; k.textContent = s.k;
+    const hl = document.createElement('div'); hl.className = 'hl';
+    s.h.split('\n').forEach((line, li, arr) => { const d = document.createElement('div'); d.className = 'ln' + (li === arr.length - 1 && arr.length > 1 ? ' acc' : ''); line.split(' ').forEach((w, wi, ws) => { const sp = document.createElement('span'); sp.className = 'w'; sp.textContent = w + (wi < ws.length - 1 ? ' ' : ''); d.appendChild(sp); }); hl.appendChild(d); });
+    const sub = document.createElement('div'); sub.className = 'sub'; sub.textContent = s.s;
+    blk.append(k, hl, sub);
+    let chips = null;
+    if (s.chips) { chips = document.createElement('div'); chips.className = 'chips'; s.chips.forEach(t => { const c = document.createElement('span'); c.className = 'chip'; const i = document.createElement('i'); c.append(i, t); chips.appendChild(c); }); blk.appendChild(chips); }
+    let note = null;
+    if (s.note || s.tag) { note = document.createElement('div'); note.className = s.tag ? 'chips' : 'note'; if (s.tag) { const c = document.createElement('span'); c.className = 'chip'; const i = document.createElement('i'); c.append(i, s.tag); note.appendChild(c); } else note.textContent = s.note; blk.appendChild(note); }
+    cap.appendChild(blk);
+    // gaya mengikut format
+    const hs = PORT ? 92 : 92, ks = PORT ? 27 : 24, ss = PORT ? 35 : 34, cs = PORT ? 27 : 26;
+    k.style.fontSize = ks + 'px'; k.style.padding = `${ks * .42}px ${ks * .8}px`;
+    hl.style.fontSize = hs + 'px'; hl.style.lineHeight = '1.04'; hl.style.marginTop = ks * .7 + 'px';
+    sub.style.fontSize = ss + 'px'; sub.style.lineHeight = '1.36'; sub.style.marginTop = ss * .6 + 'px';
+    if (chips) { chips.style.gap = cs * .5 + 'px'; chips.style.marginTop = ss * .75 + 'px'; chips.querySelectorAll('.chip').forEach(c => { c.style.fontSize = cs + 'px'; c.style.padding = `${cs * .38}px ${cs * .8}px`; c.querySelector('i').style.width = c.querySelector('i').style.height = cs * .34 + 'px'; }); }
+    if (note) { if (s.tag) { note.style.marginTop = ss * .6 + 'px'; note.style.gap = cs * .5 + 'px'; note.querySelectorAll('.chip').forEach(c => { c.style.fontSize = cs + 'px'; c.style.padding = `${cs * .38}px ${cs * .8}px`; c.querySelector('i').style.width = c.querySelector('i').style.height = cs * .34 + 'px'; }); } else { note.style.fontSize = ss * .8 + 'px'; note.style.marginTop = ss * .5 + 'px'; } }
+    if (PORT) { blk.style.left = '72px'; blk.style.width = W - 144 + 'px'; blk.style.top = (id === 's6' ? 70 : 78) + 'px'; if (id === 's6' || id === 's5') sub.style.display = (id === 's6') ? 'none' : ''; if (note && !s.tag) note.style.display = 'none'; }
+    else { blk.style.left = '110px'; blk.style.width = '900px'; blk.style.top = '0'; blk.style.height = H + 'px'; blk.style.display = 'flex'; blk.style.flexDirection = 'column'; blk.style.justifyContent = 'center'; blk.style.alignItems = 'flex-start'; k.style.alignSelf = 'flex-start'; }
+    blk._parts = { k, hl, sub, chips, note, words: [...hl.querySelectorAll('.w')], subw: sub };
+  }
+  // outro
+  const ou = el('outro'); ou.innerHTML = ''; ou.style.opacity = 0;
+  const S9 = COPY.s9, q = PORT ? 1 : .92;
+  ou.innerHTML = `<img class="logo" src="${ASSET}../../app/assets/branding/fgmap-app-icon.png" style="width:${(PORT ? 300 : 250)}px;height:${(PORT ? 300 : 250)}px"><div class="name" style="font-size:${(PORT ? 168 : 150)}px;margin-top:${PORT ? 44 : 30}px">FGMaps</div><div class="tag" style="font-size:${PORT ? 46 : 40}px;margin-top:8px">${S9.tagline}</div><div class="soon" style="font-size:${PORT ? 50 : 44}px;padding:${PORT ? 22 : 18}px ${PORT ? 66 : 56}px;margin-top:${PORT ? 70 : 52}px">${S9.soon}</div><div class="small" style="font-size:${PORT ? 29 : 25}px;margin-top:${PORT ? 62 : 46}px;line-height:1.5">${S9.plat}<br>${S9.credit}<br>${COPY.common.osm}</div>`;
+}
+
+function drawBg(t, sceneIdx, lt) {
+  const w = BGW, h = BGH, dark = PAL.dark;
+  const ov = overviewCam(w, h, 0, 1, [0, 1, 2, 3, 4], .8 + .08 * Math.sin(t * .1));
+  const cam = mkCam(ov.fx + Math.sin(t * .05) * 3000, ov.fy + Math.cos(t * .04) * 2000, t * .02, 90, ov.ppm * 1.7, w / 2, h / 2);
+  drawMap(bctx, w, h, cam, dark);
+  const k = PAL.dark; bctx.save(); bctx.globalCompositeOperation = 'source-over';
+  for (let i = 0; i < OV.length; i++) strokeRoute(bctx, cam, OV[i], 0, OV[i].len, 5, i === 0 ? 'rgba(25,211,184,.55)' : 'rgba(110,140,200,.28)', 1);
+  bctx.restore();
+}
+
+function updateCaptions(t, i, lt, dur) {
+  const id = TL[i][0];
+  const blks = [...el('cap').children];
+  blks.forEach(b => { if (b.dataset.id !== id) b.style.opacity = 0; });
+  const blk = blks.find(b => b.dataset.id === id); if (!blk) return;
+  const P = blk._parts; blk.style.opacity = 1;
+  const out = sstep(dur - .38, dur - .02, lt);
+  const ap = (node, delay, dy = 34) => { const a = eout((lt - delay) / .55); node.style.opacity = clamp(a) * (1 - out); node.style.transform = `translateY(${(1 - eback((lt - delay) / .7)) * dy - out * 22}px)`; };
+  ap(P.k, .1, 18);
+  P.words.forEach((w, wi) => ap(w, .22 + wi * .075, 52));
+  const hd = .22 + P.words.length * .075 + .1;
+  ap(P.sub, hd, 24);
+  if (P.chips) [...P.chips.children].forEach((c, ci) => ap(c, hd + .25 + ci * .1, 20));
+  if (P.note) { if (P.note.classList.contains('chips')) [...P.note.children].forEach(c => ap(c, hd + .35, 20)); else ap(P.note, hd + .6, 16); }
+}
+
+function updatePhone(t, i, lt, dur) {
+  const id = TL[i][0];
+  const ph = el('phone');
+  let x = 0, y = 0, sc = 1, ry = 0, rx = 0, rz = 0, op = 1;
+  const f = Math.sin(t * 1.25) * 7;
+  if (PORT) { ry = Math.sin(t * .6) * 2.2; rx = 3 + Math.sin(t * .5) * 1; y = f; }
+  else { ry = -11 + Math.sin(t * .55) * 2.2; rx = 4 + Math.sin(t * .45) * 1; rz = -1.2; y = f; }
+  // masuk di awal video
+  if (i === 0) { const a = eback(lt / 1.0); sc = lerp(.82, 1, a); y += (1 - clamp(a)) * 160; op = clamp(lt / .5); }
+  // kejutan kecil pada peralihan babak
+  const tb = Math.min(...TL.map(([_, a, b]) => Math.min(Math.abs(t - a), Math.abs(t - b))));
+  if (t > .5 && tb < .3) { const k = 1 - tb / .3; sc *= 1 + .02 * Math.sin(k * Math.PI); }
+  if (id === 's9') { const a = eio(clamp(lt / .9)); y += a * (PORT ? 900 : 120); x += a * (PORT ? 0 : 520); sc *= 1 - .18 * a; op = 1 - a; }
+  ph.style.opacity = op;
+  ph.style.transform = `translate3d(${x}px,${y}px,0) scale(${sc}) rotateX(${rx}deg) rotateY(${ry}deg) rotateZ(${rz}deg)`;
+  ph.style.transformOrigin = `${SW / 2}px ${SH / 2}px`;
+}
+
+function updateOutro(t, i, lt, dur) {
+  const ou = el('outro'); const id = TL[i][0];
+  if (id !== 's9') { ou.style.opacity = 0; return; }
+  const a = eout((lt - .35) / .7);
+  ou.style.opacity = a;
+  const kids = [...ou.children];
+  kids.forEach((k, ki) => { const aa = eback((lt - .45 - ki * .16) / .7); k.style.opacity = clamp(eout((lt - .4 - ki * .16) / .5)); k.style.transform = `translateY(${(1 - aa) * 40}px) scale(${lerp(.9, 1, clamp(aa))})`; });
+  const lg = ou.querySelector('.logo'); lg.style.transform = `scale(${lerp(.5, 1, eback((lt - .4) / .9))}) rotate(${(1 - eout((lt - .4) / .9)) * -12}deg)`;
+}
+
+function updateBackdrop(t, i, lt, dur) {
+  const id = TL[i][0];
+  const hueSet = { s1: ['#2563EB', '#19D3B8'], s2: ['#19D3B8', '#2563EB'], s3: ['#2563EB', '#4F8BFF'], s4: ['#19D3B8', '#4F8BFF'], s5: ['#4F8BFF', '#19D3B8'], s6: ['#2563EB', '#19D3B8'], s7: ['#7C5CFF', '#2563EB'], s8: ['#19D3B8', '#2563EB'], s9: ['#19D3B8', '#4F8BFF'] }[id];
+  const g1 = el('glowA'), g2 = el('glowB');
+  g1.style.background = hueSet[0]; g2.style.background = hueSet[1];
+  g1.style.opacity = .42; g2.style.opacity = .34;
+  g1.style.left = (PORT ? -200 + Math.sin(t * .35) * 80 : 60 + Math.sin(t * .35) * 60) + 'px'; g1.style.top = (PORT ? 40 : -140) + 'px';
+  g2.style.left = (PORT ? W - W * .5 + 120 + Math.cos(t * .3) * 80 : W - W * .5 - 40 + Math.cos(t * .3) * 80) + 'px'; g2.style.top = (PORT ? H * .5 + Math.sin(t * .4) * 70 : H * .35) + 'px';
+  el('shade').style.background = `radial-gradient(ellipse at 50% 38%, rgba(11,18,32,.5), rgba(11,18,32,.88) 78%), linear-gradient(180deg, rgba(11,18,32,.35), rgba(11,18,32,.75))`;
+  el('foot').style.opacity = id === 's9' ? 0 : .9;
+}
+
+function updateFlash(t) {
+  let a = 0, cx = .5;
+  for (const [id, t0] of TL) { if (t0 === 0) continue; const d = (t - t0); if (d > -.22 && d < .38) { const p = (d + .22) / .6; a = Math.max(a, Math.sin(p * Math.PI)); cx = p; } }
+  const f = el('flash');
+  f.style.opacity = a * .9;
+  f.style.background = `linear-gradient(105deg, rgba(25,211,184,0) ${cx * 140 - 40}%, rgba(25,211,184,.35) ${cx * 140 - 25}%, rgba(255,255,255,.55) ${cx * 140 - 18}%, rgba(79,139,255,.25) ${cx * 140 - 8}%, rgba(79,139,255,0) ${cx * 140}%)`;
+}
+
+function renderFrame(t) {
+  t = clamp(t, 0, DUR - 1e-3);
+  let i = TL.findIndex(([_, a, b]) => t >= a && t < b); if (i < 0) i = TL.length - 1;
+  const [id, t0, t1] = TL[i], lt = t - t0, dur = t1 - t0;
+  drawBg(t, i, lt);
+  sctx.clearRect(0, 0, SW, SH);
+  SCENES[id](sctx, SW, SH, lt, dur);
+  // pemudar silang ke babak seterusnya
+  if (i < TL.length - 1 && t1 - t < .3) {
+    const nid = TL[i + 1][0];
+    if (nid !== 's9') { sctx.save(); sctx.globalAlpha = 1 - (t1 - t) / .3; SCENES[nid](sctx, SW, SH, 0, TL[i + 1][2] - TL[i + 1][1]); sctx.restore(); }
+  }
+  updateBackdrop(t, i, lt, dur); updatePhone(t, i, lt, dur); updateCaptions(t, i, lt, dur); updateOutro(t, i, lt, dur); updateFlash(t);
+  return true;
+}
+window.renderFrame = renderFrame;
+window.DUR = DUR; window.W = W; window.H = H;
+window.__ready = (async () => { await loadAll(); buildGeo(); layout(); renderFrame(0); return true; })();
+</script>
+</body>
+</html>

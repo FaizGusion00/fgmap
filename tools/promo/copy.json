@@ -1,0 +1,26 @@
+{
+  "ms": {
+    "s1": {"k": "LUAR TALIAN", "h": "Tiada isyarat?\nTetap sampai.", "s": "Laluan dikira terus dalam telefon anda."},
+    "s2": {"k": "PETA OFFLINE", "h": "Muat turun\nsekali.", "s": "Pek Malaysia ±254 MB. Selepas itu, laluan dikira tanpa internet.", "note": "Carian tempat dan harga minyak masih perlukan internet."},
+    "s3": {"k": "NAVIGASI", "h": "Belok demi\nbelok.", "s": "Suara Bahasa Melayu & English, kereta 3D, kamera auto dan laluan semula automatik.", "chips": ["Kereta", "Motosikal"]},
+    "s4": {"k": "LALUAN ALTERNATIF", "h": "Sehingga 10\npilihan laluan.", "s": "Disyorkan, terpantas, terpendek dan tiada tol, dengan beza masa & jarak.", "tag": "Contoh sebenar: KLCC → KLIA"},
+    "s5": {"k": "ANGGARAN TOL", "h": "Tahu kos\nsebelum jalan.", "s": "Daripada kadar rasmi LLM dan pengendali lebuh raya. Anggaran sahaja.", "chips": ["Anggaran tol", "Anggaran kos minyak"]},
+    "s6": {"k": "SEMUANYA ADA", "h": "Rumah, Kerja\n& cari berhampiran.", "s": "Satu ketuk ke destinasi kegemaran. Butang 999/112 sentiasa dekat.", "chips": ["Rumah", "Kerja", "Stesen minyak", "Makan", "Masjid", "Tandas", "Parkir", "Hospital"]},
+    "s7": {"k": "TEMA", "h": "Siang atau\nmalam.", "s": "Cerah, Gelap, Hitam AMOLED dan Matahari (automatik).", "chips": ["Cerah", "Gelap", "Hitam AMOLED", "Matahari"]},
+    "s8": {"k": "PERCUMA", "h": "Percuma.\nTiada iklan.", "s": "Tiada akaun, tiada langganan, tiada penjejakan.", "chips": ["Tiada akaun", "Tiada iklan", "Tiada penjejakan"]},
+    "s9": {"tagline": "Navigasi untuk Malaysia", "soon": "Segera hadir", "credit": "Dibangunkan oleh Faiz Nasir · FG Universal Empire Company", "plat": "Offline: Android"},
+    "common": {"illus": "Paparan ilustrasi", "osm": "Data peta © penyumbang OpenStreetMap", "offline": "Offline: Android", "airplane": "Mod pesawat", "fromTo": "KLCC → KLIA"}
+  },
+  "en": {
+    "s1": {"k": "OFFLINE", "h": "No signal?\nStill arrive.", "s": "Routes are calculated right on your phone."},
+    "s2": {"k": "OFFLINE MAPS", "h": "Download\nonce.", "s": "Malaysia pack ≈254 MB. After that, routes work with no internet.", "note": "Place search and fuel prices still need internet."},
+    "s3": {"k": "NAVIGATION", "h": "Turn by\nturn.", "s": "Malay & English voice, 3D car, auto camera and automatic rerouting.", "chips": ["Car", "Motorcycle"]},
+    "s4": {"k": "ALTERNATIVE ROUTES", "h": "Up to 10\nroute options.", "s": "Recommended, fastest, shortest and no-toll, with time & distance differences.", "tag": "Real example: KLCC → KLIA"},
+    "s5": {"k": "TOLL ESTIMATE", "h": "Know the cost\nbefore you go.", "s": "From official LLM and highway operator rates. Estimates only.", "chips": ["Toll estimate", "Fuel cost estimate"]},
+    "s6": {"k": "EVERYTHING INCLUDED", "h": "Home, Work\n& nearby search.", "s": "One tap to your favourite places. The 999/112 button is always close.", "chips": ["Home", "Work", "Fuel", "Food", "Mosque", "Toilets", "Parking", "Hospital"]},
+    "s7": {"k": "THEMES", "h": "Day or\nnight.", "s": "Light, Dark, AMOLED black and Sun (automatic).", "chips": ["Light", "Dark", "AMOLED black", "Sun"]},
+    "s8": {"k": "FREE", "h": "Free.\nNo ads.", "s": "No account, no subscription, no tracking.", "chips": ["No account", "No ads", "No tracking"]},
+    "s9": {"tagline": "Navigation for Malaysia", "soon": "Coming soon", "credit": "Built by Faiz Nasir · FG Universal Empire Company", "plat": "Offline: Android"},
+    "common": {"illus": "Illustrative view", "osm": "Map data © OpenStreetMap contributors", "offline": "Offline: Android", "airplane": "Airplane mode", "fromTo": "KLCC → KLIA"}
+  }
+}
