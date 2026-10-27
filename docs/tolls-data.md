@@ -13,7 +13,7 @@ Tiada angka direka. Sumber pihak ketiga yang menyenaraikan kadar saling **bercan
 Ipoh Kelas 1: RM21.73 pada satu tapak, RM17.50 pada yang lain), jadi tiada satu pun dipakai.
 
 Kelas kenderaan LLM (`transCode`): 1 = kereta, 2 = van/lori kecil, 3 = lori besar, 4 = teksi (50% kelas 1),
-5 = bas (75% kelas 1). Disahkan daripada data (Alor Pongsu ke Alor Setar: kelas 1 RM1.64, kelas 4 RM0.82,
+5 = bas (75% kelas 1). Disahkan daripada data (Alor Pongsu ke Bukit Merah: kelas 1 RM1.64, kelas 4 RM0.82,
 kelas 5 RM1.23). Pembetulan: versi 0.5.0 tersilap memetakan motosikal ke kelas 4 (teksi).
 
 ## Cara data dijana
