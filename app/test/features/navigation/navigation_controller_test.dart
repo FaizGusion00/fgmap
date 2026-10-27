@@ -500,6 +500,203 @@ void main() {
       },
     );
 
+    group('re-route: kestabilan', () {
+      final base = DateTime.utc(2026, 1, 1, 12, 10);
+      LocationFix offAt(int i, {double lateral = 14.0}) => LocationFix(
+        point: destinationPoint(navRoute.pointAt(700), 0, lateral * (i + 1)),
+        headingDegrees: 0,
+        accuracyMeters: 5,
+        speedMps: 14,
+        timestamp: base.add(Duration(seconds: i)),
+      );
+
+      RouteOption detourRoute() {
+        final detour = destinationPoint(navRoute.pointAt(700), 0, 100);
+        return RouteOption(
+          distanceM: 3000,
+          durationS: 220,
+          hasTolls: false,
+          points: [
+            detour,
+            destinationPoint(detour, 0, 1500),
+            destinationPoint(detour, 0, 3000),
+          ],
+          maneuvers: const [
+            Maneuver(
+              type: 1,
+              streetNames: [],
+              lengthM: 3000,
+              timeS: 220,
+              beginShapeIndex: 0,
+            ),
+            Maneuver(
+              type: 4,
+              streetNames: [],
+              lengthM: 0,
+              timeS: 0,
+              beginShapeIndex: 2,
+            ),
+          ],
+        );
+      }
+
+      test(
+        'asal diunjur ke hadapan sepanjang heading (RTT ~1.5 s x 14 m/s)',
+        () async {
+          await setUpContainer();
+          await begin();
+          await source.emitAll(driveFixes(navRoute, speedMps: 14, endM: 700));
+          GeoPoint? lastPoint;
+          late RouteQuery sent;
+          planner.handler = (q) async {
+            sent = q;
+            return [detourRoute()];
+          };
+          for (var i = 0; i < 6; i++) {
+            final f = offAt(i);
+            lastPoint = f.point;
+            await source.emit(f);
+            if (planner.queries.isNotEmpty) break;
+          }
+          expect(planner.queries, hasLength(1));
+          final lead = distanceMeters(sent.origin, lastPoint!);
+          expect(lead, closeTo(21, 4));
+          expect(bearingDegrees(lastPoint, sent.origin), closeTo(0, 3));
+          expect(sent.urgent, isTrue);
+          expect(sent.headingToleranceDegrees, 45);
+        },
+      );
+
+      test(
+        '"mengira semula" disebut sekali walaupun dicuba semula selepas gagal',
+        () async {
+          await setUpContainer();
+          await begin();
+          await source.emitAll(driveFixes(navRoute, speedMps: 14, endM: 700));
+          planner.handler = (_) async =>
+              throw const RoutingFailure(RoutingFailureKind.network);
+          for (var i = 0; i < 18; i++) {
+            await source.emit(offAt(i));
+          }
+          expect(planner.queries.length, greaterThanOrEqualTo(2));
+          expect(
+            voice.said.where((s) => s.$1.kind == AnnouncementKind.reroute),
+            hasLength(1),
+          );
+        },
+      );
+
+      test('cuba semula 3 s selepas gagal (bukan 8 s)', () async {
+        await setUpContainer();
+        await begin();
+        await source.emitAll(driveFixes(navRoute, speedMps: 14, endM: 700));
+        planner.handler = (_) async =>
+            throw const RoutingFailure(RoutingFailureKind.timeout);
+        var firstAt = -1;
+        var secondAt = -1;
+        for (var i = 0; i < 14; i++) {
+          await source.emit(offAt(i));
+          if (planner.queries.length == 1 && firstAt < 0) firstAt = i;
+          if (planner.queries.length == 2 && secondAt < 0) secondAt = i;
+        }
+        expect(firstAt, greaterThanOrEqualTo(0));
+        expect(secondAt - firstAt, inInclusiveRange(3, 4));
+      });
+
+      test(
+        'cooldown merentas sesi: selepas re-route berjaya tiada permintaan baharu dalam 8 s',
+        () async {
+          await setUpContainer();
+          await begin();
+          await source.emitAll(driveFixes(navRoute, speedMps: 14, endM: 700));
+          planner.handler = (_) async => [detourRoute()];
+          var i = 0;
+          while (state().routeVersion == 1 && i < 10) {
+            await source.emit(offAt(i++));
+          }
+          expect(state().routeVersion, 2);
+          final queriesAfterSwap = planner.queries.length;
+          // Pemandu terus jauh di luar laluan baharu (cth. asal disnap ke jalan lain).
+          final swappedAt = clock.now;
+          var t = swappedAt;
+          for (var k = 1; k <= 6; k++) {
+            t = swappedAt.add(Duration(seconds: k));
+            await source.emit(
+              LocationFix(
+                point: destinationPoint(
+                  destinationPoint(navRoute.pointAt(700), 0, 100),
+                  90,
+                  300.0 + 14 * k,
+                ),
+                headingDegrees: 90,
+                accuracyMeters: 5,
+                speedMps: 14,
+                timestamp: t,
+              ),
+            );
+          }
+          expect(
+            planner.queries.length,
+            queriesAfterSwap,
+            reason: 'masih dalam tempoh sejuk 8 s',
+          );
+          for (var k = 7; k <= 13; k++) {
+            await source.emit(
+              LocationFix(
+                point: destinationPoint(
+                  destinationPoint(navRoute.pointAt(700), 0, 100),
+                  90,
+                  300.0 + 14 * k,
+                ),
+                headingDegrees: 90,
+                accuracyMeters: 5,
+                speedMps: 14,
+                timestamp: swappedAt.add(Duration(seconds: k)),
+              ),
+            );
+          }
+          expect(planner.queries.length, greaterThan(queriesAfterSwap));
+        },
+      );
+
+      test(
+        'jawapan lewat dibuang bila pemandu sudah kembali ke laluan lama',
+        () async {
+          await setUpContainer();
+          await begin();
+          await source.emitAll(driveFixes(navRoute, speedMps: 14, endM: 700));
+          final completer = Completer<List<RouteOption>>();
+          planner.handler = (_) => completer.future;
+          var i = 0;
+          while (planner.queries.isEmpty && i < 8) {
+            await source.emit(offAt(i++));
+          }
+          expect(state().rerouting, isTrue);
+          // Kembali ke laluan asal (di hadapan) dan stabil di atasnya.
+          for (var k = 0; k < 5; k++) {
+            await source.emit(
+              LocationFix(
+                point: navRoute.pointAt(900.0 + 14 * k),
+                headingDegrees: 90,
+                accuracyMeters: 5,
+                speedMps: 14,
+                timestamp: base.add(Duration(seconds: i + k)),
+              ),
+            );
+          }
+          expect(state().progress!.status, NavStatus.onRoute);
+          completer.complete([detourRoute()]);
+          await pumpEventQueue();
+          expect(
+            state().routeVersion,
+            1,
+            reason: 'jawapan lewat tidak menggantikan laluan',
+          );
+          expect(state().rerouting, isFalse);
+        },
+      );
+    });
+
     test(
       'ralat aliran lokasi dilaporkan, dan pulih bila fix datang semula',
       () async {

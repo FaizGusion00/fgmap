@@ -283,23 +283,110 @@ void main() {
     });
 
     test(
-      'menyimpang jauh + arah lain: disahkan awal; cooldown mengawal ulangan',
+      'menyimpang jauh + arah lain: disahkan awal dan terus diminta (cooldown di pengawal)',
       () {
         final d = OffRouteDetector();
         final base = route.pointAt(400);
-        var triggered = 0;
+        final firedAt = <int>[];
         for (var i = 0; i < 12; i++) {
           final p = destinationPoint(base, 0, 80.0 + i * 14);
-          final fired = d.update(matchFor(p), fix(p, i, heading: 0));
-          if (fired) {
-            triggered++;
-            d.markRequested(DateTime.utc(2026, 1, 1).add(Duration(seconds: i)));
-          }
+          if (d.update(matchFor(p), fix(p, i, heading: 0))) firedAt.add(i);
         }
-        // Jauh (>3x ambang) disahkan pada fix ke-2; cooldown 8 s menghalang ulangan serta-merta.
-        expect(triggered, 2);
+        expect(firedAt, isNotEmpty);
+        expect(firedAt.first, lessThanOrEqualTo(2));
+        // Detektor tidak mempunyai cooldown sendiri; pengawal menapis ulangan.
+        expect(firedAt, [for (var i = firedAt.first; i < 12; i++) i]);
       },
     );
+
+    test(
+      'jalan selari searah 50 m (di atas ambang): akhirnya disahkan menyimpang',
+      () {
+        final d = OffRouteDetector();
+        var fired = -1;
+        for (var i = 0; i < 12; i++) {
+          final p = destinationPoint(route.pointAt(100.0 * i), 0, 50);
+          // Heading sama dengan laluan (timur = 90).
+          if (d.update(matchFor(p), fix(p, i, heading: 90)) && fired < 0) {
+            fired = i;
+          }
+        }
+        expect(fired, inInclusiveRange(2, 4), reason: '3 fix dan >= 2.5 s');
+      },
+    );
+
+    test(
+      'hysteresis: jarak antara 60% dan 100% ambang menahan kiraan, bukan memadam',
+      () {
+        final d = OffRouteDetector();
+        final base = route.pointAt(400);
+        probe(double lateral, int i) {
+          final p = destinationPoint(base, 0, lateral);
+          return d.update(matchFor(p), fix(p, i, heading: 0));
+        }
+
+        expect(probe(60, 0), isFalse);
+        expect(probe(60, 1), isFalse);
+        // Turun ke 28 m (antara 21 dan 35 m): kiraan ditahan.
+        expect(probe(28, 2), isFalse);
+        expect(
+          probe(60, 3),
+          isTrue,
+          reason: 'kiraan 3 dicapai walaupun ada fix di antara',
+        );
+      },
+    );
+
+    test('kembali dekat laluan (< 60% ambang) menetapkan semula kiraan', () {
+      final d = OffRouteDetector();
+      final base = route.pointAt(400);
+      probe(double lateral, int i) {
+        final p = destinationPoint(base, 0, lateral);
+        return d.update(matchFor(p), fix(p, i, heading: 0));
+      }
+
+      expect(probe(60, 0), isFalse);
+      expect(probe(60, 1), isFalse);
+      expect(probe(5, 2), isFalse);
+      expect(probe(60, 3), isFalse);
+      expect(probe(60, 4), isFalse);
+    });
+
+    test('perlahan (< 2 m/s) di luar laluan: perlu > 2x ambang dan 4 s', () {
+      final d = OffRouteDetector();
+      final base = route.pointAt(400);
+      var fired = -1;
+      for (var i = 0; i < 10; i++) {
+        final p = destinationPoint(base, 0, 90);
+        if (d.update(matchFor(p), fix(p, i, speed: 1)) && fired < 0) fired = i;
+      }
+      expect(fired, inInclusiveRange(4, 6));
+      final near = OffRouteDetector();
+      for (var i = 0; i < 10; i++) {
+        final p = destinationPoint(base, 0, 60);
+        expect(near.update(matchFor(p), fix(p, i, speed: 1)), isFalse);
+      }
+    });
+
+    test('tempoh awal sesi (grace): ambang dibesarkan 1.5x', () {
+      final d = OffRouteDetector(grace: const Duration(seconds: 6));
+      final base = route.pointAt(400);
+      for (var i = 0; i < 5; i++) {
+        final p = destinationPoint(base, 0, 45);
+        expect(
+          d.update(matchFor(p), fix(p, i, heading: 0)),
+          isFalse,
+          reason: 'dalam grace',
+        );
+      }
+      final later = OffRouteDetector();
+      var fired = false;
+      for (var i = 0; i < 5; i++) {
+        final p = destinationPoint(base, 0, 45);
+        fired = later.update(matchFor(p), fix(p, i, heading: 0)) || fired;
+      }
+      expect(fired, isTrue, reason: 'tanpa grace ia disahkan');
+    });
 
     test('hingar sekali sahaja (satu fix jauh) tidak mencetuskan', () {
       final d = OffRouteDetector();

@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/location/location_service.dart';
+import '../../../core/utils/geo.dart';
 import '../../route_preview/data/route_planner.dart';
 import '../../route_preview/domain/route_option.dart';
 import '../../route_preview/domain/routing_failure.dart';
@@ -125,6 +127,13 @@ class NavigationController extends Notifier<NavigationState> {
   Timer? _ticker;
   int _generation = 0;
   bool _reroutePending = false;
+
+  /// Tiada permintaan re-route baharu sebelum ini (cooldown bertahan merentas sesi: sesi dicipta semula
+  /// setiap kali laluan baharu dipasang).
+  DateTime? _rerouteBlockedUntil;
+
+  /// Anggaran masa pergi-balik re-route (EMA), untuk mengunjur asal ke hadapan.
+  Duration _rerouteRtt = const Duration(milliseconds: 1500);
   bool _refreshingLocation = false;
 
   /// Fix mentah terkini, untuk disuap ke sesi re-route baharu supaya HUD tidak kosong menunggu fix
@@ -331,24 +340,58 @@ class NavigationController extends Notifier<NavigationState> {
   /// Fix lebih lama daripada ini tidak disuap ke sesi re-route baharu (kenderaan sudah jauh).
   static const _maxFeedAge = Duration(seconds: 5);
 
+  /// Selang selepas re-route berjaya / gagal sebelum permintaan baharu dibenarkan.
+  static const _cooldownAfterSuccess = Duration(seconds: 8);
+  static const _cooldownAfterFailure = Duration(seconds: 3);
+
+  /// Jarak maksimum asal re-route diunjur ke hadapan (meter).
+  static const _maxOriginLeadM = 80.0;
+
   Future<void> _reroute(RerouteRequest request) async {
     final query = state.query;
     final session = _session;
     if (query == null || session == null || _reroutePending) return;
+    final clock = ref.read(navClockProvider);
+    final blocked = _rerouteBlockedUntil;
+    if (blocked != null && clock().isBefore(blocked)) return;
     _reroutePending = true;
     final generation = _generation;
+    final startedAt = clock();
+    // "Mengira semula" disebut sekali bagi satu episod menyimpang (bukan setiap percubaan).
+    final firstAttempt = !session.awaitingReroute;
+    session.noteRerouteRequested();
+    if (firstAttempt) _speak([session.reroutingNotice]);
     state = state.copyWith(rerouting: true);
+
+    // Kenderaan terus bergerak sepanjang pengiraan: asal diunjur ke hadapan sepanjang heading supaya
+    // laluan baharu tidak bermula di belakang kereta.
+    var origin = request.origin;
+    final heading = request.headingDegrees;
+    if (heading != null && request.speedMps > 3) {
+      final lead = math.min(
+        _maxOriginLeadM,
+        request.speedMps * _rerouteRtt.inMilliseconds / 1000,
+      );
+      origin = destinationPoint(origin, heading.toDouble(), lead);
+    }
 
     try {
       final options = await ref
           .read(routePlannerProvider)
-          .plan(
-            query.rerouteFrom(
-              request.origin,
-              headingDegrees: request.headingDegrees,
-            ),
-          );
+          .plan(query.rerouteFrom(origin, headingDegrees: heading));
       if (generation != _generation) return;
+      final took = clock().difference(startedAt);
+      _rerouteRtt = Duration(
+        milliseconds: ((_rerouteRtt.inMilliseconds + took.inMilliseconds) / 2)
+            .round()
+            .clamp(300, 6000),
+      );
+      // Pemandu sudah kembali ke laluan lama semasa menunggu: jawapan ini tidak diperlukan lagi.
+      if (identical(_session, session) &&
+          state.progress?.status == NavStatus.onRoute) {
+        state = state.copyWith(rerouting: false);
+        return;
+      }
       if (options.isEmpty) {
         throw const RoutingFailure(RoutingFailureKind.generic);
       }
@@ -364,6 +407,7 @@ class NavigationController extends Notifier<NavigationState> {
         isReroute: true,
       );
       _session = fresh;
+      _rerouteBlockedUntil = clock().add(_cooldownAfterSuccess);
       state = NavigationState(
         phase: NavPhase.active,
         route: route,
@@ -380,19 +424,20 @@ class NavigationController extends Notifier<NavigationState> {
       // banner hilang dan chip "mencari GPS" berkelip. Fix terkini (bukan yang mencetuskan
       // re-route; kedudukan sudah beralih sepanjang pengiraan) disuap terus.
       final fix = _lastFix;
-      final clock = ref.read(navClockProvider);
       if (fix != null &&
           clock().difference(fix.timestamp ?? clock()) <= _maxFeedAge) {
         _onFix(fix);
       }
     } on RoutingFailure catch (failure) {
       if (generation != _generation) return;
-      // Kekal di sesi semasa; pengesan menyimpang akan mencuba lagi selepas cooldown.
+      // Kekal di sesi semasa; pengesan menyimpang akan mencuba lagi selepas cooldown pendek.
+      _rerouteBlockedUntil = clock().add(_cooldownAfterFailure);
       state = state.copyWith(rerouting: false, rerouteFailure: failure.kind);
     } on Object catch (e) {
       // Apa-apa ralat lain (respons rosak, dsb.) tidak boleh meninggalkan "mengira semula" tersangkut.
       logDiag('Re-route gagal: $e');
       if (generation != _generation) return;
+      _rerouteBlockedUntil = clock().add(_cooldownAfterFailure);
       state = state.copyWith(
         rerouting: false,
         rerouteFailure: RoutingFailureKind.generic,

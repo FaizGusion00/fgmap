@@ -40,6 +40,9 @@ class OnlineRoutePlanner implements RoutePlanner {
   /// pengguna dengan isyarat lemah tidak menunggu lama sebelum enjin dalam peranti mengambil alih.
   final Duration timeout;
 
+  /// Tamat masa permintaan segera (re-route): lebih pendek supaya pemandu tidak menunggu lama.
+  static const urgentTimeout = Duration(seconds: 4);
+
   @override
   Future<List<RouteOption>> plan(RouteQuery query) async {
     try {
@@ -49,7 +52,7 @@ class OnlineRoutePlanner implements RoutePlanner {
         options: Options(
           contentType: Headers.jsonContentType,
           responseType: ResponseType.bytes,
-          receiveTimeout: timeout,
+          receiveTimeout: query.urgent ? urgentTimeout : timeout,
         ),
       );
       return parseRouteResponse(

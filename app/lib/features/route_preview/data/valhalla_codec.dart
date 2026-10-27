@@ -21,6 +21,8 @@ Map<String, Object?> buildRouteRequest(RouteQuery query) {
         'lon': query.origin.lng,
         // Heading hanya jika diketahui; membolehkan re-route Fasa 1 mengelak pusingan-U mustahil.
         'heading': ?query.headingDegrees,
+        if (query.headingDegrees != null)
+          'heading_tolerance': ?query.headingToleranceDegrees,
       },
       // `through`: laluan melalui titik ini tanpa memecahkan leg (jawapan kekal satu leg).
       for (final v in query.via)
