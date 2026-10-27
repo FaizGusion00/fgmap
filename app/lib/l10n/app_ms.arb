@@ -487,6 +487,14 @@
       }
     }
   },
+  "routeCount": "{count} laluan",
+  "@routeCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "routeMore": "Lagi {count}",
   "@routeMore": {
     "placeholders": {

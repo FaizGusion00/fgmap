@@ -1838,6 +1838,12 @@ abstract class AppLocalizations {
   /// **'{count, plural, =0{Tiada belokan} =1{1 belokan} other{{count} belokan}}'**
   String routeTurns(int count);
 
+  /// No description provided for @routeCount.
+  ///
+  /// In ms, this message translates to:
+  /// **'{count} laluan'**
+  String routeCount(int count);
+
   /// No description provided for @routeMore.
   ///
   /// In ms, this message translates to:

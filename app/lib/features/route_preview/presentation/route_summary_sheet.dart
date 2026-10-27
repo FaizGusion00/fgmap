@@ -346,6 +346,16 @@ class _ReadyBody extends StatelessWidget {
         ),
         const SizedBox(height: 14),
         if (state.options.length > 1) ...[
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Text(
+              l10n.routeCount(state.options.length),
+              key: const ValueKey('route-count'),
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
           _RouteOptionCards(
             options: state.visibleOptions,
             fastestS: fastestS,
