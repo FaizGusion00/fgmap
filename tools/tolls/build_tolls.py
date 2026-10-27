@@ -31,7 +31,7 @@ SOURCE = (
 
 # Singkatan umum dalam nama plaza OSM dan LLM.
 ABBREVIATIONS = {
-    "sg": "sungai", "tg": "tanjung", "kg": "kampung", "bt": "bukit", "pj": "petaling jaya",
+    "sg": "sungai", "kampong": "kampung", "tg": "tanjung", "kg": "kampung", "bt": "bukit", "pj": "petaling jaya",
     "ayer": "air", "bdr": "bandar", "tmn": "taman", "jln": "jalan", "kl": "kuala lumpur",
 }
 DIRECTIONS = {
@@ -130,6 +130,27 @@ def load_overpass(path):
     raise SystemExit("Overpass tidak dapat dicapai")
 
 
+def candidate_lines(pname, osm_nodes, limit=6):
+    """Calon nod OSM yang berkongsi sekurang-kurangnya satu perkataan bermakna (>= 4 huruf), untuk
+    membantu memilih alias secara manual. Hanya paparan; tidak mempengaruhi dataset."""
+    want = {w for w in tokens(pname)[0] if len(w) >= 4}
+    found = []
+    for e in osm_nodes:
+        tg = e.get("tags", {})
+        nm = tg.get("name") or ""
+        if not nm or not in_malaysia(e["lat"], e["lon"]):
+            continue
+        if want & set(tokens(nm)[0]):
+            found.append(e)
+    lines = []
+    for c in cluster(found)[:limit]:
+        names = sorted({x["tags"].get("name", "") for x in c["nodes"]})
+        ops = sorted({x["tags"].get("operator", "") for x in c["nodes"] if x["tags"].get("operator")})
+        lat, lon = c["center"]
+        lines.append(f"    calon: {lat:.5f},{lon:.5f} nama={names[:3]} operator={ops[:2]} nod={len(c['nodes'])}")
+    return lines
+
+
 def build_system(sysdata, osm_nodes, aliases, report):
     name = sysdata["highway"]
     sid = str(sysdata["highwayId"])
@@ -169,10 +190,10 @@ def build_system(sysdata, osm_nodes, aliases, report):
                 if want_dir and d and d != want_dir:
                     continue
                 cands.append(e)
-            if want_dir:
-                # Utamakan nod yang arahnya sepadan; jika OSM tiada arah, terima semua.
-                exact = [e for e in cands if tokens(e["tags"]["name"])[1] == want_dir]
-                cands = exact or cands
+            # Utamakan nod yang arahnya sepadan; jika nama LLM tiada arah, utamakan nod OSM tanpa arah
+            # (cth. "RAWANG" bukan "Rawang Selatan", yang ialah "RAWANG (S)"). Jika tiada, terima semua.
+            exact = [e for e in cands if tokens(e["tags"]["name"])[1] == want_dir]
+            cands = exact or cands
             if cands:
                 clusters = cluster(cands)
                 if len(clusters) > 1:
@@ -192,6 +213,7 @@ def build_system(sysdata, osm_nodes, aliases, report):
             matched += 1
         else:
             report.append(f"- TIDAK DIPADANKAN `{key}`")
+            report.extend(candidate_lines(pname, osm_nodes))
         out.append(entry)
     report.append(f"\n### {name}: {matched}/{n} plaza berkoordinat, {sysdata['routeCount']} laluan\n")
     return {"id": sid, "name": name, "plazas": out, "matrix": matrix}

@@ -105,7 +105,7 @@ void main() {
       () {
         for (final bad in [
           '{bukan json',
-          _rates([_plaza()], version: 2),
+          _rates([_plaza()], version: 3),
           '[]',
           null,
           jsonEncode({'version': 1, 'plazas': 'x'}),
@@ -166,17 +166,22 @@ void main() {
     });
 
     test(
-      'motosikal (kelas 4) hanya jika kadar wujud; tidak dianggap percuma',
+      'motosikal: tiada kelas dalam data LLM -> tidak diketahui, bukan percuma',
       () {
         final bike = rates.estimate([
           at(3.02),
           at(3.05),
         ], RouteVehicle.motorcycle);
-        expect(bike.knownRm, 0.0);
-        expect(bike.unknownCount, 1, reason: 'plaza kedua tiada kadar kelas 4');
-        expect(bike.isPartial, isTrue);
+        expect(bike.isUnknown, isTrue);
+        expect(bike.knownRm, 0);
+        expect(bike.plazaCount, 2);
       },
     );
+
+    test('tollClassOf: kereta kelas 1; motosikal tiada kelas', () {
+      expect(tollClassOf(RouteVehicle.car), '1');
+      expect(tollClassOf(RouteVehicle.motorcycle), isNull);
+    });
 
     test('padanan plaza dalam 250 m sahaja', () {
       final near = rates.estimate([at(3.0215)], RouteVehicle.car); // ~165 m
@@ -190,6 +195,167 @@ void main() {
       expect(e.plazaCount, 0);
       expect(e.isExact, isFalse);
       expect(e.isUnknown, isFalse);
+    });
+  });
+
+  group('sistem tertutup (versi 2)', () {
+    // Dua sistem: T (3 plaza di lat 3.02/3.05/3.08) dan U (2 plaza di lat 3.20/3.30).
+    String v2({
+      List<Object?>? tMatrix,
+      List<Map<String, Object?>> open = const [],
+    }) => jsonEncode({
+      'version': 2,
+      'lastVerified': '2026-08-31',
+      'source': 'ujian',
+      'closed': [
+        {
+          'id': 'T',
+          'name': 'Sistem T',
+          'plazas': [
+            {'id': 'a', 'name': 'A', 'lat': 3.02, 'lng': 101.7},
+            {'id': 'b', 'name': 'B', 'lat': 3.05, 'lng': 101.7},
+            {'id': 'c', 'name': 'C', 'lat': 3.08, 'lng': 101.7},
+          ],
+          // Baris = masuk, lajur = keluar. A->C = 7.5, A->B = 3.0, B->C = 4.5.
+          'matrix': tMatrix ?? [0, 3.0, 7.5, 3.0, 0, 4.5, 7.5, 4.5, 0],
+        },
+        {
+          'id': 'U',
+          'name': 'Sistem U',
+          'plazas': [
+            {'id': 'x', 'name': 'X', 'lat': 3.20, 'lng': 101.7},
+            {'id': 'y', 'name': 'Y', 'lat': 3.30, 'lng': 101.7},
+          ],
+          'matrix': [0, 10.0, 10.0, 0],
+        },
+      ],
+      'open': open,
+    });
+
+    TollPlaza at(double lat) =>
+        TollPlaza(id: '$lat', point: GeoPoint(lat, 101.7), alongM: lat);
+
+    test('metadata sumber dan tarikh dibaca', () {
+      final r = TollRates.parse(v2());
+      expect(r.isEmpty, isFalse);
+      expect(r.lastVerified, '2026-08-31');
+      expect(r.source, 'ujian');
+    });
+
+    test(
+      'larian masuk -> keluar: kadar pasangan pertama dan terakhir sahaja',
+      () {
+        final r = TollRates.parse(v2());
+        // A -> B -> C: masuk di A, keluar di C, jadi kadar sel A->C.
+        final e = r.estimate([at(3.02), at(3.05), at(3.08)], RouteVehicle.car);
+        expect(e.isExact, isTrue);
+        expect(e.knownRm, 7.5);
+        expect(e.plazaCount, 3);
+      },
+    );
+
+    test('kadar sepasang digunakan, bukan jumlah segmen', () {
+      final r = TollRates.parse(
+        v2(tMatrix: [0, 3.0, 6.0, 3.0, 0, 4.5, 6.0, 4.5, 0]),
+      );
+      final e = r.estimate([at(3.02), at(3.05), at(3.08)], RouteVehicle.car);
+      expect(e.knownRm, 6.0);
+    });
+
+    test('arah songsang menggunakan sel songsang matriks', () {
+      final r = TollRates.parse(
+        v2(tMatrix: [0, 3.0, 7.5, 3.5, 0, 4.5, 7.5, 4.5, 0]),
+      );
+      expect(r.estimate([at(3.05), at(3.02)], RouteVehicle.car).knownRm, 3.5);
+      expect(r.estimate([at(3.02), at(3.05)], RouteVehicle.car).knownRm, 3.0);
+    });
+
+    test('dua sistem berturutan dijumlah berasingan', () {
+      final r = TollRates.parse(v2());
+      final e = r.estimate([
+        at(3.02),
+        at(3.08),
+        at(3.20),
+        at(3.30),
+      ], RouteVehicle.car);
+      expect(e.isExact, isTrue);
+      expect(e.knownRm, 17.5);
+    });
+
+    test(
+      'satu plaza sahaja pada sistem tertutup: tidak diketahui (tiada pasangan)',
+      () {
+        final r = TollRates.parse(v2());
+        final e = r.estimate([at(3.05)], RouteVehicle.car);
+        expect(e.isUnknown, isTrue);
+      },
+    );
+
+    test('plaza tidak dipadankan di tengah memecahkan larian: jujur separa', () {
+      final r = TollRates.parse(v2());
+      // A, plaza tak dikenali (lat 3.065 ~1.6 km dari A/B), C: dua larian satu plaza -> semua tidak diketahui.
+      final e = r.estimate([at(3.02), at(3.065), at(3.08)], RouteVehicle.car);
+      expect(e.knownRm, 0);
+      expect(e.unknownCount, 3);
+    });
+
+    test('pasangan tanpa kadar (sel null/0): tidak diketahui', () {
+      final r = TollRates.parse(
+        v2(tMatrix: [0, 3.0, null, 3.0, 0, 4.5, null, 4.5, 0]),
+      );
+      final e = r.estimate([at(3.02), at(3.08)], RouteVehicle.car);
+      expect(e.isUnknown, isTrue);
+    });
+
+    test('matriks bukan N x N: sistem dibuang (tidak dipercayai)', () {
+      final r = TollRates.parse(v2(tMatrix: [0, 3.0, 7.5]));
+      // Sistem U masih sah.
+      expect(
+        r.estimate([at(3.02), at(3.08)], RouteVehicle.car).isUnknown,
+        isTrue,
+      );
+      expect(r.estimate([at(3.20), at(3.30)], RouteVehicle.car).knownRm, 10.0);
+    });
+
+    test('motosikal: tidak diketahui walaupun plaza dipadankan', () {
+      final r = TollRates.parse(v2());
+      final e = r.estimate([at(3.02), at(3.08)], RouteVehicle.motorcycle);
+      expect(e.isUnknown, isTrue);
+      expect(e.knownRm, 0);
+    });
+
+    test('koordinat di luar Malaysia: plaza tidak dipadankan', () {
+      final r = TollRates.parse(
+        jsonEncode({
+          'version': 2,
+          'closed': [
+            {
+              'id': 'Z',
+              'name': 'Z',
+              'plazas': [
+                {'id': 'a', 'name': 'A', 'lat': 51.5, 'lng': -0.12},
+                {'id': 'b', 'name': 'B', 'lat': 3.05, 'lng': 101.7},
+              ],
+              'matrix': [0, 5.0, 5.0, 0],
+            },
+          ],
+        }),
+      );
+      final e = r.estimate([at(3.05), at(51.5)], RouteVehicle.car);
+      expect(e.isUnknown, isTrue);
+    });
+
+    test('campuran: plaza tertutup + plaza harga tetap dijumlah', () {
+      final r = TollRates.parse(
+        v2(
+          open: [
+            _plaza(lat: 3.12, rates: {'1': 1.5}),
+          ],
+        ),
+      );
+      final e = r.estimate([at(3.02), at(3.08), at(3.12)], RouteVehicle.car);
+      expect(e.isExact, isTrue);
+      expect(e.knownRm, 9.0);
     });
   });
 

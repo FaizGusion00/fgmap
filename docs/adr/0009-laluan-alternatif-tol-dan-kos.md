@@ -30,8 +30,10 @@ tambahan yang berguna. Server Valhalla awam hanya memulangkan ~2 alternatif bagi
 5. **UI**: 6 kad, "Lagi N" untuk sehingga 10; kad menunjukkan masa, beza, jarak, belokan, tol/lebuh raya/feri.
 6. **Tol**: jalan bertol sebenar daripada bendera `toll` manuver Valhalla; plaza daripada OSM (Overpass) dipadankan
    ke laluan (<= 40 m, kelompok <= 150 m); harga HANYA daripada `assets/tolls/my_tolls.json` yang disahkan (sumber +
-   tarikh wajib). Dataset dihantar **kosong**: tiada sumber rasmi boleh-baca-mesin dan tapak pihak ketiga bercanggah
-   (lihat `docs/tolls-data.md`). UI jujur: "N plaza, harga tidak diketahui" / "RM x+ (sebahagian)" / "RM x".
+   tarikh wajib). Sistem tertutup (PLUS, LPT1, WCE, LEKAS, SKVE, SDE) dihantar dengan kadar rasmi kalkulator LLM
+   (kelas 1) yang dijana oleh `tools/tolls/build_tolls.py`; lebuh raya harga tetap belum ada sumber rasmi
+   boleh-baca-mesin dan kekal tidak diketahui. Motosikal: LLM tiada kelas motosikal, jadi harga tidak diketahui
+   (pembetulan: 0.5.0 tersilap memetakannya ke kelas 4 = teksi). Lihat `docs/tolls-data.md`. UI jujur: "N plaza, harga tidak diketahui" / "RM x+ (sebahagian)" / "RM x".
 7. **Kos minyak**: harga data.gov.my (cache 24 j, sandaran cache <= 30 hari, diambil hanya apabila laluan sedia)
    atau harga sendiri (RON95 berbeza mengikut subsidi); penggunaan L/100 km boleh ditetapkan. Tiada harga = tiada
    anggaran.
