@@ -279,7 +279,19 @@ void main() {
     return;
   }
   tearDownAll(() {
-    File('$out/flow/targets.json').writeAsStringSync(jsonEncode(_targets));
+    final f = File('$out/flow/targets.json');
+    final merged = <String, Object?>{};
+    if (f.existsSync()) {
+      merged.addAll(jsonDecode(f.readAsStringSync()) as Map<String, dynamic>);
+    }
+    for (final e in _targets.entries) {
+      final cur = Map<String, Object?>.from(
+        (merged[e.key] as Map<String, dynamic>?) ?? const {},
+      );
+      cur.addAll(e.value);
+      merged[e.key] = cur;
+    }
+    f.writeAsStringSync(jsonEncode(merged));
   });
   setUpAll(() async {
     await loadAppFonts();

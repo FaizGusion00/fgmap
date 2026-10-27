@@ -328,7 +328,7 @@ S.s03 = {
   fg(c, lt, sc) {
     kicker(c, COPY.s03.k, LAY.tx, LAY.kY, lt); const y = headline(c, COPY.s03.h, LAY.tx, LAY.hY, HS(sc.id), lt);
     !PORT && T(c, COPY.s03.s, LAY.tx, y + 22, { size: LAY.ss, w: 500, color: '#B8C5E0', a: fadeIn(lt, .9) });
-    callout(c, 'light', 'search_t3', { x: 8, y: 92, w: 374, h: 186 }, LAY.tx, y + 80, 560, 2.5, lt);
+    callout(c, 'light', 'search_t3', { x: 8, y: 92, w: 374, h: 232 }, LAY.tx, y + 80, 560, 2.5, lt);
   }
 };
 
@@ -456,7 +456,7 @@ S.s09 = {
   },
   fg(c, lt, sc) { kicker(c, COPY.s09.k, LAY.tx, LAY.kY, lt); const y = headline(c, COPY.s09.h, LAY.tx, LAY.hY, HS(sc.id), lt); !PORT && T(c, COPY.s09.s, LAY.tx, y + 22, { size: LAY.ss, w: 500, color: '#B8C5E0', a: fadeIn(lt, 1.0) });
     const f9 = Math.round(lerp(104, 124, clamp(lt / (sc.t1 - sc.t0 - .5))));
-    callout(c, 'light', 'nav_' + pad3(f9), { x: 4, y: 636, w: 84, h: 160 }, LAY.tx, y + 90, 220, 1.0, lt, { bgc: '#EEF1F6' }); }
+    callout(c, 'light', 'nav_' + pad3(f9), { x: 4, y: 636, w: 84, h: 160 }, LAY.tx, y + 90, 170, 1.0, lt, { bgc: '#EEF1F6' }); }
 };
 
 // s10 – sampai
@@ -493,7 +493,7 @@ S.s11 = {
   fg(c, lt, sc) {
     kicker(c, COPY.s11.k, LAY.tx, LAY.kY, lt); headline(c, COPY.s11.h, LAY.tx, LAY.hY, HS(sc.id), lt);
     const bs = this.beats(sc), chips = COPY.s11.chips;
-    const CR = [['map_idle', { x: 0, y: 100, w: 390, h: 80 }], ['search_empty', { x: 0, y: 428, w: 390, h: 196 }], ['nav_settings', { x: 0, y: 112, w: 390, h: 66 }], ['emergency', { x: 0, y: 440, w: 390, h: 196 }]];
+    const CR = [['map_idle', { x: 0, y: 100, w: 390, h: 80 }], ['search_empty', { x: 0, y: 428, w: 390, h: 196 }], ['nav_settings', { x: 4, y: 134, w: 382, h: 52 }], ['emergency', { x: 0, y: 440, w: 390, h: 196 }]];
     bs.forEach((b, i) => { if (lt >= b.t && (i === 3 || lt < bs[i + 1].t)) callout(c, 'dark', CR[i][0], CR[i][1], LAY.tx, LAY.hY + 190, 520, b.t + .15, lt, { noPort: true }); });
     chips.forEach((ch, i) => { const t = bs[i].t, a = clamp(eback((lt - t) / .5)); if (a <= 0) return; const active = lt >= t && (i === 3 || lt < bs[i + 1].t); const y = PORT ? 520 + (i % 2) * 84 : 330 + i * 96, x = PORT ? 72 + (i >> 1) * 470 : 1330; pillBox(c, ch, x + (1 - a) * 40, y, { size: 30, a: active ? 1 : .55, dot: true, shadow: true, bg: active ? 'rgba(16,36,74,.92)' : 'rgba(16,36,74,.6)', stroke: active ? TEAL : 'rgba(255,255,255,.2)' }); });
   }
@@ -520,12 +520,12 @@ S.s12 = {
     // kaunter muat turun
     const tp = 2.0, prog = clamp((lt - tp) / 1.5), mb = Math.round(254 * eio(prog)), a = fadeIn(lt, tp - .3);
     if (a > 0) {
-      const x = LAY.tx, yy = y + (PORT ? 190 : 200);
+      const x = LAY.tx, yy = y + (PORT ? 120 : 40);
       T(c, `${mb}`, x, yy + 100, { size: 150, w: 800, a, color: '#fff', ls: '-0.03em' }); T(c, 'MB', x + meas(c, `${mb}`, 150, 800, '-0.03em') + 16, yy + 100, { size: 56, w: 700, a, color: TEAL });
       c.save(); c.globalAlpha = a; c.fillStyle = 'rgba(255,255,255,.14)'; rr(c, x, yy + 130, 640, 14, 7); c.fill(); c.fillStyle = TEAL; rr(c, x, yy + 130, 640 * prog, 14, 7); c.fill(); c.restore();
       T(c, COPY.s12.statLabel, x, yy + 190, { size: 30, w: 500, color: '#B8C5E0', a });
     }
-    const air = smooth01(lt, tp + 3.0, tp + 3.4); if (air > 0) { c.save(); c.globalAlpha = air; const x0 = LAY.tx, y0 = (PORT ? 1330 : 880); pillBox(c, COPY.s12.airplane + ' · ' + (LANG === 'ms' ? 'laluan tetap berjalan' : 'routes keep working'), x0, y0, { size: 28, color: '#EAF1FF', bg: 'rgba(25,211,184,.16)', stroke: 'rgba(25,211,184,.5)', dot: true }); c.restore(); }
+    const air = smooth01(lt, tp + 3.0, tp + 3.4); if (air > 0) { c.save(); c.globalAlpha = air; const x0 = LAY.tx, y0 = y + (PORT ? 420 : 310); pillBox(c, COPY.s12.airplane + ' · ' + (LANG === 'ms' ? 'laluan tetap berjalan' : 'routes keep working'), x0, y0, { size: 28, color: '#EAF1FF', bg: 'rgba(25,211,184,.16)', stroke: 'rgba(25,211,184,.5)', dot: true }); c.restore(); }
   }
 };
 function planeFg(c, cx, cy, s) { c.save(); c.translate(cx - s / 2, cy - s / 2); c.scale(s / 24, s / 24); c.fillStyle = TEAL; c.fill(PLANE); c.restore(); }
