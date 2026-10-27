@@ -71,31 +71,106 @@ def parse_kesas(text):
     return {"Awan Besar": rate, "Sunway": rate, "Kemuning": rate}
 
 
-# kunci: (id, nama, URL, penghurai); plaza: label -> kata kunci nama OSM (huruf kecil, semua mesti ada)
+def parse_mex(text):
+    if not re.search(r"SALAK SELATAN TOLL PLAZA SERI KEMBANGAN TOLL PLAZA PUTRAJAYA UTAMA TOLL PLAZA", text):
+        raise ParseError("tajuk plaza MEX berubah")
+    rates = []
+    for m in re.finditer(r"Class 1 Vehicles with 2 axles and 3 or 4 wheels excluding taxies " + RM, text):
+        rates.append(float(m.group(1)))
+    if len(rates) != 3 or any(r <= 0 or r > 50 for r in rates):
+        raise ParseError(f"kadar MEX tidak sah: {rates}")
+    return {"Salak Selatan": rates[0], "Seri Kembangan": rates[1], "Putrajaya": rates[2]}
+
+
+def _prolintas_class1(text, plaza_label=None):
+    """Kadar kelas 1 jadual Prolintas ("1 Cars with 2 Axles 1.75"); jika `plaza_label`, jadual selepas tajuk itu."""
+    start = 0
+    if plaza_label:
+        m = re.search(re.escape(plaza_label) + r" Toll Plaza", text)
+        if not m:
+            raise ParseError(f"tiada tajuk plaza '{plaza_label}'")
+        start = m.end()
+    m = re.search(r"\b1 Cars? with 2 Axles (\d+\.\d{2})\b", text[start:])
+    if not m:
+        raise ParseError("tiada baris kelas 1 Prolintas")
+    rate = float(m.group(1))
+    if rate <= 0 or rate > 50:
+        raise ParseError(f"kadar tidak sah: {rate}")
+    return rate
+
+
+def parse_prolintas_flat(*labels):
+    """Satu jadual kadar untuk semua plaza lebuh raya (halaman tidak membezakan plaza)."""
+    def parse(text):
+        rate = _prolintas_class1(text)
+        return {label: rate for label in labels}
+    return parse
+
+
+def parse_lksa(text):
+    return {"Seri Muda": _prolintas_class1(text, "Seri Muda"), "Alam Impian": _prolintas_class1(text, "Alam Impian")}
+
+
+# `osm`: label plaza -> awalan nama nod OSM (huruf kecil). Hanya awalan yang disahkan sepadan dengan plaza
+# berkenaan (daripada senarai nod OSM dan halaman pengendali); plaza lain pada lebuh raya yang sama TIDAK
+# dianggap sama kadar kecuali halaman pengendali menyatakannya. Selebihnya kekal "tidak diketahui".
 SOURCES = [
     {
         "id": "ldp", "name": "LDP (Lebuhraya Damansara-Puchong)",
         "url": "https://litrak.com.my/our-highways/litrak/toll-fares/", "parse": parse_ldp,
-        "osm": {"Penchala": ["penchala"], "Petaling Jaya": ["petaling", "jaya"],
-                "Puchong Barat": ["puchong", "barat"], "Puchong Selatan": ["puchong", "selatan"]},
-        "operator": ["litrak", "lingkaran trans kota"],
+        "osm": {"Penchala": ["plaza tol penchala"], "Petaling Jaya": ["plaza tol petaling jaya"],
+                "Puchong Barat": ["plaza tol puchong barat"], "Puchong Selatan": ["plaza tol puchong selatan"]},
     },
     {
         "id": "sprint", "name": "SPRINT",
         "url": "https://litrak.com.my/our-highways/sprint/toll-fares/", "parse": parse_sprint,
-        "osm": {"Damansara": ["damansara"], "Pantai": ["pantai"], "Bukit Kiara": ["bukit", "kiara"]},
-        "operator": ["sistem penyuraian trafik kl barat", "sprint"],
+        "osm": {"Damansara": ["plaza tol damansara ("], "Pantai": ["plaza tol pantai ("],
+                "Bukit Kiara": ["plaza tol bukit kiara"]},
     },
     {
         "id": "llb", "name": "Lebuhraya Lingkaran Luar Butterworth (LLB)",
         "url": "https://llb.com.my/tambang-tol/", "parse": parse_llb,
-        "osm": {"Perai": ["perai"], "Bagan Ajam": ["bagan", "ajam"], "Sungai Nyior": ["sungai", "nyior"]},
-        "operator": ["lingkaran luar butterworth", "llb"],
+        "osm": {"Perai": ["perai toll plaza"], "Bagan Ajam": ["plaza tol bagan ajam"],
+                "Sungai Nyior": ["plaza tol sungai nyior"]},
     },
     {
         "id": "kesas", "name": "KESAS (Lebuhraya Shah Alam)",
         "url": "https://kesas.com.my/toll-lane/", "parse": parse_kesas,
-        "osm": {"Awan Besar": ["awan", "besar"], "Sunway": ["sunway"], "Kemuning": ["kemuning"]},
-        "operator": ["kesas"],
+        "osm": {"Awan Besar": ["plaza tol awan besar"], "Sunway": ["plaza tol sunway"],
+                "Kemuning": ["plaza tol kemuning"]},
+    },
+    {
+        "id": "mex", "name": "MEX (Lebuhraya Maju)",
+        "url": "https://www.mex.com.my/features-and-facilities/toll-operations/", "parse": parse_mex,
+        # "Putrajaya": dua plaza OSM bernama sama (ELITE dan MEX); koordinat MEX dalam aliases.json.
+        "osm": {"Salak Selatan": ["plaza tol salak selatan"], "Seri Kembangan": ["plaza tol mex seri kembangan"],
+                "Putrajaya": []},
+    },
+    {
+        "id": "gce", "name": "GCE (Guthrie Corridor Expressway)",
+        "url": "https://www.prolintas.com.my/gce/",
+        "parse": parse_prolintas_flat("Elmina", "Lagong", "Bukit Jelutong"),
+        "osm": {"Elmina": ["plaza tol elmina"], "Lagong": ["plaza tol lagong"],
+                "Bukit Jelutong": ["plaza tol bukit jelutong", "lorong tol berlapis gce bukit jelutong"]},
+    },
+    {
+        "id": "lksa", "name": "LKSA (Lebuhraya Kemuning-Shah Alam)",
+        "url": "https://www.prolintas.com.my/lksa/", "parse": parse_lksa,
+        "osm": {"Seri Muda": ["plaza tol seri muda"], "Alam Impian": ["plaza tol lksa alam impian"]},
+    },
+    {
+        "id": "akleh", "name": "AKLEH (Lebuhraya Ampang-Kuala Lumpur Layang)",
+        "url": "https://www.prolintas.com.my/akleh/", "parse": parse_prolintas_flat("Ampang"),
+        "osm": {"Ampang": ["plaza tol ampang ("]},
+    },
+    {
+        "id": "silk", "name": "SILK (Lebuhraya Kajang Dispersal Link)",
+        "url": "https://www.prolintas.com.my/kajang-silk/", "parse": parse_prolintas_flat("Sungai Balak"),
+        "osm": {"Sungai Balak": ["plaza tol sungai balak"]},
+    },
+    {
+        "id": "dash", "name": "DASH (Lebuhraya Damansara-Shah Alam Layang)",
+        "url": "https://www.prolintas.com.my/dash/", "parse": parse_prolintas_flat("Kota Damansara"),
+        "osm": {"Kota Damansara": ["plaza tol kota damansara (dash)"]},
     },
 ]

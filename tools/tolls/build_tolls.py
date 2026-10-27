@@ -236,20 +236,17 @@ def build_open(osm_nodes, aliases, report, verified_on):
         except Exception as e:  # noqa: BLE001 - sumber gagal: dilaporkan, plaza kekal tidak diketahui
             report.append(f"- SUMBER GAGAL `{src['id']}` {src['url']}: {e!r}")
             continue
-        hints = src["operator"]
         for label, rate in rates.items():
             key = f"open:{src['id']}:{label}"
             points = []
             if aliases.get(key, {}).get("lat") is not None:
                 points = [(aliases[key]["lat"], aliases[key]["lon"])]
             else:
-                want = set(src["osm"][label])
+                prefixes = src["osm"][label]
                 cands = [
                     e for e in osm_nodes
                     if e.get("tags", {}).get("name") and in_malaysia(e["lat"], e["lon"])
-                    and want <= name_words(e["tags"]["name"])
-                    # Pengendali wajib sepadan: nama sahaja bercampur (cth. "Pantai" ada pada NPE dan SPRINT).
-                    and any(h in (e["tags"].get("operator") or "").lower() for h in hints)
+                    and any(e["tags"]["name"].lower().startswith(pf) for pf in prefixes)
                 ]
                 clusters = cluster(cands, 600)
                 if 1 <= len(clusters) <= 2:
