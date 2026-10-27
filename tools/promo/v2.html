@@ -372,9 +372,9 @@ S.s05 = {
     const tr = tgt('toll_summary', 'light'), fr = tgt('fuel_cost', 'light'), im = img(FP('light', 'route_ready_0'));
     // kad zum sebenar (potongan lembaran laluan sebenar)
     const k = im ? im.naturalWidth / 390 : 2;
-    const cw = PORT ? 900 : 560;
-    if (tr && im) { const a = eback((lt - .7) / .6); if (a > 0) { const ch = Math.min(260, cw * tr.h / tr.w); crop(c, im, { x: tr.l * k, y: tr.t * k, w: tr.w * k, h: tr.h * k }, LAY.tx, y + 60, cw, cw * tr.h / tr.w, { a: clamp(a), bgc: META.light.surface, r: 28, border: TEAL, bw: 4 }); } }
-    if (fr && im) { const a = eback((lt - 3.6) / .6); if (a > 0) { const th_ = cw * fr.h / fr.w; const y0 = y + 60 + (tr ? cw * tr.h / tr.w + 24 : 0); crop(c, im, { x: fr.l * k, y: fr.t * k, w: fr.w * k, h: fr.h * k }, LAY.tx, y0, cw, th_, { a: clamp(a), bgc: META.light.surface, r: 28, border: TEAL, bw: 4 }); } }
+    const cw = PORT ? 900 : 500;
+    if (tr && im) { const a = eback((lt - .7) / .6); if (a > 0) { const ch = Math.min(260, cw * tr.h / tr.w); crop(c, im, { x: tr.l * k, y: tr.t * k, w: tr.w * k, h: tr.h * k }, LAY.tx, y + 30, cw, cw * tr.h / tr.w, { a: clamp(a), bgc: META.light.surface, r: 28, border: TEAL, bw: 4 }); } }
+    if (fr && im) { const a = eback((lt - 3.6) / .6); if (a > 0) { const th_ = cw * fr.h / fr.w; const y0 = y + 30 + (tr ? cw * tr.h / tr.w + 20 : 0); crop(c, im, { x: fr.l * k, y: fr.t * k, w: fr.w * k, h: fr.h * k }, LAY.tx, y0, cw, th_, { a: clamp(a), bgc: META.light.surface, r: 28, border: TEAL, bw: 4 }); } }
     const chips = COPY.s05.chips; let x = LAY.tx; chips.forEach((ch, i) => { const a = clamp(eback((lt - (.4 + i * 3.2)) / .5)); if (a > 0 && !(tr && im)) x += pillBox(c, ch, x, y + 70, { size: 28, a, dot: true }) + 12; });
   }
 };
@@ -404,7 +404,7 @@ const smooth01 = (lt, a, b) => sstep(a, b, lt);
 
 // s07 – navigasi (potongan ringkas daripada simulasi app sebenar)
 const NAV_SEGS = [[0, 26, 3.4], [100, 128, 3.1], [150, 176, 2.8]];
-function navF(lt, scale = 1) { let t = lt, acc = 0; for (const [a, b, d] of NAV_SEGS) { const dd = d * scale; if (t < dd) return { f: lerp(a, b, eio(t / dd) * .35 + t / dd * .65), seg: acc }; t -= dd; acc++; } const l = NAV_SEGS[NAV_SEGS.length - 1]; return { f: l[1], seg: acc - 1 }; }
+function navF(lt, scale = 1) { let t = Math.max(0, lt), acc = 0; for (const [a, b, d] of NAV_SEGS) { const dd = d * scale; if (t < dd) return { f: lerp(a, b, eio(t / dd) * .35 + t / dd * .65), seg: acc }; t -= dd; acc++; } const l = NAV_SEGS[NAV_SEGS.length - 1]; return { f: l[1], seg: acc - 1 }; }
 S.s07 = {
   screen(c, lt, sc) {
     const th = 'light', { f, seg } = navF(lt - .5, (sc.t1 - sc.t0 - 1) / 9.3), fi = Math.round(f);
@@ -520,12 +520,12 @@ S.s12 = {
     // kaunter muat turun
     const tp = 2.0, prog = clamp((lt - tp) / 1.5), mb = Math.round(254 * eio(prog)), a = fadeIn(lt, tp - .3);
     if (a > 0) {
-      const x = LAY.tx, yy = y + (PORT ? 120 : 40);
+      const x = LAY.tx, yy = y + (PORT ? 120 : 62);
       T(c, `${mb}`, x, yy + 100, { size: 150, w: 800, a, color: '#fff', ls: '-0.03em' }); T(c, 'MB', x + meas(c, `${mb}`, 150, 800, '-0.03em') + 16, yy + 100, { size: 56, w: 700, a, color: TEAL });
       c.save(); c.globalAlpha = a; c.fillStyle = 'rgba(255,255,255,.14)'; rr(c, x, yy + 130, 640, 14, 7); c.fill(); c.fillStyle = TEAL; rr(c, x, yy + 130, 640 * prog, 14, 7); c.fill(); c.restore();
       T(c, COPY.s12.statLabel, x, yy + 190, { size: 30, w: 500, color: '#B8C5E0', a });
     }
-    const air = smooth01(lt, tp + 3.0, tp + 3.4); if (air > 0) { c.save(); c.globalAlpha = air; const x0 = LAY.tx, y0 = y + (PORT ? 420 : 310); pillBox(c, COPY.s12.airplane + ' · ' + (LANG === 'ms' ? 'laluan tetap berjalan' : 'routes keep working'), x0, y0, { size: 28, color: '#EAF1FF', bg: 'rgba(25,211,184,.16)', stroke: 'rgba(25,211,184,.5)', dot: true }); c.restore(); }
+    const air = smooth01(lt, tp + 3.0, tp + 3.4); if (air > 0) { c.save(); c.globalAlpha = air; const x0 = LAY.tx, y0 = y + (PORT ? 420 : 330); pillBox(c, COPY.s12.airplane + ' · ' + (LANG === 'ms' ? 'laluan tetap berjalan' : 'routes keep working'), x0, y0, { size: 28, color: '#EAF1FF', bg: 'rgba(25,211,184,.16)', stroke: 'rgba(25,211,184,.5)', dot: true }); c.restore(); }
   }
 };
 function planeFg(c, cx, cy, s) { c.save(); c.translate(cx - s / 2, cy - s / 2); c.scale(s / 24, s / 24); c.fillStyle = TEAL; c.fill(PLANE); c.restore(); }
