@@ -97,10 +97,17 @@ class NavProgress {
 
 @immutable
 class RerouteRequest {
-  const RerouteRequest({required this.origin, required this.headingDegrees});
+  const RerouteRequest({
+    required this.origin,
+    required this.headingDegrees,
+    this.speedMps = 0,
+  });
 
   final GeoPoint origin;
   final int? headingDegrees;
+
+  /// Kelajuan semasa (m/s); digunakan oleh pengawal untuk mengunjur asal ke hadapan sepanjang latensi.
+  final double speedMps;
 }
 
 @immutable
@@ -131,6 +138,9 @@ class NavigationSession {
     this.isReroute = false,
   }) : _clock = clock ?? DateTime.now,
        _tracker = RouteTracker(route),
+       _offRoute = OffRouteDetector(
+         grace: isReroute ? const Duration(seconds: 6) : Duration.zero,
+       ),
        vehicle = VehicleModel(route),
        _planner = AnnouncementPlanner(
          route: route,
@@ -142,7 +152,7 @@ class NavigationSession {
   final DateTime Function() _clock;
   final RouteTracker _tracker;
   final FixFilter _filter = FixFilter();
-  final OffRouteDetector _offRoute = OffRouteDetector();
+  final OffRouteDetector _offRoute;
   final AnnouncementPlanner _planner;
 
   /// Model gerakan kenderaan untuk bingkai kamera.
@@ -158,6 +168,13 @@ class NavigationSession {
   DateTime? _lastFixClock;
   double _lastBearing = 0;
   bool _offRouteRequested = false;
+
+  /// Status "luar laluan" semasa; digunakan untuk hysteresis (kembali ke laluan perlu jarak < 60% ambang).
+  bool _offState = false;
+
+  /// Heading GPS terakhir yang sah dan masanya: digunakan jika fix semasa pegun (tiada heading).
+  double? _lastGpsHeading;
+  DateTime? _lastGpsHeadingTime;
   bool _arrived = false;
   bool _gpsLostAnnounced = false;
   bool _startPending = true;
@@ -201,8 +218,15 @@ class NavigationSession {
     );
     _startAlong ??= match.alongM;
 
-    final threshold = OffRouteDetector.thresholdFor(fix.accuracyM);
-    final onRoute = match.crossTrackM <= threshold;
+    final threshold = _offRoute.threshold(fix);
+    final onRoute = _offState
+        ? match.crossTrackM <= threshold * OffRouteDetector.returnRatio
+        : match.crossTrackM <= threshold;
+    _offState = !onRoute;
+    if (fix.headingDegrees != null && fix.speedMps >= 1) {
+      _lastGpsHeading = fix.headingDegrees;
+      _lastGpsHeadingTime = fix.time;
+    }
 
     var announcements = <Announcement>[];
     RerouteRequest? reroute;
@@ -228,12 +252,12 @@ class NavigationSession {
       );
       if (fix.headingDegrees != null) _lastBearing = fix.headingDegrees!;
       if (request) {
-        _offRoute.markRequested(fix.time);
-        _offRouteRequested = true;
-        announcements = [_planner.reroutingNotice];
+        // Pengawal memutuskan sama ada permintaan dihantar (cooldown, permintaan tertunda) dan, jika
+        // ya, memanggil [noteRerouteRequested] serta menyebut "mengira semula" sekali.
         reroute = RerouteRequest(
           origin: fix.point,
-          headingDegrees: fix.headingDegrees?.round(),
+          headingDegrees: _headingForReroute(fix)?.round(),
+          speedMps: fix.speedMps,
         );
       }
     }
@@ -449,4 +473,18 @@ class NavigationSession {
 
   /// Benar jika re-route telah diminta dan belum pulih ke laluan.
   bool get awaitingReroute => _offRouteRequested;
+
+  /// Pengawal memanggil ini apabila permintaan re-route benar-benar dihantar.
+  void noteRerouteRequested() => _offRouteRequested = true;
+
+  /// Heading untuk permintaan re-route: heading fix semasa, atau heading GPS terakhir (<= 10 s) jika
+  /// kenderaan sedang perlahan/berhenti.
+  double? _headingForReroute(FilteredFix fix) {
+    if (fix.headingDegrees != null) return fix.headingDegrees;
+    final at = _lastGpsHeadingTime;
+    if (at != null && fix.time.difference(at) <= const Duration(seconds: 10)) {
+      return _lastGpsHeading;
+    }
+    return null;
+  }
 }

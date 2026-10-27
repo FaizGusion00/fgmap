@@ -59,6 +59,7 @@ void main() {
       primary: online,
       forSource: (s) => s == RouteSource.online ? online : offline,
       stagger: Duration.zero,
+      retryDelay: Duration.zero,
     );
   });
 
@@ -79,12 +80,13 @@ void main() {
       expect(online.queries.first.alternates, 2);
       final extra = online.queries.skip(1).toList();
       expect(options.first.label, RouteLabel.recommended);
-      expect(extra, hasLength(8), reason: 'dihadkan maxExtra');
+      expect(extra, hasLength(10), reason: 'dihadkan maxExtra');
       expect(extra.every((q) => q.alternates == 0), isTrue);
       expect(extra.any((q) => q.avoidTolls && !q.avoidHighways), isTrue);
       expect(extra.any((q) => q.avoidHighways && !q.avoidTolls), isTrue);
       expect(extra.any((q) => q.shortest), isTrue);
-      expect(extra.where((q) => q.exclusions.isNotEmpty), hasLength(5));
+      expect(extra.where((q) => q.exclusions.isNotEmpty), hasLength(1));
+      expect(extra.where((q) => q.via.isNotEmpty), hasLength(6));
     },
   );
 
@@ -109,19 +111,21 @@ void main() {
     },
   );
 
-  test('lencongan paksa menghasilkan laluan alternatif yang berbeza', () async {
+  test('titik lalu menghasilkan laluan alternatif yang berbeza', () async {
     online.handler = (q) async {
-      if (q.exclusions.isNotEmpty) {
-        // Laluan yang mengelilingi bulatan: geometri berbeza bergantung pada kedudukan bulatan.
-        final bulge = q.exclusions.single.center.lat > (klcc.lat + klia.lat) / 2
-            ? 0.05
-            : -0.05;
+      if (q.via.isNotEmpty) {
+        // Sisi titik lalu (kiri/kanan laluan lurus) menentukan arah lencongan.
+        final v = q.via.single;
+        final side =
+            ((v.lat - klcc.lat) * (klia.lng - klcc.lng) -
+                    (v.lng - klcc.lng) * (klia.lat - klcc.lat))
+                .sign;
         return [
           sampleOption(
             durationS: 3200,
             distanceM: 63000,
             hasTolls: false,
-            points: _path(bulge),
+            points: _path(side > 0 ? 0.05 : -0.05),
           ),
         ];
       }
@@ -130,7 +134,7 @@ void main() {
 
     final options = await planner.plan(_query);
 
-    // Utama + 2 arah lencongan yang berbeza (utara/selatan) + (kemungkinan) tanpa tol dsb.
+    // Utama + kedua-dua arah titik lalu (utara/selatan) yang berbeza.
     expect(options.length, greaterThanOrEqualTo(3));
     expect(options.first.label, RouteLabel.recommended);
   });
@@ -161,20 +165,67 @@ void main() {
   );
 
   test(
-    'tiada laluan untuk satu lencongan (442): yang lain diteruskan',
+    'tiada laluan untuk satu permintaan (442): yang lain diteruskan',
     () async {
-      var detourCalls = 0;
       online.handler = (q) async {
-        if (q.exclusions.isNotEmpty) {
-          detourCalls++;
-          throw const RoutingFailure(RoutingFailureKind.noRoute);
+        if (q.shortest) throw const RoutingFailure(RoutingFailureKind.noRoute);
+        return [tolled()];
+      };
+
+      await planner.plan(_query);
+
+      expect(
+        online.queries,
+        hasLength(11),
+        reason: 'noRoute bukan kegagalan sistem',
+      );
+    },
+  );
+
+  test(
+    'kegagalan sementara (timeout) dicuba semula sekali dan berjaya',
+    () async {
+      var failedOnce = false;
+      online.handler = (q) async {
+        if (q.via.isNotEmpty && !failedOnce) {
+          failedOnce = true;
+          throw const RoutingFailure(RoutingFailureKind.timeout);
         }
         return [tolled()];
       };
 
       await planner.plan(_query);
 
-      expect(detourCalls, 5, reason: 'noRoute bukan kegagalan sistem');
+      expect(
+        online.queries,
+        hasLength(12),
+        reason: '1 asas + 10 tambahan + 1 cuba semula',
+      );
+    },
+  );
+
+  test(
+    '3 kegagalan sementara berturutan menghentikan permintaan tambahan',
+    () async {
+      planner = MultiRoutePlanner(
+        primary: online,
+        forSource: (_) => online,
+        maxConcurrent: 1,
+        stagger: Duration.zero,
+        retryDelay: Duration.zero,
+      );
+      online.handler = (q) async {
+        if (q.alternates == 0) {
+          throw const RoutingFailure(RoutingFailureKind.timeout);
+        }
+        return [tolled()];
+      };
+
+      final batches = await planner.watch(_query).toList();
+
+      // 1 asas + 3 permintaan x 2 percubaan.
+      expect(online.queries, hasLength(7));
+      expect(batches.last.done, isTrue);
     },
   );
 

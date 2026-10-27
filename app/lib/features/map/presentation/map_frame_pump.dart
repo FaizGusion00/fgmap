@@ -32,6 +32,16 @@ class MapFramePump {
   int _diagMaxRttUs = 0;
   int _diagReportedAtMs = 0;
 
+  /// Masa pergi-balik panggilan kamera (EMA). Peta native menunjukkan kamera ini selepas selang ini
+  /// (ditambah ~1 bingkai paparan), jadi pemacu bingkai menghantar pose yang diunjur sejauh ini supaya
+  /// jalan di bawah kereta (dilukis serta-merta oleh Flutter) tidak ketinggalan di selekoh.
+  Duration get cameraLatency => _latency;
+  Duration _latency = Duration.zero;
+  static const _maxLatency = Duration(milliseconds: 120);
+
+  /// Kelewatan paparan tetap selepas panggilan selesai (satu vsync).
+  static const _renderDelay = Duration(milliseconds: 16);
+
   VehicleMarker? _vehicle;
   bool _vehicleDirty = false;
   CameraPose? _camera;
@@ -90,10 +100,19 @@ class MapFramePump {
   }
 
   Future<void> _timedCamera(CameraPose pose) async {
-    if (!diagnostics) return sendCamera(pose);
     final started = _diagClock.elapsedMicroseconds;
     await sendCamera(pose);
     final rtt = _diagClock.elapsedMicroseconds - started;
+    final sample = Duration(microseconds: rtt) + _renderDelay;
+    final mixed = _latency == Duration.zero
+        ? sample
+        : Duration(
+            microseconds:
+                (_latency.inMicroseconds * 0.8 + sample.inMicroseconds * 0.2)
+                    .round(),
+          );
+    _latency = mixed > _maxLatency ? _maxLatency : mixed;
+    if (!diagnostics) return;
     _diagSends++;
     _diagRttUs += rtt;
     if (rtt > _diagMaxRttUs) _diagMaxRttUs = rtt;

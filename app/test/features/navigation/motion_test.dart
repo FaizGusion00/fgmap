@@ -45,7 +45,20 @@ void main() {
         prev = p.alongM;
       }
       expect(maxStep, lessThan(2.5));
-      expect(prev, closeTo(136, 2));
+      // Penapis alfa: separuh daripada beza 8 m diterima pada fix pertama (hingar GPS tidak terus ke
+      // skrin); baki dibetulkan oleh fix seterusnya.
+      expect(prev, closeTo(132, 2));
+      final t2 = t1.add(const Duration(seconds: 1));
+      v.onRouteFix(alongM: 136, speedMps: 14, time: t2);
+      var settled = v.poseAt(t2).alongM;
+      for (var ms = 16; ms <= 1000; ms += 16) {
+        settled = v.poseAt(t2.add(Duration(milliseconds: ms))).alongM;
+      }
+      expect(
+        settled,
+        closeTo(148, 2),
+        reason: 'selisih terus mengecil dengan setiap fix yang konsisten',
+      );
     });
 
     test(

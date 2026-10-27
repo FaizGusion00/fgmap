@@ -1018,6 +1018,11 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
+  String routeCount(int count) {
+    return '$count laluan';
+  }
+
+  @override
   String routeMore(int count) {
     return 'Lagi $count';
   }

@@ -1017,6 +1017,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String routeCount(int count) {
+    return '$count routes';
+  }
+
+  @override
   String routeMore(int count) {
     return '$count more';
   }

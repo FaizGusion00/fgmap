@@ -167,22 +167,32 @@ void main() {
         session.onFix(f);
       }
       RerouteRequest? request;
-      var requests = 0;
-      var spokenRerouting = 0;
+      var firstRequestFix = -1;
+      var i = 0;
       for (final f in offRouteDrive()) {
         clock.now = f.timestamp!;
         final u = session.onFix(f)!;
-        if (u.reroute != null) {
-          request ??= u.reroute;
-          requests++;
+        if (u.reroute != null && request == null) {
+          request = u.reroute;
+          firstRequestFix = i;
+          // Pengawal yang menyebut "mengira semula", bukan sesi (supaya tidak berulang).
+          expect(
+            u.announcements.where((a) => a.kind == AnnouncementKind.reroute),
+            isEmpty,
+          );
         }
-        spokenRerouting += u.announcements
-            .where((a) => a.kind == AnnouncementKind.reroute)
-            .length;
+        i++;
       }
-      expect(requests, 1);
-      expect(spokenRerouting, 1);
+      expect(request, isNotNull);
+      expect(
+        firstRequestFix,
+        inInclusiveRange(1, 4),
+        reason: 'sah dalam beberapa fix',
+      );
       expect(request!.headingDegrees, 0);
+      expect(request.speedMps, closeTo(14, 0.5));
+      expect(session.awaitingReroute, isFalse);
+      session.noteRerouteRequested();
       expect(session.awaitingReroute, isTrue);
       expect(session.progress!.status, NavStatus.offRoute);
     });

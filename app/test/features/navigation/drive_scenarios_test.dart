@@ -299,43 +299,37 @@ void main() {
   });
 
   group('selekoh salah', () {
-    test(
-      'menyimpang: re-route diminta dalam 8 s, tidak diulang dalam tempoh cooldown',
-      () {
-        final route = NavRoute(lShapedRoute(legM: 3000));
-        final r = _start(route);
-        for (final f in driveFixes(route, speedMps: 14, endM: 1000)) {
-          r.feed(f);
+    test('menyimpang: re-route diminta dalam 8 s', () {
+      final route = NavRoute(lShapedRoute(legM: 3000));
+      final r = _start(route);
+      for (final f in driveFixes(route, speedMps: 14, endM: 1000)) {
+        r.feed(f);
+      }
+      final start = route.pointAt(1000);
+      var t = r.clock.now;
+      final requestedAt = <int>[];
+      var seen = 0;
+      for (var i = 1; i <= 20; i++) {
+        t = t.add(const Duration(seconds: 1));
+        r.feed(
+          LocationFix(
+            point: destinationPoint(start, 0, 14.0 * i),
+            headingDegrees: 0,
+            accuracyMeters: 5,
+            speedMps: 14,
+            timestamp: t,
+          ),
+        );
+        if (r.reroutes > seen) {
+          requestedAt.add(i);
+          seen = r.reroutes;
         }
-        final start = route.pointAt(1000);
-        var t = r.clock.now;
-        final requestedAt = <int>[];
-        var seen = 0;
-        for (var i = 1; i <= 20; i++) {
-          t = t.add(const Duration(seconds: 1));
-          r.feed(
-            LocationFix(
-              point: destinationPoint(start, 0, 14.0 * i),
-              headingDegrees: 0,
-              accuracyMeters: 5,
-              speedMps: 14,
-              timestamp: t,
-            ),
-          );
-          if (r.reroutes > seen) {
-            requestedAt.add(i);
-            seen = r.reroutes;
-          }
-        }
-        expect(requestedAt, isNotEmpty);
-        expect(requestedAt.first, inInclusiveRange(1, 8));
-        // Sesi tidak diganti dalam ujian ini (pengawal sebenar menggantikannya); percubaan semula
-        // hanya selepas cooldown 8 s, bukan setiap fix.
-        for (var i = 1; i < requestedAt.length; i++) {
-          expect(requestedAt[i] - requestedAt[i - 1], greaterThanOrEqualTo(8));
-        }
-      },
-    );
+      }
+      expect(requestedAt, isNotEmpty);
+      expect(requestedAt.first, inInclusiveRange(1, 8));
+      // Cooldown dan permintaan tertunda dikawal oleh NavigationController (merentas sesi, lihat
+      // navigation_controller_test); sesi terus mencadangkan selagi menyimpang.
+    });
   });
 
   group('simpang rapat (bandar)', () {

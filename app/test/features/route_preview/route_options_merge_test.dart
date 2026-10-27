@@ -18,6 +18,16 @@ List<GeoPoint> _path(GeoPoint a, GeoPoint b, {double bulge = 0, int n = 60}) {
   ];
 }
 
+/// Jarak terdekat (meter) titik [p] ke garis [path].
+double nearestPointOnPath(List<GeoPoint> path, GeoPoint p) {
+  var best = double.infinity;
+  for (var i = 0; i < path.length - 1; i++) {
+    final d = projectToSegment(p, path[i], path[i + 1]).distanceM;
+    if (d < best) best = d;
+  }
+  return best;
+}
+
 double _hump(double t) => 4 * t * (1 - t);
 
 /// Salinan [route] dengan manuver sintetik: [turns] belokan kanan dan [uTurns] pusingan-U.
@@ -319,15 +329,39 @@ void main() {
         expect(merged, hasLength(1));
       });
 
-      test('perjalanan panjang: had +15 min (bukan 1.4x)', () {
+      test(
+        'kurang daripada 5 pilihan: had dilonggarkan (+25 min), bukan +15 min',
+        () {
+          final merged = mergeRouteCandidates(
+            standard: [
+              _route(durationS: 10800, distanceM: 300000, points: direct),
+              _route(durationS: 11500, distanceM: 310000, points: north),
+              _route(durationS: 12000, distanceM: 320000, points: south),
+            ],
+          );
+          expect(merged.map((r) => r.durationS), [10800, 11500, 12000]);
+        },
+      );
+
+      test('sudah ada 5 pilihan dalam had ketat: had +15 min dikekalkan', () {
         final merged = mergeRouteCandidates(
           standard: [
-            _route(durationS: 10800, distanceM: 300000, points: direct),
-            _route(durationS: 11500, distanceM: 310000, points: north),
-            _route(durationS: 12000, distanceM: 320000, points: south),
+            for (var i = 0; i < 5; i++)
+              _route(
+                durationS: 10800 + i * 60,
+                distanceM: 300000 + i * 1000,
+                points: _path(klcc, klia, bulge: (i - 2) * 0.05),
+              ),
+            // +20 min: di luar peringkat ketat; tidak perlu kerana sudah cukup 5.
+            _route(
+              durationS: 12000,
+              distanceM: 330000,
+              points: _path(klcc, klia, bulge: 0.4),
+            ),
           ],
         );
-        expect(merged.map((r) => r.durationS), [10800, 11500]);
+        expect(merged, hasLength(5));
+        expect(merged.every((r) => r.durationS < 12000), isTrue);
       });
 
       test('perjalanan sangat pendek mempunyai lantai +3 min', () {
@@ -386,6 +420,126 @@ void main() {
     });
   });
 
+  group('label dan pilihan laluan (ujian jalanan 0.5.1)', () {
+    test('laluan jauh yang sedikit lebih laju tidak menjadi "Disyorkan"', () {
+      final merged = mergeRouteCandidates(
+        standard: [
+          _route(durationS: 2600, distanceM: 55000, points: direct),
+          _route(durationS: 2700, distanceM: 40000, points: north),
+        ],
+      );
+      expect(merged.first.distanceM, 40000);
+      expect(merged.first.label, RouteLabel.recommended);
+      expect(merged[1].label, RouteLabel.fastest);
+    });
+
+    test(
+      'laluan yang lebih jauh DAN lebih lama tidak pernah dilabel istimewa',
+      () {
+        final merged = mergeRouteCandidates(
+          standard: [
+            _route(durationS: 2800, distanceM: 50000, points: direct),
+            _route(durationS: 3300, distanceM: 70000, points: north),
+            _route(durationS: 3000, distanceM: 52000, points: south),
+          ],
+        );
+        expect(merged.first.durationS, 2800);
+        final worst = merged.firstWhere((r) => r.distanceM == 70000);
+        expect(worst.label, RouteLabel.alternative);
+      },
+    );
+
+    test(
+      '"Terpendek" diberi kepada laluan jarak minimum walaupun bebas tol',
+      () {
+        final merged = mergeRouteCandidates(
+          standard: [
+            _route(
+              durationS: 2400,
+              distanceM: 60000,
+              points: direct,
+              hasTolls: true,
+            ),
+            _route(durationS: 2700, distanceM: 48000, points: north),
+          ],
+        );
+        expect(merged.first.durationS, 2400);
+        final other = merged[1];
+        expect(other.distanceM, 48000);
+        expect(other.label, RouteLabel.shortest);
+      },
+    );
+
+    test('hanya satu laluan "Disyorkan", "Terpantas" ialah masa minimum', () {
+      final merged = mergeRouteCandidates(
+        standard: [
+          _route(durationS: 3000, distanceM: 50000, points: direct),
+          _route(durationS: 2950, distanceM: 49000, points: north),
+          _route(durationS: 3200, distanceM: 47000, points: south),
+        ],
+      );
+      expect(
+        merged.where((r) => r.label == RouteLabel.recommended),
+        hasLength(1),
+      );
+      final fastest = merged
+          .map((r) => r.durationS)
+          .reduce((a, b) => a < b ? a : b);
+      for (final r in merged) {
+        if (r.label == RouteLabel.fastest) expect(r.durationS, fastest);
+        if (r.label == RouteLabel.shortest) {
+          expect(
+            r.distanceM,
+            merged.map((x) => x.distanceM).reduce((a, b) => a < b ? a : b),
+          );
+        }
+      }
+    });
+
+    test(
+      'laluan utama sebelumnya dikekalkan kecuali yang baharu jelas lebih baik',
+      () {
+        final first = mergeRouteCandidates(
+          standard: [_route(durationS: 3000, distanceM: 50000, points: direct)],
+        ).first;
+        final stable = mergeRouteCandidates(
+          standard: [
+            _route(durationS: 3000, distanceM: 50000, points: direct),
+            _route(durationS: 2990, distanceM: 50000, points: north),
+          ],
+          incumbent: first,
+        );
+        expect(stable.first.durationS, 3000);
+        final better = mergeRouteCandidates(
+          standard: [
+            _route(durationS: 3000, distanceM: 50000, points: direct),
+            _route(durationS: 2800, distanceM: 49000, points: north),
+          ],
+          incumbent: first,
+        );
+        expect(better.first.durationS, 2800);
+      },
+    );
+
+    test('"Tanpa lebuh raya" hanya jika laluan sebenar tiada lebuh raya', () {
+      final merged = mergeRouteCandidates(
+        standard: [_route(durationS: 2400, distanceM: 60000, points: direct)],
+        noHighways: [
+          sampleOption(
+            durationS: 2900,
+            distanceM: 62000,
+            points: north,
+            hasHighway: true,
+          ),
+        ],
+      );
+      expect(
+        merged.map((r) => r.label),
+        isNot(contains(RouteLabel.noHighways)),
+      );
+    });
+  });
+
   group('planCandidateRequests', () {
     RouteOption mainRoute({int distanceM = 60000, bool tolls = true}) => _route(
       durationS: 3000,
@@ -396,7 +550,7 @@ void main() {
     const base = RouteQuery(origin: klcc, destination: klia);
 
     test(
-      'perjalanan panjang berbayar tol: tanpa tol, elak lebuh raya, terpendek, lencongan',
+      'perjalanan panjang berbayar tol: tanpa tol, elak lebuh raya, terpendek, titik lalu, satu lencongan',
       () {
         final requests = planCandidateRequests(base, [mainRoute()]);
 
@@ -407,27 +561,41 @@ void main() {
         ]);
         expect(
           requests,
-          hasLength(8),
-          reason: 'dihadkan 8 permintaan tambahan',
+          hasLength(10),
+          reason: 'dihadkan 10 permintaan tambahan',
         );
         expect(requests.every((r) => r.query.alternates == 0), isTrue);
 
-        final detours = requests
-            .where((r) => r.origin == RouteCandidateOrigin.detour)
+        final vias = requests.where((r) => r.query.via.isNotEmpty).toList();
+        expect(vias, hasLength(6));
+        // Titik lalu ~7% jarak (4200 m) di sisi laluan, tidak menelan asal/destinasi.
+        for (final r in vias) {
+          final v = r.query.via.single;
+          expect(distanceMeters(v, klcc), greaterThan(3500));
+          expect(distanceMeters(v, klia), greaterThan(3500));
+          final onLine = nearestPointOnPath(direct, v);
+          expect(onLine, inInclusiveRange(3500, 4800));
+        }
+        // Ada kedua-dua sisi.
+        final sides = vias
+            .map(
+              (r) =>
+                  ((r.query.via.single.lat - klcc.lat) * (klia.lng - klcc.lng) -
+                          (r.query.via.single.lng - klcc.lng) *
+                              (klia.lat - klcc.lat))
+                      .sign,
+            )
+            .toSet();
+        expect(sides, hasLength(2));
+
+        final excl = requests
+            .where((r) => r.query.exclusions.isNotEmpty)
             .toList();
-        expect(detours, hasLength(5));
-        // Bulatan di tengah dahulu; jejari 2% jarak (1200 m), tidak menelan asal/destinasi.
-        final first = detours.first.query.exclusions.single;
+        expect(excl, hasLength(1));
+        final first = excl.single.query.exclusions.single;
         expect(first.radiusM, 1200);
         expect(distanceMeters(first.center, klcc), greaterThan(1600));
         expect(distanceMeters(first.center, klia), greaterThan(1600));
-        expect(
-          distanceMeters(
-            first.center,
-            GeoPoint((klcc.lat + klia.lat) / 2, (klcc.lng + klia.lng) / 2),
-          ),
-          lessThan(2000),
-        );
       },
     );
 
@@ -440,7 +608,7 @@ void main() {
     });
 
     test(
-      'perjalanan pendek: tiada lencongan; sangat pendek: tiada langsung',
+      'perjalanan pendek: titik lalu kecil; sangat pendek: tiada langsung',
       () {
         final medium = planCandidateRequests(base, [
           mainRoute(distanceM: 6000, tolls: false),
@@ -449,14 +617,27 @@ void main() {
           medium.where((r) => r.origin == RouteCandidateOrigin.noHighways),
           hasLength(1),
         );
+        final via = medium.where((r) => r.query.via.isNotEmpty).toList();
+        expect(via, isNotEmpty);
+        // 7% daripada 6 km = 420 m (lantai 400 m).
         expect(
-          medium.where((r) => r.origin == RouteCandidateOrigin.detour).length,
-          lessThanOrEqualTo(3),
+          nearestPointOnPath(direct, via.first.query.via.single),
+          inInclusiveRange(300, 600),
         );
+
+        final short = planCandidateRequests(base, [
+          mainRoute(distanceM: 2000, tolls: false),
+        ]);
+        expect(
+          short.where((r) => r.origin == RouteCandidateOrigin.noHighways),
+          isEmpty,
+          reason: 'elak lebuh raya hanya >= 3 km',
+        );
+        expect(short, isNotEmpty);
 
         expect(
           planCandidateRequests(base, [
-            mainRoute(distanceM: 2000, tolls: false),
+            mainRoute(distanceM: 1000, tolls: false),
           ]),
           isEmpty,
         );
@@ -467,9 +648,9 @@ void main() {
       final huge = planCandidateRequests(base, [
         mainRoute(distanceM: 400000, tolls: false),
       ]);
-      for (final r in huge.where(
-        (r) => r.origin == RouteCandidateOrigin.detour,
-      )) {
+      final excl = huge.where((r) => r.query.exclusions.isNotEmpty);
+      expect(excl, isNotEmpty);
+      for (final r in excl) {
         expect(r.query.exclusions.single.radiusM, 1400);
       }
     });

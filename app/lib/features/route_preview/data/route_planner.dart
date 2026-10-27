@@ -40,6 +40,9 @@ class OnlineRoutePlanner implements RoutePlanner {
   /// pengguna dengan isyarat lemah tidak menunggu lama sebelum enjin dalam peranti mengambil alih.
   final Duration timeout;
 
+  /// Tamat masa permintaan segera (re-route): lebih pendek supaya pemandu tidak menunggu lama.
+  static const urgentTimeout = Duration(seconds: 4);
+
   @override
   Future<List<RouteOption>> plan(RouteQuery query) async {
     try {
@@ -49,7 +52,7 @@ class OnlineRoutePlanner implements RoutePlanner {
         options: Options(
           contentType: Headers.jsonContentType,
           responseType: ResponseType.bytes,
-          receiveTimeout: timeout,
+          receiveTimeout: query.urgent ? urgentTimeout : timeout,
         ),
       );
       return parseRouteResponse(
@@ -168,9 +171,10 @@ class MultiRoutePlanner implements ProgressiveRoutePlanner {
   MultiRoutePlanner({
     required this.primary,
     required this.forSource,
-    this.maxExtra = 8,
+    this.maxExtra = 10,
     this.maxConcurrent = 2,
     this.stagger = const Duration(milliseconds: 250),
+    this.retryDelay = const Duration(milliseconds: 600),
   });
 
   /// Perancang bagi laluan biasa (dasar online/offline pengguna).
@@ -183,13 +187,26 @@ class MultiRoutePlanner implements ProgressiveRoutePlanner {
   final int maxConcurrent;
   final Duration stagger;
 
-  static const _systemFailures = {
+  /// Jeda sebelum mencuba semula kegagalan sementara.
+  final Duration retryDelay;
+
+  /// Kegagalan yang menghentikan semua permintaan tambahan serta-merta: pelayan menyekat kita atau enjin
+  /// dalam peranti rosak. Cuba lagi tidak membantu.
+  static const _hardStops = {
     RoutingFailureKind.rateLimited,
+    RoutingFailureKind.offlineEngine,
+  };
+
+  /// Kegagalan sementara: dicuba semula sekali dan dikira dalam [maxTransientFailures].
+  static const _transient = {
     RoutingFailureKind.unavailable,
     RoutingFailureKind.timeout,
     RoutingFailureKind.network,
-    RoutingFailureKind.offlineEngine,
   };
+
+  /// Selepas sekian banyak kegagalan sementara berturutan (selepas cuba semula) pelayan dianggap tidak
+  /// sihat dan permintaan tambahan dihentikan.
+  static const maxTransientFailures = 3;
 
   @override
   Future<List<RouteOption>> plan(RouteQuery query) async =>
@@ -224,7 +241,10 @@ class MultiRoutePlanner implements ProgressiveRoutePlanner {
         maxExtra: maxExtra,
       );
       final found = <RouteCandidateOrigin, List<RouteOption>>{};
+      // Laluan utama kelompok sebelumnya: kad pertama tidak bertukar kecuali calon baharu jelas lebih baik.
+      RouteOption? lastPrimary;
       List<RouteOption> merged() => mergeRouteCandidates(
+        incumbent: lastPrimary,
         standard: standard,
         noTolls: found[RouteCandidateOrigin.noTolls] ?? const [],
         noHighways: found[RouteCandidateOrigin.noHighways] ?? const [],
@@ -236,6 +256,7 @@ class MultiRoutePlanner implements ProgressiveRoutePlanner {
       var lastSignature = '';
       void emit({required bool done}) {
         final options = merged();
+        if (options.isNotEmpty) lastPrimary = options.first;
         final signature = _signature(options);
         if (!done && signature == lastSignature) return;
         lastSignature = signature;
@@ -248,6 +269,7 @@ class MultiRoutePlanner implements ProgressiveRoutePlanner {
       final planner = forSource(standard.first.source);
       var next = 0;
       var stopped = false;
+      var transientFailures = 0;
       Future<void> worker(int index) async {
         // Mulakan pekerja berperingkat supaya pelayan awam tidak menerima letusan serentak.
         if (index > 0 && stagger > Duration.zero) {
@@ -255,14 +277,30 @@ class MultiRoutePlanner implements ProgressiveRoutePlanner {
         }
         while (!stopped && !isCancelled() && next < requests.length) {
           final request = requests[next++];
-          try {
-            final routes = await planner.plan(request.query);
-            (found[request.origin] ??= []).addAll(routes);
-          } on RoutingFailure catch (failure) {
-            if (_systemFailures.contains(failure.kind)) stopped = true;
-          } on Object catch (e) {
-            if (kDebugMode) logDiag('Permintaan laluan tambahan gagal: $e');
-            stopped = true;
+          for (var attempt = 0; attempt < 2; attempt++) {
+            try {
+              final routes = await planner.plan(request.query);
+              (found[request.origin] ??= []).addAll(routes);
+              transientFailures = 0;
+              break;
+            } on RoutingFailure catch (failure) {
+              if (_hardStops.contains(failure.kind)) {
+                stopped = true;
+                break;
+              }
+              if (!_transient.contains(failure.kind)) {
+                break; // noRoute dll.: langkau
+              }
+              if (attempt == 0 && !isCancelled()) {
+                await Future<void>.delayed(retryDelay);
+                continue;
+              }
+              if (++transientFailures >= maxTransientFailures) stopped = true;
+            } on Object catch (e) {
+              if (kDebugMode) logDiag('Permintaan laluan tambahan gagal: $e');
+              if (++transientFailures >= maxTransientFailures) stopped = true;
+              break;
+            }
           }
           if (isCancelled()) return;
           emit(done: false);

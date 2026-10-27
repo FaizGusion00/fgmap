@@ -790,6 +790,9 @@ class _MapLibreCamera implements MapCameraController {
   }
 
   @override
+  Duration get cameraLatency => pump.cameraLatency;
+
+  @override
   void moveTo(CameraPose pose) => pump.moveCamera(pose);
 
   @override

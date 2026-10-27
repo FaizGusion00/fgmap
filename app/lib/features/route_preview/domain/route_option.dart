@@ -205,6 +205,9 @@ class RouteQuery {
     this.destinationRadiusM,
     this.shortest = false,
     this.exclusions = const [],
+    this.via = const [],
+    this.urgent = false,
+    this.headingToleranceDegrees,
   });
 
   final GeoPoint origin;
@@ -231,6 +234,17 @@ class RouteQuery {
   /// berbeza). Kosong untuk permintaan biasa.
   final List<RouteExclusion> exclusions;
 
+  /// Titik lalu (Valhalla `through`) yang memaksa laluan melalui sisi lain jalan utama; menghasilkan
+  /// alternatif yang benar-benar berbeza. Kosong untuk permintaan biasa.
+  final List<GeoPoint> via;
+
+  /// Permintaan segera (re-route semasa memandu): tamat masa lebih pendek supaya jatuh balik ke
+  /// enjin offline atau percubaan semula tidak menunggu lama.
+  final bool urgent;
+
+  /// Toleransi heading asal (darjah) bagi Valhalla (`heading_tolerance`); null = lalai pelayan (60).
+  final int? headingToleranceDegrees;
+
   RouteQuery copyWith({
     bool? avoidTolls,
     bool? avoidHighways,
@@ -238,6 +252,7 @@ class RouteQuery {
     int? alternates,
     bool? shortest,
     List<RouteExclusion>? exclusions,
+    List<GeoPoint>? via,
   }) {
     return RouteQuery(
       origin: origin,
@@ -251,6 +266,9 @@ class RouteQuery {
       destinationRadiusM: destinationRadiusM,
       shortest: shortest ?? this.shortest,
       exclusions: exclusions ?? this.exclusions,
+      via: via ?? this.via,
+      urgent: urgent,
+      headingToleranceDegrees: headingToleranceDegrees,
     );
   }
 
@@ -281,6 +299,10 @@ class RouteQuery {
       alternates: 0,
       destinationRadiusM: destinationRadiusM,
       shortest: shortest,
+      urgent: true,
+      // Heading GPS semasa selekoh/pecutan boleh lewat; toleransi 45 deg mengelak asal dipadankan ke
+      // jalan arah bertentangan tanpa terlalu ketat.
+      headingToleranceDegrees: headingDegrees == null ? null : 45,
     );
   }
 }

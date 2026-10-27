@@ -411,6 +411,14 @@
       }
     }
   },
+  "routeCount": "{count} routes",
+  "@routeCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "routeMore": "{count} more",
   "@routeMore": {
     "placeholders": {

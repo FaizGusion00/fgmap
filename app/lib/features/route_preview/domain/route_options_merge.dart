@@ -40,9 +40,27 @@ double routeCoverage(
 }
 
 /// Dua laluan dianggap sama jika masing-masing hampir sepenuhnya terletak pada yang satu lagi.
-bool isSameRoute(RouteOption a, RouteOption b, {double threshold = 0.85}) {
-  return routeCoverage(a.points, b.points) >= threshold &&
-      routeCoverage(b.points, a.points) >= threshold;
+///
+/// Dengan [middleOnly], hanya bahagian tengah (buang [middleCut] di awal dan akhir yang hampir selalu
+/// dikongsi oleh semua laluan) dibandingkan, jadi laluan yang berbeza di tengah tidak dianggap sama.
+bool isSameRoute(
+  RouteOption a,
+  RouteOption b, {
+  double threshold = 0.85,
+  bool middleOnly = false,
+}) {
+  final pa = middleOnly ? middleOf(a.points) : a.points;
+  final pb = middleOnly ? middleOf(b.points) : b.points;
+  return routeCoverage(pa, pb) >= threshold &&
+      routeCoverage(pb, pa) >= threshold;
+}
+
+/// Bahagian tengah garis: buang [cut] (pecahan) di awal dan akhir.
+List<GeoPoint> middleOf(List<GeoPoint> points, {double cut = 0.15}) {
+  if (points.length < 8) return points;
+  final from = (points.length * cut).floor();
+  final to = (points.length * (1 - cut)).ceil();
+  return points.sublist(from, to);
 }
 
 /// Indeks laluan yang paling hampir dengan [tap] dan dalam [toleranceM], atau null. Untuk memilih
@@ -77,13 +95,20 @@ int? nearestRouteIndex(
 /// Ingatan keputusan [isSameRoute] supaya pasangan yang sama tidak dikira semula setiap kali
 /// calon baharu tiba (penggabungan berlaku berkali-kali semasa laluan tiba berperingkat).
 class SameRouteMemo {
-  final Map<(RouteOption, RouteOption), bool> _cache = {};
+  final Map<(RouteOption, RouteOption, bool), bool> _cache = {};
 
-  bool isSame(RouteOption a, RouteOption b, double threshold) {
-    final key = identityHashCode(a) <= identityHashCode(b) ? (a, b) : (b, a);
+  bool isSame(
+    RouteOption a,
+    RouteOption b,
+    double threshold, {
+    bool middleOnly = false,
+  }) {
+    final key = identityHashCode(a) <= identityHashCode(b)
+        ? (a, b, middleOnly)
+        : (b, a, middleOnly);
     return _cache.putIfAbsent(
       key,
-      () => isSameRoute(a, b, threshold: threshold),
+      () => isSameRoute(a, b, threshold: threshold, middleOnly: middleOnly),
     );
   }
 }
@@ -95,10 +120,56 @@ class _Candidate {
   final RouteCandidateOrigin origin;
   late final double score = routeScore(route);
   late final int turns = turnCountOf(route);
+
+  /// [score] ditambah kos jarak melebihi laluan terpendek (diisi selepas penapisan).
+  double adjustedScore = 0;
 }
+
+/// Kos jarak dalam saat bagi setiap km melebihi laluan terpendek yang dikekalkan. Tanpa ini "Disyorkan"
+/// hanya menimbang masa, jadi laluan jauh yang kebetulan lebih laju (atau sama laju) menang walaupun ada
+/// laluan jauh lebih pendek.
+const distanceCostSecondsPerKm = 40.0;
+
+/// Tetingkap masa (nisbah daripada yang terpantas) bagi calon laluan utama.
+const primaryTimeWindow = 1.08;
+
+/// Satu laluan "didominasi" jika yang lain lebih pendek DAN lebih laju, masing-masing sekurang-kurangnya
+/// ini lebih baik secara relatif (beza kecil tidak dikira supaya laluan lebih mudah masih boleh menang).
+const _dominanceMinRelative = 0.03;
+
+/// Calon baharu hanya menggantikan laluan utama sebelumnya jika skornya lebih baik sekurang-kurangnya ini
+/// (saat), supaya kad pertama tidak bertukar di bawah mata pengguna semasa laluan tiba berperingkat.
+const primaryStickinessS = 60.0;
 
 /// Had paparan lalai bagi satu senarai pilihan.
 const maxRouteOptions = 10;
+
+/// Sasaran minimum pilihan (jika wujud laluan yang benar-benar berbeza); penapis dilonggarkan sehingga ini.
+const minRouteOptions = 5;
+
+class _MergeTier {
+  const _MergeTier(
+    this.timeRatio,
+    this.timePlusS,
+    this.minPlusS,
+    this.threshold,
+    this.middleOnly,
+  );
+
+  final double timeRatio;
+  final double timePlusS;
+  final double minPlusS;
+  final double threshold;
+  final bool middleOnly;
+}
+
+/// Peringkat 1 ialah penapis asal (1.4x / +15 min, liputan penuh 0.75). Peringkat 2-3 dikira daripada
+/// probe Valhalla awam (8 perjalanan): peringkat 1 sahaja memberi 3-9 pilihan; peringkat 2 memberi >= 5.
+const _mergeTiers = [
+  _MergeTier(1.4, 900, 180, 0.75, false),
+  _MergeTier(1.6, 1500, 300, 0.75, true),
+  _MergeTier(1.8, 2100, 420, 0.85, true),
+];
 
 /// Dua laluan dianggap pendua jika liputan bersama sekurang-kurangnya ini.
 const routeDuplicateThreshold = 0.75;
@@ -121,6 +192,7 @@ List<RouteOption> mergeRouteCandidates({
   List<RouteOption> detours = const [],
   int maxOptions = maxRouteOptions,
   SameRouteMemo? memo,
+  RouteOption? incumbent,
 }) {
   final all = <_Candidate>[
     for (final r in standard) _Candidate(r, RouteCandidateOrigin.standard),
@@ -140,45 +212,115 @@ List<RouteOption> mergeRouteCandidates({
     });
 
   final fastestS = sorted.first.route.durationS;
-  final limitS = math.max(
-    math.min(fastestS * 1.4, fastestS + 900),
-    fastestS + 180,
-  );
 
-  var kept = <_Candidate>[];
-  for (final c in sorted) {
-    if (c.route.durationS > limitS) continue;
-    if (kept.any(
-      (k) => same.isSame(k.route, c.route, routeDuplicateThreshold),
-    )) {
-      continue;
+  // Penapis berperingkat: peringkat ketat dahulu; jika kurang daripada [minRouteOptions] pilihan, longgarkan
+  // (had masa lebih luas, banding bahagian tengah sahaja) sehingga cukup atau peringkat habis.
+  List<_Candidate> keepFor(_MergeTier tier) {
+    final limitS = math.max(
+      math.min(fastestS * tier.timeRatio, fastestS + tier.timePlusS),
+      fastestS + tier.minPlusS,
+    );
+    final out = <_Candidate>[];
+    for (final c in sorted) {
+      if (c.route.durationS > limitS) continue;
+      if (out.any(
+        (k) => same.isSame(
+          k.route,
+          c.route,
+          tier.threshold,
+          middleOnly: tier.middleOnly,
+        ),
+      )) {
+        continue;
+      }
+      out.add(c);
     }
-    kept.add(c);
+    // Feri dan jalan bersekatan masa hanya jika tiada pilihan bersih.
+    bool flagged(_Candidate c) =>
+        c.route.hasFerry || c.route.hasTimeRestrictions;
+    return out.any((c) => !flagged(c))
+        ? out.where((c) => !flagged(c)).toList()
+        : out;
   }
 
-  // Feri dan jalan bersekatan masa hanya jika tiada pilihan bersih.
-  bool flagged(_Candidate c) => c.route.hasFerry || c.route.hasTimeRestrictions;
-  if (kept.any((c) => !flagged(c))) {
-    kept = kept.where((c) => !flagged(c)).toList();
+  var kept = <_Candidate>[];
+  for (final tier in _mergeTiers) {
+    final candidate = keepFor(tier);
+    if (candidate.length > kept.length) kept = candidate;
+    if (kept.length >= minRouteOptions) break;
   }
 
   final keptFastest = kept.first;
-  // Laluan utama: skor terbaik dalam 5% daripada yang terpantas (sepadan: lebih laju menang).
-  final nearFastest = kept
-      .where((c) => c.route.durationS <= keptFastest.route.durationS * 1.05)
+  final shortestKeptM = kept.map((c) => c.route.distanceM).reduce(math.min);
+  for (final c in kept) {
+    c.adjustedScore =
+        c.score +
+        math.max(0, c.route.distanceM - shortestKeptM) /
+            1000 *
+            distanceCostSecondsPerKm;
+  }
+
+  // Laluan yang LEBIH JAUH DAN LEBIH LAMA daripada laluan lain tidak patut dipilih sebagai
+  // "Disyorkan"/"Terpantas"/"Terpendek" (ia hanya alternatif).
+  final keptList = kept;
+  bool dominated(_Candidate c) => keptList.any(
+    (o) =>
+        o != c &&
+        c.route.distanceM - o.route.distanceM >=
+            o.route.distanceM * _dominanceMinRelative &&
+        c.route.durationS - o.route.durationS >=
+            o.route.durationS * _dominanceMinRelative,
+  );
+
+  // Laluan utama: skor terbaik (masa + belokan + kos jarak) dalam tetingkap masa daripada yang terpantas.
+  final window = kept
+      .where(
+        (c) =>
+            c.route.durationS <=
+                keptFastest.route.durationS * primaryTimeWindow &&
+            !dominated(c),
+      )
       .toList();
-  final primary = nearFastest.reduce((best, c) {
-    if (c.score < best.score - 0.5) return c;
+  final nearFastest = window.isEmpty ? [keptFastest] : window;
+  var primary = nearFastest.reduce((best, c) {
+    if (c.adjustedScore < best.adjustedScore - 0.5) return c;
     return best;
   });
+  if (incumbent != null) {
+    final held = nearFastest
+        .where(
+          (c) =>
+              c != primary &&
+              same.isSame(c.route, incumbent, routeDuplicateThreshold),
+        )
+        .firstOrNull;
+    if (held != null &&
+        primary.adjustedScore > held.adjustedScore - primaryStickinessS) {
+      primary = held;
+    }
+  }
 
   final rest = kept.where((c) => c != primary).toList();
   final chosen = <_Candidate, RouteLabel>{primary: RouteLabel.recommended};
 
   // Terpantas, jika jelas lebih laju (>= 1 minit) daripada laluan utama.
   if (keptFastest != primary &&
-      primary.route.durationS - keptFastest.route.durationS >= 60) {
+      primary.route.durationS - keptFastest.route.durationS >= 60 &&
+      !dominated(keptFastest)) {
     chosen[keptFastest] = RouteLabel.fastest;
+  }
+
+  // Terpendek diberi SEBELUM label khas lain supaya laluan jarak minimum tidak hilang labelnya.
+  final shortestCand = rest
+      .where((c) => !chosen.containsKey(c))
+      .fold<_Candidate?>(
+        null,
+        (best, c) =>
+            best == null || c.route.distanceM < best.route.distanceM ? c : best,
+      );
+  if (shortestCand != null &&
+      _clearlyShorter(shortestCand.route, primary.route, kept)) {
+    chosen[shortestCand] = RouteLabel.shortest;
   }
 
   if (primary.route.hasTolls) {
@@ -194,26 +336,17 @@ List<RouteOption> mergeRouteCandidates({
     if (tollFree != null) chosen[tollFree] = RouteLabel.noTolls;
   }
 
+  // "Tanpa lebuh raya" mesti benar: calon daripada permintaan itu DAN laluan sebenar tiada lebuh raya
+  // (Valhalla hanya menganggap use_highways=0 sebagai keutamaan lembut).
   final noHighway = rest
       .where(
         (c) =>
             !chosen.containsKey(c) &&
-            c.origin == RouteCandidateOrigin.noHighways,
+            c.origin == RouteCandidateOrigin.noHighways &&
+            !c.route.hasHighway,
       )
       .firstOrNull;
   if (noHighway != null) chosen[noHighway] = RouteLabel.noHighways;
-
-  final shortestCand = rest
-      .where((c) => !chosen.containsKey(c))
-      .fold<_Candidate?>(
-        null,
-        (best, c) =>
-            best == null || c.route.distanceM < best.route.distanceM ? c : best,
-      );
-  if (shortestCand != null &&
-      _clearlyShorter(shortestCand.route, primary.route, kept)) {
-    chosen[shortestCand] = RouteLabel.shortest;
-  }
 
   // Paling mudah: belokan jauh lebih sedikit daripada laluan utama (yang sendiri banyak belokan).
   if (primary.turns >= 8) {

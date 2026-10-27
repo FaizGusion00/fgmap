@@ -178,6 +178,100 @@ class NavRoute {
   final List<double> _startTimes;
 
   List<GeoPoint> get points => option.points;
+
+  /// Selekoh yang dilicinkan untuk PAPARAN sahaja (kedudukan dan arah kereta). Padanan GPS, kemajuan
+  /// dan manuver kekal pada polyline asal.
+  late final List<_Corner> _corners = _buildCorners();
+
+  /// Jejari lengkung selekoh paparan (meter). Persimpangan bandar biasa 8-15 m.
+  static const displayCornerRadiusM = 12.0;
+
+  /// Belokan lebih kecil daripada ini tidak dilengkungkan (dikendalikan oleh kord look-ahead);
+  /// lebih daripada [_maxCornerDeg] ialah pusingan-U / berpatah balik dan dibiarkan tajam.
+  static const _minCornerDeg = 25.0;
+  static const _maxCornerDeg = 150.0;
+
+  List<_Corner> _buildCorners() {
+    final out = <_Corner>[];
+    for (var i = 1; i < points.length - 1; i++) {
+      final lenIn = cum[i] - cum[i - 1];
+      final lenOut = cum[i + 1] - cum[i];
+      if (lenIn < 2 || lenOut < 2) continue;
+      final b1 = bearingDegrees(points[i - 1], points[i]);
+      final b2 = bearingDegrees(points[i], points[i + 1]);
+      final turn = angleDelta(b1, b2);
+      final mag = turn.abs();
+      if (mag < _minCornerDeg || mag > _maxCornerDeg) continue;
+      final half = mag * math.pi / 360;
+      var radius = displayCornerRadiusM;
+      var t = radius * math.tan(half);
+      // Tidak melebihi 45% segmen bersebelahan supaya dua selekoh rapat tidak bertindih.
+      final maxT = 0.45 * math.min(lenIn, lenOut);
+      if (t > maxT) {
+        t = maxT;
+        radius = t / math.tan(half);
+      }
+      if (radius < 3) continue;
+      out.add(
+        _Corner(
+          vertex: points[i],
+          startD: cum[i] - t,
+          endD: cum[i] + t,
+          inBearing: b1,
+          turnDeg: turn,
+          radiusM: radius,
+          tangentM: t,
+        ),
+      );
+    }
+    return out;
+  }
+
+  /// Selekoh yang mengandungi [distanceM], atau null.
+  _Corner? _cornerAt(double distanceM) {
+    var lo = 0;
+    var hi = _corners.length - 1;
+    while (lo <= hi) {
+      final mid = (lo + hi) >> 1;
+      final c = _corners[mid];
+      if (distanceM < c.startD) {
+        hi = mid - 1;
+      } else if (distanceM > c.endD) {
+        lo = mid + 1;
+      } else {
+        return c;
+      }
+    }
+    return null;
+  }
+
+  /// Jarak ke permulaan selekoh paparan seterusnya selepas [distanceM], atau infiniti.
+  double _distanceToNextCorner(double distanceM) {
+    for (final c in _corners) {
+      if (c.startD > distanceM) return c.startD - distanceM;
+    }
+    return double.infinity;
+  }
+
+  /// Kedudukan PAPARAN pada [distanceM]: sama dengan [pointAt] kecuali di dalam selekoh, di mana ia
+  /// mengikut lengkung berjejari (kenderaan sebenar tidak berputar di bucu tajam).
+  GeoPoint displayPointAt(double distanceM) {
+    final c = _cornerAt(distanceM);
+    if (c == null) return pointAt(distanceM);
+    return c.pointAt(distanceM);
+  }
+
+  /// Arah PAPARAN pada [distanceM]: di dalam selekoh ialah tangen lengkung (tepat dan serentak dengan
+  /// kedudukan); di tempat lain, kord pendek (<= [lookAheadM], dikurangkan sebelum selekoh) supaya
+  /// tidak berputar lebih awal daripada kenderaan.
+  double displayBearingAt(double distanceM, {double lookAheadM = 8}) {
+    final c = _cornerAt(distanceM);
+    if (c != null) return c.bearingAt(distanceM);
+    final look = math.min(lookAheadM, _distanceToNextCorner(distanceM));
+    if (look < 1) return bearingAt(distanceM, lookAheadM: 1);
+    return bearingAt(distanceM, lookAheadM: look);
+  }
+
   bool get isUsable => option.points.length >= 2 && totalM > 0;
 
   /// Indeks segmen (titik i -> i+1) yang mengandungi [distanceM].
@@ -312,5 +406,66 @@ class NavRoute {
       }
     }
     return out;
+  }
+}
+
+/// Selekoh yang dilengkungkan (arka bulat) di sekitar satu bucu polyline.
+class _Corner {
+  _Corner({
+    required this.vertex,
+    required this.startD,
+    required this.endD,
+    required this.inBearing,
+    required this.turnDeg,
+    required this.radiusM,
+    required this.tangentM,
+  });
+
+  final GeoPoint vertex;
+
+  /// Jarak laluan (polyline asal) di mana lengkung bermula dan berakhir ([vertex] +- tangen).
+  final double startD;
+  final double endD;
+  final double inBearing;
+
+  /// Belokan bertanda: positif = kanan.
+  final double turnDeg;
+  final double radiusM;
+  final double tangentM;
+
+  double _fraction(double d) =>
+      ((d - startD) / (endD - startD)).clamp(0.0, 1.0);
+
+  double bearingAt(double d) => (inBearing + _fraction(d) * turnDeg) % 360;
+
+  GeoPoint pointAt(double d) {
+    // Satah tempatan (timur x, utara y) berpusat pada bucu.
+    final entry = _offset(vertex, inBearing + 180, tangentM);
+    final h = bearingAt(d) * math.pi / 180;
+    final h1 = inBearing * math.pi / 180;
+    final right = turnDeg > 0;
+    // Normal ke dalam lengkung: kanan jika belok kanan, kiri jika belok kiri.
+    (double, double) normal(double bearingRad) {
+      final dx = math.sin(bearingRad);
+      final dy = math.cos(bearingRad);
+      return right ? (dy, -dx) : (-dy, dx);
+    }
+
+    final (nx1, ny1) = normal(h1);
+    final (nx, ny) = normal(h);
+    // Pusat = masuk + R * normal(masuk); kedudukan = pusat - R * normal(arah semasa).
+    final dx = radiusM * (nx1 - nx);
+    final dy = radiusM * (ny1 - ny);
+    return _shift(entry, dx, dy);
+  }
+
+  static GeoPoint _offset(GeoPoint from, double bearing, double distanceM) =>
+      destinationPoint(from, bearing, distanceM);
+
+  static GeoPoint _shift(GeoPoint from, double eastM, double northM) {
+    final lat = from.lat + northM / 111320;
+    final lng =
+        from.lng + eastM / (111320 * math.cos(from.lat * math.pi / 180));
+    return GeoPoint(lat, lng);
   }
 }
