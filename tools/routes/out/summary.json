@@ -1,0 +1,1440 @@
+[
+ {
+  "trip": "t04km",
+  "raw": 19,
+  "strict": 7,
+  "relaxed": 10,
+  "log": {
+   "alt2": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 16.14695,
+      "km": 7.879
+     },
+     {
+      "min": 20.869183333333336,
+      "km": 10.973
+     },
+     {
+      "min": 20.4422,
+      "km": 9.42
+     }
+    ]
+   },
+   "alt4": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 16.14695,
+      "km": 7.879
+     },
+     {
+      "min": 20.869183333333336,
+      "km": 10.973
+     },
+     {
+      "min": 20.4422,
+      "km": 9.42
+     }
+    ]
+   },
+   "via35L": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 32.905516666666664,
+      "km": 12.919
+     }
+    ]
+   },
+   "via35R": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 26.232516666666665,
+      "km": 10.141
+     }
+    ]
+   },
+   "via50L": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 22.578533333333333,
+      "km": 10.465
+     }
+    ]
+   },
+   "via50R": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 19.862233333333332,
+      "km": 9.09
+     }
+    ]
+   },
+   "via65L": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 19.6524,
+      "km": 8.516
+     }
+    ]
+   },
+   "via65R": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 31.378733333333333,
+      "km": 14.822
+     }
+    ]
+   },
+   "excl50": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 17.026116666666667,
+      "km": 7.43
+     }
+    ]
+   },
+   "excl35": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 17.026116666666667,
+      "km": 7.43
+     }
+    ]
+   },
+   "excl65": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 17.810616666666665,
+      "km": 8.316
+     }
+    ]
+   },
+   "excl20": {
+    "status": 400,
+    "err": "No path could be found for input",
+    "routes": []
+   },
+   "excl80": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 17.609616666666668,
+      "km": 8.42
+     }
+    ]
+   },
+   "nohw": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 17.542866666666665,
+      "km": 7.232
+     }
+    ]
+   },
+   "notoll": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 16.14695,
+      "km": 7.879
+     }
+    ]
+   },
+   "shortest": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 18.769133333333333,
+      "km": 6.763
+     }
+    ]
+   }
+  }
+ },
+ {
+  "trip": "t08km",
+  "raw": 19,
+  "strict": 6,
+  "relaxed": 9,
+  "log": {
+   "alt2": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 22.12066666666667,
+      "km": 10.745
+     },
+     {
+      "min": 27.7072,
+      "km": 18.957
+     },
+     {
+      "min": 21.700733333333336,
+      "km": 9.316
+     }
+    ]
+   },
+   "alt4": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 22.12066666666667,
+      "km": 10.745
+     },
+     {
+      "min": 27.7072,
+      "km": 18.957
+     },
+     {
+      "min": 21.700733333333336,
+      "km": 9.316
+     }
+    ]
+   },
+   "via35L": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 34.56301666666666,
+      "km": 12.801
+     }
+    ]
+   },
+   "via35R": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 24.0611,
+      "km": 11.04
+     }
+    ]
+   },
+   "via50L": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 37.12598333333334,
+      "km": 14.063
+     }
+    ]
+   },
+   "via50R": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 27.6053,
+      "km": 11.049
+     }
+    ]
+   },
+   "via65L": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 31.615683333333333,
+      "km": 12.233
+     }
+    ]
+   },
+   "via65R": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 39.35145,
+      "km": 16.473
+     }
+    ]
+   },
+   "excl50": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 27.7072,
+      "km": 18.957
+     }
+    ]
+   },
+   "excl35": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 27.7072,
+      "km": 18.957
+     }
+    ]
+   },
+   "excl65": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 21.946033333333332,
+      "km": 9.9
+     }
+    ]
+   },
+   "excl20": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 27.7072,
+      "km": 18.957
+     }
+    ]
+   },
+   "excl80": {
+    "status": 400,
+    "err": "No path could be found for input",
+    "routes": []
+   },
+   "nohw": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 23.958783333333333,
+      "km": 10.246
+     }
+    ]
+   },
+   "notoll": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 22.12066666666667,
+      "km": 10.745
+     }
+    ]
+   },
+   "shortest": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 23.926333333333332,
+      "km": 8.94
+     }
+    ]
+   }
+  }
+ },
+ {
+  "trip": "t25km",
+  "raw": 20,
+  "strict": 9,
+  "relaxed": 14,
+  "log": {
+   "alt2": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 43.916066666666666,
+      "km": 30.298
+     },
+     {
+      "min": 49.0086,
+      "km": 37.946
+     },
+     {
+      "min": 46.60228333333334,
+      "km": 31.602
+     }
+    ]
+   },
+   "alt4": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 43.916066666666666,
+      "km": 30.298
+     },
+     {
+      "min": 49.0086,
+      "km": 37.946
+     },
+     {
+      "min": 46.60228333333334,
+      "km": 31.602
+     }
+    ]
+   },
+   "via35L": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 58.43946666666667,
+      "km": 46.874
+     }
+    ]
+   },
+   "via35R": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 57.813183333333335,
+      "km": 34.329
+     }
+    ]
+   },
+   "via50L": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 62.4093,
+      "km": 39.483
+     }
+    ]
+   },
+   "via50R": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 62.13073333333333,
+      "km": 42.768
+     }
+    ]
+   },
+   "via65L": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 64.54991666666666,
+      "km": 39.976
+     }
+    ]
+   },
+   "via65R": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 58.62486666666667,
+      "km": 35.362
+     }
+    ]
+   },
+   "excl50": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 47.32235,
+      "km": 37.803
+     }
+    ]
+   },
+   "excl35": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 47.32235,
+      "km": 37.803
+     }
+    ]
+   },
+   "excl65": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 46.30571666666666,
+      "km": 31.902
+     }
+    ]
+   },
+   "excl20": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 47.32235,
+      "km": 37.803
+     }
+    ]
+   },
+   "excl80": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 50.98878333333334,
+      "km": 34.697
+     }
+    ]
+   },
+   "nohw": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 66.79315,
+      "km": 35.791
+     }
+    ]
+   },
+   "notoll": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 43.916066666666666,
+      "km": 30.298
+     }
+    ]
+   },
+   "shortest": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 46.58098333333333,
+      "km": 28.759
+     }
+    ]
+   }
+  }
+ },
+ {
+  "trip": "t60km",
+  "raw": 20,
+  "strict": 4,
+  "relaxed": 5,
+  "log": {
+   "alt2": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 70.09148333333333,
+      "km": 72.488
+     },
+     {
+      "min": 78.77458333333334,
+      "km": 74.374
+     },
+     {
+      "min": 73.83655,
+      "km": 70.424
+     }
+    ]
+   },
+   "alt4": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 70.09148333333333,
+      "km": 72.488
+     },
+     {
+      "min": 78.77458333333334,
+      "km": 74.374
+     },
+     {
+      "min": 73.83655,
+      "km": 70.424
+     }
+    ]
+   },
+   "via35L": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 97.00431666666667,
+      "km": 85.797
+     }
+    ]
+   },
+   "via35R": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 75.41426666666666,
+      "km": 79.863
+     }
+    ]
+   },
+   "via50L": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 104.28903333333332,
+      "km": 107.421
+     }
+    ]
+   },
+   "via50R": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 86.19643333333333,
+      "km": 72.126
+     }
+    ]
+   },
+   "via65L": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 106.29218333333333,
+      "km": 88.968
+     }
+    ]
+   },
+   "via65R": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 96.97779999999999,
+      "km": 78.566
+     }
+    ]
+   },
+   "excl50": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 78.77458333333334,
+      "km": 74.374
+     }
+    ]
+   },
+   "excl35": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 78.77458333333334,
+      "km": 74.374
+     }
+    ]
+   },
+   "excl65": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 78.77458333333334,
+      "km": 74.374
+     }
+    ]
+   },
+   "excl20": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 78.77458333333334,
+      "km": 74.374
+     }
+    ]
+   },
+   "excl80": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 78.77458333333334,
+      "km": 74.374
+     }
+    ]
+   },
+   "nohw": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 124.05915,
+      "km": 72.502
+     }
+    ]
+   },
+   "notoll": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 78.77458333333334,
+      "km": 74.374
+     }
+    ]
+   },
+   "shortest": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 102.10081666666666,
+      "km": 66.286
+     }
+    ]
+   }
+  }
+ },
+ {
+  "trip": "t140km",
+  "raw": 18,
+  "strict": 5,
+  "relaxed": 6,
+  "log": {
+   "alt2": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 131.44698333333335,
+      "km": 153.933
+     },
+     {
+      "min": 152.57931666666667,
+      "km": 165.521
+     }
+    ]
+   },
+   "alt4": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 131.44698333333335,
+      "km": 153.933
+     },
+     {
+      "min": 152.57931666666667,
+      "km": 165.521
+     }
+    ]
+   },
+   "via35L": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 196.1036,
+      "km": 183.19
+     }
+    ]
+   },
+   "via35R": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 182.49826666666667,
+      "km": 163.009
+     }
+    ]
+   },
+   "via50L": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 168.58791666666667,
+      "km": 173.862
+     }
+    ]
+   },
+   "via50R": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 176.88036666666667,
+      "km": 173.908
+     }
+    ]
+   },
+   "via65L": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 164.59791666666666,
+      "km": 179.887
+     }
+    ]
+   },
+   "via65R": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 171.2073,
+      "km": 178.865
+     }
+    ]
+   },
+   "excl50": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 159.92165000000003,
+      "km": 165.152
+     }
+    ]
+   },
+   "excl35": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 152.57931666666667,
+      "km": 165.521
+     }
+    ]
+   },
+   "excl65": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 157.71565,
+      "km": 155.848
+     }
+    ]
+   },
+   "excl20": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 139.05471666666665,
+      "km": 157.211
+     }
+    ]
+   },
+   "excl80": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 138.90078333333335,
+      "km": 156.902
+     }
+    ]
+   },
+   "nohw": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 266.44203333333337,
+      "km": 186.492
+     }
+    ]
+   },
+   "notoll": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 189.2995,
+      "km": 162.268
+     }
+    ]
+   },
+   "shortest": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 144.30485,
+      "km": 144.696
+     }
+    ]
+   }
+  }
+ },
+ {
+  "trip": "t330km",
+  "raw": 16,
+  "strict": 3,
+  "relaxed": 5,
+  "log": {
+   "alt2": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 242.00865000000002,
+      "km": 334.301
+     }
+    ]
+   },
+   "alt4": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 242.00865000000002,
+      "km": 334.301
+     }
+    ]
+   },
+   "via35L": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 294.5398666666667,
+      "km": 354.636
+     }
+    ]
+   },
+   "via35R": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 271.1266,
+      "km": 348.753
+     }
+    ]
+   },
+   "via50L": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 277.0652,
+      "km": 353.711
+     }
+    ]
+   },
+   "via50R": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 281.9079333333333,
+      "km": 354.704
+     }
+    ]
+   },
+   "via65L": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 298.3066,
+      "km": 351.105
+     }
+    ]
+   },
+   "via65R": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 352.7993666666667,
+      "km": 372.636
+     }
+    ]
+   },
+   "excl50": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 291.3158833333334,
+      "km": 350.21
+     }
+    ]
+   },
+   "excl35": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 264.6789166666667,
+      "km": 342.773
+     }
+    ]
+   },
+   "excl65": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 277.4291,
+      "km": 348.921
+     }
+    ]
+   },
+   "excl20": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 257.4130333333333,
+      "km": 355.187
+     }
+    ]
+   },
+   "excl80": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 294.4827666666667,
+      "km": 362.234
+     }
+    ]
+   },
+   "nohw": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 533.4704333333333,
+      "km": 432.135
+     }
+    ]
+   },
+   "notoll": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 402.33976666666666,
+      "km": 392.416
+     }
+    ]
+   },
+   "shortest": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 243.63518333333334,
+      "km": 329.089
+     }
+    ]
+   }
+  }
+ },
+ {
+  "trip": "penang",
+  "raw": 20,
+  "strict": 5,
+  "relaxed": 10,
+  "log": {
+   "alt2": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 22.21635,
+      "km": 11.746
+     },
+     {
+      "min": 25.904666666666667,
+      "km": 12.236
+     },
+     {
+      "min": 27.930283333333332,
+      "km": 12.709
+     }
+    ]
+   },
+   "alt4": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 22.21635,
+      "km": 11.746
+     },
+     {
+      "min": 25.904666666666667,
+      "km": 12.236
+     },
+     {
+      "min": 27.930283333333332,
+      "km": 12.709
+     }
+    ]
+   },
+   "via35L": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 32.12636666666667,
+      "km": 14.081
+     }
+    ]
+   },
+   "via35R": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 31.395716666666665,
+      "km": 13.469
+     }
+    ]
+   },
+   "via50L": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 30.4242,
+      "km": 14.363
+     }
+    ]
+   },
+   "via50R": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 39.550216666666664,
+      "km": 32.289
+     }
+    ]
+   },
+   "via65L": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 32.49916666666667,
+      "km": 15.42
+     }
+    ]
+   },
+   "via65R": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 31.82271666666667,
+      "km": 15.393
+     }
+    ]
+   },
+   "excl50": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 25.372883333333334,
+      "km": 12.262
+     }
+    ]
+   },
+   "excl35": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 25.372883333333334,
+      "km": 12.262
+     }
+    ]
+   },
+   "excl65": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 26.068966666666665,
+      "km": 13.936
+     }
+    ]
+   },
+   "excl20": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 25.350733333333334,
+      "km": 12.345
+     }
+    ]
+   },
+   "excl80": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 23.995166666666666,
+      "km": 12.956
+     }
+    ]
+   },
+   "nohw": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 28.05995,
+      "km": 11.671
+     }
+    ]
+   },
+   "notoll": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 22.21635,
+      "km": 11.746
+     }
+    ]
+   },
+   "shortest": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 28.476116666666666,
+      "km": 11.646
+     }
+    ]
+   }
+  }
+ },
+ {
+  "trip": "johor",
+  "raw": 20,
+  "strict": 6,
+  "relaxed": 8,
+  "log": {
+   "alt2": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 35.80698333333333,
+      "km": 29.189
+     },
+     {
+      "min": 38.127766666666666,
+      "km": 27.664
+     },
+     {
+      "min": 44.298649999999995,
+      "km": 43.847
+     }
+    ]
+   },
+   "alt4": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 35.80698333333333,
+      "km": 29.189
+     },
+     {
+      "min": 38.127766666666666,
+      "km": 27.664
+     },
+     {
+      "min": 44.298649999999995,
+      "km": 43.847
+     }
+    ]
+   },
+   "via35L": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 49.33796666666667,
+      "km": 35.654
+     }
+    ]
+   },
+   "via35R": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 56.1259,
+      "km": 38.671
+     }
+    ]
+   },
+   "via50L": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 67.77491666666667,
+      "km": 41.833
+     }
+    ]
+   },
+   "via50R": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 62.1135,
+      "km": 38.848
+     }
+    ]
+   },
+   "via65L": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 49.209066666666665,
+      "km": 36.491
+     }
+    ]
+   },
+   "via65R": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 79.28221666666667,
+      "km": 43.073
+     }
+    ]
+   },
+   "excl50": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 38.127766666666666,
+      "km": 27.664
+     }
+    ]
+   },
+   "excl35": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 38.127766666666666,
+      "km": 27.664
+     }
+    ]
+   },
+   "excl65": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 40.1808,
+      "km": 35.412
+     }
+    ]
+   },
+   "excl20": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 38.127766666666666,
+      "km": 27.664
+     }
+    ]
+   },
+   "excl80": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 43.76975,
+      "km": 34.685
+     }
+    ]
+   },
+   "nohw": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 64.60591666666667,
+      "km": 47.167
+     }
+    ]
+   },
+   "notoll": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 35.80698333333333,
+      "km": 29.189
+     }
+    ]
+   },
+   "shortest": {
+    "status": 200,
+    "err": null,
+    "routes": [
+     {
+      "min": 38.412533333333336,
+      "km": 27.659
+     }
+    ]
+   }
+  }
+ }
+]
