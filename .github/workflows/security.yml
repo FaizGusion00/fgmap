@@ -19,7 +19,7 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: github/codeql-action/init@v4
         with:
           languages: java-kotlin
@@ -32,7 +32,7 @@ jobs:
     name: Kebergantungan (OSV)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # Imbas pubspec.lock (Dart) dan fail kunci Gradle terhadap pangkalan data kerentanan OSV.
       - uses: google/osv-scanner-action/osv-scanner-action@v2.0.2
         with:
@@ -45,7 +45,7 @@ jobs:
     name: SBOM (CycloneDX)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: anchore/sbom-action@v0
         with:
           path: app
