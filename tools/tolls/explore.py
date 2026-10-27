@@ -1,17 +1,9 @@
 #!/usr/bin/env python3
-"""Penerokaan sementara (Actions), pusingan 6: halaman tambang tol rasmi pengendali (teks atau gambar?)."""
+"""Penerokaan sementara (Actions), pusingan 7: tambang tol rasmi Prolintas, LITRAK (LDP), MEX."""
 import re
 import urllib.request
 
 UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
-PAGES = [
-    "https://litrak.com.my/our-highways/litrak/toll-fares/",
-    "https://litrak.com.my/our-highways/sprint/toll-fares/",
-    "https://www.duke.com.my/page/143/Toll-Fare/",
-    "https://www.duke.com.my/page/192/Toll-Fare/",
-    "https://llb.com.my/tambang-tol/",
-    "https://kesas.com.my/toll-lane/",
-]
 
 
 def get(url):
@@ -28,19 +20,26 @@ def text_of(html):
     return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", html))
 
 
-for u in PAGES:
+def anchors(html):
+    return [(h, re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", a)).strip())
+            for h, a in re.findall(r'<a[^>]+href="([^"#]+)"[^>]*>(.*?)</a>', html, flags=re.S | re.I)]
+
+
+KEY = re.compile(r"(?i)toll|fare|tol\b|tambang|kadar|rate")
+for base in ("https://www.prolintas.com.my/", "https://www.mex.com.my/", "https://www.ijm.com/", "https://www.lebuhrayakajang.com.my/"):
+    s, t = get(base)
+    print(f"\n##### {base} -> {s} len={len(t)}")
+    if s == 200:
+        seen = set()
+        for h, a in anchors(t):
+            if KEY.search(a) or KEY.search(h):
+                if h not in seen and len(seen) < 40:
+                    seen.add(h)
+                    print("   ", a[:60], "->", h)
+
+for u in ("https://www.prolintas.com.my/?p=270", "https://litrak.com.my/our-highways/litrak/toll-fares/"):
     s, t = get(u)
-    print(f"\n=== {u} -> {s} len={len(t)}")
-    if s != 200:
-        print("  ", t[:200])
-        continue
     tx = text_of(t)
-    rms = len(re.findall(r"(?i)rm ?\d+\.\d{2}|\b\d+\.\d{2}\b", tx))
-    print("  tables:", len(re.findall(r"<table", t, flags=re.I)), "angka harga:", rms,
-          "img:", len(re.findall(r"<img", t, flags=re.I)),
-          "pdf/xls:", sorted(set(re.findall(r'href="([^"]+\.(?:pdf|xlsx?))"', t, flags=re.I)))[:10])
+    print(f"\n===== {u} -> {s} len={len(t)} tables={len(re.findall('<table', t, flags=re.I))}")
     i = tx.lower().find("class 1")
-    i = i if i >= 0 else tx.lower().find("kelas 1")
-    print("  TEXT:", tx[max(0, i - 400): i + 2500] if i >= 0 else tx[:2000])
-    imgs = [m for m in re.findall(r'<img[^>]+src="([^"]+)"', t) if re.search(r"(?i)fare|tol|toll|tambang|rate", m)]
-    print("  IMGS:", imgs[:10])
+    print(tx[max(0, i - 600): i + 3000] if i >= 0 else tx[:2500])
