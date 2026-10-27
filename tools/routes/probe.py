@@ -79,7 +79,7 @@ def routes_of(resp):
         pts = []
         for leg in t["legs"]:
             pts += decode(leg["shape"])
-        out.append({"min": t["summary"]["time"] / 60, "km": t["summary"]["length"], "pts": pts})
+        out.append({"min": t["summary"]["time"] / 60, "km": t["summary"]["length"], "pts": pts, "legs": len(t["legs"])})
     return out
 
 
@@ -145,7 +145,7 @@ for name, (o, d) in TRIPS.items():
         rs = routes_of(resp) if st == 200 else []
         err = None if st == 200 else (resp.get("error") or resp.get("status_message") or st)
         print(f"PROBE|{name}|{strategy}|http={st}|n={len(rs)}|{time.time()-t0:.1f}s|"
-              + ("|".join(f"{r['min']:.0f}min/{r['km']:.1f}km" for r in rs)) + (f"|ERR={err}" if err else ""), flush=True)
+              + ("|".join(f"{r['min']:.0f}min/{r['km']:.1f}km/legs{r['legs']}" for r in rs)) + (f"|ERR={err}" if err else ""), flush=True)
         log[strategy] = {"status": st, "err": str(err) if err else None,
                          "routes": [{"min": r["min"], "km": r["km"]} for r in rs]}
         for r in rs:
