@@ -740,7 +740,7 @@ void main() {
           'done': OfflineMapState(
             configured: true,
             latest: _manifest(),
-            installed: InstalledMap(
+            installed: const InstalledMap(
               version: '20261026',
               sizeBytes: 682844160,
               tarPath: '/x/valhalla_tiles.tar',

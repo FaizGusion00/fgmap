@@ -601,6 +601,8 @@ class _MapLibreViewState extends State<MapLibreView> {
       initialCameraPosition: CameraPosition(
         target: LatLng(cfg.initialCenter.lat, cfg.initialCenter.lng),
         zoom: cfg.initialZoom,
+        bearing: cfg.initialBearing,
+        tilt: cfg.initialTilt,
       ),
       onMapCreated: _onMapCreated,
       onStyleLoadedCallback: _onStyleLoaded,

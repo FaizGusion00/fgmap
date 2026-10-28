@@ -161,7 +161,7 @@ void _screens(String out) {
         'done': OfflineMapState(
           configured: true,
           latest: _manifest(),
-          installed: InstalledMap(
+          installed: const InstalledMap(
             version: '20261026',
             sizeBytes: 682844160,
             tarPath: '/x/valhalla_tiles.tar',
@@ -218,7 +218,7 @@ void _screens(String out) {
         await withShadows(() async {
           await pumpApp(
             tester,
-            RepaintBoundary(key: key, child: const OnboardingPage()),
+            const RepaintBoundary(key: key, child: OnboardingPage()),
             theme: t.value,
             locale: l.value,
             overrides: [
@@ -276,7 +276,7 @@ void _screens(String out) {
         await withShadows(() async {
           await pumpApp(
             tester,
-            RepaintBoundary(key: key, child: const TripPlannerPage()),
+            const RepaintBoundary(key: key, child: TripPlannerPage()),
             theme: t.value,
             locale: l.value,
             overrides: [sharedPreferencesProvider.overrideWithValue(sp)],
@@ -293,7 +293,7 @@ void _screens(String out) {
         await withShadows(() async {
           await pumpApp(
             tester,
-            RepaintBoundary(key: key, child: const SettingsPage()),
+            const RepaintBoundary(key: key, child: SettingsPage()),
             theme: t.value,
             locale: l.value,
             overrides: [sharedPreferencesProvider.overrideWithValue(sp)],

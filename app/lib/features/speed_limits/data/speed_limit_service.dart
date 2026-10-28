@@ -120,6 +120,32 @@ class SpeedLimitService {
     return SpeedLimits.empty;
   }
 
+  /// Had laju di hujung jejak GPS pendek (memandu bebas, tiada laluan). Awam dahulu, kemudian enjin
+  /// dalam peranti jika pek dipasang. Null jika jejak terlalu pendek atau semua sumber gagal: pemanggil
+  /// tetap menunjukkan kelajuan dan menyembunyikan papan had.
+  Future<int?> limitForTrace(List<GeoPoint> points, RouteVehicle vehicle) async {
+    if (points.length < 2) return null;
+    final request = jsonEncode(
+      buildTraceAttributesRequest(points, vehicle),
+    );
+    for (final source in [_online, _offline]) {
+      try {
+        final limits = parseSpeedLimits(await source(request));
+        if (limits.isEmpty) continue;
+        // Tepi terakhir sering tanpa tag OSM. Had yang diketahui paling hampir dengan kereta
+        // (dari hujung jejak) ialah papan yang dipaparkan. Tiada langsung: sembunyikan papan.
+        for (final segment in limits.segments.reversed) {
+          final limit = segment.limitKmh;
+          if (limit != null && limit > 0) return limit;
+        }
+        return null;
+      } on Object catch (e) {
+        logDiag('Had laju jejak: sumber gagal ($e)');
+      }
+    }
+    return null;
+  }
+
   Future<String> _online(String request) async {
     final response = await _dio.post<Object>(
       _traceUrl,

@@ -148,6 +148,10 @@ class InstructionText {
     ReportType.flood => _ms ? 'Banjir' : 'Flooding',
   };
 
+  /// "Had laju 80" / "Speed limit 80". Satu ayat pendek apabila had bertukar semasa memandu bebas.
+  String speedLimitChanged(int kmh) =>
+      _ms ? 'Had laju $kmh' : 'Speed limit $kmh';
+
   /// "Polis di hadapan, 300 meter." / "Police ahead, 300 meters."
   String reportAhead(ReportType type, double meters) {
     final name = reportTypeName(type);

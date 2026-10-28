@@ -135,6 +135,8 @@ class MapViewConfig {
     this.styleKey,
     required this.initialCenter,
     required this.initialZoom,
+    this.initialBearing = 0,
+    this.initialTilt = 0,
     required this.routes,
     required this.destination,
     required this.showUserLocation,
@@ -163,6 +165,8 @@ class MapViewConfig {
   final List<MapReport> reports;
   final GeoPoint initialCenter;
   final double initialZoom;
+  final double initialBearing;
+  final double initialTilt;
   final List<MapRouteLine> routes;
   final GeoPoint? destination;
   final bool showUserLocation;

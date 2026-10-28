@@ -317,7 +317,9 @@ class GeolocatorLocationService implements LocationService {
             notificationTitle: 'FGMaps',
             notificationText: 'Navigasi sedang berjalan',
             notificationChannelName: 'Navigasi',
-            enableWakeLock: true,
+            // Servis latar depan lokasi sudah cukup. Tiada wakelock tambahan: proses tidak dipin
+            // dalam RAM, dan perjalanan yang mati masih dipulihkan daripada simpanan.
+            enableWakeLock: false,
             setOngoing: true,
           ),
         );

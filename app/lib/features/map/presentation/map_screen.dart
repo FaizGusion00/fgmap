@@ -39,6 +39,9 @@ import '../../navigation/data/navigation_settings.dart';
 import '../../navigation/domain/camera_planner.dart';
 import '../../navigation/domain/instruction_text.dart';
 import '../../navigation/domain/nav_route.dart';
+import '../../navigation/presentation/car_session_hub.dart';
+import '../../navigation/presentation/cruise_controller.dart';
+import '../../navigation/presentation/cruise_frame_driver.dart';
 import '../../navigation/presentation/navigation_controller.dart';
 import '../../navigation/presentation/navigation_frame_driver.dart';
 import '../../navigation/presentation/navigation_hud.dart';
@@ -106,14 +109,31 @@ class _MapScreenState extends ConsumerState<MapScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _tracker.location.addListener(_feedSunLocation);
+    _tracker.location.addListener(_feedCruise);
     _linkSubscription = _appLinks.uriLinkStream.listen(
       (uri) => unawaited(_openSharedLocation(uri)),
       onError: (Object error, StackTrace stackTrace) {
         logDiag('Incoming location link failed: $error');
       },
     );
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => _handleStartupLocation(),
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _restoreTripCamera();
+      unawaited(_handleStartupLocation());
+    });
+  }
+
+  /// Sampel idle untuk ambang memandu bebas. Strim navigasi mengambil alih sebaik mod itu hidup.
+  void _feedCruise() {
+    final location = _tracker.location.value;
+    if (location == null || location.stale || !mounted) return;
+    ref.read(cruiseControllerProvider.notifier).noteIdle(
+      point: location.point,
+      speedMps: location.speedMps,
+      heading: location.headingDegrees,
+      time: location.time,
+      blocked:
+          ref.read(navigationControllerProvider).isActive ||
+          ref.read(routePreviewControllerProvider) is! RouteIdle,
     );
   }
 
@@ -127,10 +147,13 @@ class _MapScreenState extends ConsumerState<MapScreen>
   @override
   void dispose() {
     _tracker.location.removeListener(_feedSunLocation);
+    _tracker.location.removeListener(_feedCruise);
     _idle.dispose();
     _tracker.dispose();
     _ticker?.dispose();
     _driver?.dispose();
+    _cruiseTicker?.dispose();
+    _cruiseDriver?.dispose();
     unawaited(_linkSubscription?.cancel());
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
@@ -138,16 +161,28 @@ class _MapScreenState extends ConsumerState<MapScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    final trip = _tripOwnsCamera;
     if (state == AppLifecycleState.paused) {
-      // Di latar belakang tanpa navigasi, peta tidak kelihatan: lepaskan GPS.
       _backgroundedAt = DateTime.now();
-      _tracker.suspend(_Suspend.background);
+      ref.read(navigationControllerProvider.notifier).noteBackground(true);
+      ref.read(cruiseControllerProvider.notifier).noteBackground(true);
+      // Peta tidak dilukis pada kadar bingkai di latar. Perjalanan kekal pada satu strim GPS.
+      if (_ticker?.isActive ?? false) _ticker!.stop();
+      if (_cruiseTicker?.isActive ?? false) _cruiseTicker!.stop();
+      if (!trip) _tracker.suspend(_Suspend.background);
     }
     // Pengguna mungkin menukar kebenaran di Tetapan sistem lalu kembali.
     if (state == AppLifecycleState.resumed) {
-      // Kedudukan lama ditandakan lapuk dan penapis dimulakan semula: pengguna mungkin sudah berpindah.
-      _tracker.resume(_Suspend.background);
-      unawaited(_recenterAfterBackground());
+      ref.read(navigationControllerProvider.notifier).noteBackground(false);
+      ref.read(cruiseControllerProvider.notifier).noteBackground(false);
+      if (_ticker != null && !_ticker!.isActive) unawaited(_ticker!.start());
+      if (_cruiseTicker != null && !_cruiseTicker!.isActive) {
+        unawaited(_cruiseTicker!.start());
+      }
+      if (!trip) {
+        _tracker.resume(_Suspend.background);
+        unawaited(_recenterAfterBackground());
+      }
       ref.read(locationAccessProvider.notifier).refresh();
       final navigation = ref.read(navigationControllerProvider);
       if (navigation.phase == NavPhase.active && !navigation.simulated) {
@@ -180,6 +215,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
     }
     if (access != LocationAccess.granted || !mounted) return;
 
+    if (_tripOwnsCamera) return;
     _tracker.start();
     await _centerOnUser();
     // Selepas itu kamera terus mengikut pengguna sehingga mereka menggerakkan peta sendiri.
@@ -190,8 +226,11 @@ class _MapScreenState extends ConsumerState<MapScreen>
   /// (menunggu GPS sehingga 12 s, menunggu peta siap) mesti menyemak ini SELEPAS setiap `await`;
   /// jika tidak, ia boleh menerbangkan kamera ke lokasi sebenar di tengah navigasi dan melawan
   /// pemacu bingkai.
-  bool get _navigationOwnsCamera =>
-      ref.read(navigationControllerProvider).isActive;
+  bool get _tripOwnsCamera =>
+      ref.read(navigationControllerProvider).isActive ||
+      ref.read(cruiseControllerProvider).active;
+
+  bool get _navigationOwnsCamera => _tripOwnsCamera;
 
   /// Letakkan kamera pada pengguna: lokasi terakhir diketahui dahulu (serta-merta), kemudian fix segar.
   ///
@@ -330,6 +369,11 @@ class _MapScreenState extends ConsumerState<MapScreen>
     if (driver != null && driver.follow.value == NavFollow.following) {
       // Sedang mengikut kenderaan: laras zum dalam pemacu (kamera terus mengikut).
       driver.nudgeZoom(amount);
+      return;
+    }
+    final cruise = _cruiseDriver;
+    if (cruise != null && cruise.follow.value == NavFollow.following) {
+      cruise.nudgeZoom(amount);
       return;
     }
     if (ref.read(navigationControllerProvider).isActive) {
@@ -514,6 +558,8 @@ class _MapScreenState extends ConsumerState<MapScreen>
 
   NavigationFrameDriver? _driver;
   Ticker? _ticker;
+  CruiseFrameDriver? _cruiseDriver;
+  Ticker? _cruiseTicker;
 
   // Laluan navigasi aktif untuk peta: dibina sekali setiap laluan (re-route menggantinya) dan dipangkas
   // di permulaan oleh peta mengikut kedudukan kenderaan.
@@ -531,9 +577,25 @@ class _MapScreenState extends ConsumerState<MapScreen>
     );
   }
 
+  void _restoreTripCamera() {
+    if (!mounted) return;
+    final nav = ref.read(navigationControllerProvider);
+    if (nav.isActive) {
+      _tracker.suspend(_Suspend.navigation);
+      _idle.suspend(_Suspend.navigation);
+      unawaited(_beginDriving());
+    }
+    if (ref.read(cruiseControllerProvider).active) {
+      _tracker.suspend(_Suspend.cruise);
+      _idle.suspend(_Suspend.cruise);
+      unawaited(_beginCruise());
+    }
+  }
+
   void _onNavigationChanged(NavigationState? prev, NavigationState next) {
     final wasActive = prev?.isActive ?? false;
     if (next.isActive && !wasActive) {
+      _endCruise(settle: false);
       _tracker.suspend(_Suspend.navigation);
       _idle.suspend(_Suspend.navigation);
       unawaited(_beginDriving());
@@ -542,6 +604,34 @@ class _MapScreenState extends ConsumerState<MapScreen>
       _endDriving();
       _idle.resume(_Suspend.navigation);
       _tracker.resume(_Suspend.navigation);
+      ref.read(cruiseControllerProvider.notifier).setBlocked(false);
+      if (ref.read(locationAccessProvider) == LocationAccess.granted) {
+        _tracker.start();
+      }
+    }
+  }
+
+  void _onCruiseChanged(CruiseState? prev, CruiseState next) {
+    final was = prev?.active ?? false;
+    if (next.active && !was) {
+      _tracker.suspend(_Suspend.cruise);
+      _idle.suspend(_Suspend.cruise);
+      unawaited(_beginCruise());
+    }
+    if (!next.active && was) {
+      final handoff =
+          next.handoff || ref.read(navigationControllerProvider).isActive;
+      _endCruise(
+        settle:
+            !handoff && ref.read(routePreviewControllerProvider) is RouteIdle,
+      );
+      if (!handoff) {
+        _tracker.resume(_Suspend.cruise);
+        _idle.resume(_Suspend.cruise);
+        if (ref.read(locationAccessProvider) == LocationAccess.granted) {
+          _tracker.start();
+        }
+      }
     }
   }
 
@@ -560,6 +650,9 @@ class _MapScreenState extends ConsumerState<MapScreen>
       cameraMode: () => ref.read(navigationSettingsProvider).cameraMode,
       clock: ref.read(navClockProvider),
       reduceMotion: MediaQuery.disableAnimationsOf(context),
+      onPose: (pose, {required bool following}) => ref
+          .read(carSessionHubProvider)
+          .notePose(pose, following: following),
     );
     driver.follow.addListener(() {
       if (mounted) setState(() {});
@@ -597,6 +690,63 @@ class _MapScreenState extends ConsumerState<MapScreen>
     }
     ref.read(routePreviewControllerProvider.notifier).clear();
     if (mounted) setState(() {});
+  }
+
+  Future<void> _beginCruise() async {
+    final camera = await _camera.future;
+    if (!mounted || _cruiseDriver != null) return;
+    if (!ref.read(cruiseControllerProvider).active) return;
+    if (ref.read(navigationControllerProvider).isActive) return;
+    final driver = CruiseFrameDriver(
+      camera: camera,
+      sample: () => ref.read(cruiseControllerProvider).fix,
+      viewportHeight: () => MediaQuery.sizeOf(context).height,
+      screenOffset: () => carScreenOffsetFor(MediaQuery.sizeOf(context)),
+      clock: ref.read(navClockProvider),
+      reduceMotion: MediaQuery.disableAnimationsOf(context),
+      onPose: (pose, {required bool following}) => ref
+          .read(carSessionHubProvider)
+          .notePose(pose, following: following),
+    );
+    driver.follow.addListener(() {
+      if (mounted) setState(() {});
+    });
+    _cruiseDriver = driver;
+    final ticker = createTicker(driver.step);
+    _cruiseTicker = ticker;
+    unawaited(ticker.start());
+    setState(() {});
+  }
+
+  void _endCruise({required bool settle}) {
+    _cruiseTicker?.dispose();
+    _cruiseTicker = null;
+    _cruiseDriver?.dispose();
+    _cruiseDriver = null;
+    if (!settle) {
+      if (mounted) setState(() {});
+      return;
+    }
+    _settleNorthUp();
+    if (mounted) setState(() {});
+  }
+
+  void _settleNorthUp() {
+    final camera = _readyCamera;
+    if (camera == null) return;
+    camera.showVehicle(null);
+    final pose = camera.pose;
+    if (pose == null) return;
+    unawaited(
+      camera.animateTo(
+        CameraPose(
+          center: pose.center,
+          zoom: math.min(pose.zoom, 16),
+          tilt: 0,
+          bearing: 0,
+        ),
+      ),
+    );
   }
 
   Future<void> _startNavigation(
@@ -898,6 +1048,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
         ? ref.watch(effectiveFuelPriceProvider)
         : null;
     final navigating = nav.isActive;
+    final cruising = ref.watch(cruiseControllerProvider).active && !navigating;
     // Kenderaan yang dipilih (kereta/motosikal): sama dengan yang digunakan untuk mengira laluan.
     final vehicle = navigating
         ? (nav.query?.vehicle ?? ref.watch(routeVehicleProvider))
@@ -914,6 +1065,18 @@ class _MapScreenState extends ConsumerState<MapScreen>
     ref.listen<NavigationState>(
       navigationControllerProvider,
       _onNavigationChanged,
+    );
+    ref.listen<CruiseState>(cruiseControllerProvider, _onCruiseChanged);
+    final hub = ref.watch(carSessionHubProvider);
+    hub.bindCamera(
+      recenter: () {
+        _driver?.recenter();
+        _cruiseDriver?.recenter();
+      },
+      pan: () {
+        _driver?.userInteracted();
+        _cruiseDriver?.userInteracted();
+      },
     );
     // Sebarang tindakan pengguna pada laluan (tukar kenderaan, pilih laluan lain, padam) membatalkan
     // kiraan mundur; navigasi tidak boleh bermula di luar kehendaknya.
@@ -944,9 +1107,13 @@ class _MapScreenState extends ConsumerState<MapScreen>
       // Semasa laluan dipratonton, kamera dipegang oleh paparan laluan, bukan pengguna.
       if (next is RouteIdle) {
         _idle.resume(_Suspend.route);
+        ref.read(cruiseControllerProvider.notifier).setBlocked(
+          ref.read(navigationControllerProvider).isActive,
+        );
         if (prev is! RouteIdle && _idle.following) unawaited(_flyToUser());
       } else {
         _idle.suspend(_Suspend.route);
+        ref.read(cruiseControllerProvider.notifier).setBlocked(true);
       }
       // Muatkan laluan dalam pandangan apabila set pilihan pertama tiba, dan sekali lagi apabila
       // pencarian alternatif selesai dengan lebih banyak laluan (bukan pada setiap laluan yang tiba
@@ -983,8 +1150,17 @@ class _MapScreenState extends ConsumerState<MapScreen>
         for (final r in ref.watch(reportsControllerProvider))
           MapReport(id: r.id, type: r.type, point: r.point),
       ],
-      initialCenter: AppConfig.initialCenter,
-      initialZoom: AppConfig.initialZoom,
+      initialCenter:
+          nav.progress?.position ??
+          (cruising
+              ? (ref.read(cruiseControllerProvider).point ??
+                    AppConfig.initialCenter)
+              : AppConfig.initialCenter),
+      initialZoom: navigating || cruising ? 17 : AppConfig.initialZoom,
+      initialBearing: navigating
+          ? (nav.progress?.bearing ?? 0)
+          : (cruising ? ref.read(cruiseControllerProvider).bearing : 0),
+      initialTilt: navigating || cruising ? 55 : 0,
       routes: navigating ? const [] : _routeLines(state),
       navRoute: navigating ? _navLineFor(nav) : null,
       navAlong: navigating ? _driver?.routeAlong : null,
@@ -995,9 +1171,10 @@ class _MapScreenState extends ConsumerState<MapScreen>
         destination: navigating ? nav.query?.destination : _destination(state),
       ),
       destination: navigating ? nav.query?.destination : _destination(state),
-      showUserLocation: access == LocationAccess.granted && !navigating,
+      showUserLocation:
+          access == LocationAccess.granted && !navigating && !cruising,
       userLocation: _tracker.location,
-      showCompass: !navigating,
+      showCompass: !navigating && !cruising,
       vehicleKind: vehicleKind,
       colors: MapOverlayColors(
         mainRoute: fg.routeMain,
@@ -1010,7 +1187,11 @@ class _MapScreenState extends ConsumerState<MapScreen>
       onLongPress: navigating ? (_) {} : _onLongPress,
       onTap: navigating ? null : _onMapTap,
       onReady: _onMapReady,
-      onUserGesture: navigating ? _driver?.userInteracted : _idle.release,
+      onUserGesture: navigating
+          ? _driver?.userInteracted
+          : cruising
+          ? _cruiseDriver?.userInteracted
+          : _idle.release,
     );
 
     return Scaffold(
@@ -1025,6 +1206,17 @@ class _MapScreenState extends ConsumerState<MapScreen>
             Positioned.fill(
               child: VehicleOverlay(
                 placement: _driver!.car,
+                palette: CarPalette.forBrightness(
+                  theme.colorScheme.primary,
+                  mapIsDark ? Brightness.dark : Brightness.light,
+                ),
+                kind: vehicleKind,
+              ),
+            ),
+          if (cruising && _cruiseDriver != null)
+            Positioned.fill(
+              child: VehicleOverlay(
+                placement: _cruiseDriver!.car,
                 palette: CarPalette.forBrightness(
                   theme.colorScheme.primary,
                   mapIsDark ? Brightness.dark : Brightness.light,
@@ -1208,6 +1400,20 @@ class _MapScreenState extends ConsumerState<MapScreen>
                     ),
                   ),
                 ],
+              ),
+            ),
+          if (cruising)
+            SafeArea(
+              child: Align(
+                alignment: Alignment.bottomLeft,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: SpeedBubble(
+                    speedMps: ref.watch(cruiseControllerProvider).speedMps,
+                    limitKmh: ref.watch(cruiseControllerProvider).limitKmh,
+                    overspeed: ref.watch(cruiseControllerProvider).overspeed,
+                  ),
+                ),
               ),
             ),
           if (navigating) ..._navigationOverlay(nav, navSettings),
@@ -1692,4 +1898,5 @@ abstract final class _Suspend {
   static const background = 'background';
   static const navigation = 'navigation';
   static const route = 'route';
+  static const cruise = 'cruise';
 }
