@@ -60,6 +60,16 @@ jobs:
           fi
           printf 'sdk.dir=%s\nflutter.sdk=%s\n' "$sdk" "$FLUTTER_ROOT" > android/local.properties
           printf '\norg.gradle.daemon=false\norg.gradle.caching=false\n' >> android/gradle.properties
+          # gradlew, gradlew.bat, dan gradle-wrapper.jar diabaikan oleh git.
+          # Flutter menyimpannya dalam cache dan menyalinnya semasa binaan.
+          if [ ! -f "$FLUTTER_ROOT/bin/cache/artifacts/gradle_wrapper/gradlew" ]; then
+            flutter precache
+          fi
+          src="$FLUTTER_ROOT/bin/cache/artifacts/gradle_wrapper"
+          cp "$src/gradlew" "$src/gradlew.bat" android/
+          mkdir -p android/gradle/wrapper
+          cp "$src/gradle/wrapper/gradle-wrapper.jar" android/gradle/wrapper/
+          chmod +x android/gradlew
 
       - uses: github/codeql-action/init@v3
         with:
