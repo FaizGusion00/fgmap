@@ -24,7 +24,9 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "17"
+          # maplibre_gl mengkompil sumber Java 21. JDK 17 menolaknya
+          # ("invalid source release: 21"). Aplikasi sendiri kekal sasaran 17.
+          java-version: "21"
 
       - uses: subosito/flutter-action@v2
         with:
@@ -40,14 +42,36 @@ jobs:
         run: |
           set -euo pipefail
           flutter pub get
-          yes | flutter doctor --android-licenses >/dev/null
+          # `yes` menerima SIGPIPE bila flutter tutup paip. Dengan pipefail itu
+          # menjadi kod 141 walaupun lesen sudah diterima.
+          set +o pipefail
+          yes | flutter doctor --android-licenses
+          license_status=${PIPESTATUS[1]}
+          set -o pipefail
+          if [ "$license_status" -ne 0 ]; then
+            echo "flutter doctor --android-licenses gagal ($license_status)" >&2
+            exit "$license_status"
+          fi
           sdk="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          if [ -z "$sdk" ] && [ -d /usr/local/lib/android/sdk ]; then
+            sdk=/usr/local/lib/android/sdk
+          fi
           if [ -z "$sdk" ] || [ -z "${FLUTTER_ROOT:-}" ]; then
             echo "Android SDK atau FLUTTER_ROOT tiada pada pelari" >&2
             exit 1
           fi
           printf 'sdk.dir=%s\nflutter.sdk=%s\n' "$sdk" "$FLUTTER_ROOT" > android/local.properties
           printf '\norg.gradle.daemon=false\norg.gradle.caching=false\n' >> android/gradle.properties
+          # gradlew, gradlew.bat, dan gradle-wrapper.jar diabaikan oleh git.
+          # Flutter menyimpannya dalam cache dan menyalinnya semasa binaan.
+          if [ ! -f "$FLUTTER_ROOT/bin/cache/artifacts/gradle_wrapper/gradlew" ]; then
+            flutter precache
+          fi
+          src="$FLUTTER_ROOT/bin/cache/artifacts/gradle_wrapper"
+          cp "$src/gradlew" "$src/gradlew.bat" android/
+          mkdir -p android/gradle/wrapper
+          cp "$src/gradle/wrapper/gradle-wrapper.jar" android/gradle/wrapper/
+          chmod +x android/gradlew
 
       - uses: github/codeql-action/init@v3
         with:
