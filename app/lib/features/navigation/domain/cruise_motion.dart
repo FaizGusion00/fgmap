@@ -10,6 +10,8 @@ class CruiseMotion {
 
   GeoPoint? _anchor;
   double _bearing = 0;
+  bool _bearingKnown = false;
+  DateTime? _bearingAt;
   double _speed = 0;
   DateTime? _anchorTime;
   GeoPoint? _display;
@@ -26,6 +28,9 @@ class CruiseMotion {
     _anchorTime = null;
     _lastFrame = null;
     _speed = 0;
+    _bearing = 0;
+    _bearingKnown = false;
+    _bearingAt = null;
   }
 
   void onFix({
@@ -36,7 +41,18 @@ class CruiseMotion {
   }) {
     _anchor = point;
     _anchorTime = time;
-    if (bearing != null) _bearing = bearing;
+    // Pemacu bingkai memanggil ini setiap bingkai dengan fix yang sama. Arah hanya
+    // diterima sekali setiap ukuran GPS, jalan pendek, dan diabaikan bila perlahan.
+    if (bearing != null && time != _bearingAt) {
+      _bearing = followHeading(
+        _bearing,
+        bearing,
+        speedMps: speedMps,
+        known: _bearingKnown,
+      );
+      _bearingKnown = true;
+      _bearingAt = time;
+    }
     _speed = speedMps < 0.5 ? 0 : speedMps;
   }
 

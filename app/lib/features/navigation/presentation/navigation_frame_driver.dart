@@ -10,6 +10,36 @@ import '../domain/navigation_session.dart';
 import '../domain/vehicle_model.dart';
 import 'car/vehicle_overlay.dart';
 
+/// Satu langkah masa untuk pemacu bingkai.
+class FrameStep {
+  const FrameStep(this.seconds, {required this.rewound});
+
+  final double seconds;
+
+  /// Benar apabila jam ticker berundur (app kembali dari latar dan ticker dimulakan semula).
+  final bool rewound;
+}
+
+/// dt sesaat yang selamat. Elapsed yang berundur atau tidak sah ialah satu bingkai,
+/// bukan selang negatif yang memutar kereta.
+FrameStep frameStep(Duration elapsed, Duration? previous) {
+  if (previous == null) return const FrameStep(1 / 60, rewound: false);
+  final dt = (elapsed - previous).inMicroseconds / 1e6;
+  if (!dt.isFinite || dt <= 0) return const FrameStep(1 / 60, rewound: true);
+  return FrameStep(dt > 0.25 ? 0.25 : dt, rewound: false);
+}
+
+/// Yaw kereta 3D menuju [goal] (sudah dalam -80..80). Masa tidak sah atau yaw yang
+/// sudah terlepas diikat semula pada sasaran, supaya kereta tidak berpusing jauh.
+double smoothCarYaw(double? current, double goal, double dt) {
+  final g = goal.clamp(-80.0, 80.0);
+  if (current == null || !current.isFinite || !dt.isFinite || dt <= 0) return g;
+  if (current.abs() > 80) return g;
+  const tau = 0.08;
+  final k = 1 - math.exp(-dt / tau);
+  return (current + (g - current) * k).clamp(-80.0, 80.0);
+}
+
 /// Bagaimana kamera berkaitan dengan kenderaan.
 enum NavFollow {
   /// Kamera mengikut kenderaan.
@@ -98,7 +128,6 @@ class NavigationFrameDriver {
   /// kord ke hadapan di sepanjang laluan, dan di selekoh/ramp tajam ia boleh berubah belasan darjah
   /// dalam satu bingkai; kamera sudah melicinkannya, tetapi kereta mesti juga.
   double? _yaw;
-  static const _yawSmoothing = 0.08;
 
   // Kompensasi latensi kamera native: peta menunjukkan kamera yang dihantar [cameraLatency] lalu, jadi
   // (a) kamera dihantar pada pose yang diunjur sejauh itu ke hadapan (kedudukan dan arah), dan (b) yaw
@@ -177,10 +206,18 @@ class NavigationFrameDriver {
 
   /// Satu bingkai. [elapsed] ialah masa yang berlalu daripada `Ticker`.
   void step(Duration elapsed) {
-    final dt = _lastElapsed == null
-        ? 1 / 60
-        : (elapsed - _lastElapsed!).inMicroseconds / 1e6;
+    final timing = frameStep(elapsed, _lastElapsed);
     _lastElapsed = elapsed;
+    if (timing.rewound) {
+      // Ticker dimulakan semula selepas app kembali: jamnya bermula dari sifar.
+      // Jangan anggap itu sebagai masa negatif (kereta berpusing) dan jangan
+      // pegang arah kamera lama yang kini "pada masa hadapan".
+      _sentBearings.clear();
+      _yawRate = 0;
+      _prevBearing = null;
+      _yaw = null;
+    }
+    final dt = timing.seconds;
 
     final now = clock();
     final pose = poseAt(now);
@@ -209,7 +246,12 @@ class NavigationFrameDriver {
 
     final entry =
         camera.pose ??
-        CameraPose(center: pose.point, zoom: 14, tilt: 0, bearing: 0);
+        CameraPose(
+          center: pose.point,
+          zoom: 17,
+          tilt: 55,
+          bearing: pose.bearing,
+        );
     final rig = _rig ??= CameraRig(
       entry: entry,
       responsiveness: reduceMotion ? 2 : 1,
@@ -239,7 +281,7 @@ class NavigationFrameDriver {
         ? destinationPoint(pose.point, pose.bearing, pose.speedMps * latency)
         : pose.point;
     final leadBearing = latency > 0
-        ? (pose.bearing + _yawRate * latency + 360) % 360
+        ? normalizeBearing(pose.bearing + _yawRate * latency)
         : pose.bearing;
 
     // rig.step mesti dipanggil setiap bingkai (ia memajukan keadaan dalamannya); hanya penghantaran
@@ -288,9 +330,7 @@ class NavigationFrameDriver {
       displayedBearing,
       pose.bearing,
     ).clamp(-80.0, 80.0);
-    final yaw = _yaw == null
-        ? yawGoal
-        : _yaw! + (yawGoal - _yaw!) * (1 - math.exp(-dt / _yawSmoothing));
+    final yaw = smoothCarYaw(_yaw, yawGoal, dt);
     _yaw = yaw;
     final placement = CarPlacement(
       yawDeg: yaw,
@@ -390,7 +430,7 @@ class NavigationFrameDriver {
       a != null &&
       (a.point.lat - b.point.lat).abs() < 1e-8 &&
       (a.point.lng - b.point.lng).abs() < 1e-8 &&
-      (a.bearing - b.bearing).abs() < 1e-3;
+      angleDelta(a.bearing, b.bearing).abs() < 1e-3;
 
   static bool _sameCamera(CameraPose? a, CameraPose b) =>
       a != null &&
@@ -398,7 +438,7 @@ class NavigationFrameDriver {
       (a.center.lng - b.center.lng).abs() < 1e-8 &&
       (a.zoom - b.zoom).abs() < 1e-3 &&
       (a.tilt - b.tilt).abs() < 1e-3 &&
-      (a.bearing - b.bearing).abs() < 1e-3;
+      angleDelta(a.bearing, b.bearing).abs() < 1e-3;
 
   void dispose() {
     _disposed = true;

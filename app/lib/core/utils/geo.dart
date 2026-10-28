@@ -115,6 +115,26 @@ double angleDelta(double from, double to) {
   return d > 180 ? d - 360 : d;
 }
 
+/// Arah gerakan seterusnya, sentiasa jalan pendek.
+///
+/// Di bawah 2.5 m/s heading GPS tidak bermakna (hingar, atau 0 palsu) dan [current]
+/// dikekalkan. Di atas itu satu fix tidak boleh melangkah lebih daripada had: 359° ke 1°
+/// ialah +2°, bukan pusingan hampir penuh. [known] palsu menerima ukuran pertama terus.
+double followHeading(
+  double current,
+  double? measured, {
+  required double speedMps,
+  bool known = true,
+}) {
+  if (measured == null || !measured.isFinite) return normalizeBearing(current);
+  final next = normalizeBearing(measured);
+  if (!known) return next;
+  if (speedMps < 2.5) return normalizeBearing(current);
+  final delta = angleDelta(current, next);
+  final cap = speedMps < 6 ? 45.0 : 180.0;
+  return normalizeBearing(current + delta.clamp(-cap, cap));
+}
+
 /// Hasil unjuran satu titik ke satu segmen garis.
 class SegmentProjection {
   const SegmentProjection({
