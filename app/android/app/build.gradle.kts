@@ -87,6 +87,13 @@ gradle.taskGraph.whenReady {
     }
 }
 
+dependencies {
+    implementation("androidx.car.app:app:1.7.0")
+    implementation("androidx.car.app:app-projected:1.7.0")
+    // Sama dengan pemalam maplibre_gl supaya satu SDK peta sahaja.
+    implementation("org.maplibre.gl:android-sdk-opengl:13.5.0")
+}
+
 flutter {
     source = "../.."
 }

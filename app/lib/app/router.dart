@@ -36,8 +36,9 @@ final routerProvider = Provider<GoRouter>((ref) {
   ref.listen<bool>(splashDoneProvider, (_, _) => refresh.value++);
   ref.onDispose(refresh.dispose);
 
+  final openOnMap = ref.read(splashDoneProvider);
   return GoRouter(
-    initialLocation: _splashPath,
+    initialLocation: openOnMap ? '/' : _splashPath,
     refreshListenable: refresh,
     redirect: (context, state) {
       final path = state.matchedLocation;

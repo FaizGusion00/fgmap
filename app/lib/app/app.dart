@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/settings/app_preferences.dart';
 import '../core/theme/app_theme.dart';
 import '../core/theme/theme_controller.dart';
+import '../features/navigation/presentation/car_session_hub.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'router.dart';
 
@@ -33,13 +34,16 @@ class FgmapApp extends ConsumerWidget {
       locale: prefs.locale,
       localeResolutionCallback: resolveLocale,
       routerConfig: ref.watch(routerProvider),
-      builder: (context, child) => _SystemUiStyle(
-        child: _applyAccessibility(
-          context,
-          prefs,
-          child ?? const SizedBox.shrink(),
-        ),
-      ),
+      builder: (context, child) {
+        ref.watch(carSessionHubProvider);
+        return _SystemUiStyle(
+          child: _applyAccessibility(
+            context,
+            prefs,
+            child ?? const SizedBox.shrink(),
+          ),
+        );
+      },
     );
   }
 }

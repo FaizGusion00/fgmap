@@ -389,6 +389,41 @@ void main() {
       );
       expect(adapter.lastRequest, isNull);
     });
+
+    test('jejak GPS: awam dahulu, kemudian had di hujung jejak', () async {
+      final adapter = StubAdapter(
+        (_) => StubAdapter.text(
+          _fixture('valhalla_trace_attributes_klcc_klia.json'),
+          status: 200,
+          contentType: 'application/json',
+        ),
+      );
+      final limit = await service(adapter).limitForTrace(
+        const [klcc, klia],
+        RouteVehicle.car,
+      );
+      expect(limit, isNotNull);
+      expect(engine.traceRequests, isEmpty);
+      expect(
+        adapter.lastRequest!.uri.toString(),
+        'https://v.test/trace_attributes',
+      );
+    });
+
+    test('jejak: online gagal lalu pek offline; kegagalan semua -> null', () async {
+      await installPack();
+      final failed = await service(
+        FailingAdapter(DioExceptionType.connectionError),
+      ).limitForTrace(const [klcc, klia], RouteVehicle.car);
+      expect(failed, isNotNull);
+      expect(engine.traceRequests, hasLength(1));
+
+      engine.traceError = StateError('tutup');
+      final none = await service(
+        FailingAdapter(DioExceptionType.connectionError),
+      ).limitForTrace(const [klcc], RouteVehicle.car);
+      expect(none, isNull);
+    });
   });
 
   group('overspeedLevel', () {

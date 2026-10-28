@@ -15,11 +15,14 @@ import '../../speed_limits/domain/speed_limits.dart';
 import '../data/location_sources.dart';
 import '../data/navigation_settings.dart';
 import '../data/screen_awake.dart';
+import '../data/trip_record.dart';
+import '../data/trip_store.dart';
 import '../data/voice_guide.dart';
 import '../domain/announcement_planner.dart';
 import '../domain/instruction_text.dart';
 import '../domain/nav_route.dart';
 import '../domain/navigation_session.dart';
+import '../domain/restored_progress.dart';
 import '../domain/vehicle_model.dart';
 import '../../../core/utils/haptics.dart';
 import '../../../core/utils/log.dart';
@@ -141,6 +144,9 @@ class NavigationController extends Notifier<NavigationState> {
   LocationFix? _lastFix;
   VoiceLanguage _uiLanguage = VoiceLanguage.ms;
 
+  bool _background = false;
+  double? _persistedAlong;
+
   @override
   NavigationState build() {
     ref.onDispose(_teardown);
@@ -151,7 +157,79 @@ class NavigationController extends Notifier<NavigationState> {
         unawaited(ref.read(voiceGuideProvider).stop());
       }
     });
+    final saved = ref.read(tripStoreProvider).read();
+    if (saved is NavigationTrip) return _resumeSaved(saved);
     return const NavigationState();
+  }
+
+  /// Pulihkan perjalanan sebelum bingkai peta pertama. Laluan yang disimpan dikekalkan; jika GPS
+  /// sudah di luar laluan, [_onFix] menggunakan laluan semula yang sedia ada.
+  NavigationState _resumeSaved(NavigationTrip saved) {
+    final nav = NavRoute(saved.route);
+    if (!nav.isUsable) {
+      unawaited(ref.read(tripStoreProvider).clear());
+      return const NavigationState();
+    }
+    _uiLanguage = saved.language;
+    final generation = ++_generation;
+    final clock = ref.read(navClockProvider);
+    final session = NavigationSession(
+      route: nav,
+      language: _voiceLanguage(),
+      clock: clock,
+    );
+    _session = session;
+    session.primeRestored(
+      alongM: saved.alongM,
+      speedMps: saved.speedMps,
+      time: clock(),
+    );
+    final progress = restoredProgress(
+      route: nav,
+      alongM: saved.alongM,
+      position: saved.position,
+      bearing: saved.bearing,
+      speedMps: saved.speedMps,
+      arrived: saved.arrived,
+    );
+    final resumed = NavigationState(
+      phase: saved.arrived ? NavPhase.arrived : NavPhase.active,
+      route: nav,
+      query: saved.query,
+      progress: progress,
+      routeVersion: 1,
+    );
+    if (saved.arrived) return resumed;
+
+    final src = DeviceLocationSource(ref.read(locationServiceProvider));
+    _subscription = src.fixes().listen(
+      (fix) {
+        if (generation == _generation) _onFix(fix);
+      },
+      onError: (Object e) {
+        if (generation != _generation) return;
+        state = state.copyWith(locationError: true);
+      },
+    );
+    _ensureTicker(generation);
+    if (!_background) unawaited(ref.read(screenAwakeProvider).enable());
+    unawaited(_loadSpeedLimits(saved.route, saved.query, generation, 1));
+    return resumed;
+  }
+
+  /// App di latar: hentikan pemasa UI, lepaskan wakelock skrin, kekalkan satu langganan GPS.
+  void noteBackground(bool background) {
+    _background = background;
+    if (!state.isActive || state.simulated) return;
+    if (background) {
+      _ticker?.cancel();
+      _ticker = null;
+      unawaited(ref.read(screenAwakeProvider).disable());
+      unawaited(_persistTrip(force: true));
+    } else if (state.phase == NavPhase.active) {
+      _ensureTicker(_generation);
+      unawaited(ref.read(screenAwakeProvider).enable());
+    }
   }
 
   VoiceLanguage _voiceLanguage([NavigationSettings? override]) {
@@ -171,6 +249,7 @@ class NavigationController extends Notifier<NavigationState> {
     required VoiceLanguage uiLanguage,
     NavLocationSource? source,
   }) async {
+    releaseActiveCruise?.call();
     await stop();
     // Dua start() serentak (cth. ketik dua kali) kedua-duanya melepasi stop() di atas; tanpa ini
     // langganan dan pemasa sesi pertama bocor kerana rujukannya ditimpa.
@@ -211,13 +290,20 @@ class NavigationController extends Notifier<NavigationState> {
         state = state.copyWith(locationError: true);
       },
     );
-    // 4 Hz: banner, jarak dan pengumuman mengikut kedudukan kenderaan yang diunjur, bukan hanya fix 1 Hz.
+    _ensureTicker(generation);
+    if (!src.isSimulated) unawaited(_persistTrip(force: true));
+    return true;
+  }
+
+  /// 4 Hz semasa app di depan: banner dan pengumuman antara fix. Dibatalkan di latar belakang
+  /// supaya peta tidak dikira pada kadar bingkai; langganan GPS kekal.
+  void _ensureTicker(int generation) {
+    if (_background || _ticker != null) return;
     _ticker = Timer.periodic(const Duration(milliseconds: 250), (_) {
       final s = _session;
       if (s == null || generation != _generation) return;
       final said = s.tick();
       if (said.isNotEmpty) {
-        // Isyarat hilang: kemas kini penanda GPS lemah walaupun tiada fix baharu.
         final p = s.progress;
         if (p != null) state = state.copyWith(progress: p);
         _speak(said);
@@ -229,7 +315,6 @@ class NavigationController extends Notifier<NavigationState> {
       _speak(live.announcements);
       _updateOverspeed(live.progress);
     });
-    return true;
   }
 
   Future<void> stop() async {
@@ -238,6 +323,8 @@ class NavigationController extends Notifier<NavigationState> {
     _session = null;
     _lastFix = null;
     _reroutePending = false;
+    _persistedAlong = null;
+    await ref.read(tripStoreProvider).clear();
     ref.read(reportAlertsProvider.notifier).reset();
     if (state.phase != NavPhase.idle) {
       state = const NavigationState();
@@ -303,10 +390,12 @@ class NavigationController extends Notifier<NavigationState> {
       state = state.copyWith(phase: NavPhase.arrived);
       Haptics.heavy();
       _teardown();
+      unawaited(_persistTrip(force: true));
       // Perjalanan selesai: skrin tidak perlu dijaga hidup lagi.
       unawaited(ref.read(screenAwakeProvider).disable());
       return;
     }
+    unawaited(_persistTrip());
 
     final request = update.reroute;
     if (request != null) unawaited(_reroute(request));
@@ -416,6 +505,7 @@ class NavigationController extends Notifier<NavigationState> {
         routeVersion: state.routeVersion + 1,
       );
       _speak(fresh.takeStartAnnouncements());
+      unawaited(_persistTrip(force: true));
       unawaited(
         _loadSpeedLimits(options.first, query, generation, state.routeVersion),
       );
@@ -500,6 +590,34 @@ class NavigationController extends Notifier<NavigationState> {
         chime: ChimeKind.warning,
       ),
     ]);
+  }
+
+  Future<void> _persistTrip({bool force = false}) async {
+    if (state.simulated || !state.isActive) return;
+    final route = state.route;
+    final query = state.query;
+    final progress = state.progress;
+    if (route == null || query == null) return;
+    final along = progress?.alongM ?? 0;
+    if (!force &&
+        _persistedAlong != null &&
+        (along - _persistedAlong!).abs() < 25) {
+      return;
+    }
+    _persistedAlong = along;
+    await ref.read(tripStoreProvider).write(
+      NavigationTrip(
+        savedAt: ref.read(navClockProvider)().toUtc(),
+        route: route.option,
+        query: query,
+        alongM: along,
+        language: _voiceLanguage(),
+        position: progress?.position ?? route.points.first,
+        bearing: progress?.bearing ?? 0,
+        speedMps: progress?.speedMps ?? 0,
+        arrived: state.phase == NavPhase.arrived,
+      ),
+    );
   }
 
   void _speak(List<Announcement> announcements) {
