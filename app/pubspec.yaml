@@ -4,10 +4,10 @@ publish_to: 'none'
 version: 0.5.2+12
 
 environment:
-  sdk: ^3.11.5
+  sdk: ^3.12.0
 
 dependencies:
-  audioplayers: ^6.7.1
+  audioplayers: ^6.8.1
   connectivity_plus: ^7.3.1
   crypto: ^3.0.7
   dio: ^5.11.1
@@ -19,7 +19,12 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   flutter_riverpod: ^3.3.2
-  flutter_tts: ^4.2.5
+  # 4.2.5 masih apply kotlin-android; guna PR Built-in Kotlin sehingga pub lepaskan versi baharu.
+  # https://github.com/dlutton/flutter_tts/pull/660
+  flutter_tts:
+    git:
+      url: https://github.com/fstotz/flutter_tts.git
+      ref: codex/apple-packaging-built-in-kotlin
   geolocator: ^14.1.2
   go_router: ^17.5.0
   intl: ^0.20.2
