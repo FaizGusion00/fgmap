@@ -72,6 +72,7 @@ class VehicleModel {
   // Mod luar laluan.
   GeoPoint _freePoint = const GeoPoint(0, 0);
   double _freeBearing = 0;
+  bool _freeBearingKnown = false;
   bool _hasFree = false;
   GeoPoint? _freeDisplay;
 
@@ -96,6 +97,7 @@ class VehicleModel {
       }
     }
     _onRoute = true;
+    _freeBearingKnown = false;
     _anchorAlong = along;
     _anchorTime = time;
     final s = speedMps < 0.5 ? 0.0 : speedMps;
@@ -126,7 +128,15 @@ class VehicleModel {
     _onRoute = false;
     _anchorTime = time;
     _freePoint = point;
-    if (bearing != null) _freeBearing = bearing;
+    if (bearing != null) {
+      _freeBearing = followHeading(
+        _freeBearing,
+        bearing,
+        speedMps: speedMps,
+        known: _freeBearingKnown,
+      );
+      _freeBearingKnown = true;
+    }
     _speed = speedMps < 0.5 ? 0 : speedMps;
     _hasFree = true;
   }
