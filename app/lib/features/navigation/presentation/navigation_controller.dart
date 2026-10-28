@@ -522,11 +522,20 @@ class NavigationController extends Notifier<NavigationState> {
       clock: clock,
       isReroute: true,
     );
-    // Benihkan model daripada pose terakhir supaya overlay / AA tidak kosong atau (0,0)
-    // semasa menunggu fix pertama pada laluan baharu.
-    final seedAlong = previous == null
+    // Benihkan model daripada GPS terkini (bukan paparan laluan lama) supaya seed
+    // dekat pemandu sebenar; jatuh balik ke progress jika fix lapuk.
+    final seedPoint = () {
+      final fix = _lastFix;
+      final clockFn = clock;
+      if (fix != null &&
+          clockFn().difference(fix.timestamp ?? clockFn()) <= _maxFeedAge) {
+        return fix.point;
+      }
+      return previous?.position;
+    }();
+    final seedAlong = seedPoint == null
         ? 0.0
-        : RouteTracker(route).match(previous.position).alongM.clamp(0.0, route.totalM);
+        : RouteTracker(route).match(seedPoint).alongM.clamp(0.0, route.totalM);
     // Pengumuman laluan baharu sebelum primeRestored (yang menutup bendera start).
     final startAnnouncements = fresh.takeStartAnnouncements();
     fresh.primeRestored(

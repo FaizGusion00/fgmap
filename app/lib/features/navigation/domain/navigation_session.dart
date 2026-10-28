@@ -385,7 +385,12 @@ class NavigationSession {
   /// Memulangkan null jika tiada apa yang perlu dikemas kini (manuver sama dan jarak berubah < 10 m).
   SessionUpdate? refreshLive() {
     final p = _progress;
-    if (p == null || _arrived || p.status != NavStatus.onRoute) return null;
+    if (p == null || _arrived) return null;
+    // Soft hold: status boleh offRoute tetapi kenderaan masih onRoute — terus kemas kini
+    // banner/jarak supaya HUD dan AA tidak beku semasa "Mengira semula".
+    if (p.status != NavStatus.onRoute && p.status != NavStatus.offRoute) {
+      return null;
+    }
     final pose = vehicle.poseAt(_clock());
     if (!pose.onRoute) return null;
 
@@ -514,6 +519,8 @@ class NavigationSession {
   bool _hardDeparted(RouteMatch match, FilteredFix fix, double threshold) {
     final cross = match.crossTrackM;
     if (cross > math.max(150.0, threshold * 2.5)) return true;
+    // Sudah mengira semula dan masih jauh: jangan kekal soft hold di jalan selari lama.
+    if (_offRouteRequested && cross > threshold * 1.6) return true;
     final heading = fix.headingDegrees;
     if (heading == null) return cross > threshold * 2;
     final differ = angleDelta(match.routeBearing, heading).abs() > 45;
@@ -526,11 +533,16 @@ class NavigationSession {
     RouteMatch match,
     Duration gap,
   ) {
-    var along = math.max(_along, match.alongM);
     final dt = gap.inMicroseconds / 1e6;
-    if (fix.speedMps > 0.5 && dt > 0 && dt < 5) {
-      along = math.max(along, _along + fix.speedMps * dt);
-    }
+    final coast = (fix.speedMps > 0.5 && dt > 0 && dt < 5)
+        ? _along + fix.speedMps * dt
+        : _along;
+    // Unjuran padanan hanya jika di hadapan dan tidak lonjak (>40 m = kemungkinan salah tapak).
+    final projected = match.alongM;
+    final candidate = (projected >= _along && projected <= _along + 40)
+        ? projected
+        : coast;
+    final along = math.max(_along, math.min(candidate, _along + 40));
     return along.clamp(0.0, route.totalM);
   }
 

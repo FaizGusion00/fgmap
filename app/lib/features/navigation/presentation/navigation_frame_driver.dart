@@ -217,6 +217,14 @@ class NavigationFrameDriver {
     if (current != null) {
       car.value = null;
       car.value = current;
+    } else if (follow.value == NavFollow.following) {
+      // Overlay hilang sepenuhnya: tunjukkan marker peta sehingga bingkai seterusnya
+      // membina semula kereta 3D (elak skrin kosong selepas resume).
+      final now = clock();
+      final pose = poseAt(now);
+      if (pose != null) {
+        _showMapMarker(VehicleMarker(point: pose.point, bearing: pose.bearing));
+      }
     }
   }
 

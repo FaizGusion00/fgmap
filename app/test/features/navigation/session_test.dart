@@ -305,6 +305,87 @@ void main() {
         }
       },
     );
+
+    test(
+      'soft hold: refreshLive masih mengemas kini along semasa status offRoute',
+      () {
+        final clock = FakeClock();
+        final session = NavigationSession(
+          route: route,
+          language: VoiceLanguage.ms,
+          clock: clock.call,
+        );
+        for (final f in driveFixes(
+          route,
+          speedMps: 14,
+          startM: 800,
+          endM: 1000,
+        )) {
+          clock.now = f.timestamp!;
+          session.onFix(f);
+        }
+        final base = DateTime.utc(2026, 1, 1, 12, 5);
+        for (var i = 0; i < 6; i++) {
+          final f = LocationFix(
+            point: destinationPoint(route.pointAt(1000 + 14.0 * i), 0, 50),
+            headingDegrees: 90,
+            accuracyMeters: 5,
+            speedMps: 14,
+            timestamp: base.add(Duration(seconds: i)),
+          );
+          clock.now = f.timestamp!;
+          session.onFix(f);
+        }
+        expect(session.progress!.status, NavStatus.offRoute);
+        final alongBefore = session.progress!.alongM;
+        clock.advance(const Duration(milliseconds: 500));
+        final live = session.refreshLive();
+        expect(session.poseAt(clock.now).onRoute, isTrue);
+        // Sama ada kemas kini dikembalikan atau jarak sudah cukup hampir, along tidak mundur.
+        expect(session.progress!.alongM, greaterThanOrEqualTo(alongBefore));
+        if (live != null) {
+          expect(live.progress.status, NavStatus.offRoute);
+          expect(live.progress.alongM, greaterThanOrEqualTo(alongBefore));
+        }
+      },
+    );
+
+    test(
+      'selepas noteRerouteRequested + jauh: hard leave guna GPS bebas',
+      () {
+        final clock = FakeClock();
+        final session = NavigationSession(
+          route: route,
+          language: VoiceLanguage.ms,
+          clock: clock.call,
+        );
+        for (final f in driveFixes(
+          route,
+          speedMps: 14,
+          startM: 800,
+          endM: 1000,
+        )) {
+          clock.now = f.timestamp!;
+          session.onFix(f);
+        }
+        session.noteRerouteRequested();
+        final base = DateTime.utc(2026, 1, 1, 12, 5);
+        // 70 m selari (> threshold*1.6 ≈ 56) semasa awaiting → hard depart.
+        for (var i = 0; i < 4; i++) {
+          final f = LocationFix(
+            point: destinationPoint(route.pointAt(1000 + 14.0 * i), 0, 70),
+            headingDegrees: 90,
+            accuracyMeters: 5,
+            speedMps: 14,
+            timestamp: base.add(Duration(seconds: i)),
+          );
+          clock.now = f.timestamp!;
+          session.onFix(f);
+        }
+        final pose = session.poseAt(clock.now);
+        expect(pose.onRoute, isFalse, reason: 'hard leave selepas awaiting');
+      },
+    );
   });
 
   group('NavigationSession: isyarat GPS hilang (terowong)', () {

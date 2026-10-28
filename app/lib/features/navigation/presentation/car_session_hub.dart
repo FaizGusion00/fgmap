@@ -40,10 +40,12 @@ class CarSessionHub {
     final previous = _pose;
     _pose = pose;
     _following = following;
-    // Semasa mengira semula atau belokan pantas: push lebih kerap supaya AA ikut telefon.
+    // notePose ~60 Hz: 0.5°/bingkai ≈ 30°/s — cukup untuk selekoh bandar.
+    // Ambang 2.5° hampir tidak pernah tercapai dan AA kekal pada 200 ms.
     final turning =
-        previous != null && angleDelta(previous.bearing, pose.bearing).abs() > 2.5;
-    final urgent = nav.rerouting || turning;
+        previous != null && angleDelta(previous.bearing, pose.bearing).abs() > 0.5;
+    final nearTurn = (nav.progress?.distanceToNextM ?? double.infinity) < 80;
+    final urgent = nav.rerouting || turning || nearTurn;
     _schedule(urgent ? const Duration(milliseconds: 60) : _defaultThrottle);
   }
 
@@ -53,12 +55,14 @@ class CarSessionHub {
   void flush() {
     _throttle?.cancel();
     _throttle = null;
+    _pendingDelay = null;
     unawaited(_push());
   }
 
   static const _defaultThrottle = Duration(milliseconds: 200);
 
   Duration? _pendingDelay;
+  bool _dirty = false;
 
   void _schedule([Duration delay = _defaultThrottle]) {
     // Jika sudah dijadualkan lebih lambat, ketatkan ke delay mendesak (selekoh / re-route).
@@ -81,8 +85,13 @@ class CarSessionHub {
   }
 
   Future<void> _push() async {
-    if (_pushing) return;
+    if (_pushing) {
+      // flush/publish semasa push berjalan: cuba lagi selepas selesai.
+      _dirty = true;
+      return;
+    }
     _pushing = true;
+    _dirty = false;
     try {
       final snapshot = _snapshot();
       final includeRoute = snapshot.routeVersion != _sentRouteVersion ||
@@ -100,6 +109,10 @@ class CarSessionHub {
       // Hos belum sedia. Gambar seterusnya akan mencuba lagi.
     } finally {
       _pushing = false;
+      if (_dirty) {
+        _dirty = false;
+        unawaited(_push());
+      }
     }
   }
 
@@ -274,6 +287,9 @@ class CarSessionHub {
 
   void dispose() {
     _throttle?.cancel();
+    _throttle = null;
+    _pendingDelay = null;
+    _dirty = false;
   }
 }
 

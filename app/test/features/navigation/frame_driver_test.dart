@@ -179,6 +179,22 @@ void main() {
     driver.car.removeListener(onCar);
   });
 
+  test(
+    'reviveAfterForeground tanpa overlay: tunjukkan marker peta sebagai sandaran',
+    () {
+      for (var i = 0; i < 200; i++) {
+        clock.advance(const Duration(milliseconds: 16));
+        driver.step(t(16 * i));
+      }
+      // Simulasi overlay hilang (GPU clear) tanpa membebaskan follow.
+      driver.car.value = null;
+      final vehiclesBefore = camera.vehicleCalls.length;
+      driver.reviveAfterForeground();
+      expect(camera.vehicleCalls.length, greaterThan(vehiclesBefore));
+      expect(camera.vehicleCalls.last, isNotNull);
+    },
+  );
+
   test('recenter(): kembali mengikut, terbang masuk dari pose peta semasa', () {
     for (var i = 0; i < 100; i++) {
       clock.advance(const Duration(milliseconds: 16));
