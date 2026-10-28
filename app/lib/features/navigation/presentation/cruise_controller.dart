@@ -207,7 +207,12 @@ class CruiseController extends Notifier<CruiseState> {
       _disengage(clearTrip: true, handoff: false);
       return;
     }
-    final bearing = heading ?? state.bearing;
+    final bearing = followHeading(
+      state.bearing,
+      heading,
+      speedMps: speed,
+      known: state.fix != null,
+    );
     final sample = CruiseFix(
       point: fix.point,
       bearing: bearing,

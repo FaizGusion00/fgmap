@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/foundation.dart';
 
 import '../../../core/utils/geo.dart';
@@ -61,8 +59,6 @@ class CruiseFrameDriver {
   double? _yaw;
   bool _disposed = false;
 
-  static const _yawSmoothing = 0.08;
-
   void userInteracted() {
     _lastInteraction = clock();
     if (follow.value == NavFollow.following) follow.value = NavFollow.free;
@@ -81,10 +77,10 @@ class CruiseFrameDriver {
 
   void step(Duration elapsed) {
     if (_disposed) return;
-    final dt = _lastElapsed == null
-        ? 1 / 60
-        : (elapsed - _lastElapsed!).inMicroseconds / 1e6;
+    final timing = frameStep(elapsed, _lastElapsed);
     _lastElapsed = elapsed;
+    if (timing.rewound) _yaw = null;
+    final dt = timing.seconds;
     final fix = sample();
     if (fix == null) return;
     _motion.onFix(
@@ -148,10 +144,11 @@ class CruiseFrameDriver {
     camera.showVehicle(null);
 
     final opacity = ((rig.entryProgress - 0.8) / 0.2).clamp(0.0, 1.0);
-    final yawGoal = angleDelta(target.bearing, shown.bearing).clamp(-80.0, 80.0);
-    final yaw = _yaw == null
-        ? yawGoal
-        : _yaw! + (yawGoal - _yaw!) * (1 - math.exp(-dt / _yawSmoothing));
+    final yawGoal = angleDelta(
+      target.bearing,
+      shown.bearing,
+    ).clamp(-80.0, 80.0);
+    final yaw = smoothCarYaw(_yaw, yawGoal, dt);
     _yaw = yaw;
     final placement = CarPlacement(
       yawDeg: yaw,

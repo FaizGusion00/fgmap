@@ -436,7 +436,8 @@ class _Corner {
   double _fraction(double d) =>
       ((d - startD) / (endD - startD)).clamp(0.0, 1.0);
 
-  double bearingAt(double d) => (inBearing + _fraction(d) * turnDeg) % 360;
+  double bearingAt(double d) =>
+      normalizeBearing(inBearing + _fraction(d) * turnDeg);
 
   GeoPoint pointAt(double d) {
     // Satah tempatan (timur x, utara y) berpusat pada bucu.
