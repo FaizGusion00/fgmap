@@ -181,6 +181,11 @@ class _MapScreenState extends ConsumerState<MapScreen>
       if (_cruiseTicker != null && !_cruiseTicker!.isActive) {
         unawaited(_cruiseTicker!.start());
       }
+      // Perjalanan memiliki kamera: jangan recenter penuh, tetapi hidupkan semula overlay
+      // dan paksa push pose ke Android Auto (lapisan GPU / throttle mungkin lapuk).
+      _driver?.reviveAfterForeground();
+      _cruiseDriver?.reviveAfterForeground();
+      ref.read(carSessionHubProvider).flush();
       if (!trip) {
         _tracker.resume(_Suspend.background);
         unawaited(_recenterAfterBackground());
@@ -572,9 +577,10 @@ class _MapScreenState extends ConsumerState<MapScreen>
     if (route == null) return null;
     final current = _navLine;
     if (current != null && current.version == nav.routeVersion) return current;
+    final display = route.displayPolyline();
     return _navLine = NavRouteLine(
-      points: route.points,
-      cumulativeM: route.cum,
+      points: display.points,
+      cumulativeM: display.cumulativeM,
       version: nav.routeVersion,
     );
   }
@@ -646,6 +652,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
       camera: camera,
       poseAt: nav.poseAt,
       progress: () => ref.read(navigationControllerProvider).progress,
+      route: () => ref.read(navigationControllerProvider).route,
       viewportHeight: () => MediaQuery.sizeOf(context).height,
       screenOffset: () => carScreenOffsetFor(MediaQuery.sizeOf(context)),
       viewportWidth: () => MediaQuery.sizeOf(context).width,

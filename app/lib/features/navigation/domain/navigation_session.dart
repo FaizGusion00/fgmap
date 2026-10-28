@@ -248,6 +248,8 @@ class NavigationSession {
     var announcements = <Announcement>[];
     RerouteRequest? reroute;
 
+    // Paparan boleh kekal pada laluan lama semasa menunggu re-route (elak hanyut ke GPS mentah).
+    var displayOnRoute = onRoute;
     if (onRoute) {
       _along = math.max(_along, match.alongM);
       _liveAlong = math.max(_liveAlong, _along);
@@ -261,13 +263,28 @@ class NavigationSession {
       _lastBearing = match.routeBearing;
     } else {
       final request = _offRoute.update(match, fix);
-      vehicle.onFreeFix(
-        point: fix.point,
-        bearing: fix.headingDegrees ?? _lastBearing,
-        speedMps: fix.speedMps,
-        time: _measuredAt(fix, clockNow),
-      );
-      if (fix.headingDegrees != null) _lastBearing = fix.headingDegrees!;
+      final hard = _hardDeparted(match, fix, threshold);
+      if (!hard) {
+        // Soft hold: kereta/kamera kekal pada polyline lama; GPS mentah hanya untuk permintaan.
+        displayOnRoute = true;
+        final along = _advanceAlongWhileOff(fix, match, gap);
+        _along = along;
+        _liveAlong = math.max(_liveAlong, along);
+        vehicle.onRouteFix(
+          alongM: along,
+          speedMps: fix.speedMps,
+          time: _measuredAt(fix, clockNow),
+        );
+        _lastBearing = match.routeBearing;
+      } else {
+        vehicle.onFreeFix(
+          point: fix.point,
+          bearing: fix.headingDegrees ?? _lastBearing,
+          speedMps: fix.speedMps,
+          time: _measuredAt(fix, clockNow),
+        );
+        if (fix.headingDegrees != null) _lastBearing = fix.headingDegrees!;
+      }
       if (request) {
         // Pengawal memutuskan sama ada permintaan dihantar (cooldown, permintaan tertunda) dan, jika
         // ya, memanggil [noteRerouteRequested] serta menyebut "mengira semula" sekali.
@@ -300,6 +317,7 @@ class NavigationSession {
       fix: fix,
       match: match,
       onRoute: onRoute,
+      displayOnRoute: displayOnRoute,
       remaining: remaining,
     );
     _progress = progress;
@@ -442,6 +460,7 @@ class NavigationSession {
     required FilteredFix fix,
     required RouteMatch match,
     required bool onRoute,
+    required bool displayOnRoute,
     required double remaining,
   }) {
     final next = route.nextActionable(_along + leadFor(fix.speedMps));
@@ -478,14 +497,41 @@ class NavigationSession {
       next: next,
       distanceToNextM: next == null ? null : math.max(0, next.startM - _along),
       following: following,
-      position: onRoute ? match.snapped : fix.point,
-      bearing: onRoute ? match.routeBearing : _lastBearing,
+      // Soft hold: status offRoute tetapi kedudukan kekal terpadan supaya kereta 3D / AA tidak ke tepi.
+      position: displayOnRoute ? route.displayPointAt(_along) : fix.point,
+      bearing: displayOnRoute
+          ? route.displayBearingAt(_along)
+          : _lastBearing,
       speedMps: fix.speedMps,
       accuracyM: fix.accuracyM,
       crossTrackM: match.crossTrackM,
       street: street,
       gpsWeak: fix.degraded || fix.accuracyM > 40,
     );
+  }
+
+  /// Benar-benar tinggalkan laluan (bukan hingar / jalan selari semasa menunggu re-route).
+  bool _hardDeparted(RouteMatch match, FilteredFix fix, double threshold) {
+    final cross = match.crossTrackM;
+    if (cross > math.max(150.0, threshold * 2.5)) return true;
+    final heading = fix.headingDegrees;
+    if (heading == null) return cross > threshold * 2;
+    final differ = angleDelta(match.routeBearing, heading).abs() > 45;
+    return differ && cross > threshold * 1.8;
+  }
+
+  /// Majukan sepanjang laluan lama semasa soft hold (dead reckoning + unjuran padanan).
+  double _advanceAlongWhileOff(
+    FilteredFix fix,
+    RouteMatch match,
+    Duration gap,
+  ) {
+    var along = math.max(_along, match.alongM);
+    final dt = gap.inMicroseconds / 1e6;
+    if (fix.speedMps > 0.5 && dt > 0 && dt < 5) {
+      along = math.max(along, _along + fix.speedMps * dt);
+    }
+    return along.clamp(0.0, route.totalM);
   }
 
   /// Benar jika re-route telah diminta dan belum pulih ke laluan.

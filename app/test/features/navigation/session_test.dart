@@ -260,6 +260,51 @@ void main() {
       expect(session.onFix(bad), isNull);
       expect(session.progress!.alongM, before.alongM);
     });
+
+    test(
+      'semasa menunggu re-route (offset selari): pose kekal pada polyline lama',
+      () {
+        final clock = FakeClock();
+        final session = NavigationSession(
+          route: route,
+          language: VoiceLanguage.ms,
+          clock: clock.call,
+        );
+        for (final f in driveFixes(
+          route,
+          speedMps: 14,
+          startM: 800,
+          endM: 1000,
+        )) {
+          clock.now = f.timestamp!;
+          session.onFix(f);
+        }
+        final base = DateTime.utc(2026, 1, 1, 12, 5);
+        // Jalan selari 50 m ke utara, heading sama dengan laluan (timur): soft hold.
+        for (var i = 0; i < 10; i++) {
+          final along = 1000.0 + 14 * i;
+          final f = LocationFix(
+            point: destinationPoint(route.pointAt(along), 0, 50),
+            headingDegrees: 90,
+            accuracyMeters: 5,
+            speedMps: 14,
+            timestamp: base.add(Duration(seconds: i)),
+          );
+          clock.now = f.timestamp!;
+          final u = session.onFix(f)!;
+          if (i >= 4) {
+            expect(u.progress.status, NavStatus.offRoute);
+            final pose = session.poseAt(clock.now);
+            expect(pose.onRoute, isTrue, reason: 'soft hold kekal onRoute');
+            expect(
+              distanceMeters(pose.point, route.displayPointAt(pose.alongM)),
+              lessThan(3),
+              reason: 'kereta tidak ke tepi GPS',
+            );
+          }
+        }
+      },
+    );
   });
 
   group('NavigationSession: isyarat GPS hilang (terowong)', () {

@@ -41,6 +41,7 @@ void main() {
       camera: camera,
       poseAt: session.poseAt,
       progress: () => session.progress,
+      route: () => route,
       viewportHeight: () => 800,
       cameraMode: () => NavCameraMode.auto,
       clock: clock.call,
@@ -157,6 +158,25 @@ void main() {
     clock.advance(const Duration(seconds: 6));
     driver.step(t(16));
     expect(driver.follow.value, NavFollow.following);
+  });
+
+  test('reviveAfterForeground: paksa overlay dan kamera dihantar semula', () {
+    for (var i = 0; i < 200; i++) {
+      clock.advance(const Duration(milliseconds: 16));
+      driver.step(t(16 * i));
+    }
+    expect(driver.car.value?.opacity, closeTo(1, 0.01));
+    final beforeMoves = camera.moveToCalls.length;
+    var carFires = 0;
+    void onCar() => carFires++;
+    driver.car.addListener(onCar);
+    driver.reviveAfterForeground();
+    expect(carFires, greaterThanOrEqualTo(1));
+    clock.advance(const Duration(milliseconds: 16));
+    driver.step(t(16 * 200));
+    expect(camera.moveToCalls.length, greaterThan(beforeMoves));
+    expect(driver.car.value?.opacity, closeTo(1, 0.01));
+    driver.car.removeListener(onCar);
   });
 
   test('recenter(): kembali mengikut, terbang masuk dari pose peta semasa', () {

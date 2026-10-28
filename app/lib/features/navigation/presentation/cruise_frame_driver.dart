@@ -71,6 +71,16 @@ class CruiseFrameDriver {
     follow.value = NavFollow.following;
   }
 
+  /// App / permukaan AA kembali: paksa overlay dan kamera dilukis semula.
+  void reviveAfterForeground() {
+    _yaw = null;
+    final current = car.value;
+    if (current != null) {
+      car.value = null;
+      car.value = current;
+    }
+  }
+
   void nudgeZoom(double amount) {
     _zoomBias = (_zoomBias + amount).clamp(-3.0, 2.0);
   }

@@ -36,17 +36,46 @@ class CarSessionHub {
   Timer? _throttle;
 
   void notePose(CameraPose pose, {required bool following}) {
+    final nav = ref.read(navigationControllerProvider);
+    final previous = _pose;
     _pose = pose;
     _following = following;
-    _schedule();
+    // Semasa mengira semula atau belokan pantas: push lebih kerap supaya AA ikut telefon.
+    final turning =
+        previous != null && angleDelta(previous.bearing, pose.bearing).abs() > 2.5;
+    final urgent = nav.rerouting || turning;
+    _schedule(urgent ? const Duration(milliseconds: 60) : _defaultThrottle);
   }
 
-  void publish() => _schedule();
+  void publish() => _schedule(_defaultThrottle);
 
-  void _schedule() {
-    if (_throttle != null) return;
-    _throttle = Timer(const Duration(milliseconds: 200), () {
+  /// Push serta-merta (resume / adopt / permukaan AA sedia). Membatalkan throttle tertunda.
+  void flush() {
+    _throttle?.cancel();
+    _throttle = null;
+    unawaited(_push());
+  }
+
+  static const _defaultThrottle = Duration(milliseconds: 200);
+
+  Duration? _pendingDelay;
+
+  void _schedule([Duration delay = _defaultThrottle]) {
+    // Jika sudah dijadualkan lebih lambat, ketatkan ke delay mendesak (selekoh / re-route).
+    if (_throttle != null) {
+      final pending = _pendingDelay;
+      if (pending != null && delay < pending) {
+        _throttle!.cancel();
+        _throttle = null;
+        _pendingDelay = null;
+      } else {
+        return;
+      }
+    }
+    _pendingDelay = delay;
+    _throttle = Timer(delay, () {
       _throttle = null;
+      _pendingDelay = null;
       unawaited(_push());
     });
   }
@@ -117,7 +146,7 @@ class CarSessionHub {
           : cruise.speedMps,
       limitKmh: navigating ? nav.currentLimitKmh : cruise.limitKmh,
       overspeed: navigating ? nav.overspeed : cruise.overspeed,
-      navigationRoute: nav.route?.points ?? const [],
+      navigationRoute: nav.route?.displayPolyline().points ?? const [],
       routeVersion: nav.routeVersion,
       maneuver: text,
       distanceToManeuverM: progress?.distanceToNextM,
@@ -251,7 +280,17 @@ class CarSessionHub {
 final carSessionHubProvider = Provider<CarSessionHub>((ref) {
   final hub = CarSessionHub(ref);
   ref.onDispose(hub.dispose);
-  ref.listen(navigationControllerProvider, (_, _) => hub.publish());
+  ref.listen(navigationControllerProvider, (prev, next) {
+    // Adopt / mula / tamat: push serta-merta supaya AA dapat laluan dan pose baharu.
+    if (prev == null ||
+        prev.routeVersion != next.routeVersion ||
+        prev.phase != next.phase ||
+        prev.rerouting != next.rerouting) {
+      hub.flush();
+    } else {
+      hub.publish();
+    }
+  });
   ref.listen(cruiseControllerProvider, (_, _) => hub.publish());
   return hub;
 });

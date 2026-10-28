@@ -313,6 +313,7 @@ class CameraRig {
     double zoomBias = 0,
     double screenOffset = carScreenOffset,
     double groundScale = 1,
+    double yawRateDeg = 0,
   }) {
     final safeDt = dt.clamp(0.0, 0.25);
 
@@ -355,10 +356,15 @@ class CameraRig {
     final zoomSpeed = (_zoom.value - goalZoom).abs() > 1.5 ? 4.0 : 1.0;
     _zoom.update(goalZoom, 0.9 / k, safeDt, maxSpeed: zoomSpeed * k);
     _tilt.update(target.tilt, 0.9 / k, safeDt, maxSpeed: 24.0 * k);
-    // Arah mengikut jalan lebih pantas supaya peta berputar bersama selekoh, tetapi tetap lembut.
+    // Di selekoh / dekat manuver: ikut arah kenderaan lebih rapat supaya kereta 3D dan AA
+    // tidak "getah" di belakang tangen jalan.
+    final nearTurn =
+        distanceToNextM != null && distanceToNextM < 80 && nextKind != null;
+    final turning = yawRateDeg > 18 || nearTurn;
+    final bearingSmooth = (turning ? 0.20 : 0.45) / k;
     final bearingGoal =
         _bearing.value + angleDelta(_bearing.value, vehicleBearing);
-    _bearing.update(bearingGoal, 0.45 / k, safeDt);
+    _bearing.update(bearingGoal, bearingSmooth, safeDt);
 
     // Pusat kamera diletakkan di hadapan kenderaan supaya kenderaan duduk pada [carScreenOffset]
     // di bawah tengah skrin pada SEMUA condongan dan zum (lihat [groundOffsetPx]). Ofset ialah fungsi

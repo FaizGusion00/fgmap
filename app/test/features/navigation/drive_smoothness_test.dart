@@ -34,6 +34,7 @@ void main() {
         camera: camera,
         poseAt: session.poseAt,
         progress: () => session.progress,
+        route: () => route,
         viewportHeight: () => 844,
         cameraMode: () => NavCameraMode.auto,
         clock: clock.call,
@@ -167,7 +168,8 @@ void main() {
       }
 
       // Per bingkai (16.7 ms): had persepsi "licin".
-      expect(maxBearingStep, lessThan(2.5), reason: 'arah tersentak');
+      // Bearing adaptif di selekoh (0.20 s) lebih responsif; had sedikit longgar.
+      expect(maxBearingStep, lessThan(2.8), reason: 'arah tersentak');
       expect(maxZoomStep, lessThan(0.02), reason: 'zum tersentak');
       expect(maxTiltStep, lessThan(0.45), reason: 'condongan tersentak');
       expect(maxYawStep, lessThan(2.5), reason: 'kereta 3D tersentak');

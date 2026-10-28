@@ -23,6 +23,7 @@ import '../domain/instruction_text.dart';
 import '../domain/nav_route.dart';
 import '../domain/navigation_session.dart';
 import '../domain/restored_progress.dart';
+import '../domain/route_tracker.dart';
 import '../domain/vehicle_model.dart';
 import '../../../core/utils/haptics.dart';
 import '../../../core/utils/log.dart';
@@ -512,11 +513,26 @@ class NavigationController extends Notifier<NavigationState> {
     if (!route.isUsable) {
       throw const RoutingFailure(RoutingFailureKind.generic);
     }
+    final clock = ref.read(navClockProvider);
+    final now = clock();
+    final previous = state.progress;
     final fresh = NavigationSession(
       route: route,
       language: _voiceLanguage(),
-      clock: ref.read(navClockProvider),
+      clock: clock,
       isReroute: true,
+    );
+    // Benihkan model daripada pose terakhir supaya overlay / AA tidak kosong atau (0,0)
+    // semasa menunggu fix pertama pada laluan baharu.
+    final seedAlong = previous == null
+        ? 0.0
+        : RouteTracker(route).match(previous.position).alongM.clamp(0.0, route.totalM);
+    // Pengumuman laluan baharu sebelum primeRestored (yang menutup bendera start).
+    final startAnnouncements = fresh.takeStartAnnouncements();
+    fresh.primeRestored(
+      alongM: seedAlong,
+      speedMps: previous?.speedMps ?? 0,
+      time: now,
     );
     _session = fresh;
     state = NavigationState(
@@ -525,16 +541,22 @@ class NavigationController extends Notifier<NavigationState> {
       query: query,
       simulated: state.simulated,
       routeVersion: state.routeVersion + 1,
+      progress: previous == null
+          ? null
+          : restoredProgress(
+              route: route,
+              alongM: seedAlong,
+              position: route.displayPointAt(seedAlong),
+              bearing: route.displayBearingAt(seedAlong),
+              speedMps: previous.speedMps,
+            ),
     );
-    _speak(fresh.takeStartAnnouncements());
+    _speak(startAnnouncements);
     unawaited(_persistTrip(force: true));
     unawaited(_loadSpeedLimits(option, query, generation, state.routeVersion));
 
-    // Sesi baharu belum melihat fix: tanpa ini progress kosong sehingga fix seterusnya (~1 s),
-    // banner hilang dan chip "mencari GPS" berkelip. Fix terkini (bukan yang mencetuskan
-    // re-route; kedudukan sudah beralih sepanjang pengiraan) disuap terus.
+    // Fix terkini (kedudukan sudah beralih sepanjang pengiraan) disuap terus.
     final fix = _lastFix;
-    final clock = ref.read(navClockProvider);
     if (fix != null &&
         clock().difference(fix.timestamp ?? clock()) <= _maxFeedAge) {
       _onFix(fix);

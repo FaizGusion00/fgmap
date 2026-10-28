@@ -125,6 +125,11 @@ class VehicleModel {
     required double speedMps,
     required DateTime time,
   }) {
+    // Benihkan paparan daripada kedudukan laluan terakhir supaya tidak melompat
+    // sebanyak cross-track dalam satu bingkai.
+    if (!_hasFree && _onRoute && _display != null) {
+      _freeDisplay = route.displayPointAt(_display!);
+    }
     _onRoute = false;
     _anchorTime = time;
     _freePoint = point;
@@ -135,6 +140,9 @@ class VehicleModel {
         speedMps: speedMps,
         known: _freeBearingKnown,
       );
+      _freeBearingKnown = true;
+    } else if (_display != null) {
+      _freeBearing = route.displayBearingAt(_display!);
       _freeBearingKnown = true;
     }
     _speed = speedMps < 0.5 ? 0 : speedMps;

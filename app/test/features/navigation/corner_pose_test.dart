@@ -72,6 +72,35 @@ void main() {
       expect(prev, closeTo(180, 2));
     });
 
+    test('panjang arka sampel ≈ R·θ untuk selekoh 90°', () {
+      const radius = NavRoute.displayCornerRadiusM;
+      const t = radius; // tan(45°)=1
+      var path = 0.0;
+      var prev = route.displayPointAt(600 - t);
+      for (var d = 600 - t + 0.25; d <= 600 + t; d += 0.25) {
+        final cur = route.displayPointAt(d);
+        path += distanceMeters(prev, cur);
+        prev = cur;
+      }
+      final expected = radius * math.pi / 2;
+      expect(path, closeTo(expected, expected * 0.08));
+    });
+
+    test('displayPolyline melepasi dalam lengkung, bukan bucu tajam', () {
+      final line = route.displayPolyline(stepM: 5);
+      expect(line.points.length, greaterThan(route.points.length));
+      expect(line.points.length, line.cumulativeM.length);
+      expect(line.cumulativeM.first, 0);
+      expect(line.cumulativeM.last, closeTo(route.totalM, 0.01));
+      final corner = route.points[(600 / 50).ceil()];
+      var minDist = double.infinity;
+      for (final p in line.points) {
+        minDist = math.min(minDist, distanceMeters(p, corner));
+      }
+      // Sampel lengkung tidak melalui bucu tajam (inset ~5 m untuk R=12).
+      expect(minDist, greaterThan(3));
+    });
+
     test('belokan kecil (< 25 deg) dan pusingan-U tidak dilengkungkan', () {
       const origin = GeoPoint(3.0, 101.0);
       final a = destinationPoint(origin, 90, 200);

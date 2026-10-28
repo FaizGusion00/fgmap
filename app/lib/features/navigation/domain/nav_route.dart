@@ -272,6 +272,29 @@ class NavRoute {
     return bearingAt(distanceM, lookAheadM: look);
   }
 
+  /// Polyline paparan: bucu tajam diganti sampel lengkung supaya garisan peta / AA sepadan dengan kereta.
+  ///
+  /// [cumulativeM] (jika diminta) ialah jarak sepanjang polyline ASAL pada setiap sampel — sama
+  /// dengan [alongM] kenderaan — supaya pemangkasan `line-gradient` kekal tepat.
+  ({List<GeoPoint> points, List<double> cumulativeM}) displayPolyline({
+    double stepM = 4,
+  }) {
+    if (points.length < 2) {
+      return (points: List.of(points), cumulativeM: List.of(cum));
+    }
+    final out = <GeoPoint>[];
+    final along = <double>[];
+    for (var d = 0.0; d < totalM; d += stepM) {
+      out.add(displayPointAt(d));
+      along.add(d);
+    }
+    if (along.isEmpty || (totalM - along.last).abs() > 0.25) {
+      out.add(displayPointAt(totalM));
+      along.add(totalM);
+    }
+    return (points: out, cumulativeM: along);
+  }
+
   bool get isUsable => option.points.length >= 2 && totalM > 0;
 
   /// Indeks segmen (titik i -> i+1) yang mengandungi [distanceM].
@@ -433,11 +456,20 @@ class _Corner {
   final double radiusM;
   final double tangentM;
 
-  double _fraction(double d) =>
-      ((d - startD) / (endD - startD)).clamp(0.0, 1.0);
+  /// Panjang arka sebenar (R·θ). Tetingkap polyline ialah 2·R·tan(θ/2).
+  double get arcLengthM => radiusM * turnDeg.abs() * math.pi / 180;
+
+  /// Fraction 0..1: sudut arka berkadaran jarak dalam tetingkap (parameter arka bulat).
+  /// Kelajuan sudut vs along polyline = θ/(2t); unjuran latensi sepanjang lengkung
+  /// (pemacu bingkai) membetulkan rasa "lewat / lebar" di selekoh.
+  double _arcFraction(double d) {
+    final chord = endD - startD;
+    if (chord <= 1e-9) return 0;
+    return ((d - startD) / chord).clamp(0.0, 1.0);
+  }
 
   double bearingAt(double d) =>
-      normalizeBearing(inBearing + _fraction(d) * turnDeg);
+      normalizeBearing(inBearing + _arcFraction(d) * turnDeg);
 
   GeoPoint pointAt(double d) {
     // Satah tempatan (timur x, utara y) berpusat pada bucu.

@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart' show ValueNotifier;
 import '../../../core/utils/geo.dart';
 import '../../map/presentation/map_view.dart';
 import '../domain/camera_planner.dart';
+import '../domain/nav_route.dart';
 import '../domain/navigation_session.dart';
 import '../domain/vehicle_model.dart';
 import 'car/vehicle_overlay.dart';
@@ -63,6 +64,7 @@ class NavigationFrameDriver {
     required this.viewportHeight,
     required this.cameraMode,
     required this.clock,
+    this.route,
     this.screenOffset = _defaultScreenOffset,
     this.viewportWidth,
     this.reduceMotion = false,
@@ -76,6 +78,9 @@ class NavigationFrameDriver {
   final MapCameraController camera;
   final VehiclePose? Function(DateTime now) poseAt;
   final NavProgress? Function() progress;
+
+  /// Laluan semasa untuk unjuran latensi sepanjang lengkung (bukan kord lurus).
+  final NavRoute? Function()? route;
   final double Function() viewportHeight;
   final NavCameraMode Function() cameraMode;
   final DateTime Function() clock;
@@ -197,6 +202,24 @@ class NavigationFrameDriver {
     follow.value = NavFollow.following;
   }
 
+  /// App kembali dari latar / permukaan AA sedia: paksa kamera dan overlay dilukis semula
+  /// tanpa animasi masuk penuh (itu tugas [recenter]).
+  void reviveAfterForeground() {
+    _sentCamera = null;
+    _sentBearings.clear();
+    _yawRate = 0;
+    _prevBearing = null;
+    _markerSent = false;
+    _markerSkipped = 0;
+    _cameraSkipped = _heartbeatFrames;
+    // Paksa [VehicleOverlay] mengecat semula walaupun pose kelihatan sama.
+    final current = car.value;
+    if (current != null) {
+      car.value = null;
+      car.value = current;
+    }
+  }
+
   /// Tunjukkan keseluruhan laluan baki.
   void showOverview(List<GeoPoint> shape, {required EdgeInsets padding}) {
     follow.value = NavFollow.overview;
@@ -277,12 +300,27 @@ class NavigationFrameDriver {
       _yawRate += (rate - _yawRate) * (1 - math.exp(-dt / 0.15));
     }
     _prevBearing = pose.bearing;
-    final leadPoint = latency > 0 && pose.speedMps > 0
-        ? destinationPoint(pose.point, pose.bearing, pose.speedMps * latency)
-        : pose.point;
-    final leadBearing = latency > 0
-        ? normalizeBearing(pose.bearing + _yawRate * latency)
-        : pose.bearing;
+    final leadMeters = latency > 0 && pose.speedMps > 0
+        ? pose.speedMps * latency
+        : 0.0;
+    final navRoute = route?.call();
+    final GeoPoint leadPoint;
+    final double leadBearing;
+    if (leadMeters > 0 && pose.onRoute && navRoute != null) {
+      // Unjuran sepanjang lengkung paparan — kord lurus menolak kereta ke luar selekoh.
+      final leadAlong = math.min(navRoute.totalM, pose.alongM + leadMeters);
+      leadPoint = navRoute.displayPointAt(leadAlong);
+      leadBearing = navRoute.displayBearingAt(
+        leadAlong,
+        lookAheadM: (pose.speedMps * 0.6).clamp(5.0, 12.0),
+      );
+    } else if (leadMeters > 0) {
+      leadPoint = destinationPoint(pose.point, pose.bearing, leadMeters);
+      leadBearing = normalizeBearing(pose.bearing + _yawRate * latency);
+    } else {
+      leadPoint = pose.point;
+      leadBearing = pose.bearing;
+    }
 
     // rig.step mesti dipanggil setiap bingkai (ia memajukan keadaan dalamannya); hanya penghantaran
     // ke peta yang digugurkan apabila hasilnya sama.
@@ -298,6 +336,7 @@ class NavigationFrameDriver {
       zoomBias: _zoomBias,
       screenOffset: screenOffset(),
       groundScale: _groundScale,
+      yawRateDeg: _yawRate.abs(),
     );
     if (!_sameCamera(_sentCamera, target) ||
         ++_cameraSkipped >= _heartbeatFrames) {

@@ -132,6 +132,10 @@ class CarMapSurface(
                     ready.uiSettings.setAllGesturesEnabled(false)
                     ready.uiSettings.isLogoEnabled = false
                     ready.uiSettings.isAttributionEnabled = false
+                    // Permukaan baharu (hos AA bangun / skrin kembali): lukis semula
+                    // gaya, laluan dan kamera daripada gambar sesi terakhir.
+                    appliedStyleKey = null
+                    appliedRouteVersion = null
                     apply(lastSession)
                 }
             }
