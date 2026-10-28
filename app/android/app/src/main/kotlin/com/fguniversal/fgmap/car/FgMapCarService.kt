@@ -13,8 +13,9 @@ class FgMapCarService : CarAppService() {
         val debuggable =
             applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
         if (debuggable) return HostValidator.ALLOW_ALL_HOSTS_VALIDATOR
+        // Senarai hos rasmi yang dihantar bersama perpustakaan (Android Auto dan Automotive).
         return HostValidator.Builder(applicationContext)
-            .addAllowedHosts(androidx.car.app.R.array.hosts_allowlist)
+            .addAllowedHosts(androidx.car.app.R.array.hosts_allowlist_sample)
             .build()
     }
 
