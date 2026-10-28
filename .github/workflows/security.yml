@@ -40,8 +40,20 @@ jobs:
         run: |
           set -euo pipefail
           flutter pub get
-          yes | flutter doctor --android-licenses >/dev/null
+          # `yes` menerima SIGPIPE bila flutter tutup paip. Dengan pipefail itu
+          # menjadi kod 141 walaupun lesen sudah diterima.
+          set +o pipefail
+          yes | flutter doctor --android-licenses
+          license_status=${PIPESTATUS[1]}
+          set -o pipefail
+          if [ "$license_status" -ne 0 ]; then
+            echo "flutter doctor --android-licenses gagal ($license_status)" >&2
+            exit "$license_status"
+          fi
           sdk="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          if [ -z "$sdk" ] && [ -d /usr/local/lib/android/sdk ]; then
+            sdk=/usr/local/lib/android/sdk
+          fi
           if [ -z "$sdk" ] || [ -z "${FLUTTER_ROOT:-}" ]; then
             echo "Android SDK atau FLUTTER_ROOT tiada pada pelari" >&2
             exit 1
