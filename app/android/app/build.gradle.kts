@@ -33,6 +33,10 @@ android {
         jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
+    buildFeatures {
+        buildConfig = true
+    }
+
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.fguniversal.fgmap"
@@ -42,6 +46,10 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        // Hanya `make appbundle` (FGMAP_STORE_BUILD=1) mengunci hos Android Auto.
+        // APK release yang dipasang sendiri mesti tetap muncul pada unit sebenar.
+        val storeBuild = System.getenv("FGMAP_STORE_BUILD") == "1"
+        buildConfigField("boolean", "STORE_BUILD", storeBuild.toString())
     }
 
     signingConfigs {
