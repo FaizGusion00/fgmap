@@ -101,12 +101,16 @@ class _Group extends StatelessWidget {
               ),
             ),
           ),
-          DecoratedBox(
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
+          // Material (bukan DecoratedBox): ListTile/SwitchListTile melukis ink pada
+          // nenek Material terdekat; DecoratedBox berwarna di tengah menyembunyikannya
+          // dan Flutter 3.47+ menegaskan ralat.
+          Material(
+            color: theme.colorScheme.surface,
+            shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: theme.colorScheme.outline),
+              side: BorderSide(color: theme.colorScheme.outline),
             ),
+            clipBehavior: Clip.antiAlias,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               child: child,
