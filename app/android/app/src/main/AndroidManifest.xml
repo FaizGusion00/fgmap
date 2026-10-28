@@ -107,9 +107,12 @@
         <meta-data
             android:name="com.google.android.gms.car.application"
             android:resource="@xml/automotive_app_desc"/>
+        <!-- Tahap 1: NavigationTemplate, carian, dan anggaran perjalanan. Jalur peta
+             (tahap 2) dan butang peta tersuai (tahap 4) hanya dibina jika hos menyokongnya.
+             Tahap 5 menapis hos Android Auto lama, jadi aplikasi tidak muncul dalam Customize. -->
         <meta-data
             android:name="androidx.car.app.minCarApiLevel"
-            android:value="5"/>
+            android:value="1"/>
         <service
             android:name=".car.FgMapCarService"
             android:exported="true"
