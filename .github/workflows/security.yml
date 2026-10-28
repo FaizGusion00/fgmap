@@ -24,7 +24,9 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "17"
+          # maplibre_gl mengkompil sumber Java 21. JDK 17 menolaknya
+          # ("invalid source release: 21"). Aplikasi sendiri kekal sasaran 17.
+          java-version: "21"
 
       - uses: subosito/flutter-action@v2
         with:
