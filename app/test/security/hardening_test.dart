@@ -63,8 +63,11 @@ void main() {
 
   group('label pautan luaran dibersihkan', () {
     test('aksara kawalan dan arah teks dua hala dibuang', () {
+      // Titik kod, bukan aksara mentah: penganalisis menolak U+202E/U+202C dalam literal.
+      final rlo = String.fromCharCode(0x202E);
+      final pdf = String.fromCharCode(0x202C);
       expect(
-        sanitizeSharedLabel('Kedai\u0000 ‮evil‬\nMakan'),
+        sanitizeSharedLabel('Kedai\u0000 ${rlo}evil$pdf\nMakan'),
         'Kedai evil Makan',
       );
     });
@@ -83,12 +86,13 @@ void main() {
     test(
       'pautan geo dengan label panjang berbahaya dibersihkan hujung ke hujung',
       () {
+        final rlo = String.fromCharCode(0x202E);
         final uri = Uri.parse(
-          'geo:0,0?q=${Uri.encodeComponent('${'x' * 300}‮')}',
+          'geo:0,0?q=${Uri.encodeComponent('${'x' * 300}$rlo')}',
         );
         final shared = sharedLocationFromUri(uri)!;
         expect(shared.label!.runes.length, lessThanOrEqualTo(81));
-        expect(shared.label, isNot(contains('‮')));
+        expect(shared.label, isNot(contains(rlo)));
       },
     );
 
