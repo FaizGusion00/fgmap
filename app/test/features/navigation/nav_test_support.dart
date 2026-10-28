@@ -173,6 +173,8 @@ class FakeSpeedLimitService implements SpeedLimitService {
   }
 
   int traceCalls = 0;
+  int snapCalls = 0;
+  GeoPoint? snapPoint;
 
   @override
   Future<int?> limitForTrace(
@@ -182,6 +184,16 @@ class FakeSpeedLimitService implements SpeedLimitService {
     traceCalls++;
     if (points.length < 2) return null;
     return limits.atDistance(double.infinity);
+  }
+
+  @override
+  Future<GeoPoint?> snapTraceEnd(
+    List<GeoPoint> points,
+    RouteVehicle vehicle,
+  ) async {
+    snapCalls++;
+    if (points.length < 2) return null;
+    return snapPoint ?? points.last;
   }
 }
 

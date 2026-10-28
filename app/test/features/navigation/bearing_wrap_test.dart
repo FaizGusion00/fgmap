@@ -234,6 +234,7 @@ void main() {
           time: fixTime,
         ),
         viewportHeight: () => 800,
+        cameraMode: () => NavCameraMode.auto,
         clock: clock.call,
         reduceMotion: true,
       );

@@ -391,6 +391,17 @@ class _MapScreenState extends ConsumerState<MapScreen>
 
   Future<void> _onMyLocationPressed() async {
     if (_locating) return;
+    // Cruise / nav memiliki kamera: pusatkan semula pemacu (bukan fly-to idle).
+    if (ref.read(cruiseControllerProvider).active) {
+      _cruiseDriver?.recenter();
+      if (mounted) setState(() {});
+      return;
+    }
+    if (ref.read(navigationControllerProvider).isActive) {
+      _driver?.recenter();
+      if (mounted) setState(() {});
+      return;
+    }
     final access = await ensureLocationAccess(context, ref);
     if (!mounted || access != LocationAccess.granted) return;
     setState(() => _locating = true);
@@ -400,6 +411,12 @@ class _MapScreenState extends ConsumerState<MapScreen>
     } finally {
       if (mounted) setState(() => _locating = false);
     }
+  }
+
+  void _recenterTripCamera() {
+    _driver?.recenter();
+    _cruiseDriver?.recenter();
+    if (mounted) setState(() {});
   }
 
   void _onLongPress(GeoPoint point) {
@@ -710,7 +727,9 @@ class _MapScreenState extends ConsumerState<MapScreen>
       camera: camera,
       sample: () => ref.read(cruiseControllerProvider).fix,
       viewportHeight: () => MediaQuery.sizeOf(context).height,
+      viewportWidth: () => MediaQuery.sizeOf(context).width,
       screenOffset: () => carScreenOffsetFor(MediaQuery.sizeOf(context)),
+      cameraMode: () => ref.read(navigationSettingsProvider).cameraMode,
       clock: ref.read(navClockProvider),
       reduceMotion: MediaQuery.disableAnimationsOf(context),
       onPose: (pose, {required bool following}) => ref
@@ -1115,10 +1134,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
     ref.listen<CruiseState>(cruiseControllerProvider, _onCruiseChanged);
     final hub = ref.watch(carSessionHubProvider);
     hub.bindCamera(
-      recenter: () {
-        _driver?.recenter();
-        _cruiseDriver?.recenter();
-      },
+      recenter: _recenterTripCamera,
       pan: () {
         _driver?.userInteracted();
         _cruiseDriver?.userInteracted();
@@ -1455,24 +1471,41 @@ class _MapScreenState extends ConsumerState<MapScreen>
                 ],
               ),
             ),
-          if (cruising)
-            SafeArea(
-              child: Align(
-                alignment: Alignment.bottomLeft,
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: SpeedBubble(
-                    speedMps: ref.watch(cruiseControllerProvider).speedMps,
-                    limitKmh: ref.watch(cruiseControllerProvider).limitKmh,
-                    overspeed: ref.watch(cruiseControllerProvider).overspeed,
-                  ),
-                ),
-              ),
-            ),
+          if (cruising) ..._cruiseOverlay(),
           if (navigating) ..._navigationOverlay(nav, navSettings),
         ],
       ),
     );
+  }
+
+  /// HUD memandu bebas: kelajuan + butang pusatkan apabila pengguna menggerakkan peta.
+  List<Widget> _cruiseOverlay() {
+    final follow = _cruiseDriver?.follow.value ?? NavFollow.following;
+    return [
+      SafeArea(
+        child: Align(
+          alignment: Alignment.bottomLeft,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: SpeedBubble(
+              speedMps: ref.watch(cruiseControllerProvider).speedMps,
+              limitKmh: ref.watch(cruiseControllerProvider).limitKmh,
+              overspeed: ref.watch(cruiseControllerProvider).overspeed,
+            ),
+          ),
+        ),
+      ),
+      if (follow != NavFollow.following)
+        SafeArea(
+          child: Align(
+            alignment: Alignment.bottomRight,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(0, 0, 12, 120),
+              child: RecenterButton(onPressed: _recenterTripCamera),
+            ),
+          ),
+        ),
+    ];
   }
 
   /// Lapisan HUD navigasi. Potret: kad manuver di atas, kelajuan dan butang di atas panel perjalanan.
@@ -1525,7 +1558,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
       mainAxisSize: MainAxisSize.min,
       children: [
         if (follow != NavFollow.following) ...[
-          RecenterButton(onPressed: () => _driver?.recenter()),
+          RecenterButton(onPressed: _recenterTripCamera),
           const SizedBox(height: 10),
         ],
         _MapZoomControls(

@@ -83,6 +83,21 @@ apabila tersasar, dan mod kamera/suara/bahasa suara pada butang sisi. Reka bentu
 Main semula jejak GPX (Bahagian 8.4): `ReplayLocationSource(gpxToFixes(parseGpx(xml)))` boleh diberi kepada
 `NavigationController.start(source: ...)`.
 
+### Android Auto
+
+`FgMapCarService` sudah didaftarkan (templat navigasi + permukaan peta). Binaan sideload
+(`flutter build apk --release`, tanpa `FGMAP_STORE_BUILD=1`) menggunakan `ALLOW_ALL` hos supaya DHU /
+mod pembangun boleh melihat app.
+
+**Unit kereta sebenar (Car App Library):** Google biasanya **tidak** memaparkan app yang dipasang melalui
+`adb` / Unknown sources. Pasang AAB melalui **Play Internal Testing** atau **Internal App Sharing**,
+kemudian pasang dari Play pada telefon. Buka FGMaps sekali pada telefon, sambung semula HU, dan cari
+dalam senarai app navigasi / Customize.
+
+Binaan kedai (`make appbundle` → `STORE_BUILD=1`) mengunci hos kepada senarai sampel car-app; sijil
+gearhead baharu pada sesetengah HU (cth. Proton X50) mungkin masih menolak — itu isu allowlist, bukan
+manifest.
+
 ## Ujian
 
 ```sh

@@ -1,3 +1,6 @@
+import 'dart:math' as math;
+import 'dart:ui' show Offset;
+
 import 'package:flutter/foundation.dart';
 
 import '../../../core/utils/geo.dart';
@@ -23,15 +26,17 @@ class CruiseFix {
   final DateTime time;
 }
 
-/// Kamera 3D memandu bebas. Menggunakan [CameraRig] yang sama seperti navigasi, tanpa manuver
-/// (jadi tiada zum masuk ke selekoh) dan tanpa pemacu bingkai navigasi atau garisan laluan.
+/// Kamera memandu bebas. Menggunakan [CameraRig] yang sama seperti navigasi (mod auto/3D/2D),
+/// tanpa manuver, dengan penentukuran residual skrin supaya kereta/motosikal tidak terapung.
 class CruiseFrameDriver {
   CruiseFrameDriver({
     required this.camera,
     required this.sample,
     required this.viewportHeight,
+    required this.cameraMode,
     required this.clock,
     this.screenOffset = _defaultScreenOffset,
+    this.viewportWidth,
     this.reduceMotion = false,
     this.autoRecenter = const Duration(seconds: 10),
     this.onPose,
@@ -40,8 +45,10 @@ class CruiseFrameDriver {
   final MapCameraController camera;
   final CruiseFix? Function() sample;
   final double Function() viewportHeight;
+  final NavCameraMode Function() cameraMode;
   final DateTime Function() clock;
   final double Function() screenOffset;
+  final double Function()? viewportWidth;
   final bool reduceMotion;
   final Duration autoRecenter;
   final void Function(CameraPose pose, {required bool following})? onPose;
@@ -57,7 +64,23 @@ class CruiseFrameDriver {
   DateTime? _lastInteraction;
   double _zoomBias = 0;
   double? _yaw;
+  double? _prevBearing;
+  double _yawRate = 0;
+  static const _maxYawRate = 120.0;
+
+  static const _measureEveryFrames = 15;
+  int _sinceMeasure = 0;
+  bool _measuring = false;
+  double _groundScale = 1;
+  bool _hasResidual = false;
+  double _resX = 0, _resY = 0;
+
+  VehicleMarker? _sentMarker;
+  bool _markerSent = false;
   bool _disposed = false;
+
+  /// Pengali ofset tanah yang dipelajari (1 = model tepat). Untuk ujian.
+  double get groundScale => _groundScale;
 
   void userInteracted() {
     _lastInteraction = clock();
@@ -67,6 +90,11 @@ class CruiseFrameDriver {
   void recenter() {
     _rig = null;
     _yaw = null;
+    _prevBearing = null;
+    _yawRate = 0;
+    _hasResidual = false;
+    _resX = _resY = 0;
+    _groundScale = 1;
     _lastInteraction = null;
     follow.value = NavFollow.following;
   }
@@ -79,6 +107,11 @@ class CruiseFrameDriver {
       car.value = null;
       car.value = current;
     }
+    final marker = _sentMarker;
+    if (marker != null) {
+      camera.showVehicle(null);
+      camera.showVehicle(marker);
+    }
   }
 
   void nudgeZoom(double amount) {
@@ -89,8 +122,18 @@ class CruiseFrameDriver {
     if (_disposed) return;
     final timing = frameStep(elapsed, _lastElapsed);
     _lastElapsed = elapsed;
-    if (timing.rewound) _yaw = null;
+    if (timing.rewound) {
+      _yaw = null;
+      _prevBearing = null;
+      _yawRate = 0;
+    }
     final dt = timing.seconds;
+    final now = clock();
+    // Auto-recenter walaupun tiada fix supaya pan bebas tidak tersekat selama-lamanya.
+    if (follow.value == NavFollow.free) {
+      final last = _lastInteraction;
+      if (last != null && now.difference(last) >= autoRecenter) recenter();
+    }
     final fix = sample();
     if (fix == null) return;
     _motion.onFix(
@@ -99,16 +142,11 @@ class CruiseFrameDriver {
       speedMps: fix.speedMps,
       time: fix.time,
     );
-    final now = clock();
-    if (follow.value == NavFollow.free) {
-      final last = _lastInteraction;
-      if (last != null && now.difference(last) >= autoRecenter) recenter();
-    }
     final shown = _motion.at(now);
     if (shown == null) return;
     final marker = VehicleMarker(point: shown.point, bearing: shown.bearing);
     if (follow.value != NavFollow.following) {
-      camera.showVehicle(marker);
+      _showMapMarker(marker);
       if (car.value != null) car.value = null;
       onPose?.call(
         camera.pose ??
@@ -123,12 +161,24 @@ class CruiseFrameDriver {
       return;
     }
 
+    final previousBearing = _prevBearing;
+    if (previousBearing != null && dt > 0) {
+      final rate = (angleDelta(previousBearing, shown.bearing) / dt).clamp(
+        -_maxYawRate,
+        _maxYawRate,
+      );
+      _yawRate += (rate - _yawRate) * (1 - math.exp(-dt / 0.15));
+    }
+    _prevBearing = shown.bearing;
+
+    final mode = cameraMode();
+    final pose = camera.pose;
     final entry =
-        camera.pose ??
+        pose ??
         CameraPose(
           center: shown.point,
           zoom: 17,
-          tilt: 55,
+          tilt: mode == NavCameraMode.flat ? 0 : 55,
           bearing: shown.bearing,
         );
     final rig = _rig ??= CameraRig(
@@ -146,14 +196,17 @@ class CruiseFrameDriver {
       distanceToNextM: null,
       nextKind: null,
       viewportHeightPx: viewportHeight(),
+      mode: mode,
       zoomBias: _zoomBias,
       screenOffset: screenOffset(),
+      groundScale: _groundScale,
+      yawRateDeg: _yawRate.abs(),
     );
     camera.moveTo(target);
     onPose?.call(target, following: true);
-    camera.showVehicle(null);
 
-    final opacity = ((rig.entryProgress - 0.8) / 0.2).clamp(0.0, 1.0);
+    final progressIn = rig.entryProgress;
+    final opacity = ((progressIn - 0.8) / 0.2).clamp(0.0, 1.0);
     final yawGoal = angleDelta(
       target.bearing,
       shown.bearing,
@@ -163,10 +216,79 @@ class CruiseFrameDriver {
     final placement = CarPlacement(
       yawDeg: yaw,
       tiltDeg: target.tilt,
-      anchorY: (0.5 + rig.screenOffset).clamp(0.3, 0.95),
+      anchorY: (0.5 + rig.screenOffset + _resY).clamp(0.3, 0.95),
+      anchorX: (0.5 + _resX).clamp(0.2, 0.8),
       opacity: opacity,
     );
     if (!placement.isVisiblySameAs(car.value)) car.value = placement;
+
+    // Seperti navigasi: marker peta kekal semasa masuk; overlay 3D mengambil alih selepas settle.
+    if (progressIn >= 1) {
+      _hideMapMarker();
+      if (!_measuring && ++_sinceMeasure >= _measureEveryFrames) {
+        _sinceMeasure = 0;
+        _measure(shown.point);
+      }
+    } else {
+      _showMapMarker(marker);
+    }
+  }
+
+  void _measure(GeoPoint point) {
+    _measuring = true;
+    final width = viewportWidth?.call();
+    final height = viewportHeight();
+    camera
+        .screenPointOf(point)
+        .then(
+          (p) {
+            _measuring = false;
+            if (p == null || _disposed || follow.value != NavFollow.following) {
+              return;
+            }
+            _onMeasured(p, width, height);
+          },
+          onError: (Object _) {
+            _measuring = false;
+          },
+        );
+  }
+
+  void _onMeasured(Offset p, double? width, double height) {
+    final rig = _rig;
+    if (rig == null || height <= 0) return;
+    final fy = p.dy / height;
+    final fx = (width == null || width <= 0) ? 0.5 : p.dx / width;
+    if (!fy.isFinite || !fx.isFinite || fy < 0.3 || fy > 0.98) return;
+    if ((fx - 0.5).abs() > 0.4) return;
+
+    final wantedY = 0.5 + rig.screenOffset;
+    final resY = fy - wantedY;
+    final resX = fx - 0.5;
+    _resY = _hasResidual ? _resY + (resY - _resY) * 0.4 : resY;
+    _resX = _hasResidual ? _resX + (resX - _resX) * 0.4 : resX;
+    _hasResidual = true;
+
+    if (resY.abs() > 0.03) {
+      final actual = fy - 0.5;
+      final ratio = actual > 0.02
+          ? (rig.screenOffset / actual).clamp(0.6, 1.8)
+          : 1.8;
+      _groundScale = (_groundScale * (1 + 0.15 * (ratio - 1))).clamp(0.5, 3.0);
+    }
+  }
+
+  void _showMapMarker(VehicleMarker marker) {
+    camera.showVehicle(marker);
+    _sentMarker = marker;
+    _markerSent = true;
+  }
+
+  void _hideMapMarker() {
+    if (_markerSent && _sentMarker == null) return;
+    camera.showVehicle(null);
+    _sentMarker = null;
+    _markerSent = true;
   }
 
   void dispose() {

@@ -59,6 +59,30 @@ Map<String, Object?> buildTraceAttributesRequest(
   },
 };
 
+/// Titik terakhir daripada jejak yang disnap (matched_points atau shape). Null jika tiada.
+GeoPoint? parseMatchedEnd(Object? body) {
+  final decoded = body is String ? jsonDecode(body) : body;
+  if (decoded is! Map) return null;
+  final matched = decoded['matched_points'];
+  if (matched is List && matched.isNotEmpty) {
+    for (var i = matched.length - 1; i >= 0; i--) {
+      final row = matched[i];
+      if (row is! Map) continue;
+      final lat = row['lat'];
+      final lon = row['lon'] ?? row['lng'];
+      if (lat is num && lon is num) {
+        return GeoPoint(lat.toDouble(), lon.toDouble());
+      }
+    }
+  }
+  final shape = decoded['shape'];
+  if (shape is String && shape.isNotEmpty) {
+    final pts = decodePolyline(shape);
+    if (pts.isNotEmpty) return pts.last;
+  }
+  return null;
+}
+
 /// Menghurai respons `trace_attributes`. Melempar [FormatException] jika bentuk tidak dijangka.
 SpeedLimits parseSpeedLimits(Object? body) {
   final decoded = body is String ? jsonDecode(body) : body;
@@ -141,6 +165,27 @@ class SpeedLimitService {
         return null;
       } on Object catch (e) {
         logDiag('Had laju jejak: sumber gagal ($e)');
+      }
+    }
+    return null;
+  }
+
+  /// Titik paparan yang disnap ke jalan untuk memandu bebas (bukan laluan navigasi).
+  /// Null jika jejak pendek atau semua sumber gagal — pemanggil kekal pada GPS mentah.
+  Future<GeoPoint?> snapTraceEnd(
+    List<GeoPoint> points,
+    RouteVehicle vehicle,
+  ) async {
+    if (points.length < 2) return null;
+    final request = jsonEncode(
+      buildTraceAttributesRequest(points, vehicle),
+    );
+    for (final source in [_online, _offline]) {
+      try {
+        final snapped = parseMatchedEnd(await source(request));
+        if (snapped != null) return snapped;
+      } on Object catch (e) {
+        logDiag('Snap jejak: sumber gagal ($e)');
       }
     }
     return null;

@@ -61,7 +61,11 @@ class CruiseController extends Notifier<CruiseState> {
   bool _blocked = false;
   bool _background = false;
   int _limitGeneration = 0;
+  int _snapGeneration = 0;
   DateTime? _lastPersist;
+  DateTime? _lastSnapAt;
+  static const _snapEvery = Duration(seconds: 1);
+  static const _snapMaxDriftM = 40.0;
 
   @override
   CruiseState build() {
@@ -244,6 +248,11 @@ class CruiseController extends Notifier<CruiseState> {
     );
     _trail.add(fix.point);
     if (_trail.due(time, fix.point)) unawaited(_refreshLimit(fix.point, time));
+    final lastSnap = _lastSnapAt;
+    if (lastSnap == null || time.difference(lastSnap) >= _snapEvery) {
+      _lastSnapAt = time;
+      unawaited(_refreshSnap(fix.point, bearing, speed, time));
+    }
     unawaited(_persist());
   }
 
@@ -292,6 +301,44 @@ class CruiseController extends Notifier<CruiseState> {
     );
   }
 
+  /// Snap lembut ke jalan untuk paparan sahaja (GPS mentah kekal jika gagal / terlalu jauh).
+  Future<void> _refreshSnap(
+    GeoPoint here,
+    double bearing,
+    double speed,
+    DateTime time,
+  ) async {
+    if (!_trail.canQuery) return;
+    final generation = ++_snapGeneration;
+    final points = List<GeoPoint>.of(_trail.points);
+    GeoPoint? snapped;
+    try {
+      snapped = await ref
+          .read(speedLimitServiceProvider)
+          .snapTraceEnd(points, ref.read(routeVehicleProvider));
+    } on Object {
+      snapped = null;
+    }
+    if (!ref.mounted || generation != _snapGeneration || !state.active) return;
+    if (snapped == null) return;
+    if (distanceMeters(here, snapped) > _snapMaxDriftM) return;
+    final sample = CruiseFix(
+      point: snapped,
+      bearing: bearing,
+      speedMps: speed,
+      time: time,
+    );
+    state = CruiseState(
+      active: true,
+      speedMps: state.speedMps,
+      limitKmh: state.limitKmh,
+      overspeed: state.overspeed,
+      point: snapped,
+      bearing: bearing,
+      fix: sample,
+    );
+  }
+
   void _speak(List<Announcement> announcements) {
     if (announcements.isEmpty) return;
     if (!ref.read(navigationSettingsProvider).voiceEnabled) return;
@@ -303,6 +350,8 @@ class CruiseController extends Notifier<CruiseState> {
 
   void _disengage({required bool clearTrip, required bool handoff}) {
     _limitGeneration++;
+    _snapGeneration++;
+    _lastSnapAt = null;
     unawaited(_subscription?.cancel());
     _subscription = null;
     _gate.reset();
