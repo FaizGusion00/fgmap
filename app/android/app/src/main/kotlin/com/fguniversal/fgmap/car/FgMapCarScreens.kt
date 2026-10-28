@@ -22,8 +22,18 @@ import com.fguniversal.fgmap.R
 
 class FgMapSession : Session() {
     override fun onCreateScreen(intent: Intent): Screen {
-        if (!CarBridge.ready) CarBridge.launchPhone(carContext)
-        return FgMapNavScreen(carContext)
+        // Ikatan penemuan tidak boleh melempar: Android Auto membuang aplikasi dari pelancar.
+        return try {
+            if (!CarBridge.ready) {
+                try {
+                    CarBridge.launchPhone(carContext)
+                } catch (_: Throwable) {
+                }
+            }
+            FgMapNavScreen(carContext)
+        } catch (_: Throwable) {
+            FgMapNavScreen(carContext, attachMap = false)
+        }
     }
 }
 
@@ -31,25 +41,49 @@ class FgMapSession : Session() {
  * Templat navigasi padat: manuver dan ETA di slot templat, peta MapLibre pada permukaan,
  * tindakan terhad kepada carian, pusatkan, dan tamat.
  */
-class FgMapNavScreen(carContext: CarContext) : Screen(carContext) {
+class FgMapNavScreen(
+    carContext: CarContext,
+    attachMap: Boolean = true,
+) : Screen(carContext) {
     private val surface = CarMapSurface(carContext)
 
     init {
-        CarBridge.onSession = { session ->
-            surface.apply(session)
-            invalidate()
+        if (attachMap) {
+            try {
+                CarBridge.onSession = { session ->
+                    try {
+                        surface.apply(session)
+                    } catch (_: Throwable) {
+                    }
+                    invalidate()
+                }
+                CarBridge.session.let { if (it.isNotEmpty()) surface.apply(it) }
+                surface.attach()
+            } catch (_: Throwable) {
+                // Peta boleh gagal kemudian. Penemuan hos mesti tetap berjaya.
+            }
         }
-        CarBridge.session.let { if (it.isNotEmpty()) surface.apply(it) }
-        surface.attach()
     }
 
     override fun onGetTemplate(): Template {
+        return try {
+            filledTemplate()
+        } catch (_: Throwable) {
+            bareTemplate()
+        }
+    }
+
+    private fun filledTemplate(): Template {
         val session = CarBridge.session
         val mode = session["mode"] as? String ?: "browse"
-        val builder = NavigationTemplate.Builder()
-            .setActionStrip(actions(mode))
-            .setMapActionStrip(mapActions())
-            .setPanModeListener { inPan -> if (inPan) CarBridge.pan() }
+        val builder = NavigationTemplate.Builder().setActionStrip(actions(mode))
+        // Jalur peta dan mod seret ialah API kereta 2. Butang tersuai ialah API 4.
+        // Di bawah itu templat kekal pada NavigationTemplate asas (API 1).
+        val api = carContext.carAppApiLevel
+        if (api >= 2) {
+            builder.setMapActionStrip(mapActions(api))
+            builder.setPanModeListener { inPan -> if (inPan) CarBridge.pan() }
+        }
         when (mode) {
             "navigating" -> {
                 routing(session)?.let { builder.setNavigationInfo(it) }
@@ -64,6 +98,19 @@ class FgMapNavScreen(carContext: CarContext) : Screen(carContext) {
         }
         return builder.build()
     }
+
+    private fun bareTemplate(): Template = NavigationTemplate.Builder()
+        .setActionStrip(
+            ActionStrip.Builder()
+                .addAction(
+                    Action.Builder()
+                        .setTitle("FGMaps")
+                        .setOnClickListener { }
+                        .build(),
+                )
+                .build(),
+        )
+        .build()
 
     private fun actions(mode: String): ActionStrip {
         val search = Action.Builder()
@@ -84,14 +131,21 @@ class FgMapNavScreen(carContext: CarContext) : Screen(carContext) {
         return strip.build()
     }
 
-    private fun mapActions(): ActionStrip = ActionStrip.Builder()
-        .addAction(
-            Action.Builder()
-                .setIcon(icon(R.drawable.ic_car_recenter))
-                .setOnClickListener { CarBridge.recenter() }
-                .build(),
-        )
-        .build()
+    private fun mapActions(api: Int): ActionStrip {
+        val strip = ActionStrip.Builder()
+        if (api >= 4) {
+            strip.addAction(
+                Action.Builder()
+                    .setIcon(icon(R.drawable.ic_car_recenter))
+                    .setOnClickListener { CarBridge.recenter() }
+                    .build(),
+            )
+        } else {
+            // API 2–3 hanya membenarkan tindakan pan pada jalur peta.
+            strip.addAction(Action.PAN)
+        }
+        return strip.build()
+    }
 
     private fun icon(res: Int): CarIcon = CarIcon.Builder(
         IconCompat.createWithResource(carContext, res),

@@ -87,6 +87,14 @@ class CarMapSurface(
 
     override fun onSurfaceAvailable(container: SurfaceContainer) {
         val surface = container.surface ?: return
+        try {
+            showMap(container, surface)
+        } catch (_: Throwable) {
+            destroyMap()
+        }
+    }
+
+    private fun showMap(container: SurfaceContainer, surface: android.view.Surface) {
         MapLibre.getInstance(carContext)
         val dm = carContext.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
         val display = dm.createVirtualDisplay(
