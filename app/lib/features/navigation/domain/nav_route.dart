@@ -274,19 +274,30 @@ class NavRoute {
 
   /// Polyline paparan: bucu tajam diganti sampel lengkung supaya garisan peta / AA sepadan dengan kereta.
   ///
-  /// [cumulativeM] (jika diminta) ialah jarak sepanjang polyline ASAL pada setiap sampel — sama
-  /// dengan [alongM] kenderaan — supaya pemangkasan `line-gradient` kekal tepat.
+  /// [cumulativeM] ialah jarak sepanjang polyline ASAL pada setiap sampel (sama [alongM] kenderaan)
+  /// supaya pemangkasan `line-gradient` kekal tepat.
+  ///
+  /// [stepM] untuk lurus; [cornerStepM] lebih halus berhampiran/dalam selekoh. Hos AA boleh
+  /// guna langkah kasar (cth. 25 / 8) supaya muatan `session` kecil.
   ({List<GeoPoint> points, List<double> cumulativeM}) displayPolyline({
     double stepM = 4,
+    double? cornerStepM,
+    double cornerPadM = 40,
   }) {
     if (points.length < 2) {
       return (points: List.of(points), cumulativeM: List.of(cum));
     }
+    final fine = cornerStepM ?? stepM;
     final out = <GeoPoint>[];
     final along = <double>[];
-    for (var d = 0.0; d < totalM; d += stepM) {
+    var d = 0.0;
+    while (d < totalM) {
       out.add(displayPointAt(d));
       along.add(d);
+      final inCorner = _cornerAt(d) != null;
+      final nearCorner = _distanceToNextCorner(d) <= cornerPadM;
+      final step = (inCorner || nearCorner) ? fine : stepM;
+      d += math.max(1.0, step);
     }
     if (along.isEmpty || (totalM - along.last).abs() > 0.25) {
       out.add(displayPointAt(totalM));
@@ -456,23 +467,21 @@ class _Corner {
   final double radiusM;
   final double tangentM;
 
-  /// Panjang arka sebenar (R·θ). Tetingkap polyline ialah 2·R·tan(θ/2).
-  double get arcLengthM => radiusM * turnDeg.abs() * math.pi / 180;
-
-  /// Fraction 0..1: sudut arka berkadaran jarak dalam tetingkap (parameter arka bulat).
-  /// Kelajuan sudut vs along polyline = θ/(2t); unjuran latensi sepanjang lengkung
-  /// (pemacu bingkai) membetulkan rasa "lewat / lebar" di selekoh.
-  double _arcFraction(double d) {
+  /// Fraction 0..1 sepanjang tetingkap kord (2·R·tan(θ/2)). Kadar sudut kord
+  /// vs arka ~22% perlahan pada 90° — ditampung oleh curve lead + gandingan
+  /// kamera, bukan pemetaan semula along→arka (yang membekukan di hujung).
+  double _chordFraction(double d) {
     final chord = endD - startD;
     if (chord <= 1e-9) return 0;
     return ((d - startD) / chord).clamp(0.0, 1.0);
   }
 
   double bearingAt(double d) =>
-      normalizeBearing(inBearing + _arcFraction(d) * turnDeg);
+      normalizeBearing(inBearing + _chordFraction(d) * turnDeg);
 
   GeoPoint pointAt(double d) {
-    // Satah tempatan (timur x, utara y) berpusat pada bucu.
+    // Satah tempatan (timur x, utara y) berpusat pada bucu. Fraction kord
+    // memacu sudut arka supaya hujung selekoh berterusan dengan polyline.
     final entry = _offset(vertex, inBearing + 180, tangentM);
     final h = bearingAt(d) * math.pi / 180;
     final h1 = inBearing * math.pi / 180;

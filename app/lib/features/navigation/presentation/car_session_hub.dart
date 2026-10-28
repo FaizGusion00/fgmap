@@ -159,7 +159,12 @@ class CarSessionHub {
           : cruise.speedMps,
       limitKmh: navigating ? nav.currentLimitKmh : cruise.limitKmh,
       overspeed: navigating ? nav.overspeed : cruise.overspeed,
-      navigationRoute: nav.route?.displayPolyline().points ?? const [],
+      // Langkah kasar di lurus, halus di selekoh — muatan AA jauh lebih kecil daripada telefon.
+      navigationRoute:
+          nav.route
+              ?.displayPolyline(stepM: 25, cornerStepM: 8, cornerPadM: 50)
+              .points ??
+          const [],
       routeVersion: nav.routeVersion,
       maneuver: text,
       distanceToManeuverM: progress?.distanceToNextM,

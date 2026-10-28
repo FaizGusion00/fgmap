@@ -577,7 +577,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
     if (route == null) return null;
     final current = _navLine;
     if (current != null && current.version == nav.routeVersion) return current;
-    final display = route.displayPolyline();
+    final display = route.displayPolyline(stepM: 5, cornerStepM: 3);
     return _navLine = NavRouteLine(
       points: display.points,
       cumulativeM: display.cumulativeM,

@@ -73,7 +73,6 @@ void main() {
     });
 
     test('panjang arka sampel ≈ R·θ untuk selekoh 90°', () {
-      const radius = NavRoute.displayCornerRadiusM;
       const t = radius; // tan(45°)=1
       var path = 0.0;
       var prev = route.displayPointAt(600 - t);
@@ -99,6 +98,24 @@ void main() {
       }
       // Sampel lengkung tidak melalui bucu tajam (inset ~5 m untuk R=12).
       expect(minDist, greaterThan(3));
+    });
+
+    test('AA polyline lebih jarang daripada telefon', () {
+      final phone = route.displayPolyline(stepM: 5, cornerStepM: 3);
+      final aa = route.displayPolyline(
+        stepM: 25,
+        cornerStepM: 8,
+        cornerPadM: 50,
+      );
+      expect(aa.points.length, lessThan(phone.points.length));
+      expect(aa.points.length, lessThan(route.totalM / 12));
+      // Masih melalui selekoh (bukan hanya bucu tajam).
+      final corner = route.points[(600 / 50).ceil()];
+      var minDist = double.infinity;
+      for (final p in aa.points) {
+        minDist = math.min(minDist, distanceMeters(p, corner));
+      }
+      expect(minDist, greaterThan(2));
     });
 
     test('belokan kecil (< 25 deg) dan pusingan-U tidak dilengkungkan', () {
