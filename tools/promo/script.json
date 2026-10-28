@@ -1,0 +1,42 @@
+{
+  "voices": {
+    "ms": {"main": "ms-MY-OsmanNeural", "alt": "ms-MY-YasminNeural", "rate": "-2%"},
+    "en": {"main": "en-US-AndrewNeural", "alt": "en-US-AvaNeural", "rate": "-2%"}
+  },
+  "lines": {
+    "ms": [
+      {"id": "l01", "text": "Nak ke mana-mana di Malaysia? Kenalkan FGMaps. Aplikasi navigasi yang masih boleh membawa anda sampai, walaupun tiada internet."},
+      {"id": "l02", "text": "Buka aplikasi, dan anda terus bersedia."},
+      {"id": "l03", "text": "Taip destinasi anda. Cadangan tempat muncul terus semasa anda menaip."},
+      {"id": "l04", "text": "Sekelip mata, laluan dikira. Sehingga sepuluh pilihan, termasuk yang terpantas, terpendek, atau tanpa tol, lengkap dengan beza masa dan jarak."},
+      {"id": "l05", "text": "Anggaran tol dan kos minyak turut dipaparkan, jadi anda tahu kos sebelum bertolak."},
+      {"id": "l06", "text": "Kereta atau motosikal, pilih mengikut kenderaan anda."},
+      {"id": "l07", "text": "Tekan Mula. Arahan belok demi belok dengan suara Bahasa Melayu atau English, kereta tiga dimensi, dan kamera yang bergerak automatik."},
+      {"id": "l08", "text": "Tersasar? Jangan risau. Laluan dikira semula secara automatik."},
+      {"id": "l09", "text": "Had laju jalan turut dipaparkan apabila tersedia, supaya pemanduan lebih selamat."},
+      {"id": "l10", "text": "Dan bila sampai, anda dimaklumkan. Mudah."},
+      {"id": "l11", "text": "Simpan Rumah dan Kerja untuk sampai dengan satu ketukan. Cari stesen minyak, tempat makan, masjid, tandas dan parkir berhampiran. Kongsi masa tiba dengan keluarga. Dan butang kecemasan sentiasa dekat."},
+      {"id": "l12", "text": "Tiada internet? Tiada masalah. Muat turun pek peta Malaysia sekali sahaja, dan laluan dikira terus dalam telefon anda."},
+      {"id": "l13", "text": "Siang atau malam, pilih tema cerah, gelap, atau hitam AMOLED. Ikut matahari secara automatik pun boleh."},
+      {"id": "l14", "text": "Dan yang terbaik, semuanya percuma. Tiada akaun, tiada iklan, tiada langganan, tiada penjejakan."},
+      {"id": "l15", "text": "FGMaps. Navigasi untuk Malaysia. Segera hadir."}
+    ],
+    "en": [
+      {"id": "l01", "text": "Going anywhere in Malaysia? Meet FGMaps. A navigation app that can still get you there, even with no internet."},
+      {"id": "l02", "text": "Open the app, and you're ready to go."},
+      {"id": "l03", "text": "Type your destination. Place suggestions appear as you type."},
+      {"id": "l04", "text": "In a blink, your routes are calculated. Up to ten options, including the fastest, the shortest, or no tolls, with time and distance differences."},
+      {"id": "l05", "text": "Toll and fuel cost estimates are shown too, so you know the cost before you leave."},
+      {"id": "l06", "text": "Car or motorcycle, choose what you ride."},
+      {"id": "l07", "text": "Tap Start. Turn-by-turn directions with voice in Malay or English, a 3D car, and a camera that moves automatically."},
+      {"id": "l08", "text": "Missed a turn? Don't worry. Your route is recalculated automatically."},
+      {"id": "l09", "text": "Road speed limits are shown when available, for safer driving."},
+      {"id": "l10", "text": "And when you arrive, you're notified. Simple."},
+      {"id": "l11", "text": "Save Home and Work to get there in one tap. Find fuel, food, mosques, toilets and parking nearby. Share your arrival time with family. And the emergency button is always close."},
+      {"id": "l12", "text": "No internet? No problem. Download the Malaysia pack once, and routes are calculated right on your phone."},
+      {"id": "l13", "text": "Day or night, choose light, dark or AMOLED black. Or follow the sun automatically."},
+      {"id": "l14", "text": "And best of all, it's completely free. No account, no ads, no subscription, no tracking."},
+      {"id": "l15", "text": "FGMaps. Navigation for Malaysia. Coming soon."}
+    ]
+  }
+}

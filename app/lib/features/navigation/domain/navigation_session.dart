@@ -194,6 +194,23 @@ class NavigationSession {
     return _planner.start(isReroute: isReroute);
   }
 
+  /// Sambung perjalanan yang disimpan. Tiada ayat pembukaan. Fix GPS seterusnya sama ada mengikut
+  /// laluan ini atau, jika pemandu sudah menyimpang, mencetus laluan semula yang sedia ada.
+  void primeRestored({
+    required double alongM,
+    required double speedMps,
+    required DateTime time,
+  }) {
+    _startPending = false;
+    _along = alongM.clamp(0.0, route.totalM);
+    _liveAlong = _along;
+    _startAlong = _along;
+    _firstFixTime = time;
+    _lastFixTime = time;
+    _lastFixClock = _clock();
+    vehicle.onRouteFix(alongM: _along, speedMps: speedMps, time: time);
+  }
+
   Announcement get reroutingNotice => _planner.reroutingNotice;
 
   /// Memproses satu fix mentah. Memulangkan null jika fix ditolak oleh penapis.

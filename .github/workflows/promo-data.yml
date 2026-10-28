@@ -1,0 +1,26 @@
+name: promo-data
+
+# Sementara: mengambil laluan KLCC-KLIA sebenar (Valhalla awam) dan nod plaza tol OSM untuk video promosi.
+on:
+  push:
+    branches: [claude/practical-bardeen-kmtow6]
+    paths: [".github/workflows/promo-data.yml", "tools/promo/fetch_data.py"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tools/promo/fetch_data.py
+      - name: Simpan data
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tools/promo/data
+          git commit -m "chore(promo): data laluan KLCC-KLIA sebenar untuk video (sementara)" && git push || true

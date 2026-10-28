@@ -1,0 +1,681 @@
+<!doctype html>
+<html lang="ms">
+<head>
+<meta charset="utf-8">
+<title>FGMaps promo v2</title>
+<style>
+@font-face { font-family: PJS; src: url(/app/assets/fonts/PlusJakartaSans.ttf); font-weight: 200 800; }
+html, body { margin: 0; background: #0B1220; overflow: hidden; }
+#stage { position: relative; overflow: hidden; font-family: PJS, system-ui, sans-serif; background: #0B1220; }
+#stage > * { position: absolute; left: 0; top: 0; }
+#bg, #fg { width: 100%; height: 100%; }
+#phoneWrap { width: 100%; height: 100%; perspective: 2600px; }
+#phone { position: absolute; transform-style: preserve-3d; will-change: transform; }
+#bezel { position: absolute; background: linear-gradient(145deg, #2A3550, #0A0F1C 55%, #1B2540); box-shadow: 0 60px 120px rgba(0,0,0,.55), 0 0 0 2px rgba(255,255,255,.1) inset, 0 0 0 1px #000; }
+#screen { position: absolute; left: 0; top: 0; overflow: hidden; background: #000; }
+#scr { position: absolute; left: 0; top: 0; }
+#island { position: absolute; background: #05070D; border-radius: 999px; }
+#sheen { position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: linear-gradient(115deg, rgba(255,255,255,.12) 0%, rgba(255,255,255,0) 30%); pointer-events: none; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="bg"></canvas>
+  <div id="phoneWrap"><div id="phone"><div id="bezel"></div><div id="screen"><canvas id="scr"></canvas><div id="sheen"></div></div><div id="island"></div></div></div>
+  <canvas id="fg"></canvas>
+</div>
+<script src="/tools/promo/lib_map.js"></script>
+<script>
+'use strict';
+// ───────────────────────── parameter ─────────────────────────
+const Q = new URLSearchParams(location.search);
+const ASPECT = Q.get('a') || '16x9', LANG = Q.get('l') || 'ms', VOICE = Q.get('v') || 'main';
+const PORT = ASPECT === '9x16';
+const W = PORT ? 1080 : 1920, H = PORT ? 1920 : 1080;
+const SW = PORT ? 499 : 434, SH = PORT ? 1080 : 940, BZ = PORT ? 14 : 12;
+const U = SW / 390;
+const stage = document.getElementById('stage');
+stage.style.width = W + 'px'; stage.style.height = H + 'px';
+const $ = id => document.getElementById(id);
+const bg = $('bg'), bctx = bg.getContext('2d'), fg = $('fg'), fctx = fg.getContext('2d'), scr = $('scr'), sctx = scr.getContext('2d');
+fg.width = W; fg.height = H; scr.width = SW; scr.height = SH;
+const BGW = Math.round(W / 2), BGH = Math.round(H / 2); bg.width = BGW; bg.height = BGH;
+
+const TEAL = '#19D3B8', BLUE = '#2F6BFF', INK = '#0B1220';
+const FLOW = th => `/promo_out/assets/flow/${LANG}_${th}/`;
+const FP = (th, name) => FLOW(th) + name + '.png';
+const pad2 = n => String(n).padStart(2, '0'), pad3 = n => String(n).padStart(3, '0');
+
+// ───────────────────────── imej (cache LRU, dimuat mengikut keperluan) ─────────────────────────
+const IMG = new Map(), MISSING = new Set();
+function img(p) { const e = IMG.get(p); if (e) { IMG.delete(p); IMG.set(p, e); return e.__bad ? null : e; } MISSING.add(p); return null; }
+async function loadImg(p) {
+  if (IMG.has(p)) return;
+  const im = new Image(); im.src = p;
+  try { await im.decode(); } catch (e) { im.__bad = true; }
+  IMG.set(p, im);
+  while (IMG.size > 110) IMG.delete(IMG.keys().next().value);
+}
+
+// ───────────────────────── data ─────────────────────────
+let COPY, ROUTES, HEAD, TRACK, META, TARGETS = {}, VO = {};
+const LIDS = Array.from({ length: 15 }, (_, i) => 'l' + pad2(i + 1));
+async function loadAll() {
+  const j = async p => { const r = await fetch(p); if (!r.ok) throw new Error(p + ' ' + r.status); return r.json(); };
+  COPY = (await j('/tools/promo/copy2.json'))[LANG];
+  ROUTES = await j('/promo_out/data/routes.json');
+  HEAD = await j('/promo_out/data/head.json');
+  META = await j('/promo_out/assets/flow/meta.json');
+  try { TARGETS = await j('/promo_out/assets/flow/targets.json'); } catch (e) { TARGETS = {}; }
+  TRACK = await j(FLOW('light') + 'nav_track.json');
+  for (const id of LIDS) VO[id] = await j(`/tools/promo/voice/${LANG}/${VOICE}/${id}.json`);
+  LAT0 = HEAD.origin[0]; LNG0 = HEAD.origin[1]; MX = 111320 * Math.cos(LAT0 * Math.PI / 180); MY = 110574;
+  buildGeo();
+  for (const w of [500, 600, 700, 800]) await document.fonts.load(`${w} 40px PJS`);
+  await loadImg('/app/assets/branding/fgmap-app-icon.png');
+  // peta jejak nav: xy bagi setiap bingkai
+  for (const r of TRACK) { r.xy = ll(r.pos.lat, r.pos.lng); r.cxy = r.cam ? ll(r.cam.lat, r.cam.lng) : null; }
+}
+const tgt = (name, th = 'light') => (TARGETS[`${LANG}_${th}`] || {})[name] || null;
+
+// ───────────────────────── garis masa daripada suara ─────────────────────────
+const DEFS = [
+  ['s01', ['l01'], { lead: .3, tail: 1.3 }], ['s02', ['l02'], { lead: .3, tail: 1.0, min: 6.2 }], ['s03', ['l03'], { lead: .9, tail: 1.6 }],
+  ['s04', ['l04'], { lead: .6, tail: 1.0 }], ['s05', ['l05'], { lead: .5, tail: .9 }], ['s06', ['l06'], { lead: .5, tail: 1.1, min: 5.2 }],
+  ['s07', ['l07'], { lead: .5, tail: 1.0 }], ['s08', ['l08'], { lead: .4, tail: 1.0, min: 5.4 }], ['s09', ['l09'], { lead: .4, tail: .9 }],
+  ['s10', ['l10'], { lead: .4, tail: 1.2, min: 5.0 }], ['s11', ['l11'], { lead: .5, tail: 1.0 }], ['s12', ['l12'], { lead: .5, tail: 1.0 }],
+  ['s13', ['l13'], { lead: .5, tail: .9 }], ['s14', ['l14'], { lead: .5, tail: 1.1 }], ['s15', ['l15'], { lead: .8, tail: 2.8 }]
+];
+/** Padankan perkataan TTS (tanpa tanda baca) dengan token teks asal supaya sarikata ada tanda baca. */
+function alignTokens(words, text) {
+  const toks = text.split(/\s+/).filter(Boolean), norm = x => x.toLowerCase().replace(/[^\p{L}\p{N}-]/gu, '');
+  if (toks.length === words.length) return toks;
+  const out = []; let j = 0;
+  for (const w of words) { const n = norm(w[0]); let k = j; while (k < toks.length && !norm(toks[k]).startsWith(n)) k++; if (k < toks.length) { out.push(toks[k]); j = k + 1; } else out.push(w[0]); }
+  return out;
+}
+let SCENES = [], TOTAL = 0;
+function buildTimeline() {
+  let T = 0.4; SCENES = [];
+  for (const [id, lines, o] of DEFS) {
+    const t0 = T; let at = t0 + o.lead; const L = [];
+    for (const lid of lines) { const v = VO[lid], disp = alignTokens(v.words, v.text); L.push({ id: lid, start: at, dur: v.duration, text: v.text, words: v.words.map((w, i) => [w[0], at + w[1], w[2], disp[i]]) }); at += v.duration + .3; }
+    const t1 = Math.max(at - .3 + o.tail, t0 + (o.min || 0));
+    SCENES.push({ id, t0, t1, lines: L }); T = t1;
+  }
+  TOTAL = T;
+  window.TIMELINE = { total: TOTAL, aspect: ASPECT, lang: LANG, scenes: SCENES.map(s => ({ id: s.id, t0: s.t0, t1: s.t1, voice: s.lines.map(l => ({ id: l.id, start: l.start, dur: l.dur })) })) };
+}
+const sceneIdx = t => { for (let i = 0; i < SCENES.length; i++) if (t < SCENES[i].t1) return i; return SCENES.length - 1; };
+/** Masa mutlak perkataan pertama yang sepadan dengan [re] dalam adegan [s]; null jika tiada. */
+function wt(s, re, nth = 0) { let n = 0; for (const l of s.lines) for (const w of l.words) if (re.test(w[0].toLowerCase())) { if (n++ === nth) return w[1]; } return null; }
+
+// ───────────────────────── asas lukisan ─────────────────────────
+function rr(c, x, y, w, h, r) { c.beginPath(); c.roundRect(x, y, w, h, r); }
+function T(c, s, x, y, o = {}) {
+  c.save(); c.font = `${o.w || 700} ${o.size || 40}px PJS`; c.textAlign = o.align || 'left'; c.textBaseline = o.base || 'alphabetic';
+  c.globalAlpha *= (o.a ?? 1); c.fillStyle = o.color || '#fff'; if (o.ls) c.letterSpacing = o.ls;
+  if (o.shadow) { c.shadowColor = 'rgba(0,0,0,.5)'; c.shadowBlur = o.shadow; c.shadowOffsetY = 2; }
+  c.fillText(s, x, y); c.restore();
+}
+function meas(c, s, size, w = 700, ls = '0px') { c.save(); c.font = `${w} ${size}px PJS`; c.letterSpacing = ls; const m = c.measureText(s).width; c.restore(); return m; }
+function pillBox(c, text, x, y, o = {}) {       // x,y = kiri-tengah menegak; mengembalikan lebar
+  const size = o.size || 26, w = o.w || 700, ls = o.ls || '0px', padX = (o.px ?? .8) * size, hh = size * 2.05;
+  const tw = meas(c, text, size, w, ls), dot = o.dot ? size * .9 : 0, ww = tw + padX * 2 + dot;
+  const left = o.center ? x - ww / 2 : x;
+  c.save(); c.globalAlpha *= (o.a ?? 1);
+  if (o.shadow) { c.shadowColor = 'rgba(0,0,0,.35)'; c.shadowBlur = 24; c.shadowOffsetY = 8; }
+  c.fillStyle = o.bg || 'rgba(255,255,255,.1)'; rr(c, left, y - hh / 2, ww, hh, hh / 2); c.fill(); c.shadowColor = 'transparent';
+  if (o.stroke) { c.strokeStyle = o.stroke; c.lineWidth = 1.6; c.stroke(); }
+  if (o.dot) { c.fillStyle = o.dotColor || TEAL; c.beginPath(); c.arc(left + padX + size * .22, y, size * .22, 0, 7); c.fill(); }
+  c.font = `${w} ${size}px PJS`; c.letterSpacing = ls; c.textBaseline = 'middle'; c.fillStyle = o.color || '#fff'; c.fillText(text, left + padX + dot, y + size * .04);
+  c.restore(); return ww;
+}
+function kicker(c, text, x, y, lt, d = .1) { const a = eout((lt - d) / .5); if (a <= 0) return; pillBox(c, text, x, y, { size: PORT ? 26 : 26, w: 800, ls: '.14em', color: TEAL, bg: 'rgba(25,211,184,.12)', stroke: 'rgba(25,211,184,.4)', a, px: .9 }); }
+/** Tajuk gerak: setiap perkataan naik dari bawah dengan jeda; baris terakhir berwarna aksen. */
+function headline(c, lines, x, y, size, lt, o = {}) {
+  const d0 = o.d ?? .15, lh = size * 1.06, ex = o.exit == null ? 0 : clamp((lt - o.exit) / .4);
+  let idx = 0;
+  lines.forEach((line, li) => {
+    const words = line.split(' '); let cx = x; const acc = li === lines.length - 1 && lines.length > 1;
+    for (const w of words) {
+      const p = clamp((lt - d0 - idx * .085) / .6); idx++;
+      const sp = meas(c, w + ' ', size, 800, '-0.02em');
+      if (p > 0) T(c, w, cx, y + li * lh + (1 - eback(p)) * size * .7 - ex * size * .25, { size, w: 800, ls: '-0.02em', color: acc ? TEAL : '#fff', a: clamp(p * 1.6) * (1 - ex), align: 'left', shadow: o.shadow });
+      cx += sp;
+    }
+  });
+  return y + lines.length * lh;
+}
+function fadeIn(lt, d, dur = .5) { return eout((lt - d) / dur); }
+function crop(c, im, s, x, y, w, h, o = {}) {      // s = {x,y,w,h} dalam piksel imej
+  if (!im) return; c.save(); c.globalAlpha = o.a ?? 1;
+  if (o.shadow !== false) { c.shadowColor = 'rgba(0,0,0,.4)'; c.shadowBlur = 40; c.shadowOffsetY = 14; }
+  c.translate(x + w / 2, y + h / 2); if (o.rot) c.rotate(o.rot); if (o.scale) c.scale(o.scale, o.scale);
+  if (o.bgc) { c.fillStyle = o.bgc; rr(c, -w / 2, -h / 2, w, h, o.r ?? 26); c.fill(); }
+  c.shadowColor = 'transparent'; rr(c, -w / 2, -h / 2, w, h, o.r ?? 26); c.clip();
+  c.drawImage(im, s.x, s.y, s.w, s.h, -w / 2, -h / 2, w, h); c.restore();
+  if (o.border) { c.save(); c.globalAlpha = o.a ?? 1; c.translate(x + w / 2, y + h / 2); if (o.rot) c.rotate(o.rot); if (o.scale) c.scale(o.scale, o.scale); c.strokeStyle = o.border; c.lineWidth = o.bw || 3; rr(c, -w / 2, -h / 2, w, h, o.r ?? 26); c.stroke(); c.restore(); }
+}
+
+/** Kad zum: potongan UI app sebenar (koordinat logik 390x844) diperbesar di sisi teks supaya mudah dibaca. */
+function callout(c, th, name, r, x, y, w, t0, lt, o = {}) {
+  if (PORT) { if (o.noPort) return; w = Math.min(w * 1.45, 800); x = (W - w) / 2; y = 500; }
+  const im = img(FP(th, name)); if (!im) return;
+  const a = eback((lt - t0) / .6) * (o.fade ?? 1); if (a <= 0) return;
+  const k = im.naturalWidth / 390, h = w * r.h / r.w, ca = clamp(a);
+  crop(c, im, { x: r.x * k, y: r.y * k, w: r.w * k, h: r.h * k }, x, y + (1 - ca) * 34, w, h, { a: ca, bgc: o.bgc || META[th].surface, r: o.r ?? 24, border: o.border ?? TEAL, bw: 4 });
+  if (o.label) pillBox(c, o.label, x + 22, y - 6 + (1 - ca) * 34, { size: 22, w: 800, ls: '.1em', color: '#04302B', bg: TEAL, a: ca });
+  return h;
+}
+
+// ───────────────────────── layar telefon ─────────────────────────
+function pageFill(c, th) { c.fillStyle = META[th].scaffold; c.fillRect(0, 0, SW, SH); }
+function ov(c, th, name, o = {}) {
+  const im = img(FP(th, name)); if (!im) return null;
+  c.save(); c.globalAlpha = o.a ?? 1; c.translate(SW / 2 + (o.dx || 0), SH / 2 + (o.dy || 0)); if (o.s) c.scale(o.s, o.s);
+  c.drawImage(im, -SW / 2, -SH / 2, SW, SH); c.restore(); return im;
+}
+function statusBar(c, th, o = {}) {
+  const fg_ = th === 'dark' ? '#EAF1FF' : '#10244A';
+  c.save(); c.fillStyle = fg_; c.font = `700 ${15 * U}px PJS`; c.textBaseline = 'middle'; c.textAlign = 'left'; c.globalAlpha = o.a ?? 1;
+  c.fillText('15:13', 26 * U, 24 * U);
+  let x = SW - 24 * U;
+  c.strokeStyle = fg_; c.lineWidth = 1.3 * U; rr(c, x - 25 * U, 18 * U, 25 * U, 12 * U, 3.5 * U); c.stroke(); c.fillRect(x - 23 * U, 20 * U, 17 * U, 8 * U); c.fillRect(x + 1.5 * U, 21.5 * U, 2 * U, 5 * U);
+  x -= 38 * U;
+  if (o.noSig) { c.save(); c.translate(x - 8 * U - 8.8 * U, 24 * U - 8.8 * U); c.scale(17.6 / 24, 17.6 / 24); c.fill(PLANE); c.restore(); x -= 30 * U; }
+  for (let i = 0; i < 4; i++) { c.globalAlpha = (o.a ?? 1) * (o.noSig ? .28 : 1); c.fillRect(x - 24 * U + i * 6 * U, 30 * U - (4 + i * 3) * U, 4 * U, (4 + i * 3) * U); }
+  if (o.noSig) { c.globalAlpha = o.a ?? 1; c.strokeStyle = '#FF5A5F'; c.lineWidth = 2 * U; c.beginPath(); c.moveTo(x - 27 * U, 31 * U); c.lineTo(x + 2 * U, 14 * U); c.stroke(); }
+  c.restore();
+}
+const PLANE = new Path2D('M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z');
+function tapFx(c, name, th, t0, lt, o = {}) {
+  const p = tgt(name, th) || o.fallback; if (!p) return;
+  const a = lt - t0; if (a < -.4 || a > .75) return;
+  const x = p.x * U, y = p.y * U;
+  c.save();
+  if (a < 0) { const k = 1 + (-a / .4) * 1.2; c.globalAlpha = (1 - (-a / .4)) * .9; c.fillStyle = 'rgba(255,255,255,.55)'; c.beginPath(); c.arc(x, y, 20 * U * k, 0, 7); c.fill(); c.strokeStyle = 'rgba(47,107,255,.9)'; c.lineWidth = 3 * U; c.stroke(); }
+  else { const k = a / .7; c.globalAlpha = (1 - k) * .9; c.strokeStyle = TEAL; c.lineWidth = 4 * U * (1 - k * .6); c.beginPath(); c.arc(x, y, (18 + 60 * eout(k)) * U, 0, 7); c.stroke(); c.globalAlpha = (1 - k) * .55; c.fillStyle = 'rgba(255,255,255,.8)'; c.beginPath(); c.arc(x, y, 18 * U * (1 - k * .4), 0, 7); c.fill(); }
+  c.restore();
+}
+function ringAt(c, x, y, w, h, r, lt, color = TEAL, a = 1) { const p = .5 + .5 * Math.sin(lt * 6); c.save(); c.strokeStyle = color; c.lineWidth = (3 + p * 2) * U; c.shadowColor = color; c.shadowBlur = 20 * U; c.globalAlpha = a * (.6 + .4 * p); rr(c, x - 4 * U, y - 4 * U, w + 8 * U, h + 8 * U, r + 4 * U); c.stroke(); c.restore(); }
+
+// peta
+const mpp = (zoom, lat) => 78271.5 * Math.cos(lat * Math.PI / 180) / Math.pow(2, zoom);
+function overviewCam(topF, botF, idxs, pad = .92, w = SW, h = SH) {
+  let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+  for (const i of idxs) for (const p of OV[i].pts) { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); }
+  const ppm = Math.min(w * .82 / (x1 - x0), h * (botF - topF) * .9 / (y1 - y0)) * pad;
+  return mkCam((x0 + x1) / 2, (y0 + y1) / 2, 0, 90, ppm, w / 2, h * (topF + botF) / 2);
+}
+function userPuck(c, cam, x, y, lt) {
+  const q = pr(cam, x, y); const k = (lt * .8) % 1;
+  c.save(); c.fillStyle = 'rgba(47,107,255,.16)'; c.beginPath(); c.arc(q[0], q[1], (16 + 26 * k) * U, 0, 7); c.fill();
+  c.fillStyle = '#fff'; c.beginPath(); c.arc(q[0], q[1], 9 * U, 0, 7); c.fill(); c.fillStyle = BLUE; c.beginPath(); c.arc(q[0], q[1], 6.5 * U, 0, 7); c.fill(); c.restore();
+}
+function pinAt(c, cam, x, y, s, color, label, dark) {
+  const q = pr(cam, x, y); c.save(); c.translate(q[0], q[1]);
+  c.shadowColor = 'rgba(0,0,0,.35)'; c.shadowBlur = 10 * s / 20; c.shadowOffsetY = 4 * s / 20; c.fillStyle = color;
+  c.beginPath(); c.moveTo(0, 0); c.bezierCurveTo(-s * .2, -s * .5, -s * .62, -s * .7, -s * .62, -s * 1.15); c.arc(0, -s * 1.15, s * .62, Math.PI, 0); c.bezierCurveTo(s * .62, -s * .7, s * .2, -s * .5, 0, 0); c.fill();
+  c.shadowColor = 'transparent'; c.fillStyle = '#fff'; c.beginPath(); c.arc(0, -s * 1.15, s * .24, 0, 7); c.fill();
+  if (label) { c.font = `800 ${s * .62}px PJS`; c.textAlign = 'center'; c.lineWidth = s * .2; c.strokeStyle = dark ? '#0B1220' : '#fff'; c.lineJoin = 'round'; c.strokeText(label, 0, s * .72); c.fillStyle = dark ? '#EAF1FF' : '#10244A'; c.fillText(label, 0, s * .72); }
+  c.restore();
+}
+function drawRoutes(c, cam, th, sel, prog) {
+  const pal = PAL[th], order = [...Array(OV.length).keys()].filter(i => i !== sel).concat(sel >= 0 ? [sel] : []);
+  for (const i of order) {
+    const r = OV[i], isSel = i === sel, p = Array.isArray(prog) ? prog[i] : prog, s1 = r.len * p; if (s1 <= 1) continue;
+    strokeRoute(c, cam, r, 0, s1, (isSel ? 11 : 8.5) * U, pal.routeCas, 1);
+    strokeRoute(c, cam, r, 0, s1, (isSel ? 7.5 : 5.2) * U, isSel ? TEAL : (th === 'dark' ? '#4A6396' : '#8EA2CC'), 1);
+  }
+}
+const lerpAng = (a, b, t) => { let d = ((b - a + 540) % 360) - 180; return a + d * t; };
+function trackAt(f) {
+  f = clamp(f, 0, TRACK.length - 1); const i0 = Math.floor(f), i1 = Math.min(TRACK.length - 1, i0 + 1), t = f - i0, a = TRACK[i0], b = TRACK[i1];
+  return { f: i0, along: lerp(a.alongM, b.alongM, t), x: lerp(a.xy[0], b.xy[0], t), y: lerp(a.xy[1], b.xy[1], t), zoom: lerp(a.cam.zoom, b.cam.zoom, t), tilt: lerp(a.cam.tilt, b.cam.tilt, t), bearing: lerpAng(a.cam.bearing, b.cam.bearing, t), lat: lerp(a.pos.lat, b.pos.lat, t) };
+}
+/** Peta navigasi yang dipacu oleh kamera app sebenar (zum/condong/bearing daripada FakeCamera). */
+function navMap(c, th, f, o = {}) {
+  const k = trackAt(f), pal = PAL[th];
+  const ppm = (1 / mpp(k.zoom, k.lat)) * U * (o.zoomF || .55);
+  const cam = mkCam(k.x, k.y, k.bearing * Math.PI / 180, 90 - k.tilt, ppm, SW / 2, SH * .688);
+  if (o.noTiles) { c.fillStyle = pal.land; c.fillRect(0, 0, SW, SH); c.save(); c.globalAlpha = .5; c.fillStyle = th === 'dark' ? '#16233D' : '#E2E7F0'; for (let gx = 0; gx < SW; gx += 22 * U) for (let gy = 0; gy < SH; gy += 22 * U) { c.beginPath(); c.arc(gx, gy, 1.2 * U, 0, 7); c.fill(); } c.restore(); }
+  else drawMap(c, SW, SH, cam, pal);
+  if (cam.ppm < .35 * U) { strokeRoute(c, cam, OV[0], 0, OV[0].len, 10 * U, pal.routeCas, 1); strokeRoute(c, cam, OV[0], 0, OV[0].len, 6.5 * U, TEAL, 1); }
+  strokeRoute(c, cam, NAV, 0, k.along, 12 * U, pal.routeCas, .5); strokeRoute(c, cam, NAV, 0, k.along, 7.5 * U, TEAL, .3);
+  strokeRoute(c, cam, NAV, k.along, NAV.len, 13.5 * U, pal.routeCas, 1); strokeRoute(c, cam, NAV, k.along, NAV.len, 8.5 * U, TEAL, 1);
+  return { cam, k };
+}
+function bgGrid(c, th) { const pal = PAL[th]; c.fillStyle = pal.land; c.fillRect(0, 0, SW, SH); }
+
+// ───────────────────────── tata letak ─────────────────────────
+const LAY = PORT
+  ? { tx: 72, tw: W - 144, kY: 118, hY: 215, hs: 92, ss: 40, sub: { cx: W / 2, y: 1700, size: 44, w: 920 }, phone: { C: [540, 1195] } }
+  : { tx: 120, tw: 760, kY: 215, hY: 320, hs: 108, ss: 38, sub: { cx: W / 2, y: 1062, size: 38, w: 1500 }, phone: { R: [1340, 510], L: [580, 510], C: [960, 510] } };
+const TH = id => ({ s11: 'dark', s12: 'dark', s13: 'dark' }[id] || 'light');
+const HS = id => (PORT ? LAY.hs : ({ s07: 86, s11: 86, s13: 86 }[id] || LAY.hs));
+const PH_SPEC = {
+  s01: ['R'], s02: ['R'], s03: ['R'], s04: ['R'], s05: ['R'], s06: ['R'], s07: ['C', 1.0], s08: ['R'], s09: ['R'], s10: ['R'], s11: ['C', 1.0], s12: ['R'], s13: ['C', 1.0], s14: [null], s15: [null]
+};
+function phoneTarget(id) { const [side, sc] = PH_SPEC[id]; if (!side) return { hide: true, x: PORT ? 540 : 960, y: PORT ? 1010 : 540, sc: .9 }; const s = PORT ? 'C' : side; const p = LAY.phone[s]; return { hide: false, x: p[0], y: p[1], sc: PORT ? .78 : (sc || 1) * .93, ry: PORT ? 0 : (s === 'R' ? -12 : s === 'L' ? 12 : 0) }; }
+
+// ───────────────────────── adegan: lukisan skrin telefon ─────────────────────────
+const S = {};   // setiap adegan: {screen(c,lt,sc,ix), fg(c,lt,sc), phoneHide?(lt,sc)}
+
+// s01 – kenalan: pembuka sinematik, jenama, kemudian telefon tanpa isyarat
+S.s01 = {
+  cues(sc) { return { brand: wt(sc, /fgmaps/) ?? 2.6, wal: wt(sc, /walaupun|even/) ?? 6.5 }; },
+  phoneHide(lt, sc) { const c = this.cues(sc); return lt < c.wal - sc.t0 + .1 ? 1 : 0; },
+  screen(c, lt, sc) {
+    const th = 'light', cu = this.cues(sc), f = 70 + clamp((lt - (cu.wal - sc.t0)) * 6, 0, 30);
+    const { cam } = navMap(c, th, f, { noTiles: true });
+    ov(c, th, 'nav_' + pad3(Math.round(f)));
+    statusBar(c, th, { noSig: true });
+    const a = fadeIn(lt, cu.wal - sc.t0 + .3, .5);
+    c.save(); c.globalAlpha = a; pillBox(c, COPY.s01.noSignal, SW / 2, 150 * U, { center: true, size: 14 * U, bg: '#10244A', color: '#fff', dot: true, dotColor: '#FF5A5F', shadow: true }); c.restore();
+  },
+  fg(c, lt, sc) {
+    const cu = this.cues(sc), tb = cu.brand - sc.t0, tw = cu.wal - sc.t0, x = LAY.tx;
+    // A: pertanyaan pembuka
+    const aOut = clamp((lt - (tb - .5)) / .4), aIn = fadeIn(lt, .4, .6);
+    if (aIn * (1 - aOut) > .01) { const lines = LANG === 'ms' ? ['Nak ke mana-mana', 'di Malaysia?'] : ['Going anywhere', 'in Malaysia?']; c.save(); c.globalAlpha = aIn * (1 - aOut); lines.forEach((l, i) => T(c, l, W / 2, H / 2 - 20 + i * 100, { size: PORT ? 96 : 88, w: 800, align: 'center', ls: '-0.02em', shadow: 30, color: i === 1 ? TEAL : '#fff' })); c.restore(); }
+    // B: jenama
+    const bIn = eback((lt - tb) / .9), bOut = clamp((lt - (tw - .4)) / .5);
+    if (bIn > 0 && bOut < 1) {
+      const im = img('/app/assets/branding/fgmap-app-icon.png'), s = 250 * bIn, cx = W / 2, cy = H / 2 - 120;
+      c.save(); c.globalAlpha = (1 - bOut) * clamp(bIn * 2);
+      if (im) { c.shadowColor = 'rgba(25,211,184,.55)'; c.shadowBlur = 90; rr(c, cx - s / 2, cy - s / 2, s, s, s * .22); c.save(); c.clip(); c.drawImage(im, cx - s / 2, cy - s / 2, s, s); c.restore(); }
+      T(c, COPY.s01.brand, cx, cy + s / 2 + 150, { size: PORT ? 170 : 160, w: 800, align: 'center', ls: '-0.03em' });
+      T(c, COPY.s01.tag, cx, cy + s / 2 + 215, { size: 42, w: 600, align: 'center', color: '#CFE0FF', a: fadeIn(lt, tb + .5) });
+      c.restore();
+    }
+    // C: pesan tanpa internet
+    if (lt > tw) { const l = lt - tw; kicker(c, COPY.s01.k, x, LAY.kY, l, 0); headline(c, COPY.s01.h, x, LAY.hY + (PORT ? 0 : 20), LAY.hs, l, { d: .1 }); }
+  }
+};
+
+// s02 – splash, onboarding, peta
+S.s02 = {
+  screen(c, lt, sc) {
+    const th = 'light', st = [0, 2.5, 3.5, 4.5, 5.35];
+    if (lt < st[1]) { const i = clamp(Math.floor(lt / .05), 0, 39); c.fillStyle = '#10244A'; c.fillRect(0, 0, SW, SH); const im = img(`/promo_out/assets/flow/splash_${LANG}/${pad2(i)}.png`); if (im) c.drawImage(im, 0, 0, SW, SH); return; }
+    if (lt < st[4]) {
+      const k = lt < st[2] ? 0 : lt < st[3] ? 1 : 2, lt0 = [st[1], st[2], st[3]][k], slide = eout((lt - lt0) / .35);
+      pageFill(c, th); ov(c, th, 'onboarding_' + k, { dx: (1 - slide) * SW * .5, a: slide }); statusBar(c, th);
+      const tn = [st[2], st[3], st[4]][k]; tapFx(c, 'onboarding_next', th, tn - .1, lt, { fallback: { x: 195, y: 770 } });
+      return;
+    }
+    const slide = eout((lt - st[4]) / .4); c.save(); c.globalAlpha = slide;
+    const cam = mkCam(0, 0, 0, 90, .2 * U, SW / 2, SH * .5); drawMap(c, SW, SH, cam, PAL[th]); userPuck(c, cam, 0, 0, lt); ov(c, th, 'map_idle'); statusBar(c, th); c.restore();
+  },
+  fg(c, lt, sc) { kicker(c, COPY.s02.k, LAY.tx, LAY.kY, lt); headline(c, COPY.s02.h, LAY.tx, LAY.hY, HS(sc.id), lt); }
+};
+
+// s03 – cari destinasi
+S.s03 = {
+  screen(c, lt, sc) {
+    const th = 'light', tp = .55, tPage = .95, ty = [1.5, 1.75, 2.0, 2.25], tsel = 3.7;
+    const cam = mkCam(0, 0, 0, 90, .2 * U, SW / 2, SH * .5);
+    if (lt < tPage + .4) { drawMap(c, SW, SH, cam, PAL[th]); userPuck(c, cam, 0, 0, lt); ov(c, th, 'map_idle'); statusBar(c, th); tapFx(c, 'search_pill', th, tp, lt); }
+    const sl = eout((lt - tPage) / .4);
+    if (sl > 0) {
+      let name = 'search_empty'; for (let i = 0; i < 4; i++) if (lt >= ty[i]) name = 'search_t' + i;
+      c.save(); c.globalAlpha = sl; pageFill(c, th); ov(c, th, name, { dx: (1 - sl) * SW * .35 }); statusBar(c, th); c.restore();
+      tapFx(c, 'result_klia', th, tsel, lt, { fallback: { x: 120, y: 250 } });
+    }
+    const out = clamp((lt - (tsel + .3)) / .35); if (out > 0) { c.save(); c.globalAlpha = out; c.fillStyle = META.light.scaffold; c.fillRect(0, 0, SW, SH); c.restore(); }
+  },
+  fg(c, lt, sc) {
+    kicker(c, COPY.s03.k, LAY.tx, LAY.kY, lt); const y = headline(c, COPY.s03.h, LAY.tx, LAY.hY, HS(sc.id), lt);
+    !PORT && T(c, COPY.s03.s, LAY.tx, y + 22, { size: LAY.ss, w: 500, color: '#B8C5E0', a: fadeIn(lt, .9) });
+    callout(c, 'light', 'search_t3', { x: 8, y: 92, w: 374, h: 232 }, LAY.tx, y + 80, 560, 2.5, lt);
+  }
+};
+
+// s04 – laluan alternatif
+const SEL_SEQ = [[0, 0], [1.9, 1], [3.2, 2], [4.5, 3], [5.8, 4]];
+S.s04 = {
+  sel(lt, sc) { let s = 0; const d = sc.t1 - sc.t0; const k = d / 9.6; for (const [t, i] of SEL_SEQ) if (lt >= t * k + .6) s = i; return s; },
+  screen(c, lt, sc) {
+    const th = 'light', sel = this.sel(lt, sc), cam = overviewCam(.06, .4, [0, 1, 2, 3, 4], .95);
+    drawMap(c, SW, SH, cam, PAL[th]);
+    drawRoutes(c, cam, th, sel, [0, 1, 2, 3, 4].map(i => eout((lt - .1 - i * .1) / 1.1)));
+    const o0 = OV[0]; pinAt(c, cam, o0.pts[o0.pts.length - 1][0], o0.pts[o0.pts.length - 1][1], 14 * U, '#E5484D', 'KLIA', false); userPuck(c, cam, 0, 0, lt);
+    const slide = eout((lt - .15) / .6); c.save(); c.translate(0, (1 - slide) * SH * .5); ov(c, th, 'route_ready_' + sel); c.restore(); statusBar(c, th);
+    for (let i = 1; i < 5; i++) { const t0 = this.tapTime(i, sc); tapFx(c, 'route_option_' + i, th, t0, lt); }
+  },
+  tapTime(i, sc) { const k = (sc.t1 - sc.t0) / 9.6; return SEL_SEQ[i][0] * k + .6 - .05; },
+  fg(c, lt, sc) {
+    kicker(c, COPY.s04.k, LAY.tx, LAY.kY, lt); const y = headline(c, COPY.s04.h, LAY.tx, LAY.hY, HS(sc.id), lt);
+    !PORT && T(c, COPY.s04.s, LAY.tx, y + 22, { size: LAY.ss, w: 500, color: '#B8C5E0', a: fadeIn(lt, 1.0) });
+    // label chip mengikut kata kunci
+    const labs = COPY.s04.labels, cueRe = [/syor|recommend/, /terpantas|fastest/, /terpendek|shortest/, /tanpa|no/];
+    let x = LAY.tx, yy = y + (PORT ? 120 : 110);
+    callout(c, 'light', 'route_ready_' + this.sel(lt, sc), { x: 0, y: 616, w: 390, h: 134 }, LAY.tx, yy + 40, 560, 1.4, lt);
+    labs.forEach((lb, i) => { const t = wt(sc, cueRe[i], i === 3 ? 0 : 0); const tt = (t ?? sc.t0 + 2 + i) - sc.t0 - .1; const a = eback((lt - tt) / .5); if (a > 0) x += pillBox(c, lb, x, yy, { size: 28, w: 700, color: '#EAF1FF', bg: 'rgba(255,255,255,.1)', stroke: 'rgba(255,255,255,.25)', a: clamp(a), dot: true }) + 12; });
+  }
+};
+
+// s05 – tol dan minyak
+S.s05 = {
+  screen(c, lt, sc) {
+    const th = 'light', cam = overviewCam(.06, .36, [0], .9); drawMap(c, SW, SH, cam, PAL[th]); drawRoutes(c, cam, th, 0, 1);
+    const o0 = OV[0]; pinAt(c, cam, o0.pts[o0.pts.length - 1][0], o0.pts[o0.pts.length - 1][1], 14 * U, '#E5484D', 'KLIA', false);
+    ov(c, th, 'route_ready_0'); statusBar(c, th);
+    const tr = tgt('toll_summary', th), fr = tgt('fuel_cost', th);
+    const a1 = clamp((lt - .6) / .4) * (1 - clamp((lt - 3.2) / .4)), a2 = clamp((lt - 3.6) / .4);
+    if (tr && a1 > 0) { c.save(); c.globalAlpha = a1; ringAt(c, tr.l * U, tr.t * U, tr.w * U, tr.h * U, 10 * U, lt); c.restore(); }
+    if (fr && a2 > 0) { c.save(); c.globalAlpha = a2; ringAt(c, fr.l * U, fr.t * U, fr.w * U, fr.h * U, 10 * U, lt); c.restore(); }
+  },
+  fg(c, lt, sc) {
+    kicker(c, COPY.s05.k, LAY.tx, LAY.kY, lt); const y = headline(c, COPY.s05.h, LAY.tx, LAY.hY, HS(sc.id), lt);
+    const tr = tgt('toll_summary', 'light'), fr = tgt('fuel_cost', 'light'), im = img(FP('light', 'route_ready_0'));
+    // kad zum sebenar (potongan lembaran laluan sebenar)
+    const k = im ? im.naturalWidth / 390 : 2;
+    const cw = PORT ? 900 : 500;
+    if (tr && im) { const a = eback((lt - .7) / .6); if (a > 0) { const ch = Math.min(260, cw * tr.h / tr.w); crop(c, im, { x: tr.l * k, y: tr.t * k, w: tr.w * k, h: tr.h * k }, LAY.tx, y + 30, cw, cw * tr.h / tr.w, { a: clamp(a), bgc: META.light.surface, r: 28, border: TEAL, bw: 4 }); } }
+    if (fr && im) { const a = eback((lt - 3.6) / .6); if (a > 0) { const th_ = cw * fr.h / fr.w; const y0 = y + 30 + (tr ? cw * tr.h / tr.w + 20 : 0); crop(c, im, { x: fr.l * k, y: fr.t * k, w: fr.w * k, h: fr.h * k }, LAY.tx, y0, cw, th_, { a: clamp(a), bgc: META.light.surface, r: 28, border: TEAL, bw: 4 }); } }
+    const chips = COPY.s05.chips; let x = LAY.tx; chips.forEach((ch, i) => { const a = clamp(eback((lt - (.4 + i * 3.2)) / .5)); if (a > 0 && !(tr && im)) x += pillBox(c, ch, x, y + 70, { size: 28, a, dot: true }) + 12; });
+  }
+};
+
+// s06 – kenderaan
+S.s06 = {
+  screen(c, lt, sc) {
+    const th = 'light', cam = overviewCam(.06, .36, [0], .9); drawMap(c, SW, SH, cam, PAL[th]); drawRoutes(c, cam, th, 0, 1);
+    const o0 = OV[0]; pinAt(c, cam, o0.pts[o0.pts.length - 1][0], o0.pts[o0.pts.length - 1][1], 14 * U, '#E5484D', 'KLIA', false);
+    const m = smooth01(lt, 1.6, 2.1) * (1 - smooth01(lt, 3.6, 4.1));
+    ov(c, th, 'route_ready_0', { a: 1 }); ov(c, th, 'route_ready_moto', { a: m }); statusBar(c, th);
+    tapFx(c, 'moto', th, 1.5, lt); tapFx(c, 'car', th, 3.5, lt);
+  },
+  fg(c, lt, sc) {
+    kicker(c, COPY.s06.k, LAY.tx, LAY.kY, lt); const y = headline(c, COPY.s06.h, LAY.tx, LAY.hY, HS(sc.id), lt);
+    const a = eback((lt - .5) / .6);
+    if (a > 0) {
+      const mA = smooth01(lt, 1.6, 2.1) * (1 - smooth01(lt, 3.6, 4.1)), s = (PORT ? 700 : 560) * clamp(a), cx = LAY.tx + (PORT ? 420 : 330), cy = y + (PORT ? 200 : 170);
+      const yaw = Math.round(60 * Math.sin(lt * 1.3) / 5) * 5, nm = (kind) => `/promo_out/assets/car/${kind}_light_${yaw < 0 ? 'm' : 'p'}${Math.abs(yaw)}.png`;
+      const car = img(nm('car')), mo = img(nm('motorcycle'));
+      c.save(); c.globalAlpha = clamp(a) * (1 - mA); if (car) c.drawImage(car, cx - s / 2, cy - s * .62, s, s); c.restore();
+      c.save(); c.globalAlpha = clamp(a) * mA; if (mo) c.drawImage(mo, cx - s / 2, cy - s * .62, s, s); c.restore();
+    }
+  }
+};
+const smooth01 = (lt, a, b) => sstep(a, b, lt);
+
+// s07 – navigasi (potongan ringkas daripada simulasi app sebenar)
+const NAV_SEGS = [[0, 26, 3.4], [100, 128, 3.1], [150, 176, 2.8]];
+function navF(lt, scale = 1) { let t = Math.max(0, lt), acc = 0; for (const [a, b, d] of NAV_SEGS) { const dd = d * scale; if (t < dd) return { f: lerp(a, b, eio(t / dd) * .35 + t / dd * .65), seg: acc }; t -= dd; acc++; } const l = NAV_SEGS[NAV_SEGS.length - 1]; return { f: l[1], seg: acc - 1 }; }
+S.s07 = {
+  screen(c, lt, sc) {
+    const th = 'light', { f, seg } = navF(lt - .5, (sc.t1 - sc.t0 - 1) / 9.3), fi = Math.round(f);
+    const { cam } = navMap(c, th, f); ov(c, th, 'nav_' + pad3(fi)); statusBar(c, th);
+    const tn = wt(sc, /suara|voice/) ?? sc.t0 + 6; const s = lt - (tn - sc.t0);
+    if (s > -.2 && s < 2.6) { const a = smooth01(s, -.2, .15) * (1 - smooth01(s, 2.2, 2.6)); c.save(); c.globalAlpha = a; c.fillStyle = 'rgba(0,0,0,.001)'; ov(c, th, 'nav_settings', { a: 1 }); c.restore(); }
+    const tt = fadeIn(lt, .2, .4) * (1 - clamp((lt - .6) / .3)); if (tt > 0) { tapFx(c, 'nav_start', th, .1, lt, { fallback: { x: 242, y: 802 } }); }
+  },
+  fg(c, lt, sc) {
+    kicker(c, COPY.s07.k, LAY.tx, LAY.kY, lt); headline(c, COPY.s07.h, LAY.tx, LAY.hY, HS(sc.id), lt);
+    const chips = COPY.s07.chips, cues = [/belok|turn/, /suara|voice/, /tiga|3d|dimensi|dimension/, /kamera|camera/];
+    const baseX = PORT ? 72 : 1330, baseY = PORT ? 1700 : 420;
+    const tv = (wt(sc, /suara|voice/) ?? sc.t0 + 6) - sc.t0, f7 = Math.round(navF(lt - .5, (sc.t1 - sc.t0 - 1) / 9.3).f), sw_ = smooth01(lt, tv - .2, tv + .2);
+    callout(c, 'light', 'nav_' + pad3(f7), { x: 8, y: 38, w: 374, h: 112 }, LAY.tx, LAY.hY + 190, 520, 1.2, lt, { bgc: '#EEF1F6', fade: 1 - sw_, noPort: true });
+    callout(c, 'light', 'nav_settings', { x: 0, y: 372, w: 390, h: 88 }, LAY.tx, LAY.hY + 190, 520, tv - .2, lt, { fade: sw_, noPort: true });
+    chips.forEach((ch, i) => { const t = (wt(sc, cues[i]) ?? sc.t0 + 1 + i * 2) - sc.t0 - .1, a = clamp(eback((lt - t) / .55)); if (a <= 0) return; const y = PORT ? 520 + (i % 2) * 84 : baseY + i * 92, x = PORT ? 72 + (i >> 1) * 470 : baseX; pillBox(c, ch, x + (1 - a) * 40, y, { size: 30, a, dot: true, shadow: true, bg: 'rgba(16,36,74,.85)', stroke: 'rgba(25,211,184,.5)' }); });
+  }
+};
+
+// s08 – laluan semula
+S.s08 = {
+  screen(c, lt, sc) {
+    const th = 'light', pal = PAL[th];
+    const ia = 70, ba = atAlong(NAV, ia), brg = ba.brg;
+    // kamera mengikut jalan; selepas tersasar, kereta (tetap di skrin) berada di sisi laluan lama
+    const off = 70 * smooth01(lt, 1.0, 1.5) * (1 - smooth01(lt, 3.2, 3.9));
+    const rx = Math.cos(brg), ry = -Math.sin(brg);
+    const fx = ba.x + rx * off, fy = ba.y + ry * off;
+    const cam = mkCam(fx, fy, brg, 37, 2.0 * U, SW / 2, SH * .688);
+    drawMap(c, SW, SH, cam, pal);
+    const rer = smooth01(lt, 1.6, 1.9) * (1 - smooth01(lt, 3.3, 3.6));
+    strokeRoute(c, cam, NAV, 0, NAV.len, 14 * U, pal.routeCas, 1 - rer * .6); strokeRoute(c, cam, NAV, 0, NAV.len, 9 * U, rer > 0 ? '#9AA7BD' : TEAL, 1 - rer * .5);
+    const nw = smooth01(lt, 3.3, 4.0);
+    if (nw > 0) { const j = atAlong(NAV, ia + 140), pts = [[fx, fy], [lerp(fx, j.x, .5), lerp(fy, j.y, .5)], [j.x, j.y]]; const r = withCum(pts); strokeRoute(c, cam, r, 0, r.len * nw, 13.5 * U, pal.routeCas, 1); strokeRoute(c, cam, r, 0, r.len * nw, 8.5 * U, TEAL, 1); }
+    const k = lt < 1.0 ? 0 : lt < 1.9 ? 1 : lt < 3.2 ? 2 : 3;
+    ov(c, th, 'reroute_0' + k); statusBar(c, th);
+  },
+  fg(c, lt, sc) { kicker(c, COPY.s08.k, LAY.tx, LAY.kY, lt); const y = headline(c, COPY.s08.h, LAY.tx, LAY.hY, HS(sc.id), lt); !PORT && T(c, COPY.s08.s, LAY.tx, y + 22, { size: LAY.ss, w: 500, color: '#B8C5E0', a: fadeIn(lt, 1.0) });
+    callout(c, 'light', lt < 3.3 ? 'reroute_02' : 'reroute_03', { x: 8, y: 38, w: 374, h: 150 }, LAY.tx, y + 90, 560, 1.4, lt, { bgc: '#EEF1F6' }); }
+};
+
+// s09 – had laju
+S.s09 = {
+  screen(c, lt, sc) {
+    const th = 'light', f = lerp(104, 124, clamp(lt / (sc.t1 - sc.t0 - .5))), fi = Math.round(f);
+    navMap(c, th, f); ov(c, th, 'nav_' + pad3(fi)); statusBar(c, th);
+    const r = tgt('speed_sign', th); if (r) ringAt(c, r.l * U, r.t * U, r.w * U, r.h * U, 20 * U, lt, '#FF5A5F', fadeIn(lt, .8));
+    else ringAt(c, 12 * U, 700 * U, 70 * U, 70 * U, 35 * U, lt, '#FF5A5F', fadeIn(lt, .8));
+  },
+  fg(c, lt, sc) { kicker(c, COPY.s09.k, LAY.tx, LAY.kY, lt); const y = headline(c, COPY.s09.h, LAY.tx, LAY.hY, HS(sc.id), lt); !PORT && T(c, COPY.s09.s, LAY.tx, y + 22, { size: LAY.ss, w: 500, color: '#B8C5E0', a: fadeIn(lt, 1.0) });
+    const f9 = Math.round(lerp(104, 124, clamp(lt / (sc.t1 - sc.t0 - .5))));
+    callout(c, 'light', 'nav_' + pad3(f9), { x: 4, y: 636, w: 84, h: 160 }, LAY.tx, y + 90, 170, 1.0, lt, { bgc: '#EEF1F6' }); }
+};
+
+// s10 – sampai
+S.s10 = {
+  screen(c, lt, sc) {
+    const th = 'light', pal = PAL[th], last = OV[0], L = last.len, rem = lerp(300, 0, eio(clamp(lt / 3.3))), s = L - rem;
+    const p = atAlong(last, Math.max(0, s - 30)), cam = mkCam(p.x, p.y, p.brg, 37, 1.9 * U, SW / 2, SH * .688);
+    drawMap(c, SW, SH, cam, pal); strokeRoute(c, cam, last, 0, L, 13.5 * U, pal.routeCas, 1); strokeRoute(c, cam, last, 0, L, 8.5 * U, TEAL, 1);
+    pinAt(c, cam, last.pts[last.pts.length - 1][0], last.pts[last.pts.length - 1][1], 26 * U, '#E5484D', null, false);
+    const idx = lt < 3.3 ? clamp(Math.floor(lt / 3.3 * 12), 0, 12) : 13;
+    const names = []; for (let i = 0; i < 20; i++) names.push(pad2(i));
+    const k = lt < 3.4 ? Math.min(12, Math.floor(lt / 3.4 * 13)) : null;
+    ov(c, th, lt < 3.5 ? 'arrive_' + pad2(k ?? 0) : 'arrive_done'); statusBar(c, th);
+  },
+  fg(c, lt, sc) { kicker(c, COPY.s10.k, LAY.tx, LAY.kY, lt); const y = headline(c, COPY.s10.h, LAY.tx, LAY.hY, HS(sc.id), lt);
+    callout(c, 'light', 'arrive_done', { x: 0, y: 640, w: 390, h: 204 }, LAY.tx, y + 50, 520, 3.4, lt, { bgc: '#FFFFFF' }); }
+};
+
+// s11 – semuanya ada
+const S11_BEATS = [['map_idle', /rumah|home/], ['search_empty', /stesen|fuel|petrol/], ['nav_settings', /kongsi|share/], ['emergency', /kecemasan|emergency/]];
+S.s11 = {
+  beats(sc) { return S11_BEATS.map(([n, re], i) => ({ n, t: i === 0 ? .2 : (wt(sc, re) ?? sc.t0 + 2 + i * 3) - sc.t0 - .3 })); },
+  screen(c, lt, sc) {
+    const th = TH(sc.id), bs = this.beats(sc); let bi = 0; bs.forEach((b, i) => { if (lt >= b.t) bi = i; });
+    const b = bs[bi], sl = eout((lt - b.t) / .45), cam = mkCam(0, 0, 0, 90, .2 * U, SW / 2, SH * .5);
+    if (b.n === 'map_idle') { drawMap(c, SW, SH, cam, PAL[th]); userPuck(c, cam, 0, 0, lt); }
+    else if (b.n === 'search_empty') pageFill(c, th);
+    else { const { cam: c2 } = navMap(c, th, 120); }
+    c.save(); c.globalAlpha = bi === 0 ? 1 : sl; ov(c, th, b.n, { dx: bi === 0 ? 0 : (1 - sl) * SW * .25 }); c.restore();
+    statusBar(c, th);
+    if (b.n === 'map_idle') { const r = tgt('chip_home', th) || { x: 62, y: 140 }; tapFx(c, 'chip_home', th, b.t + .9, lt, { fallback: r }); }
+    if (b.n === 'search_empty') tapFx(c, 'chip_fuel', th, b.t + .8, lt);
+  },
+  fg(c, lt, sc) {
+    kicker(c, COPY.s11.k, LAY.tx, LAY.kY, lt); headline(c, COPY.s11.h, LAY.tx, LAY.hY, HS(sc.id), lt);
+    const bs = this.beats(sc), chips = COPY.s11.chips;
+    const CR = [['map_idle', { x: 0, y: 100, w: 390, h: 80 }], ['search_empty', { x: 0, y: 428, w: 390, h: 196 }], ['nav_settings', { x: 4, y: 134, w: 382, h: 52 }], ['emergency', { x: 0, y: 440, w: 390, h: 196 }]];
+    bs.forEach((b, i) => { if (lt >= b.t && (i === 3 || lt < bs[i + 1].t)) callout(c, 'dark', CR[i][0], CR[i][1], LAY.tx, LAY.hY + 190, 520, b.t + .15, lt, { noPort: true }); });
+    chips.forEach((ch, i) => { const t = bs[i].t, a = clamp(eback((lt - t) / .5)); if (a <= 0) return; const active = lt >= t && (i === 3 || lt < bs[i + 1].t); const y = PORT ? 520 + (i % 2) * 84 : 330 + i * 96, x = PORT ? 72 + (i >> 1) * 470 : 1330; pillBox(c, ch, x + (1 - a) * 40, y, { size: 30, a: active ? 1 : .55, dot: true, shadow: true, bg: active ? 'rgba(16,36,74,.92)' : 'rgba(16,36,74,.6)', stroke: active ? TEAL : 'rgba(255,255,255,.2)' }); });
+  }
+};
+
+// s12 – tanpa internet
+S.s12 = {
+  screen(c, lt, sc) {
+    const th = TH(sc.id), tp = 2.0;
+    const st = lt < tp ? 'idle' : lt < tp + .75 ? 'p35' : lt < tp + 1.5 ? 'p72' : 'done';
+    const cam = overviewCam(.06, .36, [0], .9); drawMap(c, SW, SH, cam, PAL[th]); drawRoutes(c, cam, th, 0, 1);
+    const proof = smooth01(lt, tp + 2.8, tp + 3.3);
+    ov(c, th, 'offline_' + st); statusBar(c, th, { noSig: lt > tp + 2.6 });
+    if (proof > 0) {
+      c.save(); c.globalAlpha = proof; const f = 112 + clamp((lt - tp - 3.0) * 5, 0, 24);
+      navMap(c, th, f, { noTiles: true }); ov(c, th, 'nav_' + pad3(Math.round(f))); statusBar(c, th, { noSig: true });
+      pillBox(c, COPY.s12.airplane, SW / 2, 150 * U, { center: true, size: 14 * U, bg: '#10244A', color: '#fff', dot: true, dotColor: TEAL, shadow: true }); c.restore();
+    }
+    tapFx(c, 'offline_btn', th, .4, lt); const dl = tgt('download_btn', th); if (dl) tapFx(c, 'download_btn', th, tp - .1, lt);
+  },
+  fg(c, lt, sc) {
+    kicker(c, COPY.s12.k, LAY.tx, LAY.kY, lt); const y = headline(c, COPY.s12.h, LAY.tx, LAY.hY, HS(sc.id), lt);
+    !PORT && T(c, COPY.s12.s, LAY.tx, y + 22, { size: LAY.ss, w: 500, color: '#B8C5E0', a: fadeIn(lt, 1.0) });
+    // kaunter muat turun
+    const tp = 2.0, prog = clamp((lt - tp) / 1.5), mb = Math.round(254 * eio(prog)), a = fadeIn(lt, tp - .3);
+    if (a > 0) {
+      const x = LAY.tx, yy = y + (PORT ? 120 : 62);
+      T(c, `${mb}`, x, yy + 100, { size: 150, w: 800, a, color: '#fff', ls: '-0.03em' }); T(c, 'MB', x + meas(c, `${mb}`, 150, 800, '-0.03em') + 16, yy + 100, { size: 56, w: 700, a, color: TEAL });
+      c.save(); c.globalAlpha = a; c.fillStyle = 'rgba(255,255,255,.14)'; rr(c, x, yy + 130, 640, 14, 7); c.fill(); c.fillStyle = TEAL; rr(c, x, yy + 130, 640 * prog, 14, 7); c.fill(); c.restore();
+      T(c, COPY.s12.statLabel, x, yy + 190, { size: 30, w: 500, color: '#B8C5E0', a });
+    }
+    const air = smooth01(lt, tp + 3.0, tp + 3.4); if (air > 0) { c.save(); c.globalAlpha = air; const x0 = LAY.tx, y0 = y + (PORT ? 420 : 330); pillBox(c, COPY.s12.airplane + ' · ' + (LANG === 'ms' ? 'laluan tetap berjalan' : 'routes keep working'), x0, y0, { size: 28, color: '#EAF1FF', bg: 'rgba(25,211,184,.16)', stroke: 'rgba(25,211,184,.5)', dot: true }); c.restore(); }
+  }
+};
+function planeFg(c, cx, cy, s) { c.save(); c.translate(cx - s / 2, cy - s / 2); c.scale(s / 24, s / 24); c.fillStyle = TEAL; c.fill(PLANE); c.restore(); }
+
+// s13 – tema
+S.s13 = {
+  screen(c, lt, sc) {
+    const d = sc.t1 - sc.t0, wipe = sstep(d * .42, d * .42 + 1.5, lt), f = 128 + lt * 4;
+    const draw = th => { navMap(c, th, f); ov(c, th, 'nav_' + pad3(Math.round(f))); statusBar(c, th); };
+    draw('dark');
+    if (wipe > 0) { c.save(); c.beginPath(); const x0 = lerp(-SH * .6, SW + SH * .6, wipe), sl = SH * .32; c.moveTo(0, 0); c.lineTo(x0 + sl, 0); c.lineTo(x0 - sl, SH); c.lineTo(0, SH); c.closePath(); c.clip(); draw('light'); c.restore(); c.save(); c.strokeStyle = 'rgba(25,211,184,.9)'; c.lineWidth = 3 * U; c.shadowColor = TEAL; c.shadowBlur = 24 * U; c.beginPath(); c.moveTo(x0 + sl, 0); c.lineTo(x0 - sl, SH); c.stroke(); c.restore(); }
+  },
+  fg(c, lt, sc) {
+    kicker(c, COPY.s13.k, LAY.tx, LAY.kY, lt); headline(c, COPY.s13.h, LAY.tx, LAY.hY, HS(sc.id), lt);
+    const d = sc.t1 - sc.t0, chips = COPY.s13.chips, cues = [/cerah|light/, /gelap|dark/, /amoled/, /matahari|sun/];
+    chips.forEach((ch, i) => { const t = (wt(sc, cues[i]) ?? sc.t0 + 1 + i) - sc.t0 - .15, a = clamp(eback((lt - t) / .5)); if (a <= 0) return; const active = lt >= t && (i === 3 || lt < ((wt(sc, cues[i + 1]) ?? 99) - sc.t0 - .15)); const y = PORT ? 520 + (i % 2) * 84 : 330 + i * 96, x = PORT ? 72 + (i >> 1) * 470 : 1330; pillBox(c, ch, x + (1 - a) * 40, y, { size: 30, a: active ? 1 : .55, dot: true, shadow: true, bg: active ? 'rgba(16,36,74,.92)' : 'rgba(16,36,74,.6)', stroke: active ? TEAL : 'rgba(255,255,255,.2)' }); });
+  }
+};
+
+// s14 – percuma
+S.s14 = {
+  screen() {},
+  fg(c, lt, sc) {
+    kicker(c, COPY.s14.k, PORT ? 72 : W / 2 - 400, PORT ? 230 : 150, lt);
+    const cx = PORT ? 72 : W / 2 - 400, cy = PORT ? 460 : 400;
+    headline(c, COPY.s14.h, cx, cy, PORT ? 170 : 200, lt, { d: .15 });
+    const items = COPY.s14.items, cues = [/akaun|account/, /iklan|ads/, /langganan|subscription/, /penjejakan|tracking/];
+    const endT = (sc.t1 - sc.t0) - 1.9, ea = clamp(eback((lt - endT) / .6));
+    if (ea > 0) { const px = PORT ? 72 : W / 2 - 400, py = (PORT ? 680 : 520) + 4 * (PORT ? 150 : 98) + 10; pillBox(c, (LANG === 'ms' ? '100% percuma' : '100% free'), px, py, { size: PORT ? 50 : 44, w: 800, color: '#04302B', bg: TEAL, a: ea, shadow: true }); }
+    items.forEach((it, i) => {
+      const t = (wt(sc, cues[i]) ?? sc.t0 + 2 + i) - sc.t0 - .25, a = clamp(eback((lt - t) / .5)); if (a <= 0) return;
+      const y = (PORT ? 680 : 520) + i * (PORT ? 150 : 98), x = PORT ? 72 : W / 2 - 400, label = `${COPY.s14.none} ${it.toLowerCase()}`;
+      c.save(); c.globalAlpha = clamp(a); c.translate((1 - clamp(a)) * 60, 0);
+      c.fillStyle = 'rgba(255,90,95,.16)'; c.beginPath(); c.arc(x + 36, y - 14, 36, 0, 7); c.fill(); c.strokeStyle = '#FF5A5F'; c.lineWidth = 6; c.lineCap = 'round'; c.beginPath(); c.moveTo(x + 22, y - 28); c.lineTo(x + 50, y); c.moveTo(x + 50, y - 28); c.lineTo(x + 22, y); c.stroke();
+      T(c, label, x + 100, y + 4, { size: PORT ? 74 : 66, w: 700 }); c.restore();
+    });
+  }
+};
+
+// s15 – penutup
+S.s15 = {
+  screen() {},
+  fg(c, lt, sc) {
+    const cx = W / 2, cy = PORT ? 760 : 400, im = img('/app/assets/branding/fgmap-app-icon.png');
+    const a = eback((lt - .2) / .9), s = (PORT ? 320 : 250) * clamp(a);
+    if (im && s > 1) { c.save(); c.globalAlpha = clamp(a * 2); c.shadowColor = 'rgba(25,211,184,.55)'; c.shadowBlur = 110; rr(c, cx - s / 2, cy - s / 2, s, s, s * .22); c.clip(); c.drawImage(im, cx - s / 2, cy - s / 2, s, s); c.restore(); }
+    const nm = fadeIn(lt, .6, .7); T(c, 'FGMaps', cx, cy + s / 2 + (PORT ? 190 : 165), { size: PORT ? 190 : 170, w: 800, align: 'center', ls: '-0.03em', a: nm });
+    T(c, COPY.s15.tagline, cx, cy + s / 2 + (PORT ? 270 : 235), { size: PORT ? 52 : 44, w: 600, align: 'center', color: '#CFE0FF', a: fadeIn(lt, 1.0) });
+    const pa = eback((lt - 1.5) / .7); if (pa > 0) { c.save(); c.globalAlpha = clamp(pa); const sz = PORT ? 56 : 48, w = meas(c, COPY.s15.soon, sz, 800) + 120, y = cy + s / 2 + (PORT ? 400 : 340); c.shadowColor = 'rgba(25,211,184,.5)'; c.shadowBlur = 50; c.fillStyle = TEAL; rr(c, cx - w / 2, y - sz * 1.05, w, sz * 2.1, sz * 1.05); c.fill(); c.shadowColor = 'transparent'; T(c, COPY.s15.soon, cx, y + sz * .35, { size: sz, w: 800, align: 'center', color: '#04302B' }); c.restore(); }
+    T(c, COPY.s15.credit, cx, H - (PORT ? 330 : 160), { size: PORT ? 30 : 26, w: 500, align: 'center', color: '#8FA0C4', a: fadeIn(lt, 2.0) });
+  }
+};
+
+// ───────────────────────── sarikata ─────────────────────────
+function subtitles(c, t, sc) {
+  const sz = LAY.sub.size, maxW = LAY.sub.w;
+  for (const L of sc.lines) {
+    // pecah kepada ayat
+    const sents = []; let cur = [];
+    for (const w of L.words) { cur.push(w); if (/[.!?]$/.test(w[3] || w[0])) { sents.push(cur); cur = []; } }
+    if (cur.length) sents.push(cur);
+    for (const s of sents) {
+      const a = s[0][1] - .12, b = s[s.length - 1][1] + s[s.length - 1][2] + .45; if (t < a || t > b) continue;
+      const alpha = clamp((t - a) / .18) * (1 - clamp((t - (b - .2)) / .2));
+      c.save(); c.font = `700 ${sz}px PJS`;
+      const lines = []; let line = [], lw = 0; const sp = c.measureText(' ').width;
+      s.forEach((w, i) => { const ww = c.measureText(w[3] || w[0]).width; if (lw + ww > maxW && line.length) { lines.push(line); line = []; lw = 0; } line.push([w, i]); lw += ww + sp; });
+      if (line.length) lines.push(line);
+      const lh = sz * 1.3, boxW = Math.min(maxW + 80, Math.max(...lines.map(l => l.reduce((x, [w]) => x + c.measureText(w[3] || w[0]).width + sp, 0))) + 80), boxH = lines.length * lh + 26, x0 = LAY.sub.cx - boxW / 2, y0 = LAY.sub.y - boxH + 12 - (lines.length - 1) * 0;
+      c.globalAlpha = alpha; c.fillStyle = 'rgba(8,14,28,.62)'; rr(c, x0, y0, boxW, boxH, 24); c.fill();
+      lines.forEach((ln, li) => {
+        const tw = ln.reduce((x, [w]) => x + c.measureText(w[3] || w[0]).width + sp, 0) - sp; let x = LAY.sub.cx - tw / 2; const y = y0 + 13 + lh * (li + .8);
+        for (const [w] of ln) { const active = t >= w[1] && t < w[1] + w[2] + .12, done = t >= w[1] + w[2]; c.fillStyle = active ? TEAL : done ? '#FFFFFF' : 'rgba(255,255,255,.62)'; c.textAlign = 'left'; c.fillText(w[3] || w[0], x, y); x += c.measureText(w[3] || w[0]).width + sp; }
+      });
+      c.restore();
+    }
+  }
+}
+
+// ───────────────────────── latar ─────────────────────────
+function drawBg(t, sc, lt) {
+  const w = BGW, h = BGH; let hero = false;
+  if (sc.id === 's01') { const tb = (S.s01.cues(sc).brand - sc.t0); hero = lt < tb + .6; }
+  const heroK = hero ? 1 : 0;
+  bg.style.filter = hero ? 'none' : 'blur(7px) saturate(1.12)';
+  if (hero) {
+    const s = 60 + lt * 70, ns = (function () { const p = atAlong(NAV, s), i = clamp(Math.round(s / 4), 0, NAV.camBrg.length - 1); return { x: p.x, y: p.y, b: NAV.camBrg[i] }; })();
+    const cam = mkCam(ns.x, ns.y, ns.b, 28, .55 * (w / 390) * 1.0, w / 2, h * .66);
+    drawMap(bctx, w, h, cam, PAL.dark); strokeRoute(bctx, cam, NAV, 0, NAV.len, 11 * (w / 390), '#050B17', 1); strokeRoute(bctx, cam, NAV, 0, NAV.len, 7 * (w / 390), TEAL, 1);
+  } else {
+    const ov_ = overviewCam(0, 1, [0, 1, 2, 3, 4], .8 + .06 * Math.sin(t * .1), w, h);
+    const cam = mkCam(ov_.fx + Math.sin(t * .05) * 3000, ov_.fy + Math.cos(t * .04) * 2000, t * .02, 90, ov_.ppm * 1.7, w / 2, h / 2);
+    drawMap(bctx, w, h, cam, PAL.dark);
+    for (let i = 0; i < OV.length; i++) strokeRoute(bctx, cam, OV[i], 0, OV[i].len, 5 * (w / 390), i === 0 ? 'rgba(25,211,184,.55)' : 'rgba(110,140,200,.28)', 1);
+  }
+  const g = bctx.createRadialGradient(w / 2, h * .42, h * .1, w / 2, h / 2, h * .95); g.addColorStop(0, `rgba(11,18,32,${hero ? .05 : .45})`); g.addColorStop(1, `rgba(11,18,32,${hero ? .72 : .9})`);
+  bctx.fillStyle = g; bctx.fillRect(0, 0, w, h);
+  const hue = { s01: [BLUE, TEAL], s07: [BLUE, '#4F8BFF'], s12: [TEAL, BLUE], s13: ['#7C5CFF', BLUE], s14: [TEAL, BLUE], s15: [TEAL, '#4F8BFF'] }[sc.id] || [BLUE, TEAL];
+  bctx.save(); bctx.globalCompositeOperation = 'screen'; const g1 = bctx.createRadialGradient(w * (PORT ? .1 : .18), h * .1, 0, w * (PORT ? .1 : .18), h * .1, w * .5); g1.addColorStop(0, hue[0] + '55'); g1.addColorStop(1, hue[0] + '00'); bctx.fillStyle = g1; bctx.fillRect(0, 0, w, h);
+  const g2 = bctx.createRadialGradient(w * .85, h * .8, 0, w * .85, h * .8, w * .45); g2.addColorStop(0, hue[1] + '44'); g2.addColorStop(1, hue[1] + '00'); bctx.fillStyle = g2; bctx.fillRect(0, 0, w, h); bctx.restore();
+}
+
+// ───────────────────────── telefon & peralihan ─────────────────────────
+function layoutPhone() {
+  const ph = $('phone'); ph.style.width = SW + 'px'; ph.style.height = SH + 'px';
+  const bz = $('bezel'); Object.assign(bz.style, { left: -BZ + 'px', top: -BZ + 'px', width: SW + 2 * BZ + 'px', height: SH + 2 * BZ + 'px', borderRadius: (PORT ? 66 : 56) + 'px' });
+  const sc_ = $('screen'); Object.assign(sc_.style, { width: SW + 'px', height: SH + 'px', borderRadius: (PORT ? 52 : 44) + 'px' });
+  const isl = $('island'); Object.assign(isl.style, { width: SW * .27 + 'px', height: SW * .075 + 'px', left: SW * .365 + 'px', top: SW * .028 + 'px' });
+}
+function updatePhone(t, i, sc, lt) {
+  const cur = phoneTarget(sc.id), prev = i > 0 ? phoneTarget(SCENES[i - 1].id) : { ...cur, hide: true };
+  let hide = cur.hide; if (sc.id === 's01') hide = S.s01.phoneHide(lt, sc) === 1;
+  const k = eio(clamp(lt / .7)), mix = (a, b) => lerp(a, b, k);
+  let x = mix(prev.x, cur.x), y = mix(prev.y, cur.y), s = mix(prev.sc, cur.sc), ry = mix(prev.ry || 0, cur.ry || 0);
+  let a = 1; const wasHidden = prev.hide || (i === 1 && SCENES[0].id === 's01'), nowHidden = hide;
+  if (sc.id === 's01') { const en = hide ? 0 : eio(clamp((lt - (S.s01.cues(sc).wal - sc.t0 + .1)) / .8)); a = en; y = cur.y + (1 - en) * 140; s = .9 + .1 * en; x = cur.x; ry = cur.ry; }
+  else if (nowHidden) { a = 1 - k; y += k * 120; if (prev.hide) a = 0; }
+  else if (wasHidden) { a = k; y += (1 - k) * 140; s = lerp(.9, cur.sc, k); x = cur.x; ry = cur.ry || 0; }
+  const fl = Math.sin(t * 1.25) * 7;
+  const ph = $('phone'); ph.style.opacity = a; ph.style.display = a < .01 ? 'none' : 'block';
+  ph.style.left = (x - SW / 2) + 'px'; ph.style.top = (y - SH / 2 + fl) + 'px';
+  ph.style.transform = `scale(${s}) rotateX(${PORT ? 2 : 3}deg) rotateY(${ry + Math.sin(t * .55) * 1.8}deg)`;
+  ph.style.transformOrigin = '50% 50%';
+}
+function transitionFx(t, sc, lt) {
+  const c = fctx; const d0 = t - sc.t0; if (sc.t0 < .5) return;
+  const p = clamp((d0 + .12) / .5); if (p <= 0 || p >= 1) return;
+  const x = lerp(-.3, 1.3, eio(p)) * W; c.save(); c.globalAlpha = Math.sin(p * Math.PI) * .85;
+  const g = c.createLinearGradient(x - W * .25, 0, x + W * .08, H * .3); g.addColorStop(0, 'rgba(25,211,184,0)'); g.addColorStop(.7, 'rgba(25,211,184,.35)'); g.addColorStop(.92, 'rgba(255,255,255,.55)'); g.addColorStop(1, 'rgba(79,139,255,0)');
+  c.fillStyle = g; c.fillRect(0, 0, W, H); c.restore();
+}
+
+// ───────────────────────── bingkai ─────────────────────────
+async function renderFrame(t) {
+  t = clamp(t, 0, TOTAL - 1e-3);
+  const i = sceneIdx(t), sc = SCENES[i], lt = t - sc.t0, impl = S[sc.id];
+  for (let pass = 0; pass < 4; pass++) {
+    MISSING.clear();
+    drawBg(t, sc, lt);
+    sctx.clearRect(0, 0, SW, SH); sctx.save(); impl.screen && impl.screen(sctx, lt, sc); sctx.restore();
+    fctx.clearRect(0, 0, W, H); impl.fg && impl.fg(fctx, lt, sc);
+    subtitles(fctx, t, sc); transitionFx(t, sc, lt);
+    updatePhone(t, i, sc, lt);
+    if (!MISSING.size) break;
+    await Promise.all([...MISSING].map(loadImg));
+  }
+  return true;
+}
+window.renderFrame = renderFrame;
+window.__ready = (async () => { await loadAll(); buildTimeline(); layoutPhone(); await renderFrame(0); return TOTAL; })();
+</script>
+</body>
+</html>

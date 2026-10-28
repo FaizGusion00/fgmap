@@ -1,0 +1,30 @@
+name: promo-voice
+
+# Menjana suara pencerita video promosi (edge-tts) dan masa perkataan untuk sarikata.
+on:
+  push:
+    branches: [claude/practical-bardeen-kmtow6]
+    paths: [".github/workflows/promo-voice.yml", "tools/promo/voice.py", "tools/promo/script.json"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  voice:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install edge-tts
+      - run: python3 tools/promo/voice.py ms,en
+      - name: Simpan suara
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tools/promo/voice
+          git commit -m "chore(promo): suara pencerita BM/EN dan masa perkataan" && git pull --rebase origin "${GITHUB_REF_NAME}" && git push || true

@@ -37,7 +37,11 @@ class NavigationFrameDriver {
     this.viewportWidth,
     this.reduceMotion = false,
     this.autoRecenter = const Duration(seconds: 10),
+    this.onPose,
   });
+
+  /// Pose kamera yang dihantar ke peta, untuk hos Android Auto. Null jika tidak diperlukan.
+  final void Function(CameraPose pose, {required bool following})? onPose;
 
   final MapCameraController camera;
   final VehiclePose? Function(DateTime now) poseAt;
@@ -198,6 +202,8 @@ class NavigationFrameDriver {
       _sentCamera = null;
       _showMapMarker(marker);
       if (car.value != null) car.value = null;
+      final held = camera.pose;
+      if (held != null) onPose?.call(held, following: false);
       return;
     }
 
@@ -257,6 +263,7 @@ class NavigationFrameDriver {
       _sentCamera = target;
       _cameraSkipped = 0;
     }
+    onPose?.call(target, following: true);
 
     // Kereta 3D di atas peta hanya apabila kamera sudah tiba di kenderaan: semasa peralihan masuk peta
     // masih meluncur, jadi kereta lapisan peta (terikat koordinat) yang kelihatan dahulu, dan kereta 3D

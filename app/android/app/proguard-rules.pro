@@ -7,3 +7,8 @@
 -keepclasseswithmembernames,includedescriptorclasses class * {
     native <methods>;
 }
+
+# Android Auto dan MapLibre pada permukaan kereta.
+-keep class androidx.car.app.** { *; }
+-keep class com.fguniversal.fgmap.car.** { *; }
+-dontwarn androidx.car.app.**

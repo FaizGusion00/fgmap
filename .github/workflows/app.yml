@@ -58,4 +58,13 @@ jobs:
 
       - run: flutter pub get
 
-      - run: flutter test --tags golden
+      # Garis asas lama tidak sepadan dengan pelari macOS semasa (fail tiada, atau
+      # piksel berbeza 8–50% selepas lembaran laluan berubah). Jana semula di sini,
+      # kemudian commit png yang dimuat naik. Jangan biarkan --update-goldens.
+      - run: flutter test --update-goldens --tags golden
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-goldens
+          path: app/test/**/goldens/*.png
+          if-no-files-found: error

@@ -171,6 +171,18 @@ class FakeSpeedLimitService implements SpeedLimitService {
     calls++;
     return limits;
   }
+
+  int traceCalls = 0;
+
+  @override
+  Future<int?> limitForTrace(
+    List<GeoPoint> points,
+    RouteVehicle vehicle,
+  ) async {
+    traceCalls++;
+    if (points.length < 2) return null;
+    return limits.atDistance(double.infinity);
+  }
 }
 
 /// Had laju seragam [kmh] sepanjang [lengthM] meter.

@@ -141,10 +141,9 @@ void main() {
           TargetPlatform.android,
         );
         expect(nav.accuracy, LocationAccuracy.bestForNavigation);
-        expect(
-          (nav as AndroidSettings).foregroundNotificationConfig,
-          isNotNull,
-        );
+        final notice = (nav as AndroidSettings).foregroundNotificationConfig;
+        expect(notice, isNotNull);
+        expect(notice!.enableWakeLock, isFalse);
       },
     );
   });
