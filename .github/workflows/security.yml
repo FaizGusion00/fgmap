@@ -24,7 +24,9 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "17"
+          # maplibre_gl mengkompil sumber Java 21. JDK 17 menolaknya
+          # ("invalid source release: 21"). Aplikasi sendiri kekal sasaran 17.
+          java-version: "21"
 
       - uses: subosito/flutter-action@v2
         with:
@@ -60,6 +62,16 @@ jobs:
           fi
           printf 'sdk.dir=%s\nflutter.sdk=%s\n' "$sdk" "$FLUTTER_ROOT" > android/local.properties
           printf '\norg.gradle.daemon=false\norg.gradle.caching=false\n' >> android/gradle.properties
+          # gradlew, gradlew.bat, dan gradle-wrapper.jar diabaikan oleh git.
+          # Flutter menyimpannya dalam cache dan menyalinnya semasa binaan.
+          if [ ! -f "$FLUTTER_ROOT/bin/cache/artifacts/gradle_wrapper/gradlew" ]; then
+            flutter precache
+          fi
+          src="$FLUTTER_ROOT/bin/cache/artifacts/gradle_wrapper"
+          cp "$src/gradlew" "$src/gradlew.bat" android/
+          mkdir -p android/gradle/wrapper
+          cp "$src/gradle/wrapper/gradle-wrapper.jar" android/gradle/wrapper/
+          chmod +x android/gradlew
 
       - uses: github/codeql-action/init@v4
         with:
