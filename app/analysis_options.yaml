@@ -1,3 +1,8 @@
+analyzer:
+  exclude:
+    - build/**
+    - android/**
+    - ios/**
 include: package:flutter_lints/flutter.yaml
 
 # Kod dijana (*.g.dart, *.freezed.dart, generated/, l10n/generated/) sengaja TIDAK dikecualikan:
