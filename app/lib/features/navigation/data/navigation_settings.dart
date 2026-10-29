@@ -15,6 +15,7 @@ class NavigationSettings {
     this.reportAlerts = true,
     this.voiceVolume = 1.0,
     this.speechRate = 0.5,
+    this.simSpeedKmh = 80,
   });
 
   final bool voiceEnabled;
@@ -33,8 +34,14 @@ class NavigationSettings {
   final double voiceVolume;
   final double speechRate;
 
+  /// Kelajuan jelajah simulasi (km/j). `0` = ikut anggaran laluan (boleh ~18 km/j di bandar).
+  final int simSpeedKmh;
+
   static const volumes = [0.5, 0.75, 1.0];
   static const speechRates = [0.42, 0.5, 0.58];
+
+  /// Pilihan kelajuan simulasi; 0 = auto.
+  static const simSpeedChoices = [0, 40, 60, 80, 100, 120];
 
   NavigationSettings copyWith({
     bool? voiceEnabled,
@@ -45,6 +52,7 @@ class NavigationSettings {
     bool? reportAlerts,
     double? voiceVolume,
     double? speechRate,
+    int? simSpeedKmh,
   }) {
     return NavigationSettings(
       voiceEnabled: voiceEnabled ?? this.voiceEnabled,
@@ -57,6 +65,7 @@ class NavigationSettings {
       reportAlerts: reportAlerts ?? this.reportAlerts,
       voiceVolume: voiceVolume ?? this.voiceVolume,
       speechRate: speechRate ?? this.speechRate,
+      simSpeedKmh: simSpeedKmh ?? this.simSpeedKmh,
     );
   }
 
@@ -69,7 +78,8 @@ class NavigationSettings {
       other.overspeedToleranceKmh == overspeedToleranceKmh &&
       other.reportAlerts == reportAlerts &&
       other.voiceVolume == voiceVolume &&
-      other.speechRate == speechRate;
+      other.speechRate == speechRate &&
+      other.simSpeedKmh == simSpeedKmh;
 
   @override
   int get hashCode => Object.hash(
@@ -80,6 +90,7 @@ class NavigationSettings {
     reportAlerts,
     voiceVolume,
     speechRate,
+    simSpeedKmh,
   );
 }
 
@@ -90,12 +101,14 @@ const _overspeedKey = 'nav.overspeedTolerance';
 const _reportAlertsKey = 'nav.reportAlerts';
 const _volumeKey = 'nav.voiceVolume';
 const _rateKey = 'nav.speechRate';
+const _simSpeedKey = 'nav.simSpeedKmh';
 
 class NavigationSettingsController extends Notifier<NavigationSettings> {
   @override
   NavigationSettings build() {
     final prefs = ref.watch(sharedPreferencesProvider);
     final lang = prefs.getString(_languageKey);
+    final sim = prefs.getInt(_simSpeedKey) ?? 80;
     return NavigationSettings(
       voiceEnabled: prefs.getBool(_voiceKey) ?? true,
       voiceLanguage: lang == null ? null : VoiceLanguage.fromCode(lang),
@@ -112,6 +125,7 @@ class NavigationSettingsController extends Notifier<NavigationSettings> {
         NavigationSettings.speechRates,
         0.5,
       ),
+      simSpeedKmh: NavigationSettings.simSpeedChoices.contains(sim) ? sim : 80,
     );
   }
 
@@ -161,6 +175,12 @@ class NavigationSettingsController extends Notifier<NavigationSettings> {
   Future<void> setCameraMode(NavCameraMode mode) async {
     state = state.copyWith(cameraMode: mode);
     await ref.read(sharedPreferencesProvider).setString(_cameraKey, mode.name);
+  }
+
+  Future<void> setSimSpeedKmh(int kmh) async {
+    if (!NavigationSettings.simSpeedChoices.contains(kmh)) return;
+    state = state.copyWith(simSpeedKmh: kmh);
+    await ref.read(sharedPreferencesProvider).setInt(_simSpeedKey, kmh);
   }
 }
 

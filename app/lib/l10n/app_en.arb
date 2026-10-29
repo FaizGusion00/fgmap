@@ -134,6 +134,25 @@
   "routeFromTo": "{from} → {to}",
   "navStart": "Start",
   "navSimulate": "Simulate",
+  "navSimSpeedTitle": "Simulation speed",
+  "navSimSpeedHint": "Pick a cruise speed. Auto follows the route estimate (can be ~18 km/h in town). During simulation, use 1×–4× to go faster.",
+  "navSimSpeedAuto": "Auto",
+  "navSimSpeedKmh": "{kmh} km/h",
+  "@navSimSpeedKmh": {
+    "placeholders": {
+      "kmh": {
+        "type": "int"
+      }
+    }
+  },
+  "navSimSpeedMult": "{n}×",
+  "@navSimSpeedMult": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
   "navEnd": "End",
   "navEndTitle": "End navigation?",
   "navEndKeep": "Keep going",

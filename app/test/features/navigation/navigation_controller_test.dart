@@ -776,6 +776,9 @@ void main() {
           isTrue,
         );
         expect(sleeps.length, fixes.length - 1);
+
+        source.speedMultiplier.value = 2;
+        expect(source.speedMultiplier.value, 2);
       },
     );
 
@@ -813,6 +816,18 @@ void main() {
         }
       },
     );
+
+    test('simulateDrive: cruiseSpeedMps tetap ~80 km/j di tengah laluan', () {
+      final route = NavRoute(lShapedRoute(legM: 2000));
+      final fixes = simulateDrive(route, cruiseSpeedMps: 80 / 3.6);
+      final cruising = fixes
+          .map((f) => f.speedMps!)
+          .where((s) => s > 15)
+          .toList();
+      expect(cruising, isNotEmpty);
+      expect(cruising.reduce((a, b) => a > b ? a : b), closeTo(80 / 3.6, 1.5));
+      expect(fixes.last.speedMps, 0);
+    });
 
     test(
       'simulasi melalui sesi: tiba tanpa pernah menyimpang (laluan KLCC-KLIA)',

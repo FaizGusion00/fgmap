@@ -47,6 +47,7 @@ import '../../navigation/presentation/nav_routes_sheet.dart';
 import '../../navigation/presentation/navigation_controller.dart';
 import '../../navigation/presentation/navigation_frame_driver.dart';
 import '../../navigation/presentation/navigation_hud.dart';
+import '../../navigation/presentation/simulate_speed_sheet.dart';
 import '../../navigation/presentation/car/car_mesh.dart' show VehicleKind;
 import '../../navigation/presentation/car/car_renderer.dart';
 import '../../navigation/presentation/car/vehicle_overlay.dart';
@@ -787,8 +788,12 @@ class _MapScreenState extends ConsumerState<MapScreen>
     if (!simulate) {
       final access = await ensureLocationAccess(context, ref);
       if (access != LocationAccess.granted || !mounted) return;
+    } else {
+      final kmh = await showSimulateSpeedSheet(context, ref);
+      if (kmh == null || !mounted) return;
     }
     final route = ready.selected;
+    final simKmh = ref.read(navigationSettingsProvider).simSpeedKmh;
     await ref
         .read(navigationControllerProvider.notifier)
         .start(
@@ -798,6 +803,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
           source: simulate
               ? routeSimulation(
                   NavRoute(route),
+                  cruiseSpeedMps: simKmh > 0 ? simKmh / 3.6 : null,
                   clock: ref.read(navClockProvider),
                 )
               : null,
@@ -1524,11 +1530,22 @@ class _MapScreenState extends ConsumerState<MapScreen>
       ],
     );
 
+    final simMult = ref
+        .read(navigationControllerProvider.notifier)
+        .simSpeedMultiplier;
     final speed = progress != null && !arrived
         ? SpeedBubble(
             speedMps: progress.speedMps,
             limitKmh: nav.currentLimitKmh,
             overspeed: nav.overspeed,
+          )
+        : null;
+    final simBar = nav.simulated && simMult != null && !arrived
+        ? SimSpeedMultiplierBar(
+            multiplier: simMult,
+            onChanged: ref
+                .read(navigationControllerProvider.notifier)
+                .setSimSpeedMultiplier,
           )
         : null;
 
@@ -1599,12 +1616,22 @@ class _MapScreenState extends ConsumerState<MapScreen>
                 padding: const EdgeInsets.all(8),
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 390),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ?speed,
-                      if (speed != null) const SizedBox(width: 8),
-                      if (panel != null) Expanded(child: panel),
+                      if (simBar != null) ...[
+                        simBar,
+                        const SizedBox(height: 6),
+                      ],
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          ?speed,
+                          if (speed != null) const SizedBox(width: 8),
+                          if (panel != null) Expanded(child: panel),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -1666,6 +1693,11 @@ class _MapScreenState extends ConsumerState<MapScreen>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (simBar != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(10, 0, 10, 6),
+                child: Align(alignment: Alignment.centerLeft, child: simBar),
+              ),
             Padding(
               padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
               child: Row(

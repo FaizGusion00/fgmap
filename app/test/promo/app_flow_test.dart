@@ -473,6 +473,8 @@ void main() {
             'nav_simulate',
             find.byKey(const ValueKey('nav-simulate')),
           );
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('sim-speed-start')));
           await tester.pump();
           final track = <Map<String, Object?>>[];
           var frame = 0;
@@ -629,6 +631,8 @@ void main() {
             'nav_simulate',
             find.byKey(const ValueKey('nav-simulate')),
           );
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('sim-speed-start')));
           await tester.pump();
           var frame = 0;
           for (var step = 0; step < 900; step++) {

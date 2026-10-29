@@ -1061,6 +1061,96 @@ class RecenterButton extends StatelessWidget {
   }
 }
 
+/// Chip 1×–4× untuk mempercepat masa simulasi semasa main.
+class SimSpeedMultiplierBar extends StatelessWidget {
+  const SimSpeedMultiplierBar({
+    super.key,
+    required this.multiplier,
+    required this.onChanged,
+  });
+
+  final ValueListenable<double> multiplier;
+  final ValueChanged<double> onChanged;
+
+  static const choices = [1.0, 2.0, 3.0, 4.0];
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final fg = context.fg;
+    return ValueListenableBuilder<double>(
+      valueListenable: multiplier,
+      builder: (context, value, _) {
+        return Material(
+          color: fg.glassSurface,
+          elevation: 2,
+          shadowColor: Colors.black38,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+            side: BorderSide(color: fg.glassBorder),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final m in choices)
+                  _MultChip(
+                    label: l10n.navSimSpeedMult(m.round()),
+                    selected: (value - m).abs() < 0.01,
+                    onTap: () => onChanged(m),
+                    theme: theme,
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _MultChip extends StatelessWidget {
+  const _MultChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    required this.theme,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final ThemeData theme;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected
+          ? theme.colorScheme.primary
+          : theme.colorScheme.surface.withValues(alpha: 0),
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+          child: Text(
+            label,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: selected
+                  ? theme.colorScheme.onPrimary
+                  : theme.colorScheme.onSurface,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Butang "Mula" dan "Simulasi" yang dipaparkan di atas lembaran ringkasan laluan.
 class NavStartBar extends StatelessWidget {
   const NavStartBar({

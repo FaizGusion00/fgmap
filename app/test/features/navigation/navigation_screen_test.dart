@@ -105,8 +105,7 @@ void main() {
       final container = await pumpScreen(tester);
       await planRoute(tester);
 
-      await tester.tap(find.byKey(const ValueKey('nav-simulate')));
-      await tester.pump();
+      await tapSimulate(tester);
       for (var i = 0; i < 8; i++) {
         await tester.pump(const Duration(seconds: 1));
       }
@@ -156,8 +155,7 @@ void main() {
     (tester) async {
       final container = await pumpScreen(tester);
       await planRoute(tester);
-      await tester.tap(find.byKey(const ValueKey('nav-simulate')));
-      await tester.pump();
+      await tapSimulate(tester);
       for (var i = 0; i < 4; i++) {
         await tester.pump(const Duration(seconds: 1));
       }
@@ -192,8 +190,7 @@ void main() {
     (tester) async {
       await pumpScreen(tester);
       await planRoute(tester);
-      await tester.tap(find.byKey(const ValueKey('nav-simulate')));
-      await tester.pump();
+      await tapSimulate(tester);
       await tester.pump(const Duration(seconds: 2));
 
       await tester.tap(find.byTooltip('Tetapan navigasi'));
@@ -217,8 +214,7 @@ void main() {
   ) async {
     await pumpScreen(tester);
     await planRoute(tester);
-    await tester.tap(find.byKey(const ValueKey('nav-simulate')));
-    await tester.pump();
+    await tapSimulate(tester);
     await tester.pump(const Duration(seconds: 2));
 
     await tester.tap(find.byTooltip('Tetapan navigasi'));
@@ -244,8 +240,7 @@ void main() {
   ) async {
     final container = await pumpScreen(tester);
     await planRoute(tester);
-    await tester.tap(find.byKey(const ValueKey('nav-simulate')));
-    await tester.pump();
+    await tapSimulate(tester);
     await tester.pump(const Duration(seconds: 2));
 
     await tester.tap(find.byTooltip('Senyapkan suara'));
@@ -275,8 +270,7 @@ void main() {
     (tester) async {
       await pumpScreen(tester);
       await planRoute(tester);
-      await tester.tap(find.byKey(const ValueKey('nav-simulate')));
-      await tester.pump();
+      await tapSimulate(tester);
       for (var i = 0; i < 3; i++) {
         await tester.pump(const Duration(seconds: 1));
       }
@@ -303,8 +297,7 @@ void main() {
     (tester) async {
       await pumpScreen(tester);
       await planRoute(tester);
-      await tester.tap(find.byKey(const ValueKey('nav-simulate')));
-      await tester.pump();
+      await tapSimulate(tester);
       for (var i = 0; i < 3; i++) {
         await tester.pump(const Duration(seconds: 1));
       }
@@ -334,8 +327,7 @@ void main() {
       location.currentFixGate = slowFix;
       await pumpScreen(tester);
       await planRoute(tester);
-      await tester.tap(find.byKey(const ValueKey('nav-simulate')));
-      await tester.pump();
+      await tapSimulate(tester);
       for (var i = 0; i < 3; i++) {
         await tester.pump(const Duration(seconds: 1));
       }
@@ -369,8 +361,7 @@ void main() {
   ) async {
     final container = await pumpScreen(tester);
     await planRoute(tester);
-    await tester.tap(find.byKey(const ValueKey('nav-simulate')));
-    await tester.pump();
+    await tapSimulate(tester);
     // Laluan 1.6 km pada kelajuan simulasi: cukup lama untuk tiba.
     for (var i = 0; i < 400; i++) {
       await tester.pump(const Duration(seconds: 1));
@@ -406,8 +397,7 @@ void main() {
       );
 
       await planRoute(tester);
-      await tester.tap(find.byKey(const ValueKey('nav-simulate')));
-      await tester.pump();
+      await tapSimulate(tester);
       expect(container.read(navigationControllerProvider).isActive, isTrue);
       expect(
         location.trackingController.hasListener,
@@ -448,8 +438,7 @@ void main() {
     await tester.pumpAndSettle();
     map.config!.onLongPress(klia);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('nav-simulate')));
-    await tester.pump();
+    await tapSimulate(tester);
     for (var i = 0; i < 5; i++) {
       await tester.pump(const Duration(seconds: 1));
     }

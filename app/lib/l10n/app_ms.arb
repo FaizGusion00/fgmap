@@ -217,6 +217,25 @@
   },
   "navStart": "Mula",
   "navSimulate": "Simulasi",
+  "navSimSpeedTitle": "Kelajuan simulasi",
+  "navSimSpeedHint": "Pilih kelajuan jelajah. Auto ikut anggaran laluan (kadang ~18 km/j di bandar). Semasa simulasi, guna butang 1×–4× untuk lebih pantas.",
+  "navSimSpeedAuto": "Auto",
+  "navSimSpeedKmh": "{kmh} km/j",
+  "@navSimSpeedKmh": {
+    "placeholders": {
+      "kmh": {
+        "type": "int"
+      }
+    }
+  },
+  "navSimSpeedMult": "{n}×",
+  "@navSimSpeedMult": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
   "navEnd": "Tamat",
   "navEndTitle": "Tamatkan navigasi?",
   "navEndKeep": "Teruskan",

@@ -384,6 +384,26 @@ class AppLocalizationsMs extends AppLocalizations {
   String get navSimulate => 'Simulasi';
 
   @override
+  String get navSimSpeedTitle => 'Kelajuan simulasi';
+
+  @override
+  String get navSimSpeedHint =>
+      'Pilih kelajuan jelajah. Auto ikut anggaran laluan (kadang ~18 km/j di bandar). Semasa simulasi, guna butang 1×–4× untuk lebih pantas.';
+
+  @override
+  String get navSimSpeedAuto => 'Auto';
+
+  @override
+  String navSimSpeedKmh(int kmh) {
+    return '$kmh km/j';
+  }
+
+  @override
+  String navSimSpeedMult(int n) {
+    return '$n×';
+  }
+
+  @override
   String get navEnd => 'Tamat';
 
   @override

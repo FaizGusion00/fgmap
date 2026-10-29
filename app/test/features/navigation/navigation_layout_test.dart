@@ -60,8 +60,7 @@ void main() {
     await tester.pumpAndSettle();
     map.config!.onLongPress(klia);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('nav-simulate')));
-    await tester.pump();
+    await tapSimulate(tester);
     for (var i = 0; i < 6; i++) {
       await tester.pump(const Duration(seconds: 1));
     }
@@ -279,8 +278,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(map.config!.vehicleKind, VehicleKind.motorcycle);
 
-      await tester.tap(find.byKey(const ValueKey('nav-simulate')));
-      await tester.pump();
+      await tapSimulate(tester);
       for (var i = 0; i < 4; i++) {
         await tester.pump(const Duration(seconds: 1));
       }

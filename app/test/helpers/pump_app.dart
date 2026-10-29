@@ -14,6 +14,20 @@ import 'package:flutter_test/flutter_test.dart';
 /// Saiz skrin telefon biasa (iPhone 14) pada DPR 3.
 const phoneSize = Size(390, 844);
 
+/// Ketik Simulasi dan sahkan kelajuan pada lembaran (lalai pilihan tersimpan).
+Future<void> tapSimulate(WidgetTester tester) async {
+  final simulate = find.byKey(const ValueKey('nav-simulate'));
+  await tester.ensureVisible(simulate);
+  await tester.tap(simulate);
+  await tester.pump(); // buka sheet
+  await tester.pump(const Duration(milliseconds: 300));
+  final start = find.byKey(const ValueKey('sim-speed-start'));
+  await tester.ensureVisible(start);
+  await tester.tap(start);
+  await tester.pump(); // tutup sheet + mula nav
+  await tester.pump(const Duration(milliseconds: 300));
+}
+
 void usePhoneSurface(WidgetTester tester, {Size size = phoneSize}) {
   tester.view.physicalSize = size * 3;
   tester.view.devicePixelRatio = 3;

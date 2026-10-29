@@ -147,6 +147,17 @@ class NavigationController extends Notifier<NavigationState> {
 
   bool _background = false;
   double? _persistedAlong;
+  ReplayLocationSource? _simReplay;
+
+  /// Pengganda kelajuan simulasi semasa (null jika bukan simulasi).
+  ValueListenable<double>? get simSpeedMultiplier => _simReplay?.speedMultiplier;
+
+  /// Tukar kelajuan masa simulasi semasa main (1 = biasa, 4 = 4× lebih pantas).
+  void setSimSpeedMultiplier(double value) {
+    final notifier = _simReplay?.speedMultiplier;
+    if (notifier == null) return;
+    notifier.value = value.clamp(0.25, 8.0);
+  }
 
   @override
   NavigationState build() {
@@ -269,6 +280,7 @@ class NavigationController extends Notifier<NavigationState> {
     _session = session;
     final src =
         source ?? DeviceLocationSource(ref.read(locationServiceProvider));
+    _simReplay = src is ReplayLocationSource ? src : null;
     state = NavigationState(
       phase: NavPhase.active,
       route: nav,
@@ -364,6 +376,8 @@ class NavigationController extends Notifier<NavigationState> {
     _subscription = null;
     _ticker?.cancel();
     _ticker = null;
+    // Jangan dispose ValueNotifier di sini: strim replay mungkin masih bangun dari sleep.
+    _simReplay = null;
   }
 
   void _onFix(LocationFix fix) {

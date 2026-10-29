@@ -385,6 +385,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navSimulate => 'Simulate';
 
   @override
+  String get navSimSpeedTitle => 'Simulation speed';
+
+  @override
+  String get navSimSpeedHint =>
+      'Pick a cruise speed. Auto follows the route estimate (can be ~18 km/h in town). During simulation, use 1×–4× to go faster.';
+
+  @override
+  String get navSimSpeedAuto => 'Auto';
+
+  @override
+  String navSimSpeedKmh(int kmh) {
+    return '$kmh km/h';
+  }
+
+  @override
+  String navSimSpeedMult(int n) {
+    return '$n×';
+  }
+
+  @override
   String get navEnd => 'End';
 
   @override

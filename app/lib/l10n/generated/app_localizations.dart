@@ -734,6 +734,36 @@ abstract class AppLocalizations {
   /// **'Simulasi'**
   String get navSimulate;
 
+  /// No description provided for @navSimSpeedTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kelajuan simulasi'**
+  String get navSimSpeedTitle;
+
+  /// No description provided for @navSimSpeedHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pilih kelajuan jelajah. Auto ikut anggaran laluan (kadang ~18 km/j di bandar). Semasa simulasi, guna butang 1×–4× untuk lebih pantas.'**
+  String get navSimSpeedHint;
+
+  /// No description provided for @navSimSpeedAuto.
+  ///
+  /// In ms, this message translates to:
+  /// **'Auto'**
+  String get navSimSpeedAuto;
+
+  /// No description provided for @navSimSpeedKmh.
+  ///
+  /// In ms, this message translates to:
+  /// **'{kmh} km/j'**
+  String navSimSpeedKmh(int kmh);
+
+  /// No description provided for @navSimSpeedMult.
+  ///
+  /// In ms, this message translates to:
+  /// **'{n}×'**
+  String navSimSpeedMult(int n);
+
   /// No description provided for @navEnd.
   ///
   /// In ms, this message translates to:
