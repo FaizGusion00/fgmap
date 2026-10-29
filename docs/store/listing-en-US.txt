@@ -1,0 +1,26 @@
+App name
+FGMaps
+
+Short description (57/80)
+Malaysia nav — offline maps, Malay voice, tolls & routes.
+
+Full description (1040/4000)
+FGMaps is navigation built for Malaysia. Routes are calculated on your phone — including offline mode after you download the map pack.
+
+KEY FEATURES
+• Turn-by-turn navigation with Malay and English voice guidance
+• Offline maps for Malaysia (download once, navigate without signal)
+• Up to 10 route options: recommended, fastest, shortest and no-toll
+• Toll and fuel cost estimates before you leave
+• Search places, addresses, coordinates or Maps links
+• Home & Work shortcuts plus nearby search (fuel, food, mosque, hospital and more)
+• Light, Dark, AMOLED black and Sun (automatic) themes
+• Emergency 999 / 112 button always close by
+
+FREE & PRIVACY
+FGMaps is free. No account, no ads, no tracking and no subscription. Trip data and search history stay on your device. You can delete all local data in Settings.
+
+Note: toll estimates are estimates based on available rates; not official bills. Always drive safely and follow traffic laws.
+
+Map data © OpenStreetMap contributors.
+Built by Faiz Nasir · Owned by FG Universal Empire Company.

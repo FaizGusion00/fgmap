@@ -1,0 +1,29 @@
+FGMaps — Google Play store listing (tampal terus)
+
+=== TEKS (pilih bahasa lalai listing anda) ===
+Fail: listing-ms-MY.txt  ATAU  listing-en-US.txt
+
+App name: FGMaps
+
+Short (ms): Navigasi Malaysia — luar talian, suara BM, tol & laluan.
+Short (en): Malaysia nav — offline maps, Malay voice, tolls & routes.
+
+=== GAMBAR (folder docs/store/assets/upload/) ===
+App icon:        icon-512.png                 (512×512 PNG)
+Feature graphic: feature-graphic-1024x500.png (1024×500 PNG)
+Phone screenshots (ms, 8 fail — muat naik semua):
+  phone/01-navigation.png
+  phone/02-routes.png
+  phone/03-trip-planner.png
+  phone/04-offline.png
+  phone/05-onboarding.png
+  phone/06-settings.png
+  phone/07-nearby.png
+  phone/08-toll-estimate.png
+
+Jika listing English: guna phone-en/ (6 fail).
+
+Video (pilihan): YouTube URL demo FGS / promo — biar kosong jika tiada.
+
+Privacy policy URL:
+https://faizgusion00.github.io/fgmap/privacy.en.html

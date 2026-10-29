@@ -1,0 +1,26 @@
+App name
+FGMaps
+
+Short description (56/80)
+Navigasi Malaysia — luar talian, suara BM, tol & laluan.
+
+Full description (1133/4000)
+FGMaps ialah aplikasi navigasi untuk Malaysia. Laluan dikira terus dalam telefon anda — termasuk mod luar talian selepas anda muat turun pek peta.
+
+CIRI UTAMA
+• Navigasi belok demi belok dengan suara Bahasa Melayu dan English
+• Peta luar talian Malaysia (muat turun sekali, guna tanpa isyarat)
+• Sehingga 10 pilihan laluan: disyorkan, terpantas, terpendek dan tiada tol
+• Anggaran tol dan kos minyak sebelum anda berlepas
+• Carian tempat, alamat, koordinat atau pautan Maps
+• Rumah & Kerja serta cari berhampiran (minyak, makan, masjid, hospital dan lagi)
+• Tema Cerah, Gelap, Hitam AMOLED dan Matahari (automatik)
+• Butang kecemasan 999 / 112 sentiasa dekat
+
+PERCUMA & PRIVASI
+FGMaps percuma. Tiada akaun, tiada iklan, tiada penjejakan dan tiada langganan. Data perjalanan dan sejarah carian kekal pada peranti anda. Anda boleh padam semua data tempatan dalam Tetapan.
+
+Nota: anggaran tol ialah anggaran berdasarkan kadar yang tersedia; bukan bil rasmi. Sentiasa memandu dengan selamat dan ikut undang-undang jalan raya.
+
+Data peta © penyumbang OpenStreetMap.
+Dibangunkan oleh Faiz Nasir · Dimiliki oleh FG Universal Empire Company.
