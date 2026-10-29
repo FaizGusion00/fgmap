@@ -38,20 +38,21 @@ Map<String, Object?> buildRouteRequest(RouteQuery query) {
     'costing': query.vehicle.costing,
     // use_tolls / use_highways = 0 ialah keutamaan lembut untuk mengelak, bukan larangan mutlak (disahkan:
     // elak lebuh raya KLCC-KLIA = 74 km/123 min tanpa tol, dan masih mungkin ada segmen lebuh raya).
-    // Motosikal: `use_trails: 0` secara eksplisit supaya tidak melalui denai/trek; larangan motor di
-    // lebuh raya mengikut tag OSM yang dihormati costing `motorcycle`.
-    if (query.avoidTolls ||
-        query.avoidHighways ||
-        query.shortest ||
-        query.vehicle == RouteVehicle.motorcycle)
-      'costing_options': {
-        query.vehicle.costing: {
-          if (query.avoidTolls) 'use_tolls': 0,
-          if (query.avoidHighways) 'use_highways': 0,
-          if (query.shortest) 'shortest': true,
-          if (query.vehicle == RouteVehicle.motorcycle) 'use_trails': 0,
-        },
+    // Lalai lebih selamat: kurangkan trek/cut-through; motosikal `use_trails: 0`. Bukan trafik langsung.
+    'costing_options': {
+      query.vehicle.costing: {
+        if (query.avoidTolls) 'use_tolls': 0,
+        if (query.avoidHighways)
+          'use_highways': 0
+        else
+          // Keutamaan lembut ke arteri (0.5 = neutral Valhalla).
+          'use_highways': 0.65,
+        'use_tracks': 0,
+        'use_living_streets': 0.15,
+        if (query.shortest) 'shortest': true,
+        if (query.vehicle == RouteVehicle.motorcycle) 'use_trails': 0,
       },
+    },
     // Lencongan paksa: semua jalan yang bersilang dengan bulatan dielakkan. Had pelayan awam ialah
     // jumlah perimeter 10 km, jadi jejari dihadkan oleh pembina (lihat RouteCandidateGenerator).
     if (query.exclusions.isNotEmpty)

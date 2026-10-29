@@ -16,6 +16,7 @@ NavManeuver m(
   ManeuverKind k,
   double start, {
   List<String> streets = const [],
+  int? roundaboutExit,
 }) => NavManeuver(
   index: i,
   kind: k,
@@ -23,6 +24,7 @@ NavManeuver m(
   lengthM: 100,
   timeS: 10,
   streetNames: streets,
+  roundaboutExit: roundaboutExit,
 );
 
 NavProgress progress({
@@ -83,6 +85,26 @@ void main() {
       expect(find.text('Jalan Ampang'), findsOneWidget);
       expect(find.byIcon(Icons.turn_right_rounded), findsOneWidget);
       expect(find.text('Kemudian'), findsNothing);
+    });
+
+    testWidgets('bulatan: nombor simpang keluar ditunjuk besar', (tester) async {
+      await pump(
+        tester,
+        ManeuverBanner(
+          progress: progress(
+            next: m(
+              1,
+              ManeuverKind.roundabout,
+              200,
+              roundaboutExit: 3,
+            ),
+            distance: 120,
+          ),
+        ),
+      );
+      expect(find.text('3'), findsOneWidget);
+      expect(find.byIcon(Icons.roundabout_right_rounded), findsOneWidget);
+      expect(find.textContaining('simpang keluar'), findsOneWidget);
     });
 
     testWidgets(

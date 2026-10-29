@@ -375,8 +375,9 @@ class _MapLibreViewState extends State<MapLibreView> {
         iconImage: _vehicleImage,
         // Android MapLibre menganggap imej sebagai piksel fizikal (bukan dp), jadi tanpa pengganda ini
         // ikon hanya ~1/3 saiz sebenar pada skrin 3x. iOS menggunakan titik.
+        // Peta cerah: sedikit lebih besar supaya puck free-ride jelas di luar rumah.
         iconSize:
-            0.3 *
+            (colors.dark ? 0.3 : 0.36) *
             (defaultTargetPlatform == TargetPlatform.android ? _pixelRatio : 1),
         iconAllowOverlap: true,
         iconIgnorePlacement: true,
@@ -425,7 +426,7 @@ class _MapLibreViewState extends State<MapLibreView> {
       await c.addLineLayer(
         _mainSource,
         _casingFarLayer,
-        _plainProps(_hex(colors.routeCasing), 10),
+        _plainProps(_hex(colors.routeCasing), 12),
         belowLayerId: _labelAnchor,
         filter: _farFilter(_noChunk),
         enableInteraction: false,
@@ -441,7 +442,7 @@ class _MapLibreViewState extends State<MapLibreView> {
       await c.addLineLayer(
         _mainSource,
         _mainFarLayer,
-        _plainProps(_hex(colors.mainRoute), 6),
+        _plainProps(_hex(colors.mainRoute), 7),
         belowLayerId: _labelAnchor,
         filter: _farFilter(_noChunk),
         enableInteraction: false,
@@ -530,7 +531,7 @@ class _MapLibreViewState extends State<MapLibreView> {
     final hex = _hex(colors.mainRoute);
     return LineLayerProperties(
       lineColor: hex,
-      lineWidth: 6,
+      lineWidth: 7,
       lineCap: 'round',
       lineJoin: 'round',
       lineGradient: !gradient
@@ -549,7 +550,7 @@ class _MapLibreViewState extends State<MapLibreView> {
     final hex = _hex(colors.routeCasing);
     return LineLayerProperties(
       lineColor: hex,
-      lineWidth: 10,
+      lineWidth: 12,
       lineCap: 'round',
       lineJoin: 'round',
       lineGradient: !gradient

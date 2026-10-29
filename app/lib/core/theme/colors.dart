@@ -67,7 +67,8 @@ class FgPalette {
     textPrimary: Color(0xFF0F172A),
     textSecondary: Color(0xFF475569),
     outline: Color(0xFFE2E8F0),
-    routeCasing: Color(0xFFFFFFFF),
+    // Navy gelap: tepi putih hilang pada jalan peta cerah di bawah matahari.
+    routeCasing: Color(0xFF0F172A),
     routeAlternative: Color(0xFF94A3B8),
     trafficFree: Color(0xFF16A34A),
     trafficModerate: Color(0xFFF59E0B),

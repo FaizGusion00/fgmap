@@ -96,10 +96,11 @@ double zoomForSpeed(double speedMps) {
 }
 
 /// Seberapa hampir (0..1) manuver seterusnya, dalam MASA ke manuver (bukan jarak) supaya lebuh
-/// raya dan bandar mendapat peralihan yang sama terasa: 1 dalam <= 4 s, 0 dalam >= 12 s.
+/// raya dan bandar mendapat peralihan yang sama terasa: 1 dalam <= 5 s, 0 dalam >= 16 s
+/// (tetingkap lebih awal daripada sebelumnya supaya bulatan/simpang jelas sebelum sampai).
 double maneuverProximity(double distanceM, double speedMps) {
   final t = distanceM / math.max(speedMps, 4.0);
-  return 1 - _smoothstep(4, 12, t);
+  return 1 - _smoothstep(5, 16, t);
 }
 
 /// Memilih zum dan condongan. Fungsi tulen dan deterministik.
@@ -122,11 +123,26 @@ CameraTarget planCamera(CameraSituation s) {
     return CameraTarget(zoom: zoom, tilt: cruiseTilt);
   }
 
-  final p = maneuverProximity(distance, speed);
+  var p = maneuverProximity(distance, speed);
+  // Persimpangan kompleks: zum masuk juga mengikut jarak mutlak (~80 m) supaya
+  // pendekatan perlahan masih mendapat pandangan jelas.
+  if (_complexJunction(kind) && distance <= 80) {
+    p = math.max(p, 1 - _smoothstep(20, 80, distance));
+  }
   final (boost, turnTilt) = _maneuverCamera(kind);
   zoom = math.min(19.2, zoom + p * boost);
   return CameraTarget(zoom: zoom, tilt: _lerp(cruiseTilt, turnTilt, p));
 }
+
+bool _complexJunction(ManeuverKind kind) => switch (kind) {
+  ManeuverKind.roundabout ||
+  ManeuverKind.uTurn ||
+  ManeuverKind.sharpLeft ||
+  ManeuverKind.sharpRight ||
+  ManeuverKind.keepLeft ||
+  ManeuverKind.keepRight => true,
+  _ => false,
+};
 
 /// (tambahan zum, condongan) apabila menghampiri jenis manuver ini.
 (double, double) _maneuverCamera(ManeuverKind kind) {
@@ -135,7 +151,7 @@ CameraTarget planCamera(CameraSituation s) {
     case ManeuverKind.uTurn:
     case ManeuverKind.sharpLeft:
     case ManeuverKind.sharpRight:
-      return (1.0, 12);
+      return (1.25, 10);
     case ManeuverKind.left:
     case ManeuverKind.right:
     case ManeuverKind.rampLeft:
@@ -143,7 +159,7 @@ CameraTarget planCamera(CameraSituation s) {
     case ManeuverKind.exitLeft:
     case ManeuverKind.exitRight:
     case ManeuverKind.rampStraight:
-      return (0.8, 30);
+      return (0.9, 28);
     case ManeuverKind.arrive:
     case ManeuverKind.arriveLeft:
     case ManeuverKind.arriveRight:
@@ -152,11 +168,12 @@ CameraTarget planCamera(CameraSituation s) {
     case ManeuverKind.slightRight:
     case ManeuverKind.keepLeft:
     case ManeuverKind.keepRight:
+      return (0.7, 36);
     case ManeuverKind.keepStraight:
     case ManeuverKind.merge:
     case ManeuverKind.mergeLeft:
     case ManeuverKind.mergeRight:
-      return (0.35, 46);
+      return (0.4, 46);
     case ManeuverKind.depart:
     case ManeuverKind.straight:
     case ManeuverKind.ferry:
@@ -174,9 +191,16 @@ const carScreenOffset = 0.19;
 /// terlindung panel maklumat di bawah dan masih ada jalan kelihatan di hadapan.
 const carScreenOffsetLandscape = 0.12;
 
+/// Free-ride (Waze 2D): puck lebih hampir ke tengah daripada kereta 3D navigasi.
+const cruiseScreenOffset = 0.08;
+
 /// Ofset kenderaan yang sesuai untuk saiz paparan [size].
 double carScreenOffsetFor(Size size) =>
     size.width > size.height ? carScreenOffsetLandscape : carScreenOffset;
+
+/// Ofset puck free-ride; landscape sedikit lebih kecil supaya jalan di hadapan kelihatan.
+double cruiseScreenOffsetFor(Size size) =>
+    size.width > size.height ? 0.05 : cruiseScreenOffset;
 
 /// Pelarasan zum untuk paparan yang pendek (landscape): dengan tinggi lebih kecil, jarak jalan di
 /// hadapan yang muat pada skrin mengecil, jadi zum dikurangkan sedikit. Paparan tinggi tidak diubah.

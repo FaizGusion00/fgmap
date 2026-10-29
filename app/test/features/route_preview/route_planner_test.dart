@@ -59,7 +59,12 @@ void main() {
       final body = adapter.lastBody! as Map<String, dynamic>;
       expect(body['costing'], 'auto');
       expect(body['costing_options'], {
-        'auto': {'use_tolls': 0},
+        'auto': {
+          'use_tolls': 0,
+          'use_highways': 0.65,
+          'use_tracks': 0,
+          'use_living_streets': 0.15,
+        },
       });
       expect(((body['locations'] as List).first as Map)['heading'], 90);
     });

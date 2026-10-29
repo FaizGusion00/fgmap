@@ -188,6 +188,43 @@ void main() {
       },
     );
 
+    test('bulatan: zum masuk lebih awal (~120 m @ 14 m/s)', () {
+      final far = planCamera(
+        const CameraSituation(
+          speedMps: 14,
+          distanceToNextM: 120,
+          nextKind: ManeuverKind.roundabout,
+        ),
+      );
+      final cruise = planCamera(
+        const CameraSituation(
+          speedMps: 14,
+          distanceToNextM: null,
+          nextKind: null,
+        ),
+      );
+      expect(far.zoom, greaterThan(cruise.zoom + 0.15));
+      expect(far.tilt, lessThan(cruise.tilt - 5));
+    });
+
+    test('keep-lane dalam 80 m: boost jarak mutlak', () {
+      final at60 = planCamera(
+        const CameraSituation(
+          speedMps: 8,
+          distanceToNextM: 60,
+          nextKind: ManeuverKind.keepLeft,
+        ),
+      );
+      final at200 = planCamera(
+        const CameraSituation(
+          speedMps: 8,
+          distanceToNextM: 200,
+          nextKind: ManeuverKind.keepLeft,
+        ),
+      );
+      expect(at60.zoom, greaterThan(at200.zoom));
+    });
+
     test('mod 2D sentiasa tilt 0; mod 3D tidak menegak di selekoh', () {
       const s = CameraSituation(
         speedMps: 14,

@@ -25,7 +25,7 @@ void main() {
 
   group('buildRouteRequest', () {
     test(
-      'lalai: auto, 2 alternatif, manuver tanpa teks, tiada heading/costing_options',
+      'lalai: auto, 2 alternatif, manuver tanpa teks, costing selamat',
       () {
         final json = buildRouteRequest(
           const RouteQuery(origin: klcc, destination: klia),
@@ -39,7 +39,13 @@ void main() {
           'units': 'kilometers',
           'language': 'en-US',
         });
-        expect(json.containsKey('costing_options'), isFalse);
+        expect(json['costing_options'], {
+          'auto': {
+            'use_highways': 0.65,
+            'use_tracks': 0,
+            'use_living_streets': 0.15,
+          },
+        });
 
         final locations = json['locations']! as List<Object?>;
         expect(locations[0], {'lat': 3.1579, 'lon': 101.7116});
@@ -71,7 +77,12 @@ void main() {
         const RouteQuery(origin: klcc, destination: klia, avoidTolls: true),
       );
       expect(json['costing_options'], {
-        'auto': {'use_tolls': 0},
+        'auto': {
+          'use_tolls': 0,
+          'use_highways': 0.65,
+          'use_tracks': 0,
+          'use_living_streets': 0.15,
+        },
       });
     });
 
@@ -265,7 +276,12 @@ void routingOptionsTests() {
       expect(locs(json), hasLength(2));
       // Motosikal tidak melalui denai/trek (eksplisit), walaupun tiada pilihan elak lain.
       expect(json['costing_options'], {
-        'motorcycle': {'use_trails': 0},
+        'motorcycle': {
+          'use_highways': 0.65,
+          'use_tracks': 0,
+          'use_living_streets': 0.15,
+          'use_trails': 0,
+        },
       });
     });
 
@@ -301,9 +317,10 @@ void routingOptionsTests() {
       final json = buildRouteRequest(
         const RouteQuery(origin: klcc, destination: klia, avoidTolls: true),
       );
-      expect(json['costing_options'], {
-        'auto': {'use_tolls': 0},
-      });
+      final auto =
+          (json['costing_options']! as Map)['auto']! as Map<String, Object?>;
+      expect(auto['use_tolls'], 0);
+      expect(auto.containsKey('use_trails'), isFalse);
     });
 
     test('kenderaan kekal semasa re-route (motosikal kekal motosikal)', () {
@@ -318,7 +335,12 @@ void routingOptionsTests() {
       final json = buildRouteRequest(reroute);
       expect(json['costing'], 'motorcycle');
       expect(json['costing_options'], {
-        'motorcycle': {'use_highways': 0, 'use_trails': 0},
+        'motorcycle': {
+          'use_highways': 0,
+          'use_tracks': 0,
+          'use_living_streets': 0.15,
+          'use_trails': 0,
+        },
       });
     });
 
@@ -335,7 +357,13 @@ void routingOptionsTests() {
           ),
         );
         expect(json['costing_options'], {
-          'motorcycle': {'use_tolls': 0, 'use_highways': 0, 'use_trails': 0},
+          'motorcycle': {
+            'use_tolls': 0,
+            'use_highways': 0,
+            'use_tracks': 0,
+            'use_living_streets': 0.15,
+            'use_trails': 0,
+          },
         });
       },
     );
@@ -345,17 +373,24 @@ void routingOptionsTests() {
         const RouteQuery(origin: klcc, destination: klia, avoidHighways: true),
       );
       expect(json['costing_options'], {
-        'auto': {'use_highways': 0},
+        'auto': {
+          'use_highways': 0,
+          'use_tracks': 0,
+          'use_living_streets': 0.15,
+        },
       });
     });
 
-    test('tiada pilihan: tiada costing_options', () {
-      expect(
-        buildRouteRequest(
-          const RouteQuery(origin: klcc, destination: klia),
-        ).containsKey('costing_options'),
-        isFalse,
-      );
+    test('lalai kereta: bias trek/cut-through dan prefer arteri', () {
+      final opts =
+          (buildRouteRequest(
+                const RouteQuery(origin: klcc, destination: klia),
+              )['costing_options']!
+                  as Map)['auto']!
+              as Map<String, Object?>;
+      expect(opts['use_tracks'], 0);
+      expect(opts['use_living_streets'], 0.15);
+      expect(opts['use_highways'], 0.65);
     });
 
     test('copyWith mengekalkan nilai lain', () {
@@ -380,7 +415,12 @@ void routingOptionsTests() {
         const RouteQuery(origin: klcc, destination: klia, shortest: true),
       );
       expect(json['costing_options'], {
-        'auto': {'shortest': true},
+        'auto': {
+          'use_highways': 0.65,
+          'use_tracks': 0,
+          'use_living_streets': 0.15,
+          'shortest': true,
+        },
       });
     });
 

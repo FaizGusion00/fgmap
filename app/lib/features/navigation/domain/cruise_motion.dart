@@ -5,8 +5,8 @@ import '../../../core/utils/geo.dart';
 /// Pelicin kedudukan bebas (tiada laluan) dengan pemalar masa yang sama seperti [VehicleModel]
 /// di luar laluan, supaya kereta 3D tidak melompat antara fix GPS.
 class CruiseMotion {
-  static const correctionTau = 0.35;
-  static const snapDistanceM = 40.0;
+  static const correctionTau = 0.28;
+  static const snapDistanceM = 28.0;
 
   GeoPoint? _anchor;
   double _bearing = 0;
@@ -62,7 +62,9 @@ class CruiseMotion {
     final anchorTime = _anchorTime;
     if (anchor == null || anchorTime == null) return null;
     final since = now.difference(anchorTime).inMicroseconds / 1e6;
-    final secs = math.min(3.0, math.max(0.0, since));
+    // Perlahan: kurang dead-reckon supaya puck tidak melencong dari GPS.
+    final maxCoast = _speed < 3.0 ? 1.2 : 3.0;
+    final secs = math.min(maxCoast, math.max(0.0, since));
     final target = _speed > 0
         ? destinationPoint(anchor, _bearing, _speed * secs)
         : anchor;
@@ -74,7 +76,8 @@ class CruiseMotion {
         0.0,
         2.0,
       );
-      final k = 1 - math.exp(-dt / correctionTau);
+      final tau = _speed < 3.0 ? 0.18 : correctionTau;
+      final k = 1 - math.exp(-dt / tau);
       final predicted = _speed > 0
           ? destinationPoint(previous, _bearing, _speed * dt)
           : previous;

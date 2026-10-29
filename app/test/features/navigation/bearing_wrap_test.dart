@@ -266,7 +266,8 @@ void main() {
         lessThan(8),
         reason: 'hingar GPS perlahan memutar kamera',
       );
-      expect(driver.car.value!.yawDeg.abs(), lessThan(8));
+      // Free-ride: tiada overlay 3D; penanda peta sahaja.
+      expect(driver.car.value, isNull);
 
       speed = 12;
       bearing = 359;
@@ -288,7 +289,8 @@ void main() {
         turned.add(camera.moveToCalls.last.bearing);
       }
       _expectShortTurn(turned, from: started, to: 1, reason: 'cruise 359→1');
-      expect(driver.car.value!.yawDeg.abs(), lessThan(8));
+      expect(driver.car.value, isNull);
+      expect(camera.moveToCalls.last.tilt, lessThan(5));
     },
   );
 

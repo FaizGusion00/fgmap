@@ -65,7 +65,10 @@ class CruiseController extends Notifier<CruiseState> {
   DateTime? _lastPersist;
   DateTime? _lastSnapAt;
   static const _snapEvery = Duration(seconds: 1);
-  static const _snapMaxDriftM = 40.0;
+  static const _snapMaxDriftM = 28.0;
+
+  /// Abaikan snap jalan bila GPS lebih kasar daripada ini (meter).
+  static const _snapMinAccuracyM = 25.0;
 
   @override
   CruiseState build() {
@@ -201,6 +204,7 @@ class CruiseController extends Notifier<CruiseState> {
     final time = fix.timestamp ?? ref.read(navClockProvider)();
     final speed = fix.speedMps ?? 0;
     final heading = fix.headingDegrees?.toDouble();
+    final accuracy = fix.accuracyMeters;
     final still = _gate.update(
       time: time,
       speedMps: speed,
@@ -248,8 +252,11 @@ class CruiseController extends Notifier<CruiseState> {
     );
     _trail.add(fix.point);
     if (_trail.due(time, fix.point)) unawaited(_refreshLimit(fix.point, time));
+    final accurateEnough =
+        accuracy == null || accuracy <= _snapMinAccuracyM;
     final lastSnap = _lastSnapAt;
-    if (lastSnap == null || time.difference(lastSnap) >= _snapEvery) {
+    if (accurateEnough &&
+        (lastSnap == null || time.difference(lastSnap) >= _snapEvery)) {
       _lastSnapAt = time;
       unawaited(_refreshSnap(fix.point, bearing, speed, time));
     }

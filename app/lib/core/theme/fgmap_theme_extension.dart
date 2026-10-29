@@ -38,11 +38,13 @@ class FgmapColors extends ThemeExtension<FgmapColors> {
       trafficModerate: p.trafficModerate,
       trafficHeavy: p.trafficHeavy,
       trafficSevere: p.trafficSevere,
-      glassSurface: p.surface.withValues(alpha: 0.82),
+      // Lebih legap supaya HUD/kad terbaca di bawah silau matahari.
+      glassSurface: p.surface.withValues(alpha: 0.92),
       // Garis tepi kad/butang pada peta gelap mesti kelihatan: `outline` gelap hampir sama dengan latar.
+      // Pada tema cerah: outline lebih gelap supaya sempadan kaca tidak hilang di luar rumah.
       glassBorder: p.brightness == Brightness.dark
           ? Color.lerp(p.outline, const Color(0xFFFFFFFF), 0.2)!
-          : p.outline,
+          : Color.lerp(p.outline, p.textPrimary, 0.35)!,
     );
   }
 

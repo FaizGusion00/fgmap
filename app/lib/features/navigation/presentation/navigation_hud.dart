@@ -132,7 +132,8 @@ class BannerColors {
     return BannerColors(
       background: theme.colorScheme.primary,
       foreground: theme.colorScheme.onPrimary,
-      border: glassBorder.withValues(alpha: 0.4),
+      // Sempadan lebih jelas di bawah silau (bukan alpha 0.4 yang hilang di luar rumah).
+      border: glassBorder.withValues(alpha: 0.75),
     );
   }
 
@@ -288,6 +289,11 @@ class _BannerContent extends StatelessWidget {
     final ready = distanceM <= readyWithinM && !maneuver.isArrival;
     final thenIcon = metrics.landscape ? 18.0 : 22.0;
 
+    final exitNo = maneuver.roundaboutExit;
+    final showExitBadge = maneuver.kind == ManeuverKind.roundabout &&
+        exitNo != null &&
+        exitNo > 0;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -299,11 +305,18 @@ class _BannerContent extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Icon(
-                maneuverIcon(maneuver.kind),
-                size: metrics.bannerIcon,
-                color: onPrimary,
-              ),
+              if (exitNo != null && showExitBadge)
+                _RoundaboutExitBadge(
+                  exit: exitNo,
+                  color: onPrimary,
+                  size: metrics.bannerIcon + (metrics.landscape ? 4 : 8),
+                )
+              else
+                Icon(
+                  maneuverIcon(maneuver.kind),
+                  size: metrics.bannerIcon,
+                  color: onPrimary,
+                ),
               SizedBox(width: metrics.landscape ? 10 : 12),
               Expanded(
                 child: Column(
@@ -338,6 +351,9 @@ class _BannerContent extends StatelessWidget {
                           color: onPrimary,
                           fontWeight: FontWeight.w700,
                           height: 1.25,
+                          fontSize: showExitBadge
+                              ? (theme.textTheme.titleSmall?.fontSize ?? 14) + 1
+                              : null,
                         ),
                       ),
                     ),
@@ -413,6 +429,42 @@ class _BannerContent extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// Nombor simpang keluar bulatan yang besar supaya jelas di bawah silau.
+class _RoundaboutExitBadge extends StatelessWidget {
+  const _RoundaboutExitBadge({
+    required this.exit,
+    required this.color,
+    required this.size,
+  });
+
+  final int exit;
+  final Color color;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Icon(Icons.roundabout_right_rounded, size: size * 0.95, color: color),
+          Text(
+            '$exit',
+            style: FgTypography.metricLarge.copyWith(
+              color: color,
+              fontSize: size * 0.48,
+              fontWeight: FontWeight.w800,
+              height: 1,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

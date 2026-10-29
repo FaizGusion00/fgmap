@@ -26,8 +26,8 @@ class CruiseFix {
   final DateTime time;
 }
 
-/// Kamera memandu bebas. Menggunakan [CameraRig] yang sama seperti navigasi (mod auto/3D/2D),
-/// tanpa manuver, dengan penentukuran residual skrin supaya kereta/motosikal tidak terapung.
+/// Kamera memandu bebas gaya Waze: **sentiasa 2D** (tilt 0), heading-up, penanda peta rata
+/// sahaja (tiada overlay 3D). Mod kamera navigasi diabaikan supaya free-ride tidak "lepek" 3D.
 class CruiseFrameDriver {
   CruiseFrameDriver({
     required this.camera,
@@ -35,7 +35,7 @@ class CruiseFrameDriver {
     required this.viewportHeight,
     required this.cameraMode,
     required this.clock,
-    this.screenOffset = _defaultScreenOffset,
+    this.screenOffset = _defaultCruiseOffset,
     this.viewportWidth,
     this.reduceMotion = false,
     this.autoRecenter = const Duration(seconds: 10),
@@ -45,6 +45,8 @@ class CruiseFrameDriver {
   final MapCameraController camera;
   final CruiseFix? Function() sample;
   final double Function() viewportHeight;
+
+  /// Dikekalkan untuk API sedia ada; free-ride sentiasa [NavCameraMode.flat].
   final NavCameraMode Function() cameraMode;
   final DateTime Function() clock;
   final double Function() screenOffset;
@@ -53,9 +55,12 @@ class CruiseFrameDriver {
   final Duration autoRecenter;
   final void Function(CameraPose pose, {required bool following})? onPose;
 
-  static double _defaultScreenOffset() => carScreenOffset;
+  static double _defaultCruiseOffset() => cruiseScreenOffset;
 
   final ValueNotifier<NavFollow> follow = ValueNotifier(NavFollow.following);
+
+  /// Sentiasa null dalam free-ride (tiada overlay 3D). Notifier dikekalkan supaya
+  /// [map_screen] / ujian lama yang mendengarnya tidak rosak.
   final ValueNotifier<CarPlacement?> car = ValueNotifier(null);
 
   final CruiseMotion _motion = CruiseMotion();
@@ -63,7 +68,6 @@ class CruiseFrameDriver {
   Duration? _lastElapsed;
   DateTime? _lastInteraction;
   double _zoomBias = 0;
-  double? _yaw;
   double? _prevBearing;
   double _yawRate = 0;
   static const _maxYawRate = 120.0;
@@ -73,10 +77,9 @@ class CruiseFrameDriver {
   bool _measuring = false;
   double _groundScale = 1;
   bool _hasResidual = false;
-  double _resX = 0, _resY = 0;
+  double _resY = 0;
 
   VehicleMarker? _sentMarker;
-  bool _markerSent = false;
   bool _disposed = false;
 
   /// Pengali ofset tanah yang dipelajari (1 = model tepat). Untuk ujian.
@@ -89,24 +92,18 @@ class CruiseFrameDriver {
 
   void recenter() {
     _rig = null;
-    _yaw = null;
     _prevBearing = null;
     _yawRate = 0;
     _hasResidual = false;
-    _resX = _resY = 0;
+    _resY = 0;
     _groundScale = 1;
     _lastInteraction = null;
     follow.value = NavFollow.following;
   }
 
-  /// App / permukaan AA kembali: paksa overlay dan kamera dilukis semula.
+  /// App / permukaan AA kembali: paksa penanda dan kamera dilukis semula.
   void reviveAfterForeground() {
-    _yaw = null;
-    final current = car.value;
-    if (current != null) {
-      car.value = null;
-      car.value = current;
-    }
+    if (car.value != null) car.value = null;
     final marker = _sentMarker;
     if (marker != null) {
       camera.showVehicle(null);
@@ -123,7 +120,6 @@ class CruiseFrameDriver {
     final timing = frameStep(elapsed, _lastElapsed);
     _lastElapsed = elapsed;
     if (timing.rewound) {
-      _yaw = null;
       _prevBearing = null;
       _yawRate = 0;
     }
@@ -171,14 +167,15 @@ class CruiseFrameDriver {
     }
     _prevBearing = shown.bearing;
 
-    final mode = cameraMode();
+    // Free-ride: selalu flat (abaikan mod kamera navigasi).
+    const mode = NavCameraMode.flat;
     final pose = camera.pose;
     final entry =
         pose ??
         CameraPose(
           center: shown.point,
           zoom: 17,
-          tilt: mode == NavCameraMode.flat ? 0 : 55,
+          tilt: 0,
           bearing: shown.bearing,
         );
     final rig = _rig ??= CameraRig(
@@ -205,32 +202,13 @@ class CruiseFrameDriver {
     camera.moveTo(target);
     onPose?.call(target, following: true);
 
-    final progressIn = rig.entryProgress;
-    final opacity = ((progressIn - 0.8) / 0.2).clamp(0.0, 1.0);
-    final yawGoal = angleDelta(
-      target.bearing,
-      shown.bearing,
-    ).clamp(-80.0, 80.0);
-    final yaw = smoothCarYaw(_yaw, yawGoal, dt);
-    _yaw = yaw;
-    final placement = CarPlacement(
-      yawDeg: yaw,
-      tiltDeg: target.tilt,
-      anchorY: (0.5 + rig.screenOffset + _resY).clamp(0.3, 0.95),
-      anchorX: (0.5 + _resX).clamp(0.2, 0.8),
-      opacity: opacity,
-    );
-    if (!placement.isVisiblySameAs(car.value)) car.value = placement;
+    // Waze 2D: penanda peta sahaja; pastikan overlay 3D tidak pernah aktif.
+    if (car.value != null) car.value = null;
+    _showMapMarker(marker);
 
-    // Seperti navigasi: marker peta kekal semasa masuk; overlay 3D mengambil alih selepas settle.
-    if (progressIn >= 1) {
-      _hideMapMarker();
-      if (!_measuring && ++_sinceMeasure >= _measureEveryFrames) {
-        _sinceMeasure = 0;
-        _measure(shown.point);
-      }
-    } else {
-      _showMapMarker(marker);
+    if (!_measuring && ++_sinceMeasure >= _measureEveryFrames) {
+      _sinceMeasure = 0;
+      _measure(shown.point);
     }
   }
 
@@ -264,9 +242,7 @@ class CruiseFrameDriver {
 
     final wantedY = 0.5 + rig.screenOffset;
     final resY = fy - wantedY;
-    final resX = fx - 0.5;
     _resY = _hasResidual ? _resY + (resY - _resY) * 0.4 : resY;
-    _resX = _hasResidual ? _resX + (resX - _resX) * 0.4 : resX;
     _hasResidual = true;
 
     if (resY.abs() > 0.03) {
@@ -281,14 +257,6 @@ class CruiseFrameDriver {
   void _showMapMarker(VehicleMarker marker) {
     camera.showVehicle(marker);
     _sentMarker = marker;
-    _markerSent = true;
-  }
-
-  void _hideMapMarker() {
-    if (_markerSent && _sentMarker == null) return;
-    camera.showVehicle(null);
-    _sentMarker = null;
-    _markerSent = true;
   }
 
   void dispose() {

@@ -728,7 +728,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
       sample: () => ref.read(cruiseControllerProvider).fix,
       viewportHeight: () => MediaQuery.sizeOf(context).height,
       viewportWidth: () => MediaQuery.sizeOf(context).width,
-      screenOffset: () => carScreenOffsetFor(MediaQuery.sizeOf(context)),
+      screenOffset: () => cruiseScreenOffsetFor(MediaQuery.sizeOf(context)),
       cameraMode: () => ref.read(navigationSettingsProvider).cameraMode,
       clock: ref.read(navClockProvider),
       reduceMotion: MediaQuery.disableAnimationsOf(context),
@@ -1222,7 +1222,8 @@ class _MapScreenState extends ConsumerState<MapScreen>
       initialBearing: navigating
           ? (nav.progress?.bearing ?? 0)
           : (cruising ? ref.read(cruiseControllerProvider).bearing : 0),
-      initialTilt: navigating || cruising ? 55 : 0,
+      // Free-ride Waze 2D: tilt 0. Navigasi kekal 3D default.
+      initialTilt: navigating ? 55 : 0,
       routes: navigating
           ? [
               // Pilihan laluan lain semasa lembaran "Tukar laluan" dibuka (kelabu di bawah laluan semasa).
@@ -1282,17 +1283,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
                 kind: vehicleKind,
               ),
             ),
-          if (cruising && _cruiseDriver != null)
-            Positioned.fill(
-              child: VehicleOverlay(
-                placement: _cruiseDriver!.car,
-                palette: CarPalette.forBrightness(
-                  theme.colorScheme.primary,
-                  mapIsDark ? Brightness.dark : Brightness.light,
-                ),
-                kind: vehicleKind,
-              ),
-            ),
+          // Free-ride: penanda peta 2D sahaja (tiada VehicleOverlay 3D).
           if (!navigating)
             SafeArea(
               bottom: false,
