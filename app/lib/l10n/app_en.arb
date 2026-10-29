@@ -102,14 +102,14 @@
   "tripPlannerTitle": "Plan a trip",
   "tripFrom": "From",
   "tripTo": "To",
-  "searchHint": "Search a place or address",
+  "searchHint": "Place, address, coordinates or Maps link",
   "searchPillHint": "Search destination",
   "searchClear": "Clear",
-  "searchPrompt": "Type a place, street or address. You can also long-press the map.",
+  "searchPrompt": "Type a place name, or paste coordinates (3.14, 101.68) / a Google Maps or Waze link.",
   "searchHistory": "Recent places",
   "searchClearHistory": "Clear history",
   "sharedLocationStopNavigation": "End the current navigation before opening a shared destination.",
-  "searchNoResults": "No results for “{query}”.",
+  "searchNoResults": "No results for “{query}”. Paste coordinates or a Google Maps / Waze link — we only need lat/lng.",
   "searchNoNearby": "No “{category}” found nearby in OpenStreetMap. Try a larger area or search by name.",
   "@searchNoNearby": {
     "placeholders": {
@@ -128,7 +128,7 @@
       }
     }
   },
-  "searchErrorNetwork": "No internet connection. Search needs internet; you can still long-press the map to pick a destination.",
+  "searchErrorNetwork": "No internet connection. Search needs internet; you can still paste coordinates or a Maps link.",
   "searchErrorRateLimited": "Too many searches. Please wait a moment.",
   "searchErrorUnavailable": "Search is unavailable right now.",
   "routeFromTo": "{from} → {to}",

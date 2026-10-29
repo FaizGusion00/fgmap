@@ -4,9 +4,13 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/network/dio_provider.dart';
+import '../../../core/network/retry_interceptor.dart';
 import '../../../core/utils/geo.dart';
 import '../data/nearby_search.dart';
 import '../data/photon_geocoder.dart';
+import '../domain/direct_destination.dart';
+import '../domain/location_link.dart';
 import '../domain/nearby_category.dart';
 import '../domain/place.dart';
 import '../domain/place_ranker.dart';
@@ -80,8 +84,15 @@ class PlaceSearchController extends Notifier<PlaceSearchState> {
     _cancel?.cancel();
     final seq = ++_seq;
 
-    if (query.length < _minChars) {
+    if (query.length < _minChars && !looksLikeDirectDestination(query)) {
       state = const PlaceSearchState();
+      return;
+    }
+
+    // Koordinat / pautan dengan lat/lng: terus tanpa debounce geocoder.
+    final direct = placeFromDirectQuery(query);
+    if (direct != null) {
+      state = _ready(query, [direct]);
       return;
     }
 
@@ -214,13 +225,23 @@ class PlaceSearchController extends Notifier<PlaceSearchState> {
     final cancel = CancelToken();
     _cancel = cancel;
     try {
+      // Pautan pendek Google: resolve redirect → lat/lng (cara "percuma" dapat koordinat Google).
+      final fromLink = await _placeFromShortMapLink(query, cancel);
+      if (seq != _seq || !ref.mounted) return;
+      if (fromLink != null) {
+        _cache[_key(query, near)] = [fromLink];
+        state = _ready(query, [fromLink]);
+        return;
+      }
+
+      final searchQuery = searchLabelFromMapLink(query) ?? query;
       final results = await ref
           .read(geocoderProvider)
-          .search(query, near: near, cancel: cancel);
+          .search(searchQuery, near: near, cancel: cancel);
       if (seq != _seq || !ref.mounted) return;
       final ranked = ref
           .read(placeRankerProvider)
-          .rank(results, query, near: near);
+          .rank(results, searchQuery, near: near);
       _cache[_key(query, near)] = ranked;
       state = _ready(query, ranked);
     } on GeocodeFailure catch (f) {
@@ -240,6 +261,53 @@ class PlaceSearchController extends Notifier<PlaceSearchState> {
         query: query,
         failure: GeocodeFailureKind.generic,
       );
+    }
+  }
+
+  Future<Place?> _placeFromShortMapLink(String query, CancelToken cancel) async {
+    final uri = Uri.tryParse(query.trim());
+    if (uri == null || !isShortMapLink(uri)) {
+      // Allow bare host/path without scheme.
+      final withScheme = Uri.tryParse(
+        query.trim().startsWith('http') ? query.trim() : 'https://${query.trim()}',
+      );
+      if (withScheme == null || !isShortMapLink(withScheme)) return null;
+      return _resolveShortLink(withScheme, cancel);
+    }
+    return _resolveShortLink(uri, cancel);
+  }
+
+  Future<Place?> _resolveShortLink(Uri uri, CancelToken cancel) async {
+    try {
+      final response = await ref
+          .read(dioProvider)
+          .headUri<Object?>(
+            uri,
+            cancelToken: cancel,
+            options: RetryInterceptor.options(
+              Options(followRedirects: true, maxRedirects: 5),
+            ),
+          );
+      final resolved = response.realUri;
+      final shared = sharedLocationFromUri(resolved);
+      final point = shared?.point;
+      if (point == null) {
+        // Redirect kadang hanya buka nama — biar _run cari OSM dengan label.
+        return null;
+      }
+      final label = shared?.label?.trim();
+      return Place(
+        name: (label != null && label.isNotEmpty)
+            ? label
+            : '${point.lat.toStringAsFixed(5)}, ${point.lng.toStringAsFixed(5)}',
+        subtitle:
+            '${point.lat.toStringAsFixed(5)}, ${point.lng.toStringAsFixed(5)}',
+        point: point,
+        category: 'coordinates',
+      );
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.cancel) rethrow;
+      return null;
     }
   }
 

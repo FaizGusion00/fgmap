@@ -243,9 +243,9 @@ void main() {
         await type(tester, 'destination-field', 'klia');
         expect(find.textContaining('Tiada sambungan internet'), findsOneWidget);
         expect(
-          find.textContaining('tekan lama pada peta'),
+          find.textContaining('tampal koordinat atau pautan Maps'),
           findsOneWidget,
-          reason: 'beritahu jalan alternatif',
+          reason: 'beritahu jalan alternatif tanpa long-press',
         );
 
         fail = false;

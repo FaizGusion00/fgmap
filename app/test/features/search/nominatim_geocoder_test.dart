@@ -134,11 +134,26 @@ void main() {
       delay: (d) async => delays?.add(d),
     );
 
-    test('Photon berjaya: fallback tidak dipanggil', () async {
+    test('Photon cukup hasil: fallback tidak dipanggil', () async {
+      final many = [
+        for (var i = 0; i < 5; i++)
+          Place(
+            name: 'P$i',
+            subtitle: '',
+            point: GeoPoint(3, 101 + i * 0.01),
+          ),
+      ];
+      final p = _Fake(results: many);
+      final s = _Fake(results: [placeB]);
+      expect(await build(p, s).search('petronas'), many);
+      expect(s.calls, 0);
+    });
+
+    test('Photon sedikit hasil: gabung Nominatim', () async {
       final p = _Fake(results: [placeA]);
       final s = _Fake(results: [placeB]);
-      expect(await build(p, s).search('petronas'), [placeA]);
-      expect(s.calls, 0);
+      expect(await build(p, s).search('petronas'), [placeA, placeB]);
+      expect(s.calls, 1);
     });
 
     test('Photon kosong: Nominatim dipanggil', () async {

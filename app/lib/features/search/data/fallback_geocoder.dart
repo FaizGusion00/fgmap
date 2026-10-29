@@ -4,17 +4,19 @@ import '../../../core/utils/geo.dart';
 import '../domain/place.dart';
 import 'photon_geocoder.dart';
 
-/// Photon dahulu; jika ia gagal atau tiada hasil, jatuh ke [secondary] (Nominatim).
+/// Photon dahulu; jika kosong/gagal, atau hasil terlalu sedikit, gabung dengan [secondary]
+/// (Nominatim) supaya lebih banyak listing daripada OSM.
 ///
-/// Dasar Nominatim awam: maksimum 1 permintaan sesaat dan tiada autocomplete. Justeru laluan fallback
-/// menunggu pengguna berhenti menaip ([settle]), menjarakkan permintaan sekurang-kurangnya [minGap]
-/// dan membatalkan jika pertanyaan sudah usang.
+/// Dasar Nominatim awam: maksimum 1 permintaan sesaat dan tiada autocomplete. Justeru laluan
+/// sekunder menunggu pengguna berhenti menaip ([settle]), menjarakkan permintaan sekurang-kurangnya
+/// [minGap] dan membatalkan jika pertanyaan sudah usang.
 class FallbackGeocoder implements Geocoder {
   FallbackGeocoder(
     this.primary,
     this.secondary, {
     this.settle = const Duration(milliseconds: 700),
     this.minGap = const Duration(milliseconds: 1100),
+    this.enrichBelow = 5,
     DateTime Function()? clock,
     Future<void> Function(Duration)? delay,
   }) : _clock = clock ?? DateTime.now,
@@ -24,6 +26,9 @@ class FallbackGeocoder implements Geocoder {
   final Geocoder secondary;
   final Duration settle;
   final Duration minGap;
+
+  /// Jika Photon pulangkan kurang daripada ini, cuba Nominatim juga dan gabung.
+  final int enrichBelow;
   final DateTime Function() _clock;
   final Future<void> Function(Duration) _delay;
 
@@ -31,6 +36,9 @@ class FallbackGeocoder implements Geocoder {
 
   /// Pertanyaan lebih pendek ini tidak layak jatuh ke fallback (terlalu samar, membazir kuota).
   static const _minFallbackChars = 3;
+
+  /// Dua hasil dianggap sama jika dalam jarak ini (meter).
+  static const _dedupeM = 80.0;
 
   @override
   Future<List<Place>> search(
@@ -46,21 +54,38 @@ class FallbackGeocoder implements Geocoder {
       primaryResults = const [];
       primaryFailure = f;
     }
-    if (primaryResults.isNotEmpty) return primaryResults;
+    if (primaryResults.length >= enrichBelow) return primaryResults;
     if (query.trim().length < _minFallbackChars) {
-      if (primaryFailure != null) throw primaryFailure;
+      if (primaryFailure != null && primaryResults.isEmpty) throw primaryFailure;
       return primaryResults;
     }
 
     try {
       await _waitTurn(cancel);
-      return await secondary.search(query, near: near, cancel: cancel);
+      final secondaryResults = await secondary.search(
+        query,
+        near: near,
+        cancel: cancel,
+      );
+      if (primaryResults.isEmpty) return secondaryResults;
+      return _merge(primaryResults, secondaryResults);
     } on GeocodeFailure {
       // Photon gagal DAN fallback gagal: laporkan kegagalan Photon (sebab asal). Photon berjaya tetapi
-      // kosong: kosong ialah jawapan yang jujur.
-      if (primaryFailure != null) throw primaryFailure;
+      // kosong: kosong ialah jawapan yang jujur. Photon ada sedikit hasil: kekalkan itu.
+      if (primaryFailure != null && primaryResults.isEmpty) throw primaryFailure;
       return primaryResults;
     }
+  }
+
+  List<Place> _merge(List<Place> primary, List<Place> secondary) {
+    final out = List<Place>.of(primary);
+    for (final place in secondary) {
+      final dup = out.any(
+        (p) => distanceMeters(p.point, place.point) <= _dedupeM,
+      );
+      if (!dup) out.add(place);
+    }
+    return out;
   }
 
   Future<void> _waitTurn(CancelToken? cancel) async {

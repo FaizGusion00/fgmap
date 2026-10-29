@@ -316,7 +316,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get tripTo => 'Ke';
 
   @override
-  String get searchHint => 'Cari tempat atau alamat';
+  String get searchHint => 'Tempat, alamat, koordinat atau pautan Maps';
 
   @override
   String get searchPillHint => 'Cari destinasi';
@@ -326,7 +326,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get searchPrompt =>
-      'Taip nama tempat, jalan atau alamat. Anda juga boleh tekan lama pada peta.';
+      'Taip nama tempat, atau tampal koordinat (3.14, 101.68) / pautan Google Maps atau Waze.';
 
   @override
   String get searchHistory => 'Tempat terkini';
@@ -340,7 +340,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String searchNoResults(String query) {
-    return 'Tiada hasil untuk “$query”.';
+    return 'Tiada hasil untuk “$query”. Tampal koordinat atau pautan Google Maps / Waze — kami hanya perlukan lat/lng.';
   }
 
   @override
@@ -362,7 +362,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get searchErrorNetwork =>
-      'Tiada sambungan internet. Carian memerlukan internet; anda masih boleh tekan lama pada peta untuk memilih destinasi.';
+      'Tiada sambungan internet. Carian memerlukan internet; anda masih boleh tampal koordinat atau pautan Maps.';
 
   @override
   String get searchErrorRateLimited =>

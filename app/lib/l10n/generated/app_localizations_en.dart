@@ -318,7 +318,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tripTo => 'To';
 
   @override
-  String get searchHint => 'Search a place or address';
+  String get searchHint => 'Place, address, coordinates or Maps link';
 
   @override
   String get searchPillHint => 'Search destination';
@@ -328,7 +328,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get searchPrompt =>
-      'Type a place, street or address. You can also long-press the map.';
+      'Type a place name, or paste coordinates (3.14, 101.68) / a Google Maps or Waze link.';
 
   @override
   String get searchHistory => 'Recent places';
@@ -342,7 +342,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String searchNoResults(String query) {
-    return 'No results for “$query”.';
+    return 'No results for “$query”. Paste coordinates or a Google Maps / Waze link — we only need lat/lng.';
   }
 
   @override
@@ -364,7 +364,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get searchErrorNetwork =>
-      'No internet connection. Search needs internet; you can still long-press the map to pick a destination.';
+      'No internet connection. Search needs internet; you can still paste coordinates or a Maps link.';
 
   @override
   String get searchErrorRateLimited =>

@@ -168,14 +168,14 @@
   "tripPlannerTitle": "Rancang perjalanan",
   "tripFrom": "Dari",
   "tripTo": "Ke",
-  "searchHint": "Cari tempat atau alamat",
+  "searchHint": "Tempat, alamat, koordinat atau pautan Maps",
   "searchPillHint": "Cari destinasi",
   "searchClear": "Kosongkan",
-  "searchPrompt": "Taip nama tempat, jalan atau alamat. Anda juga boleh tekan lama pada peta.",
+  "searchPrompt": "Taip nama tempat, atau tampal koordinat (3.14, 101.68) / pautan Google Maps atau Waze.",
   "searchHistory": "Tempat terkini",
   "searchClearHistory": "Padam sejarah",
   "sharedLocationStopNavigation": "Tamatkan navigasi semasa sebelum membuka destinasi yang dikongsi.",
-  "searchNoResults": "Tiada hasil untuk “{query}”.",
+  "searchNoResults": "Tiada hasil untuk “{query}”. Tampal koordinat atau pautan Google Maps / Waze — kami hanya perlukan lat/lng.",
   "@searchNoResults": {
     "placeholders": {
       "query": {
@@ -201,7 +201,7 @@
       }
     }
   },
-  "searchErrorNetwork": "Tiada sambungan internet. Carian memerlukan internet; anda masih boleh tekan lama pada peta untuk memilih destinasi.",
+  "searchErrorNetwork": "Tiada sambungan internet. Carian memerlukan internet; anda masih boleh tampal koordinat atau pautan Maps.",
   "searchErrorRateLimited": "Terlalu banyak carian. Tunggu sebentar.",
   "searchErrorUnavailable": "Perkhidmatan carian tidak tersedia buat masa ini.",
   "routeFromTo": "{from} → {to}",

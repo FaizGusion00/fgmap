@@ -629,7 +629,7 @@ abstract class AppLocalizations {
   /// No description provided for @searchHint.
   ///
   /// In ms, this message translates to:
-  /// **'Cari tempat atau alamat'**
+  /// **'Tempat, alamat, koordinat atau pautan Maps'**
   String get searchHint;
 
   /// No description provided for @searchPillHint.
@@ -647,7 +647,7 @@ abstract class AppLocalizations {
   /// No description provided for @searchPrompt.
   ///
   /// In ms, this message translates to:
-  /// **'Taip nama tempat, jalan atau alamat. Anda juga boleh tekan lama pada peta.'**
+  /// **'Taip nama tempat, atau tampal koordinat (3.14, 101.68) / pautan Google Maps atau Waze.'**
   String get searchPrompt;
 
   /// No description provided for @searchHistory.
@@ -671,7 +671,7 @@ abstract class AppLocalizations {
   /// No description provided for @searchNoResults.
   ///
   /// In ms, this message translates to:
-  /// **'Tiada hasil untuk “{query}”.'**
+  /// **'Tiada hasil untuk “{query}”. Tampal koordinat atau pautan Google Maps / Waze — kami hanya perlukan lat/lng.'**
   String searchNoResults(String query);
 
   /// No description provided for @searchNoNearby.
@@ -701,7 +701,7 @@ abstract class AppLocalizations {
   /// No description provided for @searchErrorNetwork.
   ///
   /// In ms, this message translates to:
-  /// **'Tiada sambungan internet. Carian memerlukan internet; anda masih boleh tekan lama pada peta untuk memilih destinasi.'**
+  /// **'Tiada sambungan internet. Carian memerlukan internet; anda masih boleh tampal koordinat atau pautan Maps.'**
   String get searchErrorNetwork;
 
   /// No description provided for @searchErrorRateLimited.
