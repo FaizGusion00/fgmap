@@ -19,7 +19,7 @@ import 'cruise_controller.dart';
 import 'navigation_controller.dart';
 
 /// Saluran tunggal antara Flutter dan hos Android Auto.
-const carSessionChannel = MethodChannel('com.fguniversal.fgmap/car');
+const carSessionChannel = MethodChannel('com.fguniversalempire.fgmaps/car');
 
 /// Menerbitkan satu gambar sesi dan menerima carian, pusatkan, dan tamat dari skrin kereta.
 class CarSessionHub {

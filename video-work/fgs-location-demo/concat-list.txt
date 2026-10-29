@@ -1,0 +1,7 @@
+file 'clips/01-intro.mp4'
+file 'clips/02-plan.mp4'
+file 'clips/03-start.mp4'
+file 'clips/04-nav.mp4'
+file 'clips/05-notif.mp4'
+file 'clips/06-end.mp4'
+file 'clips/07-outro.mp4'

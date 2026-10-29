@@ -14,12 +14,14 @@ Pemegang tempat `{{entity}}`, `{{regNo}}`, `{{address}}`, `{{email}}` diisi dari
 
 ## Sebelum terbit (pintu pelancaran)
 
-1. Beri butiran: `LEGAL_REG_NO` (no. pendaftaran syarikat), `LEGAL_ADDRESS`, `LEGAL_EMAIL`.
-2. Peguam menyemak kedua-dua dokumen (BM dan EN), lalu tetapkan `LEGAL_REVIEWED=true`.
-3. `make check-legal` mesti lulus; `make appbundle LEGAL_EMAIL=... LEGAL_ADDRESS="..." LEGAL_REG_NO=... LEGAL_REVIEWED=true`
-   gagal selagi tidak.
-4. Jana HTML dan host di URL awam (cth. GitHub Pages) untuk borang kedai:
-   `LEGAL_EMAIL=... LEGAL_ADDRESS="..." LEGAL_REG_NO=... python3 tools/legal/render_html.py docs/legal/site`
+1. Salin `app/android/legal.release.env.example` → `legal.release.env` dan isi
+   `LEGAL_REG_NO`, `LEGAL_ADDRESS`, `LEGAL_EMAIL`.
+2. Semakan: `LEGAL_REVIEWED=true` selepas peguam; atau `owner` untuk muat naik ujian
+   (notis draf kekal dalam app).
+3. `make check-legal` / `make appbundle` memuat `legal.release.env` secara automatik.
+4. Jana HTML dan host di URL awam (GitHub Pages / Netlify) untuk borang kedai:
+   `set -a; . app/android/legal.release.env; set +a; python3 tools/legal/render_html.py docs/legal/site`
+   Sumber siap: `docs/legal/site/` (privacy.ms.html ialah URL tipikal untuk Play Console).
 5. Isi borang kedai mengikut `docs/store/` dan semak jawapan masih sepadan dengan dasar.
 
 ## Apabila ciri berubah

@@ -1,9 +1,9 @@
-package com.fguniversal.fgmap.car
+package com.fguniversalempire.fgmaps.car
 
 import androidx.car.app.CarAppService
 import androidx.car.app.Session
 import androidx.car.app.validation.HostValidator
-import com.fguniversal.fgmap.BuildConfig
+import com.fguniversalempire.fgmaps.BuildConfig
 
 /**
  * Hos Android Auto. Flutter kekal otak sesi; skrin kereta hanya memaparkan gambar sesi itu.

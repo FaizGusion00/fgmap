@@ -1,4 +1,4 @@
-package com.fguniversal.fgmap.car
+package com.fguniversalempire.fgmaps.car
 
 import android.content.Intent
 import io.flutter.plugin.common.BinaryMessenger
@@ -8,7 +8,7 @@ import io.flutter.plugin.common.MethodChannel
  * Satu sesi antara Flutter dan Android Auto. Peta kereta tidak membuka GPS sendiri.
  */
 object CarBridge {
-    const val CHANNEL = "com.fguniversal.fgmap/car"
+    const val CHANNEL = "com.fguniversalempire.fgmaps/car"
 
     @Volatile
     var ready: Boolean = false

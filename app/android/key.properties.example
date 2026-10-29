@@ -1,0 +1,9 @@
+# Salin ke key.properties (jangan commit) selepas menjana upload-keystore.jks:
+#   keytool -genkey -v -keystore upload-keystore.jks -keyalg RSA -keysize 2048 \
+#     -validity 10000 -alias upload
+#
+# storeFile relatif kepada folder app/android/
+storePassword=GANTI
+keyPassword=GANTI
+keyAlias=upload
+storeFile=upload-keystore.jks

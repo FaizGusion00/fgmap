@@ -1,4 +1,4 @@
-package com.fguniversal.fgmap.car
+package com.fguniversalempire.fgmaps.car
 
 import android.content.Context
 import android.graphics.Canvas

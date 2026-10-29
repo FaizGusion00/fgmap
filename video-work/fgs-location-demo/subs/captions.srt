@@ -1,0 +1,27 @@
+1
+00:00:00,000 --> 00:00:03,000
+FGMaps — location FGS demo
+
+2
+00:00:03,000 --> 00:00:08,000
+User plans a trip
+
+3
+00:00:08,000 --> 00:00:13,000
+Starts turn-by-turn navigation
+
+4
+00:00:13,000 --> 00:00:19,000
+Active guidance with voice and HUD
+
+5
+00:00:19,000 --> 00:00:27,000
+Screen locked: ongoing notification “Navigasi sedang berjalan”
+
+6
+00:00:27,000 --> 00:00:32,000
+Ends navigation — service stops
+
+7
+00:00:32,000 --> 00:00:35,000
+FOREGROUND_SERVICE_LOCATION for Navigation only

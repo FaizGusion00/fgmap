@@ -77,3 +77,7 @@ app.*.map.json
 
 # Keluaran video promosi (besar, dijana semula oleh tools/promo)
 promo_out/
+
+# Dump PNG mentah promo (besar); kekalkan phone-*.png / ikon listing dalam docs/store/assets/
+docs/store/assets/screenshots/
+docs/store/release/

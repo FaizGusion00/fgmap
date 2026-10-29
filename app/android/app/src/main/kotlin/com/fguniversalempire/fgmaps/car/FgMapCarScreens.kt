@@ -1,4 +1,4 @@
-package com.fguniversal.fgmap.car
+package com.fguniversalempire.fgmaps.car
 
 import android.content.Intent
 import androidx.car.app.CarContext
@@ -18,7 +18,7 @@ import androidx.car.app.navigation.model.Step
 import androidx.car.app.navigation.model.TravelEstimate
 import androidx.car.app.model.SearchTemplate
 import androidx.core.graphics.drawable.IconCompat
-import com.fguniversal.fgmap.R
+import com.fguniversalempire.fgmaps.R
 
 class FgMapSession : Session() {
     override fun onCreateScreen(intent: Intent): Screen {

@@ -1,6 +1,6 @@
-package com.fguniversal.fgmap
+package com.fguniversalempire.fgmaps
 
-import com.fguniversal.fgmap.car.CarBridge
+import com.fguniversalempire.fgmaps.car.CarBridge
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 

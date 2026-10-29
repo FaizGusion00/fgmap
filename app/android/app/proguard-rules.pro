@@ -10,5 +10,5 @@
 
 # Android Auto dan MapLibre pada permukaan kereta.
 -keep class androidx.car.app.** { *; }
--keep class com.fguniversal.fgmap.car.** { *; }
+-keep class com.fguniversalempire.fgmaps.car.** { *; }
 -dontwarn androidx.car.app.**
