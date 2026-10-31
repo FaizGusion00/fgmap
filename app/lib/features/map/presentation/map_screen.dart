@@ -1412,50 +1412,62 @@ class _MapScreenState extends ConsumerState<MapScreen>
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _GlassIconButton(
                             icon: Icons.tune_rounded,
                             tooltip: l10n.appearanceTooltip,
                             onPressed: () => showSettingsSheet(context),
                           ),
+                          const SizedBox(width: 8),
                           Expanded(
-                            // topCenter, bukan Center: Row mengisi seluruh tinggi skrin, jadi Center
-                            // meletakkan pil di tengah peta.
-                            child: Align(
-                              alignment: Alignment.topCenter,
-                              child: _SearchPill(
-                                label: l10n.searchPillHint,
-                                hint: !_hintDismissed && state is RouteIdle
-                                    ? l10n.mapHintLongPress
-                                    : null,
-                                onTap: _openPlanner,
-                              ),
+                            child: _SearchPill(
+                              label: l10n.searchPillHint,
+                              hint: !_hintDismissed && state is RouteIdle
+                                  ? l10n.mapHintLongPress
+                                  : null,
+                              onTap: _openPlanner,
                             ),
                           ),
-                          _GlassIconButton(
-                            icon: Icons.air_rounded,
-                            tooltip: l10n.airQualityOpen,
-                            onPressed: () =>
-                                unawaited(showAirQualitySheet(context)),
-                          ),
-                          _GlassIconButton(
-                            icon: Icons.explore_rounded,
-                            tooltip: l10n.qiblaOpen,
-                            onPressed: () =>
-                                unawaited(showQiblaSheet(context)),
-                          ),
-                          _GlassIconButton(
-                            icon: Icons.music_note_rounded,
-                            tooltip: l10n.musicOpen,
-                            onPressed: () => unawaited(showMusicSheet(context)),
-                          ),
-                          _GlassIconButton(
-                            icon: Icons.cloud_download_outlined,
-                            tooltip: l10n.offlineMapsOpen,
-                            onPressed: () => showOfflineMapsSheet(context),
-                          ),
                         ],
+                      ),
+                      const SizedBox(height: 10),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _TintedMapButton(
+                              icon: Icons.air_rounded,
+                              tooltip: l10n.airQualityOpen,
+                              color: const Color(0xFF0D9488),
+                              onPressed: () =>
+                                  unawaited(showAirQualitySheet(context)),
+                            ),
+                            const SizedBox(width: 8),
+                            _TintedMapButton(
+                              icon: Icons.explore_rounded,
+                              tooltip: l10n.qiblaOpen,
+                              color: const Color(0xFFD97706),
+                              onPressed: () =>
+                                  unawaited(showQiblaSheet(context)),
+                            ),
+                            const SizedBox(width: 8),
+                            _TintedMapButton(
+                              icon: Icons.music_note_rounded,
+                              tooltip: l10n.musicOpen,
+                              color: const Color(0xFFDB2777),
+                              onPressed: () =>
+                                  unawaited(showMusicSheet(context)),
+                            ),
+                            const SizedBox(width: 8),
+                            _TintedMapButton(
+                              icon: Icons.cloud_download_rounded,
+                              tooltip: l10n.offlineMapsOpen,
+                              color: const Color(0xFF2563EB),
+                              onPressed: () => showOfflineMapsSheet(context),
+                            ),
+                          ],
+                        ),
                       ),
                       if (state is RouteIdle) ...[
                         const SizedBox(height: 10),
@@ -2139,6 +2151,39 @@ class _MapScreenState extends ConsumerState<MapScreen>
   };
 }
 
+class _TintedMapButton extends StatelessWidget {
+  const _TintedMapButton({
+    required this.icon,
+    required this.tooltip,
+    required this.color,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final Color color;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return PressScale(
+      child: Material(
+        color: color,
+        elevation: 3,
+        shadowColor: color.withValues(alpha: 0.4),
+        shape: const CircleBorder(),
+        child: IconButton(
+          tooltip: tooltip,
+          onPressed: onPressed,
+          icon: Icon(icon, color: Colors.white),
+          iconSize: 22,
+          visualDensity: VisualDensity.compact,
+        ),
+      ),
+    );
+  }
+}
+
 class _GlassIconButton extends StatelessWidget {
   const _GlassIconButton({
     required this.icon,
@@ -2249,33 +2294,33 @@ class _SearchPill extends StatelessWidget {
         scale: 0.985,
         child: Material(
           color: Colors.transparent,
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(28),
           elevation: 3,
           shadowColor: Colors.black.withValues(alpha: 0.16),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(28),
             // Tanpa BackdropFilter: kabur di atas pandangan peta asli dirender semula setiap kali peta
             // bergerak dan menjejaskan telefon lemah; permukaan kaca sudah separa lutsinar.
             child: Material(
               color: fg.glassSurface,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(22),
+                borderRadius: BorderRadius.circular(28),
                 side: BorderSide(color: fg.glassBorder),
               ),
               child: InkWell(
                 key: const ValueKey('search-pill'),
                 customBorder: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(22),
+                  borderRadius: BorderRadius.circular(28),
                 ),
                 onTap: onTap,
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
-                    minHeight: EasyModeScope.of(context) ? 60 : 48,
+                    minHeight: EasyModeScope.of(context) ? 64 : 56,
                   ),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
+                      horizontal: 8,
+                      vertical: 6,
                     ),
                     child: Row(
                       children: [

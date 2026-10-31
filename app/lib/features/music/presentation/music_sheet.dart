@@ -148,15 +148,29 @@ class _MusicSheetState extends ConsumerState<MusicSheet> {
               key: const ValueKey('music-regions'),
               wrap: true,
               children: [
-                for (final r in RadioRegion.values)
+                for (final r in _radioChips)
                   ChoiceChip(
-                    key: ValueKey('music-region-${r.name}'),
-                    avatar: r == RadioRegion.favorites
-                        ? const Icon(Icons.star_rounded, size: 18)
-                        : null,
-                    label: Text(_regionLabel(l10n, r)),
-                    selected: state.region == r,
-                    onSelected: (_) => search.setRegion(r),
+                    key: ValueKey('music-region-${r.region.name}'),
+                    showCheckmark: false,
+                    visualDensity: VisualDensity.compact,
+                    avatar: Icon(
+                      r.icon,
+                      size: 16,
+                      color: state.region == r.region
+                          ? theme.colorScheme.onPrimary
+                          : r.tint,
+                    ),
+                    label: Text(_regionLabel(l10n, r.region)),
+                    selected: state.region == r.region,
+                    selectedColor: theme.colorScheme.primary,
+                    labelStyle: TextStyle(
+                      color: state.region == r.region
+                          ? theme.colorScheme.onPrimary
+                          : theme.colorScheme.onSurface,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    side: BorderSide.none,
+                    onSelected: (_) => search.setRegion(r.region),
                   ),
               ],
             )
@@ -304,10 +318,11 @@ class _DeviceMusicCard extends ConsumerWidget {
                 denied ? l10n.musicDeviceDenied : l10n.musicDeviceBody,
                 style: theme.textTheme.bodySmall,
               ),
-              if (!denied)
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: FilledButton.tonalIcon(
+              if (!denied) ...[
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
                     key: const ValueKey('device-music-allow'),
                     onPressed: () =>
                         ref.read(deviceMusicAccessProvider.notifier).connect(),
@@ -315,6 +330,7 @@ class _DeviceMusicCard extends ConsumerWidget {
                     label: Text(l10n.musicDeviceAllow),
                   ),
                 ),
+              ],
             ],
           ),
         ),
@@ -394,6 +410,35 @@ const _songSuggestions = [
   'Lo-fi',
 ];
 
+/// Japan merangkumi J-pop dan Korea merangkumi K-pop. Cip berasingan digugurkan.
+const _radioChips = [
+  (
+    region: RadioRegion.favorites,
+    icon: Icons.star_rounded,
+    tint: Color(0xFFF59E0B),
+  ),
+  (
+    region: RadioRegion.malaysia,
+    icon: Icons.public_rounded,
+    tint: Color(0xFF059669),
+  ),
+  (
+    region: RadioRegion.indonesia,
+    icon: Icons.public_rounded,
+    tint: Color(0xFFDC2626),
+  ),
+  (
+    region: RadioRegion.japan,
+    icon: Icons.public_rounded,
+    tint: Color(0xFFDB2777),
+  ),
+  (
+    region: RadioRegion.korea,
+    icon: Icons.public_rounded,
+    tint: Color(0xFF2563EB),
+  ),
+];
+
 String _regionLabel(AppLocalizations l10n, RadioRegion r) => switch (r) {
   RadioRegion.favorites => l10n.musicRegionFavorites,
   RadioRegion.malaysia => l10n.musicRegionMalaysia,
@@ -410,8 +455,8 @@ class _ChipRow extends StatelessWidget {
 
   final List<Widget> children;
 
-  /// Semua cip kelihatan (dua baris di telefon sempit) dan bukannya digulung: Indonesia, Korea dan
-  /// K-pop mesti ternampak tanpa pengguna perlu meneka ada lagi di sebelah kanan.
+  /// Semua cip kelihatan (bukan digulung): Malaysia, Indonesia, Japan dan Korea
+  /// mesti ternampak tanpa pengguna perlu meneka ada lagi di sebelah kanan.
   final bool wrap;
 
   @override
@@ -461,9 +506,14 @@ class _Results extends ConsumerWidget {
       radioHealthProvider,
     ); // bina semula apabila stesen ditanda gagal/pulih
 
-    Widget message(IconData icon, String text, {Widget? action}) => ListView(
+    Widget message(
+      IconData icon,
+      String text, {
+      Widget? action,
+      double top = 40,
+    }) => ListView(
       controller: scroll,
-      padding: const EdgeInsets.fromLTRB(32, 40, 32, 16),
+      padding: EdgeInsets.fromLTRB(20, top, 20, 16),
       children: [
         Icon(icon, size: 44, color: theme.colorScheme.onSurfaceVariant),
         const SizedBox(height: 12),
@@ -542,9 +592,10 @@ class _Results extends ConsumerWidget {
           ),
           MusicTab.radio => message(Icons.radio_rounded, l10n.musicEmptyRadio),
           MusicTab.local => message(
-            Icons.folder_open_rounded,
+            Icons.folder_rounded,
             l10n.musicEmptyLocal,
-            action: importButton,
+            action: SizedBox(width: double.infinity, child: importButton),
+            top: 12,
           ),
         };
       case MusicSearchStatus.ready:

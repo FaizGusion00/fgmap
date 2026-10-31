@@ -150,21 +150,18 @@ void main() {
         'malaysia',
         'indonesia',
         'japan',
-        'jpop',
         'korea',
-        'kpop',
       ]) {
         expect(find.byKey(ValueKey('music-region-$name')), findsOneWidget);
       }
+      expect(find.byKey(const ValueKey('music-region-jpop')), findsNothing);
+      expect(find.byKey(const ValueKey('music-region-kpop')), findsNothing);
       await tester.tap(find.byKey(const ValueKey('music-region-japan')));
       await settle(tester);
       expect(radio.regions.last, RadioRegion.japan);
       await tester.tap(find.byKey(const ValueKey('music-region-korea')));
       await settle(tester);
       expect(radio.regions.last, RadioRegion.korea);
-      await tester.tap(find.byKey(const ValueKey('music-region-kpop')));
-      await settle(tester);
-      expect(radio.regions.last, RadioRegion.kpop);
     });
 
     testWidgets(

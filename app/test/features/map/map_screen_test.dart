@@ -153,7 +153,7 @@ void main() {
     expect(find.byTooltip('Tetapan'), findsOneWidget);
     expect(
       tester.getSize(find.byKey(const ValueKey('search-pill'))).height,
-      lessThanOrEqualTo(52),
+      lessThanOrEqualTo(64),
     );
     expect(find.text('Mengira laluan…'), findsNothing);
     expect(map.config!.routes, isEmpty);

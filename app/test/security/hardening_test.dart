@@ -113,6 +113,18 @@ void main() {
       expect(manifest, contains('@xml/backup_rules'));
     });
 
+    test('Android: R8 menyimpan konstruktor Room (WorkManager dari home_widget)', () {
+      // Tanpa ini build release ranap ketika bermula: "Failed to create an instance of
+      // androidx.work.impl.WorkDatabase" (peraturan Room 2.2.5 tidak menyimpan <init>()).
+      final rules = _read('android/app/proguard-rules.pro');
+      expect(
+        RegExp(
+          r'-keep class \* extends androidx\.room\.RoomDatabase\s*\{\s*<init>\(\);\s*\}',
+        ).hasMatch(rules),
+        isTrue,
+      );
+    });
+
     test('Android: Azan dan Muzik: kebenaran dan sumber yang betul', () {
       // Penggera tepat yang diminta pengguna, bukan USE_EXACT_ALARM (polisi Play: app jam sahaja).
       expect(manifest, contains('android.permission.SCHEDULE_EXACT_ALARM'));

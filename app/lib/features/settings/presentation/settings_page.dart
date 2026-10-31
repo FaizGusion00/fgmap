@@ -130,6 +130,178 @@ class _Group extends StatelessWidget {
   }
 }
 
+class _Option<T> {
+  const _Option(this.value, this.label, {this.icon});
+
+  final T value;
+  final String label;
+  final IconData? icon;
+}
+
+/// Bar pilihan sama lebar. Label satu baris supaya "System" tidak terputus.
+class _OptionBar<T> extends StatelessWidget {
+  const _OptionBar({
+    super.key,
+    required this.selected,
+    required this.options,
+    required this.onChanged,
+  });
+
+  final T selected;
+  final List<_Option<T>> options;
+  final ValueChanged<T> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(
+          alpha: 0.55,
+        ),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(3),
+        child: Row(
+          children: [
+            for (final option in options)
+              Expanded(
+                child: _OptionCell(
+                  option: option,
+                  selected: option.value == selected,
+                  onTap: () => onChanged(option.value),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _OptionCell<T> extends StatelessWidget {
+  const _OptionCell({
+    required this.option,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final _Option<T> option;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final fg = selected
+        ? theme.colorScheme.onPrimary
+        : theme.colorScheme.onSurface;
+    return Padding(
+      padding: const EdgeInsets.all(2),
+      child: Material(
+        color: selected ? theme.colorScheme.primary : Colors.transparent,
+        borderRadius: BorderRadius.circular(11),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(11),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (option.icon != null) ...[
+                  Icon(option.icon, size: 18, color: fg),
+                  const SizedBox(height: 2),
+                ],
+                Text(
+                  option.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: fg,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CompactSwitch extends StatelessWidget {
+  const _CompactSwitch({
+    super.key,
+    required this.icon,
+    required this.tint,
+    required this.title,
+    required this.value,
+    required this.onChanged,
+    this.subtitle,
+  });
+
+  final IconData icon;
+  final Color tint;
+  final String title;
+  final String? subtitle;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return InkWell(
+      onTap: () => onChanged(!value),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
+          children: [
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: tint.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: SizedBox(
+                width: 36,
+                height: 36,
+                child: Icon(icon, size: 20, color: tint),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: theme.textTheme.titleSmall),
+                  if (subtitle != null)
+                    Text(
+                      subtitle!,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        height: 1.25,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            Switch(
+              value: value,
+              onChanged: onChanged,
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _Label extends StatelessWidget {
   const _Label(this.text, {this.hint});
 
@@ -183,36 +355,32 @@ class _AppearanceGroup extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: double.infinity,
-            child: SegmentedButton<AppThemeMode>(
-              key: const ValueKey('theme-mode'),
-              showSelectedIcon: false,
-              segments: [
-                ButtonSegment(
-                  value: AppThemeMode.system,
-                  icon: const Icon(Icons.brightness_auto_rounded),
-                  label: Text(l10n.themeSystemShort),
-                ),
-                ButtonSegment(
-                  value: AppThemeMode.light,
-                  icon: const Icon(Icons.light_mode_rounded),
-                  label: Text(l10n.themeLight),
-                ),
-                ButtonSegment(
-                  value: AppThemeMode.dark,
-                  icon: const Icon(Icons.dark_mode_rounded),
-                  label: Text(l10n.themeDark),
-                ),
-                ButtonSegment(
-                  value: AppThemeMode.sun,
-                  icon: const Icon(Icons.wb_twilight_rounded),
-                  label: Text(l10n.themeSun),
-                ),
-              ],
-              selected: {settings.mode},
-              onSelectionChanged: (s) => controller.setMode(s.first),
-            ),
+          _OptionBar<AppThemeMode>(
+            key: const ValueKey('theme-mode'),
+            selected: settings.mode,
+            onChanged: controller.setMode,
+            options: [
+              _Option(
+                AppThemeMode.system,
+                l10n.themeSystemShort,
+                icon: Icons.brightness_auto_rounded,
+              ),
+              _Option(
+                AppThemeMode.light,
+                l10n.themeLight,
+                icon: Icons.light_mode_rounded,
+              ),
+              _Option(
+                AppThemeMode.dark,
+                l10n.themeDark,
+                icon: Icons.dark_mode_rounded,
+              ),
+              _Option(
+                AppThemeMode.sun,
+                l10n.themeSun,
+                icon: Icons.wb_twilight_rounded,
+              ),
+            ],
           ),
           if (settings.mode == AppThemeMode.sun)
             Padding(
@@ -225,75 +393,61 @@ class _AppearanceGroup extends ConsumerWidget {
                 ),
               ),
             ),
-          SwitchListTile(
+          _CompactSwitch(
             key: const ValueKey('amoled-switch'),
-            contentPadding: EdgeInsets.zero,
-            title: Text(l10n.themeAmoled),
-            subtitle: Text(l10n.themeAmoledHint),
+            icon: Icons.contrast_rounded,
+            tint: const Color(0xFF94A3B8),
+            title: l10n.themeAmoled,
+            subtitle: l10n.themeAmoledHint,
             value: settings.amoled,
             onChanged: controller.setAmoled,
           ),
-          SwitchListTile(
+          _CompactSwitch(
             key: const ValueKey('easy-mode-switch'),
-            contentPadding: EdgeInsets.zero,
-            secondary: const Icon(Icons.accessibility_new_rounded),
-            title: Text(l10n.settingsEasyMode),
-            subtitle: Text(l10n.settingsEasyModeHint),
+            icon: Icons.accessibility_new_rounded,
+            tint: const Color(0xFF8B5CF6),
+            title: l10n.settingsEasyMode,
+            subtitle: l10n.settingsEasyModeHint,
             value: prefs.easyMode,
             onChanged: prefsController.setEasyMode,
           ),
           _Label(l10n.settingsTextSize, hint: l10n.settingsTextSizeHint),
-          SizedBox(
-            width: double.infinity,
-            child: SegmentedButton<double>(
-              key: const ValueKey('text-scale'),
-              showSelectedIcon: false,
-              segments: [
-                for (final v in AppPreferences.textScales)
-                  ButtonSegment(value: v, label: Text(scaleLabel(v))),
-              ],
-              selected: {prefs.textScale},
-              onSelectionChanged: (s) => prefsController.setTextScale(s.first),
-            ),
+          _OptionBar<double>(
+            key: const ValueKey('text-scale'),
+            selected: prefs.textScale,
+            onChanged: prefsController.setTextScale,
+            options: [
+              for (final v in AppPreferences.textScales)
+                _Option(v, scaleLabel(v)),
+            ],
           ),
-          SwitchListTile(
+          _CompactSwitch(
             key: const ValueKey('reduce-motion-switch'),
-            contentPadding: EdgeInsets.zero,
-            title: Text(l10n.settingsReduceMotion),
-            subtitle: Text(l10n.settingsReduceMotionHint),
+            icon: Icons.motion_photos_off_rounded,
+            tint: const Color(0xFF0EA5E9),
+            title: l10n.settingsReduceMotion,
+            subtitle: l10n.settingsReduceMotionHint,
             value: prefs.reduceMotion,
             onChanged: prefsController.setReduceMotion,
           ),
-          SwitchListTile(
+          _CompactSwitch(
             key: const ValueKey('haptics-switch'),
-            contentPadding: EdgeInsets.zero,
-            title: Text(l10n.settingsHaptics),
+            icon: Icons.vibration_rounded,
+            tint: const Color(0xFF22C55E),
+            title: l10n.settingsHaptics,
             value: prefs.haptics,
             onChanged: prefsController.setHaptics,
           ),
           _Label(l10n.settingsLanguage),
-          SizedBox(
-            width: double.infinity,
-            child: SegmentedButton<String?>(
-              key: const ValueKey('app-language'),
-              showSelectedIcon: false,
-              segments: [
-                ButtonSegment(
-                  value: null,
-                  label: Text(l10n.settingsLanguageSystem),
-                ),
-                ButtonSegment(
-                  value: 'ms',
-                  label: Text(l10n.settingsLanguageMalay),
-                ),
-                ButtonSegment(
-                  value: 'en',
-                  label: Text(l10n.settingsLanguageEnglish),
-                ),
-              ],
-              selected: {prefs.languageCode},
-              onSelectionChanged: (s) => prefsController.setLanguage(s.first),
-            ),
+          _OptionBar<String?>(
+            key: const ValueKey('app-language'),
+            selected: prefs.languageCode,
+            onChanged: prefsController.setLanguage,
+            options: [
+              _Option(null, l10n.settingsLanguageSystem),
+              _Option('ms', l10n.settingsLanguageMalay),
+              _Option('en', l10n.settingsLanguageEnglish),
+            ],
           ),
           const SizedBox(height: 8),
         ],
