@@ -6,6 +6,8 @@
 		<true/>
 		<key>CFBundleDevelopmentRegion</key>
 		<string>$(DEVELOPMENT_LANGUAGE)</string>
+		<key>NSAppleMusicUsageDescription</key>
+		<string>FGMaps asks for Apple Music access only if you tap Connect Apple Music, so you can search and play full songs from your own subscription. FGMaps never sees your account.</string>
 		<key>NSLocationWhenInUseUsageDescription</key>
 		<string>FGMaps uses your location to show where you are on the map and as the starting point of a route.</string>
 		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>

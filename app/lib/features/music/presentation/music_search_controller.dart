@@ -11,6 +11,7 @@ import '../data/radio_favorites.dart';
 import '../data/radio_health.dart';
 import '../domain/music_repository.dart';
 import '../domain/track.dart';
+import 'apple_music_controller.dart';
 
 enum MusicTab {
   songs,
@@ -136,7 +137,7 @@ class MusicSearchController extends Notifier<MusicSearchState> {
         MusicTab.songs =>
           query.isEmpty
               ? await ref.read(audiusRepositoryProvider).trending()
-              : await ref.read(audiusRepositoryProvider).search(query),
+              : await _searchSongs(query),
         MusicTab.radio when state.region == RadioRegion.favorites => _filter(
           ref.read(radioFavoritesProvider),
           query,
@@ -165,6 +166,28 @@ class MusicSearchController extends Notifier<MusicSearchState> {
         status: MusicSearchStatus.failed,
         results: const [],
       );
+    }
+  }
+
+  /// Lagu penuh Apple Music (jika disambung dan pengguna pelanggan) dahulu, kemudian Audius. Setiap
+  /// sumber gagal secara berasingan; ralat hanya dilontar jika kedua-duanya gagal.
+  Future<List<Track>> _searchSongs(String query) async {
+    final audius = ref.read(audiusRepositoryProvider).search(query);
+    if (!ref.read(appleMusicStatusProvider).ready) return audius;
+    final apple = ref.read(appleMusicRepositoryProvider).search(query);
+    final results = await Future.wait([_attempt(apple), _attempt(audius)]);
+    if (results.every((r) => r == null)) {
+      throw StateError('Apple Music dan Audius gagal');
+    }
+    return [for (final r in results) ...?r];
+  }
+
+  Future<List<Track>?> _attempt(Future<List<Track>> search) async {
+    try {
+      return await search;
+    } on Object catch (e) {
+      logDiag('Sumber lagu gagal: $e');
+      return null;
     }
   }
 

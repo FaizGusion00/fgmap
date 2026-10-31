@@ -231,15 +231,16 @@ class OfficialTimesStore extends Notifier<List<OfficialMonth>> {
     required DateTime now,
     int days = azanScheduleDays + 1,
   }) async {
-    // Satu permintaan pada satu masa; panggilan serentak menunggu yang sedang berjalan.
-    // Ulang sehingga kita memegang slot — dua waiter boleh bangun sekali gus.
-    while (_running != null) {
-      await _running;
-      if (!ref.mounted) return false;
-    }
-    final completer = Completer<void>();
-    _running = completer.future;
+    // Rantaian completer: setiap panggilan mendaftarkan future sendiri segera, menunggu
+    // yang sebelumnya, kemudian menyelesaikan miliknya dalam `finally` — walaupun
+    // `!ref.mounted` selepas menunggu, waiter seterusnya tidak tergantung.
+    final prior = _running;
+    final mine = Completer<void>();
+    _running = mine.future;
     try {
+      if (prior != null) await prior;
+      if (!ref.mounted) return false;
+
       var changed = false;
       final needed = <(int, int)>{};
       for (var d = 0; d < days; d++) {
@@ -251,8 +252,6 @@ class OfficialTimesStore extends Notifier<List<OfficialMonth>> {
         final fetched = await ref
             .read(officialTimesClientProvider)
             .fetchMonth(at, year, month);
-        // Keluar awal OK: `finally` di bawah mesti menyelesaikan completer supaya
-        // waiter serentak tidak tergantung selama-lamanya selepas dispose.
         if (!ref.mounted) return changed;
         if (fetched == null) continue;
         // Gantikan bulan yang sama untuk zon berdekatan; simpan hanya 6 bulan terkini.
@@ -281,8 +280,8 @@ class OfficialTimesStore extends Notifier<List<OfficialMonth>> {
       }
       return changed;
     } finally {
-      if (!completer.isCompleted) completer.complete();
-      if (identical(_running, completer.future)) _running = null;
+      if (!mine.isCompleted) mine.complete();
+      if (identical(_running, mine.future)) _running = null;
     }
   }
 

@@ -66,6 +66,15 @@ abstract final class AppConfig {
   /// Nama app yang dihantar kepada Audius (dasar: setiap app pengeluaran menghantar nama unik).
   static const audiusAppName = 'FGMaps';
 
+  /// Apple Music (iOS, MusicKit): lagu penuh untuk pelanggan. Hidup dalam build debug/profile; dalam
+  /// release ia mesti dihidupkan dengan `--dart-define=APPLE_MUSIC=true` SELEPAS perkhidmatan MusicKit
+  /// diaktifkan pada App ID (Certificates, Identifiers & Profiles) supaya pengguna tidak melihat
+  /// kad "Sambung Apple Music" yang belum berfungsi. Tiada kesan di Android.
+  static const appleMusicEnabled = bool.fromEnvironment(
+    'APPLE_MUSIC',
+    defaultValue: !bool.fromEnvironment('dart.vm.product'),
+  );
+
   /// Cermin Radio Browser (pangkalan data stesen radio komuniti, percuma tanpa kunci). Dasar: UA
   /// berpengenalan, jangan guna satu pelayan sahaja. Dicuba mengikut tertib seperti Overpass.
   static const _radioBrowserRaw = String.fromEnvironment(

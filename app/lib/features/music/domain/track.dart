@@ -9,7 +9,11 @@ enum TrackSource {
   radio,
 
   /// Fail yang diimport pengguna ke storan app.
-  local;
+  local,
+
+  /// Apple Music (iOS, MusicKit): lagu penuh untuk pelanggan. Tiada URL strim yang boleh dimain
+  /// oleh app; MusicKit memainkannya sendiri (DRM), jadi [Track.streamUri] hanya penanda.
+  appleMusic;
 
   static TrackSource? fromName(String? name) {
     for (final s in values) {

@@ -353,6 +353,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.1.2"
+  fg_apple_music:
+    dependency: "direct main"
+    description:
+      path: "../packages/fg_apple_music"
+      relative: true
+    source: path
+    version: "0.1.0"
   fgmap_valhalla:
     dependency: "direct main"
     description:

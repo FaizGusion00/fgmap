@@ -1,21 +1,27 @@
 PODS:
+  - fg_apple_music (0.1.0):
+    - Flutter
   - Flutter (1.0.0)
-  - flutter_tts (0.0.1):
+  - home_widget (0.0.1):
     - Flutter
 
 DEPENDENCIES:
+  - fg_apple_music (from `.symlinks/plugins/fg_apple_music/ios`)
   - Flutter (from `Flutter`)
-  - flutter_tts (from `.symlinks/plugins/flutter_tts/ios`)
+  - home_widget (from `.symlinks/plugins/home_widget/ios`)
 
 EXTERNAL SOURCES:
+  fg_apple_music:
+    :path: ".symlinks/plugins/fg_apple_music/ios"
   Flutter:
     :path: Flutter
-  flutter_tts:
-    :path: ".symlinks/plugins/flutter_tts/ios"
+  home_widget:
+    :path: ".symlinks/plugins/home_widget/ios"
 
 SPEC CHECKSUMS:
-  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
-  flutter_tts: 35ac3c7d42412733e795ea96ad2d7e05d0a75113
+  fg_apple_music: 44b300d64ad9f63b08612369ce2cbcd707d15422
+  Flutter: 71a624a5bc0c04062bf19101d501e466baf2fb47
+  home_widget: f169fc41fd807b4d46ab6615dc44d62adbf9f64f
 
 PODFILE CHECKSUM: d45f3f674d8b1142051126e2d1d10190e67b0008
 

@@ -52,6 +52,7 @@ import '../../search/domain/location_link.dart';
 import '../../search/presentation/recent_places_bar.dart';
 import '../../search/presentation/trip_planner_page.dart';
 import '../../settings/presentation/settings_page.dart';
+import '../../air_quality/presentation/air_quality_sheet.dart';
 import '../../weather/presentation/weather_animated_icon.dart';
 import '../../weather/presentation/weather_controller.dart';
 import '../../weather/presentation/weather_strip.dart';
@@ -507,9 +508,9 @@ class _MapScreenState extends ConsumerState<MapScreen>
     });
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(l10n.alongRouteAddedStop)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l10n.alongRouteAddedStop)));
     await ref
         .read(routePreviewControllerProvider.notifier)
         .planTo(
@@ -1426,6 +1427,12 @@ class _MapScreenState extends ConsumerState<MapScreen>
                                 onTap: _openPlanner,
                               ),
                             ),
+                          ),
+                          _GlassIconButton(
+                            icon: Icons.air_rounded,
+                            tooltip: l10n.airQualityOpen,
+                            onPressed: () =>
+                                unawaited(showAirQualitySheet(context)),
                           ),
                           _GlassIconButton(
                             icon: Icons.music_note_rounded,

@@ -242,3 +242,59 @@ lirik muat naik pengguna), Sheila on 7 9 (muat naik pengguna), Spring/Tulus/Rais
 Kesimpulan: tab Lagu **tidak** menyediakan katalog Melayu/Indonesia/Korea/Japan arus perdana; cip cadangan di situ
 memberi hasil bising untuk bahasa/negara. Radio ialah laluan yang berfungsi. Cadangan terbuka: cip Malay/Indonesia/
 Japan/K-pop membuka tab Radio pada kawasan itu (belum dibuat; mengubah tingkah laku cip sedia ada).
+
+## Semakan 1.4 (lagu penuh: Apple Music, dan sumber percuma yang ditolak)
+
+**Keperluan:** lagu **penuh** (bukan pratonton 30 saat, bukan radio) untuk Melayu/Indonesia/Korea/Japan arus perdana,
+percuma dan boleh diterbitkan di Play Store dan App Store. Keputusan diserahkan kepada penulis app.
+
+**Sumber yang diukur dan ditolak** (semua diukur terus, tarikh 2026-10-31):
+- **Internet Archive:** volum besar (Siti Nurhaliza 62 item, Sheila on 7 139, Dewa 19 127, dangdut 2,245, K-pop 1,072,
+  city pop 799) tetapi kandungan ialah muat naik pengguna bagi album komersial ("DEWA 19 Full Album", Mariya Takeuchi
+  "30th Anniversary") dengan label "Public Domain" yang diletak sendiri oleh penuggah. Hampir pasti tanpa kebenaran
+  pemilik hak; risiko dasar IP Play/App Store. **Ditolak.**
+- **Openverse** (agregat Jamendo/Wikimedia/Freesound; tanpa kunci, anonim 20/min dan 200/hari): "Siti Nurhaliza",
+  "Melayu", "Malaysia", "dangdut", "keroncong", "lagu raya", "J-pop" 0 hasil; "Malay" 1, "K-pop" 1, "Korean" 10,
+  "Japanese" 147 (padanan tajuk seperti "16 Japanese Words"). Hanya lesen komersial: Malay/K-pop/J-pop/dangdut 0. Hampir
+  semua `by-nc-*`. Carian tidak berstruktur memakan 25 hingga 50 saat dan beberapa ralat HTTP. Terma: wajib nyatakan
+  "dibuat menggunakan Openverse"; mereka berhak mengenakan bayaran untuk penggunaan komersial. **Tidak dimasukkan:** tiada
+  faedah untuk sasaran dan menambah kos latensi serta kewajipan lesen.
+- **Free To Use:** tiada API awam (laman ialah kulit JavaScript; hanya imej lesen peribadi/komersial) dan kandungannya
+  muzik latar untuk pencipta kandungan. Endpoint dalaman yang tidak didokumenkan tidak digunakan.
+- **ccMixter:** carian kabur ("malay" -> "Himalayan Freedom"). **Jamendo terus:** perlu `client_id`, terma menuntut lesen
+  berbayar untuk penggunaan komersial, kandungan indie.
+- **SayaMusicAPI / Free Music Search / CCMusic Search:** hanya membungkus API di atas; SayaMusicAPI memanggil JioSaavn
+  (RPC laman tidak rasmi dengan User-Agent palsu) dan metadata lalu pelayan pihak ketiga. **Unstream:** kaedah tidak
+  rasmi. **Navidrome/Ampache/Gonic/Koel/Black Candy:** pelayan untuk fail milik sendiri, tiada katalog.
+- Spotify (Premium sahaja, mod pembangun 25 pengguna), YouTube (lihat 1.1/1.2).
+
+**Keputusan: Apple Music melalui MusicKit (iOS), untuk pelanggan.** Satu-satunya laluan sah ke katalog label penuh
+(Siti Nurhaliza, Spring, Awie, K-pop, J-pop, Indonesia) dengan SDK rasmi. Pelaksanaan:
+- `packages/fg_apple_music` (plugin natif iOS, Swift): `MusicAuthorization`, `MusicCatalogSearchRequest` (lagu sahaja),
+  `ApplicationMusicPlayer`. Tiada token pembangun dalam kod: MusicKit meminta sendiri bagi identiti app apabila
+  perkhidmatan MusicKit diaktifkan pada App ID. Saluran `fgmaps/apple_music` dan `.../events` (gambar pemain 0.5 s).
+- Dart: `TrackSource.appleMusic`, `AppleMusicEngine`, `RoutingMusicEngine` (just_audio untuk radio/Audius/fail, MusicKit
+  untuk Apple; satu enjin aktif; gambar enjin tidak aktif dibuang), `AppleMusicController`. Carian Lagu: Apple Music
+  dahulu kemudian Audius, setiap sumber gagal berasingan.
+- Kebenaran **tidak pernah diminta sendiri**; dialog sistem hanya muncul apabila pengguna mengetik "Sambung Apple Music".
+  `NSAppleMusicUsageDescription` ditambah (tanpanya iOS menamatkan app apabila kebenaran diminta).
+- Privasi: tiada akaun/token/sejarah diterima app; dasar privasi (BM/EN) dan ujian `legal_test` mewajibkan "Apple Music".
+- Android: tiada kesan (kad tidak dipaparkan). SDK Android MusicKit ialah binari yang dimuat turun secara manual daripada
+  Apple (versi yang ditemui 2021) dan tidak disertakan; **majoriti pengguna Malaysia ialah Android, jadi ciri ini
+  hanya sampai kepada pelanggan iPhone.**
+
+**Had yang diketahui (jujur):**
+- MusicKit tiada kawalan kelantangan: suara navigasi **menjeda** lagu Apple Music (walaupun mod "perlahankan"), lalu
+  menyambung. Penyama dan slider kelantangan app tidak berkesan pada lagu Apple Music.
+- Baris gilir tidak boleh bercampur Apple + Audius: mengetik lagu Apple hanya menyusun lagu Apple dalam hasil itu.
+- Skrin kunci/Now Playing lagu Apple diurus MusicKit sendiri (perkhidmatan audio app tidak dimulakan untuknya).
+- **Pengesahan:** kod Swift lulus `swiftc -typecheck` terhadap SDK iPhoneOS 27.1 (peranti dan simulator); logik Dart
+  diuji dengan saluran palsu. **Belum diuji pada peranti sebenar** dengan langganan Apple Music: carian katalog
+  storefront `my`, main, perubahan lagu, jeda/sambung suara navigasi dan skrin kunci perlu diuji tangan.
+
+**Untuk menghidupkan dalam release (langkah penulis app, tidak boleh dibuat dalam kod):**
+1. developer.apple.com > Certificates, Identifiers & Profiles > Identifiers > `com.fguniversal.fgmap` > App Services >
+   hidupkan **MusicKit**; jana semula profil provisioning.
+2. Bina dengan `--dart-define=APPLE_MUSIC=true` (lalai: hidup dalam debug/profile, **mati dalam release** supaya pengguna
+   tidak melihat kad yang belum berfungsi).
+3. Uji pada iPhone dengan langganan Apple Music aktif sebelum menghantar ke semakan.

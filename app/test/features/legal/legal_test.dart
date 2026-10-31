@@ -51,6 +51,7 @@ void main() {
             'maps.app.goo.gl',
             'Audius',
             'Radio Browser',
+            'Apple Music',
             'WaktuSolat',
           ]) {
             expect(text, contains(party), reason: '$doc tidak menyebut $party');

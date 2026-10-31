@@ -13,6 +13,8 @@ dependencies:
   dio: ^5.11.1
   fgmap_valhalla:
     path: ../packages/fgmap_valhalla
+  fg_apple_music:
+    path: ../packages/fg_apple_music
   flutter:
     sdk: flutter
   flutter_native_splash: ^2.4.7

@@ -2156,6 +2156,54 @@ abstract class AppLocalizations {
   /// **'Audius'**
   String get musicSourceAudius;
 
+  /// No description provided for @musicSourceAppleMusic.
+  ///
+  /// In ms, this message translates to:
+  /// **'Apple Music'**
+  String get musicSourceAppleMusic;
+
+  /// No description provided for @musicViaAppleMusic.
+  ///
+  /// In ms, this message translates to:
+  /// **'via Apple Music'**
+  String get musicViaAppleMusic;
+
+  /// No description provided for @musicAppleConnectTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Lagu penuh dengan Apple Music'**
+  String get musicAppleConnectTitle;
+
+  /// No description provided for @musicAppleConnectBody.
+  ///
+  /// In ms, this message translates to:
+  /// **'Sambung langganan Apple Music anda untuk cari dan main lagu penuh Malay, Indonesia, Japan dan K-pop. Carian dan lagu terus melalui Apple; FGMaps tidak melihat akaun anda.'**
+  String get musicAppleConnectBody;
+
+  /// No description provided for @musicAppleConnect.
+  ///
+  /// In ms, this message translates to:
+  /// **'Sambung Apple Music'**
+  String get musicAppleConnect;
+
+  /// No description provided for @musicAppleDenied.
+  ///
+  /// In ms, this message translates to:
+  /// **'Akses Apple Music ditolak. Hidupkan di Tetapan iPhone > FGMaps > Media & Apple Music.'**
+  String get musicAppleDenied;
+
+  /// No description provided for @musicAppleNeedsSubscription.
+  ///
+  /// In ms, this message translates to:
+  /// **'Lagu penuh perlukan langganan Apple Music yang aktif. Langgan dalam app Apple Music, kemudian buka semula tab ini.'**
+  String get musicAppleNeedsSubscription;
+
+  /// No description provided for @musicAppleUnavailable.
+  ///
+  /// In ms, this message translates to:
+  /// **'Apple Music tidak boleh dimain dengan akaun ini.'**
+  String get musicAppleUnavailable;
+
   /// No description provided for @musicSourceRadio.
   ///
   /// In ms, this message translates to:
@@ -2747,7 +2795,7 @@ abstract class AppLocalizations {
   /// No description provided for @legalAttribution.
   ///
   /// In ms, this message translates to:
-  /// **'Data peta © penyumbang OpenStreetMap (ODbL). Gaya dan jubin: OpenFreeMap, OpenMapTiles. Laluan: Valhalla. Carian: Photon (komoot) dan Nominatim. Harga petrol: data.gov.my. Waktu solat: JAKIM e-Solat melalui WaktuSolat API (api.waktusolat.app), dan pengiraan Adhan. Muzik: Audius (Open Music License) dan Radio Browser; strim radio daripada stesen masing-masing. Rakaman azan: Aaqib Azeez / Atcovi, Wikimedia Commons, CC BY-SA 4.0.'**
+  /// **'Data peta © penyumbang OpenStreetMap (ODbL). Gaya dan jubin: OpenFreeMap, OpenMapTiles. Laluan: Valhalla. Carian: Photon (komoot) dan Nominatim. Harga petrol: data.gov.my. Waktu solat: JAKIM e-Solat melalui WaktuSolat API (api.waktusolat.app), dan pengiraan Adhan. Muzik: Audius (Open Music License), Radio Browser, dan Apple Music di iPhone (pelanggan, melalui MusicKit Apple); strim radio daripada stesen masing-masing. Rakaman azan: Aaqib Azeez / Atcovi, Wikimedia Commons, CC BY-SA 4.0.'**
   String get legalAttribution;
 
   /// No description provided for @aboutAttributionTitle.
@@ -3505,6 +3553,90 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'Suara bila R&R atau stesen minyak di hadapan (chip tetap dipaparkan)'**
   String get settingsAlongRouteAnnounceHint;
+
+  /// No description provided for @airQualityTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kualiti udara'**
+  String get airQualityTitle;
+
+  /// No description provided for @airQualityOpen.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kualiti udara'**
+  String get airQualityOpen;
+
+  /// No description provided for @airQualityDisclaimer.
+  ///
+  /// In ms, this message translates to:
+  /// **'Anggaran AQI (Open-Meteo). Bukan IPU rasmi Jabatan Alam Sekitar.'**
+  String get airQualityDisclaimer;
+
+  /// No description provided for @airQualityHere.
+  ///
+  /// In ms, this message translates to:
+  /// **'Di sini'**
+  String get airQualityHere;
+
+  /// No description provided for @airQualitySearchHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Cari tempat lain'**
+  String get airQualitySearchHint;
+
+  /// No description provided for @airQualityUnavailable.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kualiti udara tidak tersedia. Semak lokasi dan sambungan.'**
+  String get airQualityUnavailable;
+
+  /// No description provided for @airQualityCached.
+  ///
+  /// In ms, this message translates to:
+  /// **'Cache'**
+  String get airQualityCached;
+
+  /// No description provided for @airQualityAttribution.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kualiti udara: Open-Meteo · lokasi dibundarkan ~100 m'**
+  String get airQualityAttribution;
+
+  /// No description provided for @airBandGood.
+  ///
+  /// In ms, this message translates to:
+  /// **'Baik'**
+  String get airBandGood;
+
+  /// No description provided for @airBandModerate.
+  ///
+  /// In ms, this message translates to:
+  /// **'Sederhana'**
+  String get airBandModerate;
+
+  /// No description provided for @airBandSensitive.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tidak sihat untuk kumpulan sensitif'**
+  String get airBandSensitive;
+
+  /// No description provided for @airBandUnhealthy.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tidak sihat'**
+  String get airBandUnhealthy;
+
+  /// No description provided for @airBandVeryUnhealthy.
+  ///
+  /// In ms, this message translates to:
+  /// **'Sangat tidak sihat'**
+  String get airBandVeryUnhealthy;
+
+  /// No description provided for @airBandHazardous.
+  ///
+  /// In ms, this message translates to:
+  /// **'Berbahaya'**
+  String get airBandHazardous;
 }
 
 class _AppLocalizationsDelegate

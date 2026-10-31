@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:fgmap/features/music/data/apple_music_channel.dart';
+import 'package:fgmap/features/music/domain/apple_music.dart';
 import 'package:fgmap/features/music/domain/music_repository.dart';
 import 'package:fgmap/features/music/domain/player_state.dart';
 import 'package:fgmap/features/music/domain/track.dart';
@@ -170,4 +172,52 @@ class FakeLocalLibrary implements LocalLibrary {
 
   @override
   Future<void> clear() async => tracks.clear();
+}
+
+Track appleTrack(String id, {String? title}) => Track(
+  id: id,
+  source: TrackSource.appleMusic,
+  title: title ?? 'Apple $id',
+  artist: 'Siti Nurhaliza',
+  streamUri: appleMusicMarker(id),
+  duration: const Duration(minutes: 4),
+);
+
+class FakeAppleMusicRepository implements AppleMusicRepository {
+  FakeAppleMusicRepository({
+    this.current = const AppleMusicStatus(),
+    this.afterAuthorize = const AppleMusicStatus(
+      access: AppleMusicAccess.authorized,
+      canPlay: true,
+    ),
+    this.results = const [],
+    this.error,
+    this.isSupported = true,
+  });
+  AppleMusicStatus current;
+  AppleMusicStatus afterAuthorize;
+  List<Track> results;
+  Object? error;
+  bool isSupported;
+  final queries = <String>[];
+  int authorizeCalls = 0;
+
+  @override
+  bool get supported => isSupported;
+
+  @override
+  Future<AppleMusicStatus> status() async => current;
+
+  @override
+  Future<AppleMusicStatus> authorize() async {
+    authorizeCalls++;
+    return current = afterAuthorize;
+  }
+
+  @override
+  Future<List<Track>> search(String query) async {
+    queries.add(query);
+    if (error != null) throw error!;
+    return results;
+  }
 }

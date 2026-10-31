@@ -8,12 +8,14 @@ String trackSourceName(AppLocalizations l10n, TrackSource s) => switch (s) {
   TrackSource.audius => l10n.musicSourceAudius,
   TrackSource.radio => l10n.musicSourceRadio,
   TrackSource.local => l10n.musicSourceLocal,
+  TrackSource.appleMusic => l10n.musicSourceAppleMusic,
 };
 
 IconData trackSourceIcon(TrackSource s) => switch (s) {
   TrackSource.audius => Icons.music_note_rounded,
   TrackSource.radio => Icons.radio_rounded,
   TrackSource.local => Icons.folder_rounded,
+  TrackSource.appleMusic => Icons.library_music_rounded,
 };
 
 /// Karya seni lagu / favicon stesen dengan sandaran ikon sumber.

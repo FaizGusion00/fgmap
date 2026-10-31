@@ -1172,6 +1172,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String get musicSourceAudius => 'Audius';
 
   @override
+  String get musicSourceAppleMusic => 'Apple Music';
+
+  @override
+  String get musicViaAppleMusic => 'via Apple Music';
+
+  @override
+  String get musicAppleConnectTitle => 'Full songs with Apple Music';
+
+  @override
+  String get musicAppleConnectBody =>
+      'Connect your Apple Music subscription to search and play full Malay, Indonesian, Japanese and K-pop songs. Search and playback go straight through Apple; FGMaps never sees your account.';
+
+  @override
+  String get musicAppleConnect => 'Connect Apple Music';
+
+  @override
+  String get musicAppleDenied =>
+      'Apple Music access was declined. Turn it on in iPhone Settings > FGMaps > Media & Apple Music.';
+
+  @override
+  String get musicAppleNeedsSubscription =>
+      'Full songs need an active Apple Music subscription. Subscribe in the Apple Music app, then reopen this tab.';
+
+  @override
+  String get musicAppleUnavailable =>
+      'Apple Music can\'t play on this account.';
+
+  @override
   String get musicSourceRadio => 'Radio Browser';
 
   @override
@@ -1517,7 +1545,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get legalAttribution =>
-      'Map data © OpenStreetMap contributors (ODbL). Style and tiles: OpenFreeMap, OpenMapTiles. Routing: Valhalla. Search: Photon (komoot) and Nominatim. Fuel prices: data.gov.my. Prayer times: JAKIM e-Solat via the WaktuSolat API (api.waktusolat.app), and Adhan calculation. Music: Audius (Open Music License) and Radio Browser; radio streams come from the stations themselves. Azan recording: Aaqib Azeez / Atcovi, Wikimedia Commons, CC BY-SA 4.0.';
+      'Map data © OpenStreetMap contributors (ODbL). Style and tiles: OpenFreeMap, OpenMapTiles. Routing: Valhalla. Search: Photon (komoot) and Nominatim. Fuel prices: data.gov.my. Prayer times: JAKIM e-Solat via the WaktuSolat API (api.waktusolat.app), and Adhan calculation. Music: Audius (Open Music License), Radio Browser, and Apple Music on iPhone (subscribers, via Apple\'s MusicKit); radio streams come from the stations themselves. Azan recording: Aaqib Azeez / Atcovi, Wikimedia Commons, CC BY-SA 4.0.';
 
   @override
   String get aboutAttributionTitle => 'Data sources';
@@ -1958,4 +1986,49 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsAlongRouteAnnounceHint =>
       'Voice when a rest area or fuel stop is ahead (chip always shows)';
+
+  @override
+  String get airQualityTitle => 'Air quality';
+
+  @override
+  String get airQualityOpen => 'Air quality';
+
+  @override
+  String get airQualityDisclaimer =>
+      'Estimated US AQI from Open-Meteo. Not the official DOE air pollutant index (IPU).';
+
+  @override
+  String get airQualityHere => 'Here';
+
+  @override
+  String get airQualitySearchHint => 'Search another place';
+
+  @override
+  String get airQualityUnavailable =>
+      'Air quality unavailable. Check location and connection.';
+
+  @override
+  String get airQualityCached => 'Cached';
+
+  @override
+  String get airQualityAttribution =>
+      'Air quality: Open-Meteo · location rounded ~100 m';
+
+  @override
+  String get airBandGood => 'Good';
+
+  @override
+  String get airBandModerate => 'Moderate';
+
+  @override
+  String get airBandSensitive => 'Unhealthy for sensitive groups';
+
+  @override
+  String get airBandUnhealthy => 'Unhealthy';
+
+  @override
+  String get airBandVeryUnhealthy => 'Very unhealthy';
+
+  @override
+  String get airBandHazardous => 'Hazardous';
 }

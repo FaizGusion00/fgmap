@@ -1171,6 +1171,34 @@ class AppLocalizationsMs extends AppLocalizations {
   String get musicSourceAudius => 'Audius';
 
   @override
+  String get musicSourceAppleMusic => 'Apple Music';
+
+  @override
+  String get musicViaAppleMusic => 'via Apple Music';
+
+  @override
+  String get musicAppleConnectTitle => 'Lagu penuh dengan Apple Music';
+
+  @override
+  String get musicAppleConnectBody =>
+      'Sambung langganan Apple Music anda untuk cari dan main lagu penuh Malay, Indonesia, Japan dan K-pop. Carian dan lagu terus melalui Apple; FGMaps tidak melihat akaun anda.';
+
+  @override
+  String get musicAppleConnect => 'Sambung Apple Music';
+
+  @override
+  String get musicAppleDenied =>
+      'Akses Apple Music ditolak. Hidupkan di Tetapan iPhone > FGMaps > Media & Apple Music.';
+
+  @override
+  String get musicAppleNeedsSubscription =>
+      'Lagu penuh perlukan langganan Apple Music yang aktif. Langgan dalam app Apple Music, kemudian buka semula tab ini.';
+
+  @override
+  String get musicAppleUnavailable =>
+      'Apple Music tidak boleh dimain dengan akaun ini.';
+
+  @override
   String get musicSourceRadio => 'Radio Browser';
 
   @override
@@ -1517,7 +1545,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get legalAttribution =>
-      'Data peta © penyumbang OpenStreetMap (ODbL). Gaya dan jubin: OpenFreeMap, OpenMapTiles. Laluan: Valhalla. Carian: Photon (komoot) dan Nominatim. Harga petrol: data.gov.my. Waktu solat: JAKIM e-Solat melalui WaktuSolat API (api.waktusolat.app), dan pengiraan Adhan. Muzik: Audius (Open Music License) dan Radio Browser; strim radio daripada stesen masing-masing. Rakaman azan: Aaqib Azeez / Atcovi, Wikimedia Commons, CC BY-SA 4.0.';
+      'Data peta © penyumbang OpenStreetMap (ODbL). Gaya dan jubin: OpenFreeMap, OpenMapTiles. Laluan: Valhalla. Carian: Photon (komoot) dan Nominatim. Harga petrol: data.gov.my. Waktu solat: JAKIM e-Solat melalui WaktuSolat API (api.waktusolat.app), dan pengiraan Adhan. Muzik: Audius (Open Music License), Radio Browser, dan Apple Music di iPhone (pelanggan, melalui MusicKit Apple); strim radio daripada stesen masing-masing. Rakaman azan: Aaqib Azeez / Atcovi, Wikimedia Commons, CC BY-SA 4.0.';
 
   @override
   String get aboutAttributionTitle => 'Sumber data';
@@ -1959,4 +1987,49 @@ class AppLocalizationsMs extends AppLocalizations {
   @override
   String get settingsAlongRouteAnnounceHint =>
       'Suara bila R&R atau stesen minyak di hadapan (chip tetap dipaparkan)';
+
+  @override
+  String get airQualityTitle => 'Kualiti udara';
+
+  @override
+  String get airQualityOpen => 'Kualiti udara';
+
+  @override
+  String get airQualityDisclaimer =>
+      'Anggaran AQI (Open-Meteo). Bukan IPU rasmi Jabatan Alam Sekitar.';
+
+  @override
+  String get airQualityHere => 'Di sini';
+
+  @override
+  String get airQualitySearchHint => 'Cari tempat lain';
+
+  @override
+  String get airQualityUnavailable =>
+      'Kualiti udara tidak tersedia. Semak lokasi dan sambungan.';
+
+  @override
+  String get airQualityCached => 'Cache';
+
+  @override
+  String get airQualityAttribution =>
+      'Kualiti udara: Open-Meteo · lokasi dibundarkan ~100 m';
+
+  @override
+  String get airBandGood => 'Baik';
+
+  @override
+  String get airBandModerate => 'Sederhana';
+
+  @override
+  String get airBandSensitive => 'Tidak sihat untuk kumpulan sensitif';
+
+  @override
+  String get airBandUnhealthy => 'Tidak sihat';
+
+  @override
+  String get airBandVeryUnhealthy => 'Sangat tidak sihat';
+
+  @override
+  String get airBandHazardous => 'Berbahaya';
 }

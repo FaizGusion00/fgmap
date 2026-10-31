@@ -7,8 +7,10 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../data/music_settings.dart';
 import '../data/radio_favorites.dart';
 import '../data/radio_health.dart';
+import '../domain/apple_music.dart';
 import '../domain/music_repository.dart';
 import '../domain/track.dart';
+import 'apple_music_controller.dart';
 import 'mini_player.dart';
 import 'music_search_controller.dart';
 import 'music_widgets.dart';
@@ -175,6 +177,7 @@ class _MusicSheetState extends ConsumerState<MusicSheet> {
             )
           else
             const SizedBox(height: 4),
+          if (state.tab == MusicTab.songs) const _AppleMusicCard(),
           Expanded(
             child: _Results(state: state, scroll: scroll, easy: easy),
           ),
@@ -195,6 +198,65 @@ class _MusicSheetState extends ConsumerState<MusicSheet> {
               child: MiniPlayer(),
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// Ajakan menyambung Apple Music (iOS sahaja). Tidak dipaparkan di Android, apabila ciri ditutup,
+/// atau apabila lagu penuh sudah boleh dimain.
+class _AppleMusicCard extends ConsumerWidget {
+  const _AppleMusicCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final status = ref.watch(appleMusicStatusProvider);
+    if (!status.supported || status.ready) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final (body, canConnect) = switch (status.access) {
+      AppleMusicAccess.denied ||
+      AppleMusicAccess.restricted => (l10n.musicAppleDenied, false),
+      AppleMusicAccess.authorized => (
+        status.canBecomeSubscriber
+            ? l10n.musicAppleNeedsSubscription
+            : l10n.musicAppleUnavailable,
+        false,
+      ),
+      _ => (l10n.musicAppleConnectBody, true),
+    };
+    return Padding(
+      key: const ValueKey('apple-music-card'),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+      child: Card.filled(
+        margin: EdgeInsets.zero,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                l10n.musicAppleConnectTitle,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(body, style: theme.textTheme.bodySmall),
+              if (canConnect)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: FilledButton.tonalIcon(
+                    key: const ValueKey('apple-music-connect'),
+                    onPressed: () =>
+                        ref.read(appleMusicStatusProvider.notifier).connect(),
+                    icon: const Icon(Icons.library_music_rounded),
+                    label: Text(l10n.musicAppleConnect),
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -419,6 +481,8 @@ class _Results extends ConsumerWidget {
                   if (unreachable) l10n.musicRadioUnreachable,
                   if (t.artist != null) t.artist!,
                   if (t.source == TrackSource.audius) l10n.musicViaAudius,
+                  if (t.source == TrackSource.appleMusic)
+                    l10n.musicViaAppleMusic,
                   if (t.duration != null) formatTrackTime(t.duration!),
                 ].join(' · '),
                 maxLines: 1,

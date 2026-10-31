@@ -4,19 +4,26 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/audio/audio_coordinator.dart';
 import '../../../core/utils/log.dart';
+import '../data/apple_music_channel.dart';
 import '../data/just_audio_engine.dart';
 import '../data/music_audio_handler.dart';
 import '../data/music_settings.dart';
 import '../data/radio_browser_repository.dart';
 import '../data/radio_health.dart';
+import '../data/routing_music_engine.dart';
 import '../domain/music_repository.dart';
 import '../domain/player_state.dart';
 import '../domain/stream_title.dart';
 import '../domain/track.dart';
+import 'apple_music_controller.dart';
 
-/// Enjin audio; ditimpa dengan palsu dalam ujian.
+/// Enjin audio; ditimpa dengan palsu dalam ujian. just_audio untuk radio, Audius dan fail; MusicKit
+/// untuk Apple Music (iOS sahaja).
 final musicEngineProvider = Provider<MusicEngine>((ref) {
-  final engine = JustAudioEngine();
+  final engine = RoutingMusicEngine(
+    justAudio: JustAudioEngine(),
+    apple: appleMusicPlatformSupported ? AppleMusicEngine() : null,
+  );
   ref.onDispose(engine.dispose);
   return engine;
 });
@@ -90,19 +97,39 @@ class PlayerController extends Notifier<PlayerState> implements DuckTarget {
 
   MusicEngine get _engine => ref.read(musicEngineProvider);
 
-  Future<void> _ensureService() async {
-    if (_serviceStarted) return;
+  /// MusicKit mengurus Now Playing/skrin kunci sendiri, jadi perkhidmatan audio (yang membungkus
+  /// just_audio) hanya dimulakan untuk lagu yang dimain oleh just_audio.
+  Future<void> _ensureService(Track track) async {
+    if (_serviceStarted || _isApple(track)) return;
     _serviceStarted = true;
     final engine = _engine;
     final starter = ref.read(audioServiceStarterProvider);
-    if (starter != null && engine is JustAudioEngine) {
-      await starter.ensureStarted(engine.player);
+    if (starter != null &&
+        engine is RoutingMusicEngine &&
+        engine.justAudio is JustAudioEngine) {
+      await starter.ensureStarted((engine.justAudio as JustAudioEngine).player);
     }
   }
 
-  /// Main [track]; [queue] (mengandungi track) menjadi baris gilir, jika tidak hanya lagu ini.
+  static bool _isApple(Track t) => t.source == TrackSource.appleMusic;
+
+  /// MusicKit tiada kawalan kelantangan, jadi suara navigasi menjeda lagu Apple Music dan bukan
+  /// memperlahankannya.
+  bool get _canSetVolume {
+    final current = state.current;
+    return current == null || !_isApple(current);
+  }
+
+  /// Main [track]; [queue] (mengandungi track) menjadi baris gilir, jika tidak hanya lagu ini. Baris
+  /// gilir hanya mengekalkan lagu yang dimain oleh enjin yang sama (Apple Music tidak boleh bercampur
+  /// dengan Audius dalam satu baris gilir).
   Future<void> playTrack(Track track, {List<Track>? queue}) async {
-    final list = queue != null && queue.contains(track) ? queue : [track];
+    final list = queue != null && queue.contains(track)
+        ? [
+            for (final t in queue)
+              if (_isApple(t) == _isApple(track)) t,
+          ]
+        : [track];
     final index = list.indexOf(track);
     state = state.copyWith(
       status: PlayerStatus.loading,
@@ -113,9 +140,11 @@ class PlayerController extends Notifier<PlayerState> implements DuckTarget {
       clearError: true,
     );
     try {
-      await _ensureService();
+      await _ensureService(track);
       await _engine.setQueue(list, index);
-      await _engine.setVolume(state.ducked ? duckVolume : state.volume);
+      if (!_isApple(track)) {
+        await _engine.setVolume(state.ducked ? duckVolume : state.volume);
+      }
       _countRadioClick(track);
       await _engine.play();
     } on Object catch (e) {
@@ -166,7 +195,7 @@ class PlayerController extends Notifier<PlayerState> implements DuckTarget {
   Future<void> setVolume(double volume) async {
     final v = volume.clamp(0.0, 1.0);
     state = state.copyWith(volume: v);
-    if (!state.ducked) await _engine.setVolume(v);
+    if (!state.ducked && _canSetVolume) await _engine.setVolume(v);
   }
 
   Future<void> stop() async {
@@ -180,7 +209,7 @@ class PlayerController extends Notifier<PlayerState> implements DuckTarget {
     if (state.current == null) return;
     final mode = ref.read(musicSettingsProvider).duckMode;
     state = state.copyWith(ducked: true);
-    if (mode == DuckMode.pause) {
+    if (mode == DuckMode.pause || !_canSetVolume) {
       if (state.isPlaying) {
         _resumeAfterSpeech = true;
         await _engine.pause();
@@ -194,7 +223,7 @@ class PlayerController extends Notifier<PlayerState> implements DuckTarget {
   Future<void> onSpeechEnd() async {
     if (!state.ducked) return;
     state = state.copyWith(ducked: false);
-    await _engine.setVolume(state.volume);
+    if (_canSetVolume) await _engine.setVolume(state.volume);
     if (_resumeAfterSpeech) {
       _resumeAfterSpeech = false;
       await _engine.play();

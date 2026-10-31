@@ -206,7 +206,14 @@ void main() {
             officialTimesClientProvider.overrideWithValue(slow),
           ],
         );
-        final pending = c.read(officialTimesProvider.notifier).ensure(
+        final store = c.read(officialTimesProvider.notifier);
+        final pending = store.ensure(
+          at: kl,
+          now: DateTime(2026, 10, 31),
+          days: 1,
+        );
+        // Waiter berantai: mesti selesai walaupun keluar awal kerana !mounted.
+        final waiter = store.ensure(
           at: kl,
           now: DateTime(2026, 10, 31),
           days: 1,
@@ -215,6 +222,7 @@ void main() {
         c.dispose();
         gate.complete();
         await pending.timeout(const Duration(seconds: 2));
+        await waiter.timeout(const Duration(seconds: 2));
 
         final c2 = make();
         client.available = true;
