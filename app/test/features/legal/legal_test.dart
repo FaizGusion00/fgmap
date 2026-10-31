@@ -49,6 +49,8 @@ void main() {
             'GitHub',
             'data.gov.my',
             'maps.app.goo.gl',
+            'Audius',
+            'Radio Browser',
           ]) {
             expect(text, contains(party), reason: '$doc tidak menyebut $party');
           }

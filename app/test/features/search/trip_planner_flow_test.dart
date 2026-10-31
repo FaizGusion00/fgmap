@@ -297,7 +297,7 @@ void main() {
       'pil carian membuka perancang; destinasi dipilih -> laluan dari lokasi saya dengan nama',
       (tester) async {
         await pumpMap(tester);
-        expect(find.text('Cari destinasi'), findsOneWidget);
+        expect(find.text('Ke mana?'), findsOneWidget);
 
         await tester.tap(find.byKey(const ValueKey('search-pill')));
         await tester.pumpAndSettle();

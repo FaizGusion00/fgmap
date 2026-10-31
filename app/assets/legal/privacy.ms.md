@@ -21,6 +21,8 @@ FGMaps ("app") dikendalikan oleh **{{entity}}** (No. pendaftaran: {{regNo}}), be
 - Laporan jalan (kemalangan, sekatan dan sebagainya) yang anda buat. Buat masa ini ia hanya disimpan pada telefon anda dan tidak dikongsi dengan pengguna lain.
 - Simpanan sementara: hasil carian berhampiran (hingga 30 hari), gaya peta, peta luar talian yang anda muat turun, dan kedudukan kasar (dibundarkan kira-kira 11 km) untuk mengira waktu matahari terbit dan terbenam bagi tema automatik.
 - Log ralat ringkas pada telefon (jika dihidupkan), yang tidak mengandungi koordinat atau URL dan tidak dihantar ke mana-mana kecuali anda salin dan hantar sendiri.
+- Waktu Azan: waktu solat dikira pada telefon anda sendiri (tiada pelayan). Kedudukan kasar (dibundarkan kira-kira 1 km) atau bandar yang anda pilih disimpan untuk pengiraan dan penjadualan notifikasi.
+- Muzik: fail audio yang anda import dari telefon disalin ke storan app; tetapan pemain (penyama, tingkah laku semasa suara navigasi) juga disimpan di sini.
 
 Data ini tidak disandarkan ke awan (sandaran Android dimatikan).
 
@@ -35,6 +37,8 @@ App perlu menghubungi perkhidmatan berikut untuk berfungsi. Setiap satu turut me
 - **Peta luar talian (GitHub Releases):** muat turun pek peta yang anda pilih. Hanya alamat IP dan butiran muat turun yang terlibat.
 - **Harga petrol (data.gov.my, Kerajaan Malaysia):** permintaan tanpa data peribadi; hanya alamat IP.
 - **Pautan peta pendek (maps.app.goo.gl, Google):** hanya apabila anda membuka pautan yang dikongsi dengan anda; app meminta pautan itu untuk mengetahui destinasinya.
+- **Muzik: Audius (Audius API dan nod kandungan yang dikendalikan pihak ketiga):** hanya apabila anda membuka Muzik dan mencari atau memainkan lagu; teks carian dan ID lagu yang dimainkan dihantar (tiada lokasi). Lagu dimainkan secara strim dan tidak disimpan.
+- **Muzik: Radio Browser (cermin komuniti di Eropah) dan pelayan strim stesen radio itu sendiri:** hanya apabila anda membuka tab Radio atau memainkan stesen; senarai stesen Malaysia diminta dan satu kiraan "main" tanpa nama dihantar setiap kali anda memainkan stesen. Strim datang terus daripada pelayan stesen (HTTPS sahaja).
 
 Perkhidmatan ini dikendalikan di luar Malaysia (terutamanya Eropah, dan GitHub di Amerika Syarikat).
 
@@ -43,7 +47,10 @@ Apabila anda menekan **Kongsi** atau **Kecemasan**, app menyediakan teks (nama d
 ## 5. Kebenaran yang diminta
 
 - **Lokasi (tepat dan kasar):** menunjukkan kedudukan anda, sebagai asal laluan dan untuk navigasi belok demi belok. Hanya digunakan semasa app dibuka atau semasa navigasi aktif (perkhidmatan latar depan dengan notifikasi kelihatan).
-- **Skrin kekal hidup dan notifikasi:** supaya navigasi tidak terputus dan anda nampak ia sedang berjalan.
+- **Skrin kekal hidup dan notifikasi:** supaya navigasi tidak terputus dan anda nampak ia sedang berjalan; notifikasi juga digunakan untuk Waktu Azan jika anda menghidupkannya.
+- **Penggera tepat (Android 12+) dan but semula:** supaya notifikasi azan berbunyi tepat pada waktunya dan dijadualkan semula selepas telefon dihidupkan semula. Hanya jika Waktu Azan dihidupkan; tanpa kebenaran penggera tepat, notifikasi mungkin lewat beberapa minit.
+- **Main media di latar belakang:** supaya Muzik terus dimainkan apabila skrin dikunci, dengan kawalan pada skrin kunci.
+- **Akses fail (pemilih sistem):** hanya fail audio yang anda pilih sendiri untuk diimport ke Muzik.
 - **Internet:** untuk bahagian 4.
 
 Anda boleh menarik balik kebenaran bila-bila masa dalam tetapan telefon. Sebahagian ciri tidak akan berfungsi tanpa lokasi.

@@ -83,12 +83,31 @@ void main() {
     });
   });
 
+  testWidgets('Mod mudah: suis disimpan dan teks berkesan >= 115%', (
+    tester,
+  ) async {
+    final c = await pumpPage(tester);
+    final sw = find.byKey(const ValueKey('easy-mode-switch'));
+    await tester.scrollUntilVisible(
+      sw,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(sw);
+    await tester.pumpAndSettle();
+    expect(c.read(appPreferencesProvider).easyMode, isTrue);
+    expect(prefs.getBool('app.easyMode'), isTrue);
+    expect(c.read(appPreferencesProvider).effectiveTextScale, 1.15);
+  });
+
   testWidgets('semua kumpulan dipaparkan', (tester) async {
     // Permukaan sangat tinggi supaya ListView membina setiap kumpulan.
-    await pumpPage(tester, size: const Size(390, 5000));
+    await pumpPage(tester, size: const Size(390, 6500));
     for (final t in [
       'Paparan',
       'Navigasi',
+      'Waktu Azan',
+      'Muzik',
       'Laporan',
       'Peta',
       'Privasi',
@@ -184,7 +203,8 @@ void main() {
   testWidgets(
     'Rumah dan Kerja: belum ditetapkan -> pilihan; ditetapkan -> urus',
     (tester) async {
-      final c = await pumpPage(tester);
+      // Kumpulan ini kini di bawah Navigasi: permukaan tinggi supaya ia dibina dan boleh diketik.
+      final c = await pumpPage(tester, size: const Size(390, 2600));
       expect(find.text('Rumah dan Kerja'), findsOneWidget);
       expect(find.text('Belum ditetapkan'), findsNWidgets(2));
 
@@ -466,7 +486,7 @@ void main() {
       await prefs.setBool('onboarding.v1', true);
       await prefs.setString('app.language', 'en');
       await pumpFull(tester);
-      expect(find.text('Search destination'), findsOneWidget);
+      expect(find.text('Where to?'), findsOneWidget);
     });
 
     testWidgets('saiz teks dan kurangkan animasi dikenakan pada MediaQuery', (

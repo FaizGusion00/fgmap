@@ -123,6 +123,10 @@ void main() {
       await ref.read(searchHistoryControllerProvider.notifier).record(_lotus);
       await ref.read(savedPlacesControllerProvider.notifier).setHome(_lotus);
       expect(ref.read(searchHistoryControllerProvider), isNotEmpty);
+      await prefs.setBool('azan.enabled', true);
+      await prefs.setDouble('azan.lat', 3.14);
+      await prefs.setDouble('azan.lng', 101.69);
+      await prefs.setInt('azan.scheduledAt', 1);
 
       await eraseAllUserData(ref);
 
@@ -131,6 +135,11 @@ void main() {
       expect(prefs.getKeys().where((k) => k.startsWith('nearby.')), isEmpty);
       expect(prefs.containsKey('theme.sunLat'), isFalse);
       expect(prefs.containsKey('theme.sunLng'), isFalse);
+      // Kedudukan waktu azan (dikaburkan) juga dipadam; tetapan azan kekal.
+      expect(prefs.containsKey('azan.lat'), isFalse);
+      expect(prefs.containsKey('azan.lng'), isFalse);
+      expect(prefs.containsKey('azan.scheduledAt'), isFalse);
+      expect(prefs.getBool('azan.enabled'), isTrue);
       expect(ref.read(sunLocationProvider), const GeoPoint(3.139, 101.687));
       // Kekal.
       expect(prefs.getString('theme.mode'), 'dark');

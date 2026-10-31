@@ -1,5 +1,6 @@
 import 'package:fgmap/app/app.dart';
 import 'package:fgmap/core/location/location_service.dart';
+import 'package:fgmap/core/settings/app_preferences.dart';
 import 'package:fgmap/core/storage/preferences.dart';
 import 'package:fgmap/features/map/presentation/idle_follow.dart';
 import 'package:fgmap/features/splash/data/splash_controller.dart';
@@ -73,6 +74,25 @@ void main() {
       expect(find.text('Mula'), findsOneWidget);
     },
   );
+
+  testWidgets('persediaan: suis Mod mudah disimpan', (tester) async {
+    final c = await pumpPage(tester);
+    // Ke halaman persediaan (halaman ketiga).
+    await tester.tap(find.text('Seterusnya'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Seterusnya'));
+    await tester.pumpAndSettle();
+    final sw = find.byKey(const ValueKey('onboarding-easy-mode'));
+    await tester.scrollUntilVisible(
+      sw,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(sw);
+    await tester.pumpAndSettle();
+    expect(c.read(appPreferencesProvider).easyMode, isTrue);
+    expect(prefs.getBool('app.easyMode'), isTrue);
+  });
 
   testWidgets('langkau menandakan selesai', (tester) async {
     final container = await pumpPage(tester);

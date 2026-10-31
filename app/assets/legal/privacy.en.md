@@ -21,6 +21,8 @@ FGMaps (the "app") is operated by **{{entity}}** (registration no. {{regNo}}), {
 - Road reports (accidents, closures and so on) you create. For now they are stored only on your phone and are not shared with other users.
 - Temporary caches: nearby search results (up to 30 days), map styles, offline maps you download, and a coarse position (rounded to about 11 km) used to compute sunrise and sunset for the automatic theme.
 - A short error log on the phone (if enabled) that contains no coordinates or URLs and is not sent anywhere unless you copy and send it yourself.
+- Prayer times (Azan): prayer times are calculated on your phone itself (no server). A coarse position (rounded to about 1 km) or the city you choose is stored for the calculation and for scheduling notifications.
+- Music: audio files you import from your phone are copied into the app's storage; player settings (equalizer, behaviour while the navigation voice speaks) are stored here too.
 
 This data is not backed up to the cloud (Android backup is disabled).
 
@@ -35,6 +37,8 @@ The app must contact the following services to work. Each also receives your IP 
 - **Offline maps (GitHub Releases):** downloads of the map packs you choose. Only your IP address and download details are involved.
 - **Fuel prices (data.gov.my, Government of Malaysia):** requests carry no personal data; only your IP address.
 - **Short map links (maps.app.goo.gl, Google):** only when you open a link shared with you; the app requests it to learn the destination.
+- **Music: Audius (the Audius API and content nodes operated by third parties):** only when you open Music and search for or play a song; the search text and the ID of the song being played are sent (no location). Songs are streamed and not stored.
+- **Music: Radio Browser (community mirrors in Europe) and the radio stations' own streaming servers:** only when you open the Radio tab or play a station; the list of Malaysian stations is requested and one anonymous "play" count is sent each time you play a station. The stream comes directly from the station's server (HTTPS only).
 
 These services are operated outside Malaysia (mostly in Europe, and GitHub in the United States).
 
@@ -43,7 +47,10 @@ When you tap **Share** or **Emergency**, the app prepares text (destination name
 ## 5. Permissions requested
 
 - **Location (precise and approximate):** to show your position, as the route origin and for turn-by-turn navigation. Used only while the app is open or while navigation is active (a foreground service with a visible notification).
-- **Keep screen on and notifications:** so navigation is not interrupted and you can see it is running.
+- **Keep screen on and notifications:** so navigation is not interrupted and you can see it is running; notifications are also used for prayer times (Azan) if you turn them on.
+- **Exact alarms (Android 12+) and reboot:** so the azan notification fires exactly on time and is rescheduled after the phone restarts. Only if Azan is turned on; without the exact-alarm permission the notification may be a few minutes late.
+- **Background media playback:** so Music keeps playing when the screen is locked, with lock-screen controls.
+- **File access (system picker):** only the audio files you yourself choose to import into Music.
 - **Internet:** for section 4.
 
 You can withdraw permissions at any time in your phone settings. Some features will not work without location.

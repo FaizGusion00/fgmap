@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/widgets/fade_slide_in.dart';
+import '../../../core/settings/easy_mode_scope.dart';
 import '../../../core/widgets/skeleton.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -760,6 +761,7 @@ class _CategoryChips extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final easy = EasyModeScope.of(context);
     final items = [
       (
         Icons.local_gas_station_rounded,
@@ -801,14 +803,22 @@ class _CategoryChips extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children: [
+                // Ikon + teks sentiasa (bukan ikon sahaja); Mod mudah: lebih besar lagi.
                 for (final item in items)
                   ActionChip(
                     avatar: Icon(
                       item.$1,
-                      size: 18,
+                      size: easy ? 24 : 18,
                       color: theme.colorScheme.primary,
                     ),
                     label: Text(item.$2),
+                    labelStyle: easy ? theme.textTheme.titleMedium : null,
+                    padding: easy
+                        ? const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 10,
+                          )
+                        : null,
                     onPressed: () => onPick(item.$3, item.$2),
                   ),
               ],

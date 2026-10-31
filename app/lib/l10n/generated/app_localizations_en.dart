@@ -321,14 +321,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchHint => 'Place, address, coordinates or Maps link';
 
   @override
-  String get searchPillHint => 'Search destination';
+  String get searchPillHint => 'Where to?';
 
   @override
   String get searchClear => 'Clear';
 
   @override
   String get searchPrompt =>
-      'Type a place name, or paste coordinates (3.14, 101.68) / a Google Maps or Waze link.';
+      'Type a place name, or pick Home / Work below. You can also paste coordinates (3.14, 101.68) or a Google Maps / Waze link.';
 
   @override
   String get searchHistory => 'Recent places';
@@ -495,6 +495,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get navThen => 'Then';
+
+  @override
+  String navRoundaboutExitSemantics(int n) {
+    return 'Roundabout, take exit $n';
+  }
+
+  @override
+  String get navGetReady => 'Get ready';
 
   @override
   String get navSimulatedBadge => 'Simulation';
@@ -785,6 +793,383 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsTextSizeHint =>
       'Applied on top of your phone’s text size.';
+
+  @override
+  String get settingsEasyMode => 'Easy mode';
+
+  @override
+  String get settingsEasyModeHint =>
+      'Bigger text and buttons, high-contrast instruction card, fewer controls while driving. Good for older drivers.';
+
+  @override
+  String get onbEasyMode => 'Large & simple display';
+
+  @override
+  String get onbEasyModeHint =>
+      'Bigger text, clearer instructions, fewer buttons. Change it any time in Settings.';
+
+  @override
+  String get navGpsWeakHint => 'Keep driving. We are looking for a signal.';
+
+  @override
+  String get routeMoreOptions => 'More';
+
+  @override
+  String get settingsAzan => 'Prayer times (Azan)';
+
+  @override
+  String get azanTitle => 'Prayer times';
+
+  @override
+  String get azanEnable => 'Azan notifications';
+
+  @override
+  String get azanEnableHint =>
+      'Tell me when each prayer time begins at my current location.';
+
+  @override
+  String get azanPrayerFajr => 'Fajr';
+
+  @override
+  String get azanPrayerSunrise => 'Sunrise';
+
+  @override
+  String get azanPrayerDhuhr => 'Dhuhr';
+
+  @override
+  String get azanPrayerAsr => 'Asr';
+
+  @override
+  String get azanPrayerMaghrib => 'Maghrib';
+
+  @override
+  String get azanPrayerIsha => 'Isha';
+
+  @override
+  String get azanPrayersLabel => 'Prayers to notify';
+
+  @override
+  String get azanSoundLabel => 'Sound';
+
+  @override
+  String get azanSoundFull => 'Full azan';
+
+  @override
+  String get azanSoundShort => 'Short tone';
+
+  @override
+  String get azanSoundSilent => 'Silent';
+
+  @override
+  String get azanSoundHint =>
+      'Full azan is the default. Choose a short tone or silent for a quieter reminder.';
+
+  @override
+  String get azanMethodLabel => 'Calculation method';
+
+  @override
+  String get azanMethodJakim => 'JAKIM (Malaysia)';
+
+  @override
+  String get azanMethodMwl => 'Muslim World League';
+
+  @override
+  String get azanMethodEgyptian => 'Egyptian';
+
+  @override
+  String get azanMethodKarachi => 'Karachi';
+
+  @override
+  String get azanMethodUmmAlQura => 'Umm al-Qura (Makkah)';
+
+  @override
+  String get azanMadhabLabel => 'Madhab (Asr time)';
+
+  @override
+  String get azanMadhabShafi => 'Shafi\'i';
+
+  @override
+  String get azanMadhabHanafi => 'Hanafi';
+
+  @override
+  String get azanReminderLabel => 'Early reminder';
+
+  @override
+  String get azanReminderNone => 'None';
+
+  @override
+  String azanReminderMinutes(int n) {
+    return '$n min before';
+  }
+
+  @override
+  String get azanPlayDuringNav => 'Play full azan while navigating';
+
+  @override
+  String get azanPlayDuringNavHint =>
+      'If off: only a short tone and a chip on the HUD so voice guidance stays clear. The notification is still sent.';
+
+  @override
+  String get azanLocationLabel => 'Location';
+
+  @override
+  String get azanLocationAuto => 'Follow device location';
+
+  @override
+  String get azanLocationCity => 'Choose a city';
+
+  @override
+  String get azanLocationAutoHint =>
+      'Calculated on this phone from your location (rounded to ~1 km). Nothing is sent.';
+
+  @override
+  String azanNextIn(String prayer, String time, String remaining) {
+    return '$prayer $time · in $remaining';
+  }
+
+  @override
+  String azanNextPrayer(String prayer, String time) {
+    return 'Next: $prayer at $time';
+  }
+
+  @override
+  String get azanAllDone => 'All of today\'s prayer times have passed';
+
+  @override
+  String azanNowTitle(String prayer) {
+    return '$prayer time';
+  }
+
+  @override
+  String get azanNowBody => 'It is now time to pray.';
+
+  @override
+  String get azanStop => 'Stop azan';
+
+  @override
+  String get azanListen => 'Listen to azan';
+
+  @override
+  String get azanStopListening => 'Stop';
+
+  @override
+  String azanEstimateNote(String method) {
+    return 'Estimated by astronomical calculation ($method). The official JAKIM e-Solat timetable may differ by a few minutes; follow it for fasting times.';
+  }
+
+  @override
+  String get azanExactAlarmTitle => 'Allow exact alarms';
+
+  @override
+  String get azanExactAlarmBody =>
+      'Without this permission Android may delay the notification by a few minutes.';
+
+  @override
+  String get azanExactAlarmAction => 'Open settings';
+
+  @override
+  String get azanPermissionDenied =>
+      'Notifications are not allowed. Allow them in your phone settings to receive the azan.';
+
+  @override
+  String azanReminderTitle(String prayer, int n) {
+    return '$prayer in $n minutes';
+  }
+
+  @override
+  String get azanReminderBody => 'Get ready to pray.';
+
+  @override
+  String get azanChannelFull => 'Azan (full)';
+
+  @override
+  String get azanChannelShort => 'Azan (short tone)';
+
+  @override
+  String get azanChannelSilent => 'Azan (silent)';
+
+  @override
+  String get azanChannelReminder => 'Prayer reminders';
+
+  @override
+  String get azanOpenSettings => 'Azan settings';
+
+  @override
+  String azanRemainingHours(int h, int m) {
+    return '$h h $m min';
+  }
+
+  @override
+  String azanRemainingMinutes(int m) {
+    return '$m min';
+  }
+
+  @override
+  String azanForCity(String city) {
+    return 'For $city';
+  }
+
+  @override
+  String get azanForCurrentLocation => 'For current location';
+
+  @override
+  String get azanNotNow => 'Not now';
+
+  @override
+  String get settingsMusic => 'Music';
+
+  @override
+  String get musicTitle => 'Music';
+
+  @override
+  String get musicOpen => 'Music';
+
+  @override
+  String get musicSearchHint => 'Search songs, artists or radio…';
+
+  @override
+  String get musicTabSongs => 'Songs';
+
+  @override
+  String get musicTabRadio => 'Radio';
+
+  @override
+  String get musicTabLocal => 'My files';
+
+  @override
+  String get musicEmptySongs =>
+      'Type a song or artist name, then tap to play. Songs come from Audius (an open, free catalogue).';
+
+  @override
+  String get musicEmptyRadio => 'Malaysian radio stations. Tap to listen live.';
+
+  @override
+  String get musicEmptyLocal =>
+      'Import songs from your phone. They are stored in the app and always play without internet.';
+
+  @override
+  String musicNoResults(String query) {
+    return 'No results for “$query”.';
+  }
+
+  @override
+  String get musicOffline => 'No internet. Only your files can be played.';
+
+  @override
+  String musicErrorSource(String source) {
+    return '$source cannot be reached right now.';
+  }
+
+  @override
+  String get musicImport => 'Import from phone';
+
+  @override
+  String musicImported(int n) {
+    return '$n songs added';
+  }
+
+  @override
+  String get musicRemove => 'Remove';
+
+  @override
+  String get musicLive => 'LIVE';
+
+  @override
+  String get musicViaAudius => 'via Audius';
+
+  @override
+  String get musicAttribution =>
+      'Songs from Audius · Radio from Radio Browser · Your files stay on your phone';
+
+  @override
+  String get musicNowPlaying => 'Now playing';
+
+  @override
+  String get musicPlay => 'Play';
+
+  @override
+  String get musicPause => 'Pause';
+
+  @override
+  String get musicNext => 'Next';
+
+  @override
+  String get musicPrevious => 'Previous';
+
+  @override
+  String get musicStop => 'Close player';
+
+  @override
+  String get musicVolume => 'Volume';
+
+  @override
+  String get musicQueue => 'Queue';
+
+  @override
+  String get musicEqualizer => 'Equalizer';
+
+  @override
+  String get musicEqPresetNormal => 'Normal';
+
+  @override
+  String get musicEqPresetBass => 'Bass';
+
+  @override
+  String get musicEqPresetTreble => 'Treble';
+
+  @override
+  String get musicEqPresetVocal => 'Voice';
+
+  @override
+  String get musicEqPresetCustom => 'Custom';
+
+  @override
+  String get musicEqUnsupported =>
+      'The equalizer is only available on Android.';
+
+  @override
+  String get musicEqEnable => 'Enable equalizer';
+
+  @override
+  String get musicDuckTitle => 'While navigation voice speaks';
+
+  @override
+  String get musicDuckLower => 'Lower the music';
+
+  @override
+  String get musicDuckLowerHint =>
+      'Default. Music gets quieter during an instruction, then recovers.';
+
+  @override
+  String get musicDuckPause => 'Pause the music';
+
+  @override
+  String get musicDuckPauseHint =>
+      'Music stops completely during an instruction, then resumes.';
+
+  @override
+  String get musicOpenPlayer => 'Open Music';
+
+  @override
+  String get musicClearLocal => 'Delete all my files';
+
+  @override
+  String get musicSourceAudius => 'Audius';
+
+  @override
+  String get musicSourceRadio => 'Radio Browser';
+
+  @override
+  String get musicSourceLocal => 'My files';
+
+  @override
+  String get musicLoading => 'Loading…';
+
+  @override
+  String get musicError => 'Cannot play this. Try another song.';
+
+  @override
+  String get musicDucked => 'Navigation voice';
 
   @override
   String get settingsReduceMotion => 'Reduce animations';
@@ -1117,7 +1502,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get legalAttribution =>
-      'Map data © OpenStreetMap contributors (ODbL). Styles and tiles: OpenFreeMap, OpenMapTiles. Routing: Valhalla. Search: Photon (komoot) and Nominatim. Fuel prices: data.gov.my.';
+      'Map data © OpenStreetMap contributors (ODbL). Styles and tiles: OpenFreeMap, OpenMapTiles. Routing: Valhalla. Search: Photon (komoot) and Nominatim. Fuel prices: data.gov.my. Music: Audius (Open Music License) and Radio Browser; radio streams from each station. Azan recording: Aaqib Azeez / Atcovi, Wikimedia Commons, CC BY-SA 4.0.';
 
   @override
   String get aboutAttributionTitle => 'Data sources';

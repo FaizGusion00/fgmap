@@ -199,7 +199,7 @@ void main() {
         find.text('Tekan lama pada peta untuk pilih destinasi'),
         findsNothing,
       );
-      expect(find.text('Cari destinasi'), findsOneWidget);
+      expect(find.text('Ke mana?'), findsOneWidget);
     },
   );
 

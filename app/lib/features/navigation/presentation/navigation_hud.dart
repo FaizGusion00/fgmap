@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart' show ValueListenable, ValueNotifier;
 import 'package:flutter/material.dart';
 
+import '../../../core/settings/easy_mode_scope.dart';
 import '../../../core/theme/fgmap_theme_extension.dart';
 import '../../../core/theme/motion.dart';
 import '../../../core/theme/typography.dart';
@@ -12,10 +13,13 @@ import '../domain/camera_planner.dart';
 import '../domain/instruction_text.dart';
 import '../domain/nav_route.dart';
 import '../domain/navigation_session.dart';
+import 'maneuver_glyph.dart';
 import 'navigation_controller.dart';
 import '../../../core/widgets/press_scale.dart';
 
-/// Ikon Material bagi setiap jenis manuver.
+/// Ikon Material bagi setiap jenis manuver. Dipilih untuk lalu lintas sebelah kiri (Malaysia):
+/// pusingan U membelok ke kanan. Bulatan dilukis sendiri oleh [ManeuverGlyph], jadi nilai di sini
+/// hanya sandaran. Satu simbol = satu makna; tiada hiasan.
 IconData maneuverIcon(ManeuverKind kind) => switch (kind) {
   ManeuverKind.depart => Icons.navigation_rounded,
   ManeuverKind.straight || ManeuverKind.keepStraight => Icons.straight_rounded,
@@ -25,8 +29,8 @@ IconData maneuverIcon(ManeuverKind kind) => switch (kind) {
   ManeuverKind.slightLeft => Icons.turn_slight_left_rounded,
   ManeuverKind.left => Icons.turn_left_rounded,
   ManeuverKind.sharpLeft => Icons.turn_sharp_left_rounded,
-  ManeuverKind.uTurn => Icons.u_turn_left_rounded,
-  ManeuverKind.rampStraight => Icons.ramp_right_rounded,
+  ManeuverKind.uTurn => Icons.u_turn_right_rounded,
+  ManeuverKind.rampStraight => Icons.straight_rounded,
   ManeuverKind.rampRight || ManeuverKind.exitRight => Icons.ramp_right_rounded,
   ManeuverKind.rampLeft || ManeuverKind.exitLeft => Icons.ramp_left_rounded,
   ManeuverKind.keepRight => Icons.fork_right_rounded,
@@ -53,6 +57,7 @@ class NavHudMetrics {
   const NavHudMetrics._({
     required this.landscape,
     required this.bannerIcon,
+    required this.thenIcon,
     required this.distanceSize,
     required this.padH,
     required this.padV,
@@ -63,16 +68,41 @@ class NavHudMetrics {
     required this.bannerMaxWidth,
   });
 
-  factory NavHudMetrics.of(BuildContext context) =>
-      NavHudMetrics.forSize(MediaQuery.sizeOf(context));
+  factory NavHudMetrics.of(BuildContext context) => NavHudMetrics.forSize(
+    MediaQuery.sizeOf(context),
+    easy: EasyModeScope.of(context),
+  );
 
-  factory NavHudMetrics.forSize(Size size) {
+  /// [easy]: Mod mudah membesarkan ikon, nombor dan butang (bukan padding atau lebar kad) supaya
+  /// kad kekal di bawah had ketinggian yang menjaga pandangan kereta.
+  factory NavHudMetrics.forSize(Size size, {bool easy = false}) {
+    final base = NavHudMetrics._forSize(size);
+    return easy ? base._scaled(icon: 1.25, number: 1.15) : base;
+  }
+
+  NavHudMetrics _scaled({required double icon, required double number}) =>
+      NavHudMetrics._(
+        landscape: landscape,
+        bannerIcon: bannerIcon * icon,
+        thenIcon: thenIcon * icon,
+        distanceSize: distanceSize * number,
+        padH: padH,
+        padV: padV,
+        radius: radius,
+        button: button * icon,
+        speedSize: speedSize * number,
+        limitSize: limitSize * number,
+        bannerMaxWidth: bannerMaxWidth,
+      );
+
+  factory NavHudMetrics._forSize(Size size) {
     final landscape = size.width > size.height;
     final narrow = size.width < 360;
     if (landscape) {
       return NavHudMetrics._(
         landscape: true,
-        bannerIcon: 34,
+        bannerIcon: 38,
+        thenIcon: 20,
         distanceSize: 26,
         padH: 10,
         padV: 8,
@@ -85,7 +115,8 @@ class NavHudMetrics {
     }
     return NavHudMetrics._(
       landscape: false,
-      bannerIcon: narrow ? 38 : 44,
+      bannerIcon: narrow ? 44 : 52,
+      thenIcon: 26,
       distanceSize: narrow ? 26 : 30,
       padH: narrow ? 12 : 14,
       padV: 10,
@@ -98,7 +129,12 @@ class NavHudMetrics {
   }
 
   final bool landscape;
+
+  /// Sisi ikon manuver utama; nombor keluar bulatan dilukis pada saiz ini juga.
   final double bannerIcon;
+
+  /// Sisi ikon pada jalur "Kemudian".
+  final double thenIcon;
   final double distanceSize;
   final double padH;
   final double padV;
@@ -119,9 +155,25 @@ class BannerColors {
     required this.background,
     required this.foreground,
     required this.border,
+    this.borderWidth = 1,
   });
 
-  factory BannerColors.of(ThemeData theme, Color glassBorder) {
+  /// [highContrast] (Mod mudah): biru tua pekat + putih pada tema cerah, hitam + kuning pada tema
+  /// gelap (kontras >= 12:1), dengan sempadan putih 2 px supaya kad terpisah jelas daripada peta.
+  factory BannerColors.of(
+    ThemeData theme,
+    Color glassBorder, {
+    bool highContrast = false,
+  }) {
+    if (highContrast) {
+      final dark = theme.brightness == Brightness.dark;
+      return BannerColors(
+        background: dark ? Colors.black : const Color(0xFF0B2A6F),
+        foreground: dark ? const Color(0xFFFFE57F) : Colors.white,
+        border: Colors.white.withValues(alpha: 0.9),
+        borderWidth: 2,
+      );
+    }
     if (theme.brightness == Brightness.dark) {
       return BannerColors(
         background: const Color(0xFF14284F),
@@ -140,15 +192,17 @@ class BannerColors {
   final Color background;
   final Color foreground;
   final Color border;
+  final double borderWidth;
 }
 
 /// Mengekang penskalaan teks sistem pada HUD: teks yang membesar tanpa had menolak kad manuver sehingga
-/// menutup jalan. Sedikit pembesaran (115%) masih dihormati.
-Widget _clampTextScale(Widget child) => MediaQuery.withClampedTextScaling(
-  minScaleFactor: 1,
-  maxScaleFactor: 1.15,
-  child: child,
-);
+/// menutup jalan. Sedikit pembesaran (115%; 130% dalam Mod mudah) masih dihormati.
+Widget _clampTextScale(BuildContext context, Widget child) =>
+    MediaQuery.withClampedTextScaling(
+      minScaleFactor: 1,
+      maxScaleFactor: EasyModeScope.of(context) ? 1.3 : 1.15,
+      child: child,
+    );
 
 /// Kad manuver di atas skrin: ikon, jarak ke manuver, tindakan dan nama jalan, serta "kemudian" untuk
 /// manuver rapat berikutnya. Padat (potret) dan lebih kecil lagi (mendatar). Beranimasi (slaid + skala)
@@ -170,7 +224,11 @@ class ManeuverBanner extends StatelessWidget {
     final text = instructionTextFor(l10n);
     final fg = context.fg;
     final metrics = NavHudMetrics.of(context);
-    final colors = BannerColors.of(theme, fg.glassBorder);
+    final colors = BannerColors.of(
+      theme,
+      fg.glassBorder,
+      highContrast: EasyModeScope.of(context),
+    );
 
     final child = next == null
         ? const SizedBox.shrink(key: ValueKey('none'))
@@ -196,6 +254,7 @@ class ManeuverBanner extends StatelessWidget {
     // Bukan liveRegion di sini: jarak berubah setiap saat dan TalkBack akan membacanya terus,
     // bertindih dengan suara arahan. Hanya teks tindakan (berubah bila manuver bertukar) yang live.
     return _clampTextScale(
+      context,
       Semantics(
         container: true,
         child: Material(
@@ -204,7 +263,7 @@ class ManeuverBanner extends StatelessWidget {
           shadowColor: Colors.black54,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(metrics.radius),
-            side: BorderSide(color: colors.border),
+            side: BorderSide(color: colors.border, width: colors.borderWidth),
           ),
           clipBehavior: Clip.antiAlias,
           child: AnimatedSwitcher(
@@ -270,6 +329,9 @@ class _BannerContent extends StatelessWidget {
   /// Dalam jarak ini bar "bersedia" muncul dan memenuh sehingga manuver.
   static const readyWithinM = 300.0;
 
+  /// Dalam jarak ini perkataan "Bersedia" muncul: isyarat terakhir sebelum bertindak.
+  static const getReadyWithinM = 150.0;
+
   final NavManeuver maneuver;
   final double distanceM;
   final NavManeuver? following;
@@ -287,12 +349,13 @@ class _BannerContent extends StatelessWidget {
     final street = maneuver.isArrival ? null : maneuver.street;
     final followingStreet = following?.street;
     final ready = distanceM <= readyWithinM && !maneuver.isArrival;
-    final thenIcon = metrics.landscape ? 18.0 : 22.0;
+    final getReady = distanceM <= getReadyWithinM && !maneuver.isArrival;
 
     final exitNo = maneuver.roundaboutExit;
-    final showExitBadge = maneuver.kind == ManeuverKind.roundabout &&
-        exitNo != null &&
-        exitNo > 0;
+    final glyphLabel =
+        maneuver.kind == ManeuverKind.roundabout && exitNo != null && exitNo > 0
+        ? l10n.navRoundaboutExitSemantics(exitNo)
+        : null;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -305,18 +368,13 @@ class _BannerContent extends StatelessWidget {
           ),
           child: Row(
             children: [
-              if (exitNo != null && showExitBadge)
-                _RoundaboutExitBadge(
-                  exit: exitNo,
-                  color: onPrimary,
-                  size: metrics.bannerIcon + (metrics.landscape ? 4 : 8),
-                )
-              else
-                Icon(
-                  maneuverIcon(maneuver.kind),
-                  size: metrics.bannerIcon,
-                  color: onPrimary,
-                ),
+              ManeuverGlyph(
+                kind: maneuver.kind,
+                roundaboutExit: exitNo,
+                size: metrics.bannerIcon,
+                color: onPrimary,
+                semanticsLabel: glyphLabel,
+              ),
               SizedBox(width: metrics.landscape ? 10 : 12),
               Expanded(
                 child: Column(
@@ -344,16 +402,13 @@ class _BannerContent extends StatelessWidget {
                       container: true,
                       liveRegion: true,
                       child: Text(
-                        text.action(maneuver),
+                        text.cardAction(maneuver),
                         maxLines: metrics.landscape ? 1 : 2,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.titleSmall?.copyWith(
                           color: onPrimary,
                           fontWeight: FontWeight.w700,
                           height: 1.25,
-                          fontSize: showExitBadge
-                              ? (theme.textTheme.titleSmall?.fontSize ?? 14) + 1
-                              : null,
                         ),
                       ),
                     ),
@@ -373,11 +428,25 @@ class _BannerContent extends StatelessWidget {
             ],
           ),
         ),
+        if (getReady)
+          // Satu perkataan sahaja, 150 m sebelum belok: isyarat yang boleh dibaca sekilas.
+          Padding(
+            padding: EdgeInsets.fromLTRB(metrics.padH, 0, metrics.padH, 4),
+            child: Text(
+              l10n.navGetReady,
+              key: const ValueKey('nav-get-ready'),
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: onPrimary,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
         if (ready)
           // Bar "bersedia": kosong pada 300 m, penuh di titik belok.
           LinearProgressIndicator(
             value: (1 - distanceM / readyWithinM).clamp(0.0, 1.0),
-            minHeight: 3,
+            minHeight: 5,
             color: onPrimary,
             backgroundColor: onPrimary.withValues(alpha: 0.2),
           ),
@@ -398,9 +467,10 @@ class _BannerContent extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Icon(
-                    maneuverIcon(following!.kind),
-                    size: thenIcon,
+                  ManeuverGlyph(
+                    kind: following!.kind,
+                    roundaboutExit: following!.roundaboutExit,
+                    size: metrics.thenIcon,
                     color: onPrimary,
                   ),
                   const SizedBox(width: 8),
@@ -429,42 +499,6 @@ class _BannerContent extends StatelessWidget {
             ),
           ),
       ],
-    );
-  }
-}
-
-/// Nombor simpang keluar bulatan yang besar supaya jelas di bawah silau.
-class _RoundaboutExitBadge extends StatelessWidget {
-  const _RoundaboutExitBadge({
-    required this.exit,
-    required this.color,
-    required this.size,
-  });
-
-  final int exit;
-  final Color color;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: size,
-      height: size,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Icon(Icons.roundabout_right_rounded, size: size * 0.95, color: color),
-          Text(
-            '$exit',
-            style: FgTypography.metricLarge.copyWith(
-              color: color,
-              fontSize: size * 0.48,
-              fontWeight: FontWeight.w800,
-              height: 1,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -503,6 +537,7 @@ class NavBottomPanel extends StatelessWidget {
 
     final metrics = NavHudMetrics.of(context);
     return _clampTextScale(
+      context,
       Material(
         color: theme.colorScheme.surface,
         elevation: floating ? 4 : 8,
@@ -610,7 +645,16 @@ class NavSideButtons extends StatelessWidget {
     required this.onSettings,
     this.onReport,
     this.onChangeRoute,
+    this.onMusic,
+    this.compact = false,
   });
+
+  /// Buka Muzik; tersembunyi jika null.
+  final VoidCallback? onMusic;
+
+  /// Mod mudah: hanya Laporkan, suara dan tetapan; lihat laluan, mod kamera dan tukar laluan
+  /// disembunyikan (masih ada dalam tetapan navigasi).
+  final bool compact;
 
   final bool voiceEnabled;
   final NavCameraMode cameraMode;
@@ -639,13 +683,15 @@ class NavSideButtons extends StatelessWidget {
           ),
           const SizedBox(height: 6),
         ],
-        _GlassButton(
-          icon: Icons.route_rounded,
-          tooltip: l10n.navOverview,
-          onPressed: onOverview,
-        ),
-        const SizedBox(height: 6),
-        if (onChangeRoute != null) ...[
+        if (!compact) ...[
+          _GlassButton(
+            icon: Icons.route_rounded,
+            tooltip: l10n.navOverview,
+            onPressed: onOverview,
+          ),
+          const SizedBox(height: 6),
+        ],
+        if (onChangeRoute != null && !compact) ...[
           _GlassButton(
             icon: Icons.alt_route_rounded,
             tooltip: l10n.navChangeRoute,
@@ -653,20 +699,22 @@ class NavSideButtons extends StatelessWidget {
           ),
           const SizedBox(height: 6),
         ],
-        _GlassButton(
-          icon: switch (cameraMode) {
-            NavCameraMode.auto => Icons.auto_mode_rounded,
-            NavCameraMode.flat => Icons.map_outlined,
-            NavCameraMode.tilted => Icons.threed_rotation_rounded,
-          },
-          tooltip: switch (cameraMode) {
-            NavCameraMode.auto => l10n.navCameraAuto,
-            NavCameraMode.flat => l10n.navCameraFlat,
-            NavCameraMode.tilted => l10n.navCameraTilted,
-          },
-          onPressed: onCycleCamera,
-        ),
-        const SizedBox(height: 6),
+        if (!compact) ...[
+          _GlassButton(
+            icon: switch (cameraMode) {
+              NavCameraMode.auto => Icons.auto_mode_rounded,
+              NavCameraMode.flat => Icons.map_outlined,
+              NavCameraMode.tilted => Icons.threed_rotation_rounded,
+            },
+            tooltip: switch (cameraMode) {
+              NavCameraMode.auto => l10n.navCameraAuto,
+              NavCameraMode.flat => l10n.navCameraFlat,
+              NavCameraMode.tilted => l10n.navCameraTilted,
+            },
+            onPressed: onCycleCamera,
+          ),
+          const SizedBox(height: 6),
+        ],
         _GlassButton(
           icon: voiceEnabled
               ? Icons.volume_up_rounded
@@ -675,6 +723,14 @@ class NavSideButtons extends StatelessWidget {
           onPressed: onToggleVoice,
         ),
         const SizedBox(height: 6),
+        if (onMusic != null) ...[
+          _GlassButton(
+            icon: Icons.music_note_rounded,
+            tooltip: l10n.musicOpen,
+            onPressed: onMusic!,
+          ),
+          const SizedBox(height: 6),
+        ],
         _GlassButton(
           icon: Icons.tune_rounded,
           tooltip: l10n.navSettingsOpen,
@@ -708,7 +764,7 @@ class _GlassButton extends StatelessWidget {
         child: IconButton(
           tooltip: tooltip,
           onPressed: onPressed,
-          icon: Icon(icon, size: 22),
+          icon: Icon(icon, size: EasyModeScope.of(context) ? 28 : 22),
           color: Theme.of(context).colorScheme.onSurface,
           constraints: BoxConstraints(minWidth: side, minHeight: side),
         ),
@@ -767,6 +823,7 @@ class SpeedBubble extends StatelessWidget {
 
     // Lingkaran bersaiz tetap: teks sistem yang besar tidak boleh melimpahkannya.
     return _clampTextScale(
+      context,
       Semantics(
         label:
             '${l10n.navSpeedLabel}: $kmh ${l10n.navSpeedUnit}'
@@ -902,8 +959,20 @@ class NavStatusChip extends StatelessWidget {
       icon = Icons.gps_not_fixed_rounded;
       tint = fg.warning;
     }
+    // Mod mudah: satu baris tenang tentang apa yang perlu dibuat, bukan hanya nama masalah.
+    final gpsTrouble =
+        (state.progress?.signalLost ?? false) ||
+        (state.progress?.gpsWeak ?? false);
+    if (message != null &&
+        gpsTrouble &&
+        !state.rerouting &&
+        !state.locationError &&
+        EasyModeScope.of(context)) {
+      message = '$message\n${l10n.navGpsWeakHint}';
+    }
 
     return _clampTextScale(
+      context,
       AnimatedSwitcher(
         duration: Motion.of(context, Motion.normal),
         switchInCurve: Motion.enter,
@@ -974,6 +1043,7 @@ class ArrivalCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     return _clampTextScale(
+      context,
       Semantics(
         liveRegion: true,
         container: true,

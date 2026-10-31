@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/theme/fgmap_theme_extension.dart';
+import '../../../core/settings/easy_mode_scope.dart';
 import '../../../core/theme/motion.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/widgets/press_scale.dart';
@@ -433,36 +434,69 @@ class _ReadyBody extends StatelessWidget {
           const SizedBox(height: 12),
           Padding(
             padding: const EdgeInsets.only(right: 8),
-            child: Row(
-              children: [
-                if (onSimulate != null)
-                  TextButton.icon(
-                    key: const ValueKey('nav-simulate'),
-                    onPressed: onSimulate,
-                    icon: const Icon(Icons.play_circle_outline_rounded),
-                    label: Text(l10n.navSimulate),
-                  ),
-                if (onSimulate != null && onStart != null)
-                  const SizedBox(width: 8),
-                if (onStart != null)
-                  Expanded(
-                    child: PressScale(
-                      child: FilledButton.icon(
-                        key: const ValueKey('nav-start'),
-                        onPressed: onStart,
-                        icon: const Icon(Icons.navigation_rounded),
-                        label: Text(l10n.navStart),
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size.fromHeight(54),
-                          textStyle: theme.textTheme.titleMedium,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
+            child: _StartRow(onStart: onStart, onSimulate: onSimulate),
           ),
         ],
+      ],
+    );
+  }
+}
+
+/// Baris "Mula": satu butang besar yang jelas. Simulasi ialah alat pengguna mahir; dalam Mod mudah ia
+/// disembunyikan di sebalik "Lanjut" supaya laluan utama hanya ada satu pilihan.
+class _StartRow extends StatefulWidget {
+  const _StartRow({this.onStart, this.onSimulate});
+
+  final VoidCallback? onStart;
+  final VoidCallback? onSimulate;
+
+  @override
+  State<_StartRow> createState() => _StartRowState();
+}
+
+class _StartRowState extends State<_StartRow> {
+  var _more = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final easy = EasyModeScope.of(context);
+    final showSimulate = widget.onSimulate != null && (!easy || _more);
+    return Row(
+      children: [
+        if (showSimulate)
+          TextButton.icon(
+            key: const ValueKey('nav-simulate'),
+            onPressed: widget.onSimulate,
+            icon: const Icon(Icons.play_circle_outline_rounded),
+            label: Text(l10n.navSimulate),
+          )
+        else if (widget.onSimulate != null && easy)
+          TextButton(
+            key: const ValueKey('nav-more-options'),
+            onPressed: () => setState(() => _more = true),
+            child: Text(l10n.routeMoreOptions),
+          ),
+        if (widget.onSimulate != null && widget.onStart != null)
+          const SizedBox(width: 8),
+        if (widget.onStart != null)
+          Expanded(
+            child: PressScale(
+              child: FilledButton.icon(
+                key: const ValueKey('nav-start'),
+                onPressed: widget.onStart,
+                icon: Icon(Icons.navigation_rounded, size: easy ? 28 : null),
+                label: Text(l10n.navStart),
+                style: FilledButton.styleFrom(
+                  minimumSize: Size.fromHeight(easy ? 64 : 54),
+                  textStyle: easy
+                      ? theme.textTheme.titleLarge
+                      : theme.textTheme.titleMedium,
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }

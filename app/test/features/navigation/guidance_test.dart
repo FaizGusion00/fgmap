@@ -68,6 +68,26 @@ void main() {
         'Dalam 300 meter, di bulatan, ambil simpang keluar ke-2.',
       );
       expect(en.spoken(r), 'At the roundabout, take the second exit.');
+      // Kad: pendek, ikon sudah menunjukkan bulatan.
+      expect(ms.cardAction(r), 'Ambil simpang keluar ke-2');
+      expect(en.cardAction(r), 'Take the 2nd exit');
+      expect(ms.cardAction(m(ManeuverKind.roundabout)), 'Masuk bulatan');
+      expect(en.cardAction(m(ManeuverKind.left)), 'Turn left');
+    });
+
+    test('ordinal Inggeris: 1st, 2nd, 3rd, 11th-13th, 21st', () {
+      expect(
+        [1, 2, 3, 4, 11, 12, 13, 21, 22, 23, 101, 111]
+            .map(InstructionText.ordinalNumber)
+            .toList(),
+        [
+          '1st', '2nd', '3rd', '4th', '11th', '12th', '13th',
+          '21st', '22nd', '23rd', '101st', '111th',
+        ],
+      );
+      // Sebutan: dieja hingga enam, angka selepas itu (bukan "21th").
+      final r21 = m(ManeuverKind.roundabout, exit: 21);
+      expect(en.spoken(r21), 'At the roundabout, take the 21st exit.');
     });
 
     test('klausa kemudian', () {

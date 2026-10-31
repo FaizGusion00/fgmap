@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/settings/app_preferences.dart';
+import '../core/settings/easy_mode_scope.dart';
 import '../core/theme/app_theme.dart';
 import '../core/theme/theme_controller.dart';
 import '../features/navigation/presentation/car_session_hub.dart';
@@ -49,7 +50,8 @@ class FgmapApp extends ConsumerWidget {
 }
 
 /// Saiz teks pilihan pengguna didarab dengan tetapan sistem (dihadkan supaya susun atur tidak pecah),
-/// dan "Kurangkan animasi" memaksa Reduce Motion untuk seluruh app.
+/// "Kurangkan animasi" memaksa Reduce Motion untuk seluruh app, dan Mod mudah (teks sekurang-kurangnya
+/// 115%) disebarkan melalui [EasyModeScope].
 Widget _applyAccessibility(
   BuildContext context,
   AppPreferences prefs,
@@ -57,12 +59,17 @@ Widget _applyAccessibility(
 ) {
   final media = MediaQuery.of(context);
   final system = media.textScaler.scale(1);
-  return MediaQuery(
-    data: media.copyWith(
-      textScaler: TextScaler.linear((system * prefs.textScale).clamp(0.8, 2.0)),
-      disableAnimations: media.disableAnimations || prefs.reduceMotion,
+  return EasyModeScope(
+    enabled: prefs.easyMode,
+    child: MediaQuery(
+      data: media.copyWith(
+        textScaler: TextScaler.linear(
+          (system * prefs.effectiveTextScale).clamp(0.8, 2.0),
+        ),
+        disableAnimations: media.disableAnimations || prefs.reduceMotion,
+      ),
+      child: child,
     ),
-    child: child,
   );
 }
 

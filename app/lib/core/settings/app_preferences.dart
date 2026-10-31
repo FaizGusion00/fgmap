@@ -12,6 +12,7 @@ class AppPreferences {
     this.haptics = true,
     this.textScale = 1.0,
     this.reduceMotion = false,
+    this.easyMode = false,
     this.languageCode,
   });
 
@@ -23,6 +24,16 @@ class AppPreferences {
 
   /// Kurangkan animasi walaupun sistem tidak memintanya.
   final bool reduceMotion;
+
+  /// Mod mudah: teks sekurang-kurangnya 115%, HUD navigasi 25% lebih besar dan berkontras tinggi,
+  /// kawalan sekunder disembunyikan semasa memandu (untuk warga emas dan yang lemah membaca peta).
+  final bool easyMode;
+
+  /// Pengganda saiz teks berkesan: Mod mudah tidak pernah lebih kecil daripada [easyModeMinScale].
+  double get effectiveTextScale =>
+      easyMode && textScale < easyModeMinScale ? easyModeMinScale : textScale;
+
+  static const easyModeMinScale = 1.15;
 
   /// `ms`, `en`, atau null (ikut peranti).
   final String? languageCode;
@@ -36,12 +47,14 @@ class AppPreferences {
     bool? haptics,
     double? textScale,
     bool? reduceMotion,
+    bool? easyMode,
     String? languageCode,
     bool clearLanguage = false,
   }) => AppPreferences(
     haptics: haptics ?? this.haptics,
     textScale: textScale ?? this.textScale,
     reduceMotion: reduceMotion ?? this.reduceMotion,
+    easyMode: easyMode ?? this.easyMode,
     languageCode: clearLanguage ? null : (languageCode ?? this.languageCode),
   );
 
@@ -51,16 +64,18 @@ class AppPreferences {
       other.haptics == haptics &&
       other.textScale == textScale &&
       other.reduceMotion == reduceMotion &&
+      other.easyMode == easyMode &&
       other.languageCode == languageCode;
 
   @override
   int get hashCode =>
-      Object.hash(haptics, textScale, reduceMotion, languageCode);
+      Object.hash(haptics, textScale, reduceMotion, easyMode, languageCode);
 }
 
 const _hapticsKey = 'app.haptics';
 const _textScaleKey = 'app.textScale';
 const _reduceMotionKey = 'app.reduceMotion';
+const _easyModeKey = 'app.easyMode';
 const _languageKey = 'app.language';
 
 /// Membaca tetapan dari storan. Nilai luar julat/tidak dikenali kembali kepada lalai.
@@ -71,6 +86,7 @@ AppPreferences readAppPreferences(SharedPreferences prefs) {
     haptics: prefs.getBool(_hapticsKey) ?? true,
     textScale: AppPreferences.textScales.contains(scale) ? scale! : 1.0,
     reduceMotion: prefs.getBool(_reduceMotionKey) ?? false,
+    easyMode: prefs.getBool(_easyModeKey) ?? false,
     languageCode: AppPreferences.languages.contains(language) ? language : null,
   );
 }
@@ -100,6 +116,11 @@ class AppPreferencesController extends Notifier<AppPreferences> {
   Future<void> setReduceMotion(bool value) async {
     state = state.copyWith(reduceMotion: value);
     await _prefs.setBool(_reduceMotionKey, value);
+  }
+
+  Future<void> setEasyMode(bool value) async {
+    state = state.copyWith(easyMode: value);
+    await _prefs.setBool(_easyModeKey, value);
   }
 
   /// [code] null = ikut peranti.

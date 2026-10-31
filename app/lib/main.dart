@@ -16,6 +16,7 @@ import 'core/diagnostics/global_errors.dart';
 import 'core/licenses.dart';
 import 'core/storage/preferences.dart';
 import 'features/map/data/map_style_loader.dart';
+import 'features/music/data/local_library.dart';
 import 'features/offline_maps/data/offline_engine_host.dart';
 import 'features/offline_maps/data/offline_map_store.dart';
 import 'features/reports/data/reports_repository.dart';
@@ -35,9 +36,11 @@ Future<void> main() async {
   // ialah data boleh dimuat turun semula, bukan data pengguna.
   //
   // Kedua-duanya panggilan platform yang bebas, jadi dijalankan serentak (satu round-trip, bukan dua).
-  final (prefs, support) = await (
+  final (prefs, support, documents) = await (
     SharedPreferences.getInstance(),
     getApplicationSupportDirectory(),
+    // Muzik yang diimport ialah kandungan pengguna: Documents (bukan Application Support).
+    getApplicationDocumentsDirectory(),
   ).wait;
   // Log ralat tempatan (tidak dihantar); pengendali global memasangnya sebelum apa-apa kod app berjalan.
   final errorLog = ErrorLog(prefs: prefs);
@@ -57,6 +60,9 @@ Future<void> main() async {
         errorLogProvider.overrideWithValue(errorLog),
         mapStyleCacheDirProvider.overrideWithValue(styleCache),
         offlineMapStoreProvider.overrideWithValue(offlineStore),
+        localLibraryDirProvider.overrideWithValue(
+          Directory(p.join(documents.path, 'music')),
+        ),
         // Laporan komuniti: simpanan tempatan pada peranti ini (belum dikongsi; lihat ADR 0005).
         reportsRepositoryProvider.overrideWithValue(
           LocalReportsRepository(File(p.join(support.path, 'reports.json'))),

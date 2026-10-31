@@ -5,6 +5,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
+import '../../../core/audio/audio_coordinator.dart';
 import '../domain/announcement_planner.dart';
 import '../domain/instruction_text.dart';
 import 'sound_synth.dart';
@@ -43,12 +44,17 @@ class QueuedVoiceGuide implements VoiceGuide {
     required TtsEngine tts,
     required ChimePlayer chimes,
     this.maxQueued = 2,
+    AudioCoordinator? coordinator,
   }) : _tts = tts,
-       _chimes = chimes;
+       _chimes = chimes,
+       _coordinator = coordinator;
 
   final TtsEngine _tts;
   final ChimePlayer _chimes;
   final int maxQueued;
+
+  /// Memberitahu pemain muzik dalam app supaya memberi laluan semasa bunyi isyarat + ayat.
+  final AudioCoordinator? _coordinator;
 
   final Queue<(Announcement, VoiceLanguage)> _queue = Queue();
   bool _running = false;
@@ -78,6 +84,8 @@ class QueuedVoiceGuide implements VoiceGuide {
       while (_queue.isNotEmpty && !_disposed) {
         final generation = _generation;
         final (a, language) = _queue.removeFirst();
+        final coordinator = _coordinator;
+        if (coordinator != null) await coordinator.beginSpeech();
         try {
           final chime = a.chime;
           if (chime != null) await _chimes.play(chime);
@@ -86,6 +94,8 @@ class QueuedVoiceGuide implements VoiceGuide {
         } on Object catch (e) {
           // Kegagalan audio tidak boleh menjatuhkan navigasi.
           logDiag('Suara navigasi gagal: $e');
+        } finally {
+          if (coordinator != null) await coordinator.endSpeech();
         }
       }
     } finally {
@@ -175,7 +185,8 @@ class FlutterTtsEngine implements TtsEngine {
       await _tts.setLanguage(language.ttsLocale);
       _language = language;
     }
-    await _tts.speak(text);
+    // focus: minta fokus audio sementara (boleh perlahan) supaya app muzik lain turut memperlahankan.
+    await _tts.speak(text, focus: true);
   }
 
   @override

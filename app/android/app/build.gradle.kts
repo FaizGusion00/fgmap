@@ -32,6 +32,8 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // flutter_local_notifications (java.time) memerlukan desugaring pustaka teras.
+        isCoreLibraryDesugaringEnabled = true
     }
 
     buildFeatures {
@@ -97,6 +99,7 @@ gradle.taskGraph.whenReady {
 }
 
 dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
     implementation("androidx.car.app:app:1.7.0")
     implementation("androidx.car.app:app-projected:1.7.0")
     // Sama dengan pemalam maplibre_gl supaya satu SDK peta sahaja.

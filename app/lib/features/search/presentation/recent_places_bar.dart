@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/settings/easy_mode_scope.dart';
 import '../../../core/theme/fgmap_theme_extension.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../saved_places/data/saved_places_controller.dart';
@@ -104,8 +105,9 @@ class RecentPlacesBar extends ConsumerWidget {
     ];
     if (entries.isEmpty) return const SizedBox.shrink();
 
+    // Mod mudah: cip Rumah/Kerja setinggi 56 dp (sasaran sentuhan besar) dengan teks lebih besar.
     return SizedBox(
-      height: 44,
+      height: EasyModeScope.of(context) ? 56 : 44,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         clipBehavior: Clip.none,
@@ -139,6 +141,7 @@ class _ShortcutChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final fg = context.fg;
     final theme = Theme.of(context);
+    final easy = EasyModeScope.of(context);
     return Material(
       color: fg.glassSurface,
       elevation: 2,
@@ -148,20 +151,30 @@ class _ShortcutChip extends StatelessWidget {
         onTap: onTap,
         onLongPress: onLongPress,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 200, minHeight: 44),
+          constraints: BoxConstraints(
+            maxWidth: easy ? 240 : 200,
+            minHeight: easy ? 56 : 44,
+          ),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14),
+            padding: EdgeInsets.symmetric(horizontal: easy ? 18 : 14),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon, size: 18, color: theme.colorScheme.primary),
+                Icon(
+                  icon,
+                  size: easy ? 24 : 18,
+                  color: theme.colorScheme.primary,
+                ),
                 const SizedBox(width: 8),
                 Flexible(
                   child: Text(
                     label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.labelLarge?.copyWith(
+                    style: (easy
+                            ? theme.textTheme.titleMedium
+                            : theme.textTheme.labelLarge)
+                        ?.copyWith(
                       color: set
                           ? theme.colorScheme.onSurface
                           : theme.colorScheme.onSurfaceVariant,

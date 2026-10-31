@@ -30,6 +30,10 @@ docs/legal, docs/store  Dasar Privasi/Terma (draf, perlu semakan peguam) dan jaw
 | Cari berhampiran (minyak, makan, surau...) | Overpass API (data OSM), cache dalam peranti | RM0, penggunaan wajar |
 | Pek peta offline | GitHub Release `tiles`, dikemas kini mingguan oleh `tiles.yml` | RM0 |
 | Harga petrol/diesel (anggaran kos minyak) | data.gov.my (CC BY 4.0), cache 24 j | RM0 |
+| Waktu Azan | Dikira pada peranti (`adhan_dart`, kaedah JAKIM 20°/18°); notifikasi tempatan ([ADR 0012](docs/adr/0012-waktu-azan-muzik-dan-mod-mudah.md)) | RM0, luar talian |
+| Muzik: lagu | Audius API awam (tanpa kunci; Open Music License) | RM0, katalog dimuat naik pengguna |
+| Muzik: radio | Radio Browser (cermin komuniti), strim HTTPS sahaja | RM0, tiada SLA |
+| Muzik: fail saya | Diimport ke storan app | Luar talian |
 | Plaza tol | OSM melalui Overpass; harga hanya daripada dataset yang disahkan ([docs/tolls-data.md](docs/tolls-data.md)) | RM0 |
 
 Mod **Auto** (lalai): online dahulu; jika gagal (tiada internet, masa tamat, 5xx, disekat) dan pek offline
@@ -97,6 +101,18 @@ dalam senarai app navigasi / Customize.
 Binaan kedai (`make appbundle` → `STORE_BUILD=1`) mengunci hos kepada senarai sampel car-app; sijil
 gearhead baharu pada sesetengah HU (cth. Proton X50) mungkin masih menolak — itu isu allowlist, bukan
 manifest.
+
+## Waktu Azan, Muzik dan Mod mudah
+
+- **Waktu Azan** (Tetapan > Waktu Azan, atau pil di skrin utama): dikira pada peranti untuk lokasi semasa
+  (kaedah JAKIM; anggaran, ikut e-Solat untuk imsak/berbuka). Notifikasi dengan **azan penuh** secara lalai;
+  pilihan nada pendek/senyap, peringatan awal, pilih bandar jika tiada GPS. Semasa navigasi hanya bunyi
+  pendek + cip HUD melainkan dibenarkan. Android 12+: benarkan "penggera tepat" supaya tidak lewat.
+- **Muzik** (butang nota di skrin utama, atau lembaran tetapan navigasi): cari lagu (Audius), radio Malaysia
+  (Radio Browser, HTTPS sahaja) atau fail yang diimport; pemain penuh dengan kawalan skrin kunci dan penyama
+  (Android). Suara navigasi sentiasa mengatasi muzik: diperlahankan (lalai) atau dijeda (tetapan).
+- **Mod mudah** (Tetapan > Paparan, atau semasa sambutan): teks dan butang lebih besar, kad arahan
+  berkontras tinggi, kawalan lebih sedikit semasa memandu. Lihat [ADR 0012](docs/adr/0012-waktu-azan-muzik-dan-mod-mudah.md).
 
 ## Ujian
 

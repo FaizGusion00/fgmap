@@ -37,7 +37,9 @@ void main() {
     WidgetTester tester,
     Size size, {
     double textScale = 1,
+    bool easy = false,
   }) async {
+    if (easy) await prefs.setBool('app.easyMode', true);
     usePhoneSurface(tester, size: size);
     reduceMotion(tester);
     await pumpApp(
@@ -60,6 +62,14 @@ void main() {
     await tester.pumpAndSettle();
     map.config!.onLongPress(klia);
     await tester.pumpAndSettle();
+    if (easy) {
+      // Mod mudah: Simulasi tersembunyi di sebalik "Lanjut".
+      expect(find.byKey(const ValueKey('nav-simulate')), findsNothing);
+      final more = find.byKey(const ValueKey('nav-more-options'));
+      await tester.ensureVisible(more);
+      await tester.tap(more);
+      await tester.pumpAndSettle();
+    }
     await tapSimulate(tester);
     for (var i = 0; i < 6; i++) {
       await tester.pump(const Duration(seconds: 1));
@@ -309,6 +319,38 @@ void main() {
     await container.read(navigationControllerProvider.notifier).stop();
     await tester.pump(const Duration(seconds: 3));
     expect(find.byType(VehicleOverlay), findsNothing);
+  });
+
+  group('Mod mudah', () {
+    testWidgets('potret: HUD lebih besar tetapi kereta masih bebas, tiada zum', (
+      tester,
+    ) async {
+      const size = Size(390, 844);
+      final container = await pumpNavigating(tester, size, easy: true);
+
+      final banner = tester.getRect(find.byType(ManeuverBanner));
+      expect(banner.height, lessThan(140), reason: 'kad terlalu besar');
+      expectCarClear(tester, size);
+      // Kawalan sekunder disembunyikan: zum, lihat laluan, mod kamera, tukar laluan.
+      expect(find.byTooltip('Lihat keseluruhan laluan'), findsNothing);
+      expect(find.byTooltip('Kamera auto 3D/2D'), findsNothing);
+      expect(find.byTooltip('Zum masuk'), findsNothing);
+      // Yang penting kekal: suara, laporkan, tetapan, tamat.
+      expect(find.byTooltip('Senyapkan suara'), findsOneWidget);
+      expect(find.byTooltip('Tamat'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await finish(tester, container);
+    });
+
+    testWidgets('mendatar: tiada limpahan dalam Mod mudah', (tester) async {
+      const size = Size(844, 390);
+      final container = await pumpNavigating(tester, size, easy: true);
+      final banner = tester.getRect(find.byType(ManeuverBanner));
+      expect(banner.width, lessThanOrEqualTo(340));
+      expectCarClear(tester, size);
+      expect(tester.takeException(), isNull);
+      await finish(tester, container);
+    });
   });
 
   group('NavHudMetrics', () {

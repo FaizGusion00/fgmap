@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/location/location_service.dart';
+import '../../../core/audio/audio_coordinator.dart';
 import '../../../core/utils/geo.dart';
 import '../../route_preview/data/route_planner.dart';
 import '../../route_preview/domain/route_option.dart';
@@ -118,6 +119,7 @@ final voiceGuideProvider = Provider<VoiceGuide>((ref) {
       speechRate: () => ref.read(navigationSettingsProvider).speechRate,
     ),
     chimes: AudioplayersChimePlayer(),
+    coordinator: ref.read(audioCoordinatorProvider),
   );
   ref.onDispose(guide.dispose);
   return guide;

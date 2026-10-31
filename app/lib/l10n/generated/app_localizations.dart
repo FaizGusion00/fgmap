@@ -635,7 +635,7 @@ abstract class AppLocalizations {
   /// No description provided for @searchPillHint.
   ///
   /// In ms, this message translates to:
-  /// **'Cari destinasi'**
+  /// **'Ke mana?'**
   String get searchPillHint;
 
   /// No description provided for @searchClear.
@@ -647,7 +647,7 @@ abstract class AppLocalizations {
   /// No description provided for @searchPrompt.
   ///
   /// In ms, this message translates to:
-  /// **'Taip nama tempat, atau tampal koordinat (3.14, 101.68) / pautan Google Maps atau Waze.'**
+  /// **'Taip nama tempat, atau pilih Rumah / Kerja di bawah. Boleh juga tampal koordinat (3.14, 101.68) atau pautan Google Maps / Waze.'**
   String get searchPrompt;
 
   /// No description provided for @searchHistory.
@@ -937,6 +937,18 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'Kemudian'**
   String get navThen;
+
+  /// No description provided for @navRoundaboutExitSemantics.
+  ///
+  /// In ms, this message translates to:
+  /// **'Bulatan, ambil simpang keluar ke-{n}'**
+  String navRoundaboutExitSemantics(int n);
+
+  /// No description provided for @navGetReady.
+  ///
+  /// In ms, this message translates to:
+  /// **'Bersedia'**
+  String get navGetReady;
 
   /// No description provided for @navSimulatedBadge.
   ///
@@ -1471,6 +1483,684 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'Dikenakan di atas saiz teks telefon anda.'**
   String get settingsTextSizeHint;
+
+  /// No description provided for @settingsEasyMode.
+  ///
+  /// In ms, this message translates to:
+  /// **'Mod mudah'**
+  String get settingsEasyMode;
+
+  /// No description provided for @settingsEasyModeHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Teks dan butang lebih besar, kad arahan berkontras tinggi, kawalan lebih sedikit semasa memandu. Sesuai untuk warga emas.'**
+  String get settingsEasyModeHint;
+
+  /// No description provided for @onbEasyMode.
+  ///
+  /// In ms, this message translates to:
+  /// **'Paparan besar & mudah'**
+  String get onbEasyMode;
+
+  /// No description provided for @onbEasyModeHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Teks lebih besar, arahan lebih jelas, butang lebih sedikit. Boleh ditukar bila-bila masa dalam Tetapan.'**
+  String get onbEasyModeHint;
+
+  /// No description provided for @navGpsWeakHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Teruskan memandu. Kami sedang mencari isyarat.'**
+  String get navGpsWeakHint;
+
+  /// No description provided for @routeMoreOptions.
+  ///
+  /// In ms, this message translates to:
+  /// **'Lanjut'**
+  String get routeMoreOptions;
+
+  /// No description provided for @settingsAzan.
+  ///
+  /// In ms, this message translates to:
+  /// **'Waktu Azan'**
+  String get settingsAzan;
+
+  /// No description provided for @azanTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Waktu solat'**
+  String get azanTitle;
+
+  /// No description provided for @azanEnable.
+  ///
+  /// In ms, this message translates to:
+  /// **'Notifikasi azan'**
+  String get azanEnable;
+
+  /// No description provided for @azanEnableHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Beritahu saya setiap kali masuk waktu solat di lokasi semasa.'**
+  String get azanEnableHint;
+
+  /// No description provided for @azanPrayerFajr.
+  ///
+  /// In ms, this message translates to:
+  /// **'Subuh'**
+  String get azanPrayerFajr;
+
+  /// No description provided for @azanPrayerSunrise.
+  ///
+  /// In ms, this message translates to:
+  /// **'Syuruk'**
+  String get azanPrayerSunrise;
+
+  /// No description provided for @azanPrayerDhuhr.
+  ///
+  /// In ms, this message translates to:
+  /// **'Zohor'**
+  String get azanPrayerDhuhr;
+
+  /// No description provided for @azanPrayerAsr.
+  ///
+  /// In ms, this message translates to:
+  /// **'Asar'**
+  String get azanPrayerAsr;
+
+  /// No description provided for @azanPrayerMaghrib.
+  ///
+  /// In ms, this message translates to:
+  /// **'Maghrib'**
+  String get azanPrayerMaghrib;
+
+  /// No description provided for @azanPrayerIsha.
+  ///
+  /// In ms, this message translates to:
+  /// **'Isyak'**
+  String get azanPrayerIsha;
+
+  /// No description provided for @azanPrayersLabel.
+  ///
+  /// In ms, this message translates to:
+  /// **'Waktu yang diberitahu'**
+  String get azanPrayersLabel;
+
+  /// No description provided for @azanSoundLabel.
+  ///
+  /// In ms, this message translates to:
+  /// **'Bunyi'**
+  String get azanSoundLabel;
+
+  /// No description provided for @azanSoundFull.
+  ///
+  /// In ms, this message translates to:
+  /// **'Azan penuh'**
+  String get azanSoundFull;
+
+  /// No description provided for @azanSoundShort.
+  ///
+  /// In ms, this message translates to:
+  /// **'Nada pendek'**
+  String get azanSoundShort;
+
+  /// No description provided for @azanSoundSilent.
+  ///
+  /// In ms, this message translates to:
+  /// **'Senyap'**
+  String get azanSoundSilent;
+
+  /// No description provided for @azanSoundHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Azan penuh ialah lalai. Nada pendek atau senyap jika anda mahu lebih tenang.'**
+  String get azanSoundHint;
+
+  /// No description provided for @azanMethodLabel.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kaedah pengiraan'**
+  String get azanMethodLabel;
+
+  /// No description provided for @azanMethodJakim.
+  ///
+  /// In ms, this message translates to:
+  /// **'JAKIM (Malaysia)'**
+  String get azanMethodJakim;
+
+  /// No description provided for @azanMethodMwl.
+  ///
+  /// In ms, this message translates to:
+  /// **'Liga Muslim Sedunia'**
+  String get azanMethodMwl;
+
+  /// No description provided for @azanMethodEgyptian.
+  ///
+  /// In ms, this message translates to:
+  /// **'Mesir'**
+  String get azanMethodEgyptian;
+
+  /// No description provided for @azanMethodKarachi.
+  ///
+  /// In ms, this message translates to:
+  /// **'Karachi'**
+  String get azanMethodKarachi;
+
+  /// No description provided for @azanMethodUmmAlQura.
+  ///
+  /// In ms, this message translates to:
+  /// **'Umm al-Qura (Makkah)'**
+  String get azanMethodUmmAlQura;
+
+  /// No description provided for @azanMadhabLabel.
+  ///
+  /// In ms, this message translates to:
+  /// **'Mazhab (waktu Asar)'**
+  String get azanMadhabLabel;
+
+  /// No description provided for @azanMadhabShafi.
+  ///
+  /// In ms, this message translates to:
+  /// **'Syafie'**
+  String get azanMadhabShafi;
+
+  /// No description provided for @azanMadhabHanafi.
+  ///
+  /// In ms, this message translates to:
+  /// **'Hanafi'**
+  String get azanMadhabHanafi;
+
+  /// No description provided for @azanReminderLabel.
+  ///
+  /// In ms, this message translates to:
+  /// **'Peringatan awal'**
+  String get azanReminderLabel;
+
+  /// No description provided for @azanReminderNone.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tiada'**
+  String get azanReminderNone;
+
+  /// No description provided for @azanReminderMinutes.
+  ///
+  /// In ms, this message translates to:
+  /// **'{n} min sebelum'**
+  String azanReminderMinutes(int n);
+
+  /// No description provided for @azanPlayDuringNav.
+  ///
+  /// In ms, this message translates to:
+  /// **'Main azan penuh semasa navigasi'**
+  String get azanPlayDuringNav;
+
+  /// No description provided for @azanPlayDuringNavHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Jika mati: hanya bunyi pendek dan cip pada HUD supaya arahan suara tidak terganggu. Notifikasi tetap dihantar.'**
+  String get azanPlayDuringNavHint;
+
+  /// No description provided for @azanLocationLabel.
+  ///
+  /// In ms, this message translates to:
+  /// **'Lokasi'**
+  String get azanLocationLabel;
+
+  /// No description provided for @azanLocationAuto.
+  ///
+  /// In ms, this message translates to:
+  /// **'Ikut lokasi peranti'**
+  String get azanLocationAuto;
+
+  /// No description provided for @azanLocationCity.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pilih bandar'**
+  String get azanLocationCity;
+
+  /// No description provided for @azanLocationAutoHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Dikira pada telefon ini daripada lokasi anda (dibundarkan ~1 km). Tiada data dihantar.'**
+  String get azanLocationAutoHint;
+
+  /// No description provided for @azanNextIn.
+  ///
+  /// In ms, this message translates to:
+  /// **'{prayer} {time} · {remaining} lagi'**
+  String azanNextIn(String prayer, String time, String remaining);
+
+  /// No description provided for @azanNextPrayer.
+  ///
+  /// In ms, this message translates to:
+  /// **'Seterusnya: {prayer} pada {time}'**
+  String azanNextPrayer(String prayer, String time);
+
+  /// No description provided for @azanAllDone.
+  ///
+  /// In ms, this message translates to:
+  /// **'Semua waktu hari ini telah berlalu'**
+  String get azanAllDone;
+
+  /// No description provided for @azanNowTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Waktu {prayer}'**
+  String azanNowTitle(String prayer);
+
+  /// No description provided for @azanNowBody.
+  ///
+  /// In ms, this message translates to:
+  /// **'Telah masuk waktu solat.'**
+  String get azanNowBody;
+
+  /// No description provided for @azanStop.
+  ///
+  /// In ms, this message translates to:
+  /// **'Hentikan azan'**
+  String get azanStop;
+
+  /// No description provided for @azanListen.
+  ///
+  /// In ms, this message translates to:
+  /// **'Dengar azan'**
+  String get azanListen;
+
+  /// No description provided for @azanStopListening.
+  ///
+  /// In ms, this message translates to:
+  /// **'Berhenti'**
+  String get azanStopListening;
+
+  /// No description provided for @azanEstimateNote.
+  ///
+  /// In ms, this message translates to:
+  /// **'Anggaran daripada pengiraan astronomi ({method}). Jadual rasmi e-Solat JAKIM mungkin berbeza beberapa minit; ikut jadual rasmi untuk berbuka dan imsak.'**
+  String azanEstimateNote(String method);
+
+  /// No description provided for @azanExactAlarmTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Benarkan penggera tepat'**
+  String get azanExactAlarmTitle;
+
+  /// No description provided for @azanExactAlarmBody.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tanpa kebenaran ini, Android mungkin melewatkan notifikasi beberapa minit.'**
+  String get azanExactAlarmBody;
+
+  /// No description provided for @azanExactAlarmAction.
+  ///
+  /// In ms, this message translates to:
+  /// **'Buka tetapan'**
+  String get azanExactAlarmAction;
+
+  /// No description provided for @azanPermissionDenied.
+  ///
+  /// In ms, this message translates to:
+  /// **'Notifikasi tidak dibenarkan. Benarkan dalam tetapan telefon untuk menerima azan.'**
+  String get azanPermissionDenied;
+
+  /// No description provided for @azanReminderTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'{prayer} dalam {n} minit'**
+  String azanReminderTitle(String prayer, int n);
+
+  /// No description provided for @azanReminderBody.
+  ///
+  /// In ms, this message translates to:
+  /// **'Bersedia untuk solat.'**
+  String get azanReminderBody;
+
+  /// No description provided for @azanChannelFull.
+  ///
+  /// In ms, this message translates to:
+  /// **'Azan (penuh)'**
+  String get azanChannelFull;
+
+  /// No description provided for @azanChannelShort.
+  ///
+  /// In ms, this message translates to:
+  /// **'Azan (nada pendek)'**
+  String get azanChannelShort;
+
+  /// No description provided for @azanChannelSilent.
+  ///
+  /// In ms, this message translates to:
+  /// **'Azan (senyap)'**
+  String get azanChannelSilent;
+
+  /// No description provided for @azanChannelReminder.
+  ///
+  /// In ms, this message translates to:
+  /// **'Peringatan solat'**
+  String get azanChannelReminder;
+
+  /// No description provided for @azanOpenSettings.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tetapan azan'**
+  String get azanOpenSettings;
+
+  /// No description provided for @azanRemainingHours.
+  ///
+  /// In ms, this message translates to:
+  /// **'{h} j {m} min'**
+  String azanRemainingHours(int h, int m);
+
+  /// No description provided for @azanRemainingMinutes.
+  ///
+  /// In ms, this message translates to:
+  /// **'{m} min'**
+  String azanRemainingMinutes(int m);
+
+  /// No description provided for @azanForCity.
+  ///
+  /// In ms, this message translates to:
+  /// **'Untuk {city}'**
+  String azanForCity(String city);
+
+  /// No description provided for @azanForCurrentLocation.
+  ///
+  /// In ms, this message translates to:
+  /// **'Untuk lokasi semasa'**
+  String get azanForCurrentLocation;
+
+  /// No description provided for @azanNotNow.
+  ///
+  /// In ms, this message translates to:
+  /// **'Bukan sekarang'**
+  String get azanNotNow;
+
+  /// No description provided for @settingsMusic.
+  ///
+  /// In ms, this message translates to:
+  /// **'Muzik'**
+  String get settingsMusic;
+
+  /// No description provided for @musicTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Muzik'**
+  String get musicTitle;
+
+  /// No description provided for @musicOpen.
+  ///
+  /// In ms, this message translates to:
+  /// **'Muzik'**
+  String get musicOpen;
+
+  /// No description provided for @musicSearchHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Cari lagu, artis atau radio…'**
+  String get musicSearchHint;
+
+  /// No description provided for @musicTabSongs.
+  ///
+  /// In ms, this message translates to:
+  /// **'Lagu'**
+  String get musicTabSongs;
+
+  /// No description provided for @musicTabRadio.
+  ///
+  /// In ms, this message translates to:
+  /// **'Radio'**
+  String get musicTabRadio;
+
+  /// No description provided for @musicTabLocal.
+  ///
+  /// In ms, this message translates to:
+  /// **'Fail saya'**
+  String get musicTabLocal;
+
+  /// No description provided for @musicEmptySongs.
+  ///
+  /// In ms, this message translates to:
+  /// **'Taip nama lagu atau artis, kemudian ketik untuk main. Lagu daripada Audius (katalog terbuka, percuma).'**
+  String get musicEmptySongs;
+
+  /// No description provided for @musicEmptyRadio.
+  ///
+  /// In ms, this message translates to:
+  /// **'Stesen radio Malaysia. Ketik untuk dengar siaran langsung.'**
+  String get musicEmptyRadio;
+
+  /// No description provided for @musicEmptyLocal.
+  ///
+  /// In ms, this message translates to:
+  /// **'Import lagu dari telefon anda. Ia disimpan dalam app dan sentiasa boleh dimainkan tanpa internet.'**
+  String get musicEmptyLocal;
+
+  /// No description provided for @musicNoResults.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tiada hasil untuk “{query}”.'**
+  String musicNoResults(String query);
+
+  /// No description provided for @musicOffline.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tiada internet. Hanya fail saya boleh dimainkan.'**
+  String get musicOffline;
+
+  /// No description provided for @musicErrorSource.
+  ///
+  /// In ms, this message translates to:
+  /// **'{source} tidak dapat dihubungi sekarang.'**
+  String musicErrorSource(String source);
+
+  /// No description provided for @musicImport.
+  ///
+  /// In ms, this message translates to:
+  /// **'Import dari telefon'**
+  String get musicImport;
+
+  /// No description provided for @musicImported.
+  ///
+  /// In ms, this message translates to:
+  /// **'{n} lagu ditambah'**
+  String musicImported(int n);
+
+  /// No description provided for @musicRemove.
+  ///
+  /// In ms, this message translates to:
+  /// **'Buang'**
+  String get musicRemove;
+
+  /// No description provided for @musicLive.
+  ///
+  /// In ms, this message translates to:
+  /// **'LANGSUNG'**
+  String get musicLive;
+
+  /// No description provided for @musicViaAudius.
+  ///
+  /// In ms, this message translates to:
+  /// **'via Audius'**
+  String get musicViaAudius;
+
+  /// No description provided for @musicAttribution.
+  ///
+  /// In ms, this message translates to:
+  /// **'Lagu daripada Audius · Radio daripada Radio Browser · Fail anda kekal pada telefon'**
+  String get musicAttribution;
+
+  /// No description provided for @musicNowPlaying.
+  ///
+  /// In ms, this message translates to:
+  /// **'Sedang dimainkan'**
+  String get musicNowPlaying;
+
+  /// No description provided for @musicPlay.
+  ///
+  /// In ms, this message translates to:
+  /// **'Main'**
+  String get musicPlay;
+
+  /// No description provided for @musicPause.
+  ///
+  /// In ms, this message translates to:
+  /// **'Jeda'**
+  String get musicPause;
+
+  /// No description provided for @musicNext.
+  ///
+  /// In ms, this message translates to:
+  /// **'Seterusnya'**
+  String get musicNext;
+
+  /// No description provided for @musicPrevious.
+  ///
+  /// In ms, this message translates to:
+  /// **'Sebelumnya'**
+  String get musicPrevious;
+
+  /// No description provided for @musicStop.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tutup pemain'**
+  String get musicStop;
+
+  /// No description provided for @musicVolume.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kelantangan'**
+  String get musicVolume;
+
+  /// No description provided for @musicQueue.
+  ///
+  /// In ms, this message translates to:
+  /// **'Baris gilir'**
+  String get musicQueue;
+
+  /// No description provided for @musicEqualizer.
+  ///
+  /// In ms, this message translates to:
+  /// **'Penyama (Equalizer)'**
+  String get musicEqualizer;
+
+  /// No description provided for @musicEqPresetNormal.
+  ///
+  /// In ms, this message translates to:
+  /// **'Normal'**
+  String get musicEqPresetNormal;
+
+  /// No description provided for @musicEqPresetBass.
+  ///
+  /// In ms, this message translates to:
+  /// **'Bes'**
+  String get musicEqPresetBass;
+
+  /// No description provided for @musicEqPresetTreble.
+  ///
+  /// In ms, this message translates to:
+  /// **'Trebel'**
+  String get musicEqPresetTreble;
+
+  /// No description provided for @musicEqPresetVocal.
+  ///
+  /// In ms, this message translates to:
+  /// **'Suara'**
+  String get musicEqPresetVocal;
+
+  /// No description provided for @musicEqPresetCustom.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tersuai'**
+  String get musicEqPresetCustom;
+
+  /// No description provided for @musicEqUnsupported.
+  ///
+  /// In ms, this message translates to:
+  /// **'Penyama hanya tersedia pada Android.'**
+  String get musicEqUnsupported;
+
+  /// No description provided for @musicEqEnable.
+  ///
+  /// In ms, this message translates to:
+  /// **'Hidupkan penyama'**
+  String get musicEqEnable;
+
+  /// No description provided for @musicDuckTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Semasa suara navigasi bercakap'**
+  String get musicDuckTitle;
+
+  /// No description provided for @musicDuckLower.
+  ///
+  /// In ms, this message translates to:
+  /// **'Perlahankan muzik'**
+  String get musicDuckLower;
+
+  /// No description provided for @musicDuckLowerHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Lalai. Muzik diperlahankan semasa arahan, kemudian pulih.'**
+  String get musicDuckLowerHint;
+
+  /// No description provided for @musicDuckPause.
+  ///
+  /// In ms, this message translates to:
+  /// **'Jeda muzik'**
+  String get musicDuckPause;
+
+  /// No description provided for @musicDuckPauseHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Muzik berhenti sepenuhnya semasa arahan, kemudian sambung.'**
+  String get musicDuckPauseHint;
+
+  /// No description provided for @musicOpenPlayer.
+  ///
+  /// In ms, this message translates to:
+  /// **'Buka Muzik'**
+  String get musicOpenPlayer;
+
+  /// No description provided for @musicClearLocal.
+  ///
+  /// In ms, this message translates to:
+  /// **'Padam semua fail saya'**
+  String get musicClearLocal;
+
+  /// No description provided for @musicSourceAudius.
+  ///
+  /// In ms, this message translates to:
+  /// **'Audius'**
+  String get musicSourceAudius;
+
+  /// No description provided for @musicSourceRadio.
+  ///
+  /// In ms, this message translates to:
+  /// **'Radio Browser'**
+  String get musicSourceRadio;
+
+  /// No description provided for @musicSourceLocal.
+  ///
+  /// In ms, this message translates to:
+  /// **'Fail saya'**
+  String get musicSourceLocal;
+
+  /// No description provided for @musicLoading.
+  ///
+  /// In ms, this message translates to:
+  /// **'Memuatkan…'**
+  String get musicLoading;
+
+  /// No description provided for @musicError.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tidak dapat dimainkan. Cuba lagu lain.'**
+  String get musicError;
+
+  /// No description provided for @musicDucked.
+  ///
+  /// In ms, this message translates to:
+  /// **'Suara navigasi'**
+  String get musicDucked;
 
   /// No description provided for @settingsReduceMotion.
   ///
@@ -2033,7 +2723,7 @@ abstract class AppLocalizations {
   /// No description provided for @legalAttribution.
   ///
   /// In ms, this message translates to:
-  /// **'Data peta © penyumbang OpenStreetMap (ODbL). Gaya dan jubin: OpenFreeMap, OpenMapTiles. Laluan: Valhalla. Carian: Photon (komoot) dan Nominatim. Harga petrol: data.gov.my.'**
+  /// **'Data peta © penyumbang OpenStreetMap (ODbL). Gaya dan jubin: OpenFreeMap, OpenMapTiles. Laluan: Valhalla. Carian: Photon (komoot) dan Nominatim. Harga petrol: data.gov.my. Muzik: Audius (Open Music License) dan Radio Browser; strim radio daripada stesen masing-masing. Rakaman azan: Aaqib Azeez / Atcovi, Wikimedia Commons, CC BY-SA 4.0.'**
   String get legalAttribution;
 
   /// No description provided for @aboutAttributionTitle.

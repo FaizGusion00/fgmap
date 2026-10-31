@@ -17,6 +17,8 @@ class CarSessionSnapshot {
     this.route = const [],
     this.routeVersion = 0,
     this.maneuver,
+    this.maneuverKind,
+    this.roundaboutExit,
     this.distanceToManeuverM,
     this.remainingM,
     this.remainingS,
@@ -35,6 +37,13 @@ class CarSessionSnapshot {
   final List<GeoPoint> route;
   final int routeVersion;
   final String? maneuver;
+
+  /// Nama [ManeuverKind] (cth. `roundabout`) supaya hos kereta boleh memilih ikon manuver
+  /// piawainya; teks [maneuver] kekal sebagai sandaran.
+  final String? maneuverKind;
+
+  /// Nombor simpang keluar bulatan, jika manuver ialah bulatan.
+  final int? roundaboutExit;
   final double? distanceToManeuverM;
   final double? remainingM;
   final int? remainingS;
@@ -64,6 +73,8 @@ class CarSessionSnapshot {
       'routeVersion': routeVersion,
       if (includeRoute) 'route': [for (final p in route) [p.lat, p.lng]],
       'maneuver': maneuver,
+      'maneuverKind': maneuverKind,
+      'roundaboutExit': roundaboutExit,
       'distanceToManeuverM': distanceToManeuverM,
       'remainingM': remainingM,
       'remainingS': remainingS,
@@ -86,6 +97,8 @@ CarSessionSnapshot mapCarSession({
   List<GeoPoint> navigationRoute = const [],
   int routeVersion = 0,
   String? maneuver,
+  String? maneuverKind,
+  int? roundaboutExit,
   double? distanceToManeuverM,
   double? remainingM,
   int? remainingS,
@@ -113,6 +126,8 @@ CarSessionSnapshot mapCarSession({
       route: navigationRoute,
       routeVersion: routeVersion,
       maneuver: maneuver,
+      maneuverKind: maneuverKind,
+      roundaboutExit: roundaboutExit,
       distanceToManeuverM: distanceToManeuverM,
       remainingM: remainingM,
       remainingS: remainingS,

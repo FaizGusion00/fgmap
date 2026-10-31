@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/location/location_service.dart';
+import '../../../core/settings/app_preferences.dart';
 import '../../../core/theme/motion.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../legal/presentation/legal_page.dart';
@@ -290,6 +291,7 @@ class _SetupPage extends ConsumerWidget {
     final settings = ref.watch(navigationSettingsProvider);
     final access = ref.watch(locationAccessProvider);
     final granted = access == LocationAccess.granted;
+    final prefs = ref.watch(appPreferencesProvider);
 
     return _PageFrame(
       icon: Icons.tune_rounded,
@@ -367,6 +369,17 @@ class _SetupPage extends ConsumerWidget {
           style: theme.textTheme.bodySmall?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),
+        ),
+        const SizedBox(height: 16),
+        // Mod mudah dari langkah pertama: warga emas tidak perlu mencarinya dalam Tetapan.
+        SwitchListTile(
+          key: const ValueKey('onboarding-easy-mode'),
+          contentPadding: EdgeInsets.zero,
+          secondary: const Icon(Icons.accessibility_new_rounded),
+          title: Text(l10n.onbEasyMode),
+          subtitle: Text(l10n.onbEasyModeHint),
+          value: prefs.easyMode,
+          onChanged: ref.read(appPreferencesProvider.notifier).setEasyMode,
         ),
       ],
     );

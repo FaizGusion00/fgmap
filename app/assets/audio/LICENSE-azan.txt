@@ -1,0 +1,15 @@
+Azan (laungan azan) — "The Adhan - Muslim Call to Prayer - Aaqib Azeez"
+Fail: azan.mp3 (penuh, 1 min 27 s) dan azan_short.mp3 (29 saat pertama, untuk notifikasi iOS).
+
+Sumber: Wikimedia Commons
+https://commons.wikimedia.org/wiki/File:The_Adhan_-_Muslim_Call_to_Prayer_-_Aaqib_Azeez.mp3
+Pencipta: Atcovi (hasil kerja sendiri), dimuat naik 11 Disember 2025.
+Lesen: Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)
+https://creativecommons.org/licenses/by-sa/4.0/
+
+Perubahan oleh FGMaps: azan_short.mp3 dipotong kepada 29 saat dengan pudar keluar 2 saat;
+azan_short.caf ialah penukaran format yang sama untuk iOS. Fail azan.mp3 tidak diubah.
+Rakaman ini kekal di bawah CC BY-SA 4.0; kod FGMaps tidak terjejas oleh syarat kongsi-serupa
+kerana rakaman dibundel sebagai karya berasingan (koleksi).
+
+SHA-256 asal: 0faa59e2028bbb2f60a670b53ec89ffcf628f3c195b43fb41d9bdbc99000c1b3

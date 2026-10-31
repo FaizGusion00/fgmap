@@ -1,10 +1,11 @@
 package com.fguniversalempire.fgmaps
 
 import com.fguniversalempire.fgmaps.car.CarBridge
-import io.flutter.embedding.android.FlutterActivity
+import com.ryanheise.audioservice.AudioServiceActivity
 import io.flutter.embedding.engine.FlutterEngine
 
-class MainActivity : FlutterActivity() {
+// AudioServiceActivity (masih FlutterActivity): kawalan skrin kunci/notifikasi media untuk Muzik.
+class MainActivity : AudioServiceActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         CarBridge.attach(flutterEngine.dartExecutor.binaryMessenger)

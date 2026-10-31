@@ -47,6 +47,32 @@ abstract final class AppConfig {
       .where((u) => u.isNotEmpty)
       .toList();
 
+  /// Audius: API awam tanpa kunci untuk cari dan strim muzik (lesen Audius Open Music License
+  /// membenarkan "Music Players" pihak ketiga menstrim). Hos kandungan (`creatornode`) ialah
+  /// lencongan 302 daripada `/stream`. Hanya `app_name` diperlukan.
+  static const audiusUrl = String.fromEnvironment(
+    'AUDIUS_URL',
+    defaultValue: 'https://api.audius.co',
+  );
+
+  /// Nama app yang dihantar kepada Audius (dasar: setiap app pengeluaran menghantar nama unik).
+  static const audiusAppName = 'FGMaps';
+
+  /// Cermin Radio Browser (pangkalan data stesen radio komuniti, percuma tanpa kunci). Dasar: UA
+  /// berpengenalan, jangan guna satu pelayan sahaja. Dicuba mengikut tertib seperti Overpass.
+  static const _radioBrowserRaw = String.fromEnvironment(
+    'RADIO_BROWSER_URLS',
+    defaultValue:
+        'https://de1.api.radio-browser.info,'
+        'https://fi1.api.radio-browser.info,'
+        'https://at1.api.radio-browser.info',
+  );
+  static List<String> get radioBrowserUrls => _radioBrowserRaw
+      .split(',')
+      .map((u) => u.trim())
+      .where((u) => u.isNotEmpty)
+      .toList();
+
   /// URL manifest peta offline yang diterbitkan oleh workflow tiles. Boleh ditukar untuk pelayan
   /// pembangunan setempat atau hos sendiri dengan `--dart-define=OFFLINE_MANIFEST_URL=...`.
   static const offlineManifestUrl = String.fromEnvironment(
@@ -87,6 +113,8 @@ abstract final class AppConfig {
     'PHOTON_URL': photonUrl,
     'NOMINATIM_URL': nominatimUrl,
     'OVERPASS_URLS': overpassUrls.join(','),
+    'AUDIUS_URL': audiusUrl,
+    'RADIO_BROWSER_URLS': radioBrowserUrls.join(','),
     'OFFLINE_MANIFEST_URL': offlineManifestUrl,
     'MAP_STYLE_LIGHT': mapStyleLight,
     'MAP_STYLE_DARK': mapStyleDark,

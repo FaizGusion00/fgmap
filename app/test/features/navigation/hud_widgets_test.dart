@@ -4,6 +4,7 @@ import 'package:fgmap/features/navigation/domain/nav_route.dart';
 import 'package:fgmap/features/navigation/domain/navigation_session.dart';
 import 'package:fgmap/features/navigation/presentation/navigation_controller.dart';
 import 'package:fgmap/features/navigation/presentation/navigation_hud.dart';
+import 'package:fgmap/features/navigation/presentation/roundabout_exit_icon.dart';
 import 'package:fgmap/features/route_preview/domain/routing_failure.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart' show SemanticsNode;
@@ -103,8 +104,67 @@ void main() {
         ),
       );
       expect(find.text('3'), findsOneWidget);
-      expect(find.byIcon(Icons.roundabout_right_rounded), findsOneWidget);
-      expect(find.textContaining('simpang keluar'), findsOneWidget);
+      // Gelang + nombor dilukis sendiri; tiada lagi glif Material yang berpintal.
+      expect(find.byType(RoundaboutExitIcon), findsOneWidget);
+      expect(find.byIcon(Icons.roundabout_right_rounded), findsNothing);
+      // Kad: tindakan pendek sahaja (ikon sudah menyebut "bulatan").
+      expect(find.text('Ambil simpang keluar ke-3'), findsOneWidget);
+    });
+
+    testWidgets('bulatan: label semantik menyebut nombor keluar', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      await pump(
+        tester,
+        ManeuverBanner(
+          progress: progress(
+            next: m(1, ManeuverKind.roundabout, 200, roundaboutExit: 2),
+            distance: 120,
+          ),
+        ),
+      );
+      expect(
+        find.bySemanticsLabel('Bulatan, ambil simpang keluar ke-2'),
+        findsOneWidget,
+      );
+      handle.dispose();
+    });
+
+    testWidgets('"Bersedia" muncul dalam 150 m sahaja', (tester) async {
+      final next = m(1, ManeuverKind.left, 300);
+      await pump(
+        tester,
+        ManeuverBanner(progress: progress(next: next, distance: 260)),
+      );
+      expect(find.byKey(const ValueKey('nav-get-ready')), findsNothing);
+      await pump(
+        tester,
+        ManeuverBanner(progress: progress(next: next, distance: 120)),
+      );
+      expect(find.text('Bersedia'), findsOneWidget);
+    });
+
+    testWidgets('lalu lintas kiri: pusingan U ke kanan, susur lurus = lurus', (
+      tester,
+    ) async {
+      expect(maneuverIcon(ManeuverKind.uTurn), Icons.u_turn_right_rounded);
+      expect(maneuverIcon(ManeuverKind.rampStraight), Icons.straight_rounded);
+    });
+
+    testWidgets('"Kemudian" bulatan juga guna gelang + nombor', (tester) async {
+      await pump(
+        tester,
+        ManeuverBanner(
+          progress: progress(
+            next: m(1, ManeuverKind.left, 300),
+            following: m(2, ManeuverKind.roundabout, 500, roundaboutExit: 1),
+          ),
+        ),
+      );
+      expect(find.text('Kemudian'), findsOneWidget);
+      expect(find.byType(RoundaboutExitIcon), findsOneWidget);
+      expect(find.text('1'), findsOneWidget);
     });
 
     testWidgets(

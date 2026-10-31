@@ -53,11 +53,16 @@ void main() {
       navigationRoute: route,
       routeVersion: 3,
       maneuver: 'Belok kanan',
+      maneuverKind: 'roundabout',
+      roundaboutExit: 2,
       distanceToManeuverM: 120,
       remainingM: 4000,
       remainingS: 300,
     );
     expect(snap.mode, CarDriveMode.navigating);
+    // Jenis manuver dan nombor keluar dihantar supaya hos kereta boleh melukis ikon piawai.
+    expect(snap.toMap()['maneuverKind'], 'roundabout');
+    expect(snap.toMap()['roundaboutExit'], 2);
     expect(snap.route, route);
     expect(snap.maneuver, 'Belok kanan');
     expect(snap.hasRoute, isTrue);

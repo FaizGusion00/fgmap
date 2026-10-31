@@ -167,6 +167,8 @@ class CarSessionHub {
           const [],
       routeVersion: nav.routeVersion,
       maneuver: text,
+      maneuverKind: maneuver?.kind.name,
+      roundaboutExit: maneuver?.roundaboutExit,
       distanceToManeuverM: progress?.distanceToNextM,
       remainingM: progress?.remainingM,
       remainingS: progress?.remainingS.round(),

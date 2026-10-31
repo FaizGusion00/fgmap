@@ -1,0 +1,104 @@
+{
+ "data": [
+  {
+   "id": "JawV4OZ",
+   "title": "Playa del Carmen (Instrumental)",
+   "duration": 204,
+   "is_streamable": true,
+   "permalink": "/SlagerHullam/playa-del-carmen-instrumental",
+   "genre": "Instrumental",
+   "mood": "Romantic",
+   "artwork": {
+    "150x150": "https://val013.open-audio-validator.com/content/baeaaaiqsea46xh3cqgjhw4ek52zlkmbeuxbfbuyksv5glc2rm2ryiswpzq5qc/150x150.jpg",
+    "480x480": "https://val013.open-audio-validator.com/content/baeaaaiqsea46xh3cqgjhw4ek52zlkmbeuxbfbuyksv5glc2rm2ryiswpzq5qc/480x480.jpg"
+   },
+   "user": {
+    "id": "KEaRBk2",
+    "name": "SlágerHullám",
+    "handle": "SlagerHullam"
+   },
+   "track_cid": "baeaaaiqsecctpgykcamd4lu2l6kdtu7blbehoy4yqspvimthozu6iqs2kqdoq",
+   "is_downloadable": false
+  },
+  {
+   "id": "mEB2wly",
+   "title": "TODO RAYADO - GALLO LAGUNES  ",
+   "duration": 182,
+   "is_streamable": true,
+   "permalink": "/gallolagunesmx1/todo-rayado-gallo-lagunes",
+   "genre": "Techno",
+   "mood": "Defiant",
+   "artwork": {
+    "150x150": "https://val019.open-audio-validator.com/content/01K3FHW726S79JPF4XGAHVXFY5/150x150.jpg",
+    "480x480": "https://val019.open-audio-validator.com/content/01K3FHW726S79JPF4XGAHVXFY5/480x480.jpg"
+   },
+   "user": {
+    "id": "bQ8ab",
+    "name": "Gallo Lagunes",
+    "handle": "gallolagunesmx1"
+   },
+   "track_cid": "baeaaaiqsecegxzuf2seq7lv7p35ys4cuzpqstbusjll763p4rlnk2yz2zqhdi",
+   "is_downloadable": false
+  },
+  {
+   "id": "6E9GQ",
+   "title": "151 - & TEJUJAGUA- Resistencia Kayaue D3 ",
+   "duration": 464,
+   "is_streamable": true,
+   "permalink": "/alientuneslive/151-tejujagua-resistencia-kayaue-d3--404484",
+   "genre": "Jungle",
+   "mood": null,
+   "artwork": {
+    "150x150": "https://cn3.mainnet.audiusindex.org/content/QmNrPQ89J4n8TP6q5p3FXeRBKrYbAWgBucLn6fFF1eqnUB/150x150.jpg",
+    "480x480": "https://cn3.mainnet.audiusindex.org/content/QmNrPQ89J4n8TP6q5p3FXeRBKrYbAWgBucLn6fFF1eqnUB/480x480.jpg"
+   },
+   "user": {
+    "id": "2og73",
+    "name": "Alien Tunes",
+    "handle": "alientuneslive"
+   },
+   "track_cid": "QmesthALNVhfQyCVWhM8SjiqCaVkwAt4HnKAavYRdeYXeW",
+   "is_downloadable": false
+  },
+  {
+   "id": "227ZZ",
+   "title": "Bonde Maya Lagaise -  Kona -   Magic Bauliana",
+   "duration": 279,
+   "is_streamable": true,
+   "permalink": "/manik123/bonde-maya-lagaise-kona-magic-bauliana",
+   "genre": "Electronic",
+   "mood": "Romantic",
+   "artwork": {
+    "150x150": "https://audius-creator-13.theblueprint.xyz/content/QmPxhuDnYDYvgF2Yxoa1nShcAC6NtZXUpW8H9bKNUb3uQJ/150x150.jpg",
+    "480x480": "https://audius-creator-13.theblueprint.xyz/content/QmPxhuDnYDYvgF2Yxoa1nShcAC6NtZXUpW8H9bKNUb3uQJ/480x480.jpg"
+   },
+   "user": {
+    "id": "YKRrm",
+    "name": "manik123",
+    "handle": "manik123"
+   },
+   "track_cid": "QmXuU6Er4HkNDKNkV7azjyjSSKRpiBBHB2VrQAhifSKfZw",
+   "is_downloadable": true
+  },
+  {
+   "id": "nostream",
+   "title": "Tidak boleh strim",
+   "duration": 204,
+   "is_streamable": false,
+   "permalink": "/SlagerHullam/playa-del-carmen-instrumental",
+   "genre": "Instrumental",
+   "mood": "Romantic",
+   "artwork": {
+    "150x150": "https://val013.open-audio-validator.com/content/baeaaaiqsea46xh3cqgjhw4ek52zlkmbeuxbfbuyksv5glc2rm2ryiswpzq5qc/150x150.jpg",
+    "480x480": "https://val013.open-audio-validator.com/content/baeaaaiqsea46xh3cqgjhw4ek52zlkmbeuxbfbuyksv5glc2rm2ryiswpzq5qc/480x480.jpg"
+   },
+   "user": {
+    "id": "KEaRBk2",
+    "name": "SlágerHullám",
+    "handle": "SlagerHullam"
+   },
+   "track_cid": "baeaaaiqsecctpgykcamd4lu2l6kdtu7blbehoy4yqspvimthozu6iqs2kqdoq",
+   "is_downloadable": false
+  }
+ ]
+}

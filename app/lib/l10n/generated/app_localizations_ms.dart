@@ -319,14 +319,14 @@ class AppLocalizationsMs extends AppLocalizations {
   String get searchHint => 'Tempat, alamat, koordinat atau pautan Maps';
 
   @override
-  String get searchPillHint => 'Cari destinasi';
+  String get searchPillHint => 'Ke mana?';
 
   @override
   String get searchClear => 'Kosongkan';
 
   @override
   String get searchPrompt =>
-      'Taip nama tempat, atau tampal koordinat (3.14, 101.68) / pautan Google Maps atau Waze.';
+      'Taip nama tempat, atau pilih Rumah / Kerja di bawah. Boleh juga tampal koordinat (3.14, 101.68) atau pautan Google Maps / Waze.';
 
   @override
   String get searchHistory => 'Tempat terkini';
@@ -494,6 +494,14 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get navThen => 'Kemudian';
+
+  @override
+  String navRoundaboutExitSemantics(int n) {
+    return 'Bulatan, ambil simpang keluar ke-$n';
+  }
+
+  @override
+  String get navGetReady => 'Bersedia';
 
   @override
   String get navSimulatedBadge => 'Simulasi';
@@ -785,6 +793,383 @@ class AppLocalizationsMs extends AppLocalizations {
   @override
   String get settingsTextSizeHint =>
       'Dikenakan di atas saiz teks telefon anda.';
+
+  @override
+  String get settingsEasyMode => 'Mod mudah';
+
+  @override
+  String get settingsEasyModeHint =>
+      'Teks dan butang lebih besar, kad arahan berkontras tinggi, kawalan lebih sedikit semasa memandu. Sesuai untuk warga emas.';
+
+  @override
+  String get onbEasyMode => 'Paparan besar & mudah';
+
+  @override
+  String get onbEasyModeHint =>
+      'Teks lebih besar, arahan lebih jelas, butang lebih sedikit. Boleh ditukar bila-bila masa dalam Tetapan.';
+
+  @override
+  String get navGpsWeakHint => 'Teruskan memandu. Kami sedang mencari isyarat.';
+
+  @override
+  String get routeMoreOptions => 'Lanjut';
+
+  @override
+  String get settingsAzan => 'Waktu Azan';
+
+  @override
+  String get azanTitle => 'Waktu solat';
+
+  @override
+  String get azanEnable => 'Notifikasi azan';
+
+  @override
+  String get azanEnableHint =>
+      'Beritahu saya setiap kali masuk waktu solat di lokasi semasa.';
+
+  @override
+  String get azanPrayerFajr => 'Subuh';
+
+  @override
+  String get azanPrayerSunrise => 'Syuruk';
+
+  @override
+  String get azanPrayerDhuhr => 'Zohor';
+
+  @override
+  String get azanPrayerAsr => 'Asar';
+
+  @override
+  String get azanPrayerMaghrib => 'Maghrib';
+
+  @override
+  String get azanPrayerIsha => 'Isyak';
+
+  @override
+  String get azanPrayersLabel => 'Waktu yang diberitahu';
+
+  @override
+  String get azanSoundLabel => 'Bunyi';
+
+  @override
+  String get azanSoundFull => 'Azan penuh';
+
+  @override
+  String get azanSoundShort => 'Nada pendek';
+
+  @override
+  String get azanSoundSilent => 'Senyap';
+
+  @override
+  String get azanSoundHint =>
+      'Azan penuh ialah lalai. Nada pendek atau senyap jika anda mahu lebih tenang.';
+
+  @override
+  String get azanMethodLabel => 'Kaedah pengiraan';
+
+  @override
+  String get azanMethodJakim => 'JAKIM (Malaysia)';
+
+  @override
+  String get azanMethodMwl => 'Liga Muslim Sedunia';
+
+  @override
+  String get azanMethodEgyptian => 'Mesir';
+
+  @override
+  String get azanMethodKarachi => 'Karachi';
+
+  @override
+  String get azanMethodUmmAlQura => 'Umm al-Qura (Makkah)';
+
+  @override
+  String get azanMadhabLabel => 'Mazhab (waktu Asar)';
+
+  @override
+  String get azanMadhabShafi => 'Syafie';
+
+  @override
+  String get azanMadhabHanafi => 'Hanafi';
+
+  @override
+  String get azanReminderLabel => 'Peringatan awal';
+
+  @override
+  String get azanReminderNone => 'Tiada';
+
+  @override
+  String azanReminderMinutes(int n) {
+    return '$n min sebelum';
+  }
+
+  @override
+  String get azanPlayDuringNav => 'Main azan penuh semasa navigasi';
+
+  @override
+  String get azanPlayDuringNavHint =>
+      'Jika mati: hanya bunyi pendek dan cip pada HUD supaya arahan suara tidak terganggu. Notifikasi tetap dihantar.';
+
+  @override
+  String get azanLocationLabel => 'Lokasi';
+
+  @override
+  String get azanLocationAuto => 'Ikut lokasi peranti';
+
+  @override
+  String get azanLocationCity => 'Pilih bandar';
+
+  @override
+  String get azanLocationAutoHint =>
+      'Dikira pada telefon ini daripada lokasi anda (dibundarkan ~1 km). Tiada data dihantar.';
+
+  @override
+  String azanNextIn(String prayer, String time, String remaining) {
+    return '$prayer $time · $remaining lagi';
+  }
+
+  @override
+  String azanNextPrayer(String prayer, String time) {
+    return 'Seterusnya: $prayer pada $time';
+  }
+
+  @override
+  String get azanAllDone => 'Semua waktu hari ini telah berlalu';
+
+  @override
+  String azanNowTitle(String prayer) {
+    return 'Waktu $prayer';
+  }
+
+  @override
+  String get azanNowBody => 'Telah masuk waktu solat.';
+
+  @override
+  String get azanStop => 'Hentikan azan';
+
+  @override
+  String get azanListen => 'Dengar azan';
+
+  @override
+  String get azanStopListening => 'Berhenti';
+
+  @override
+  String azanEstimateNote(String method) {
+    return 'Anggaran daripada pengiraan astronomi ($method). Jadual rasmi e-Solat JAKIM mungkin berbeza beberapa minit; ikut jadual rasmi untuk berbuka dan imsak.';
+  }
+
+  @override
+  String get azanExactAlarmTitle => 'Benarkan penggera tepat';
+
+  @override
+  String get azanExactAlarmBody =>
+      'Tanpa kebenaran ini, Android mungkin melewatkan notifikasi beberapa minit.';
+
+  @override
+  String get azanExactAlarmAction => 'Buka tetapan';
+
+  @override
+  String get azanPermissionDenied =>
+      'Notifikasi tidak dibenarkan. Benarkan dalam tetapan telefon untuk menerima azan.';
+
+  @override
+  String azanReminderTitle(String prayer, int n) {
+    return '$prayer dalam $n minit';
+  }
+
+  @override
+  String get azanReminderBody => 'Bersedia untuk solat.';
+
+  @override
+  String get azanChannelFull => 'Azan (penuh)';
+
+  @override
+  String get azanChannelShort => 'Azan (nada pendek)';
+
+  @override
+  String get azanChannelSilent => 'Azan (senyap)';
+
+  @override
+  String get azanChannelReminder => 'Peringatan solat';
+
+  @override
+  String get azanOpenSettings => 'Tetapan azan';
+
+  @override
+  String azanRemainingHours(int h, int m) {
+    return '$h j $m min';
+  }
+
+  @override
+  String azanRemainingMinutes(int m) {
+    return '$m min';
+  }
+
+  @override
+  String azanForCity(String city) {
+    return 'Untuk $city';
+  }
+
+  @override
+  String get azanForCurrentLocation => 'Untuk lokasi semasa';
+
+  @override
+  String get azanNotNow => 'Bukan sekarang';
+
+  @override
+  String get settingsMusic => 'Muzik';
+
+  @override
+  String get musicTitle => 'Muzik';
+
+  @override
+  String get musicOpen => 'Muzik';
+
+  @override
+  String get musicSearchHint => 'Cari lagu, artis atau radio…';
+
+  @override
+  String get musicTabSongs => 'Lagu';
+
+  @override
+  String get musicTabRadio => 'Radio';
+
+  @override
+  String get musicTabLocal => 'Fail saya';
+
+  @override
+  String get musicEmptySongs =>
+      'Taip nama lagu atau artis, kemudian ketik untuk main. Lagu daripada Audius (katalog terbuka, percuma).';
+
+  @override
+  String get musicEmptyRadio =>
+      'Stesen radio Malaysia. Ketik untuk dengar siaran langsung.';
+
+  @override
+  String get musicEmptyLocal =>
+      'Import lagu dari telefon anda. Ia disimpan dalam app dan sentiasa boleh dimainkan tanpa internet.';
+
+  @override
+  String musicNoResults(String query) {
+    return 'Tiada hasil untuk “$query”.';
+  }
+
+  @override
+  String get musicOffline => 'Tiada internet. Hanya fail saya boleh dimainkan.';
+
+  @override
+  String musicErrorSource(String source) {
+    return '$source tidak dapat dihubungi sekarang.';
+  }
+
+  @override
+  String get musicImport => 'Import dari telefon';
+
+  @override
+  String musicImported(int n) {
+    return '$n lagu ditambah';
+  }
+
+  @override
+  String get musicRemove => 'Buang';
+
+  @override
+  String get musicLive => 'LANGSUNG';
+
+  @override
+  String get musicViaAudius => 'via Audius';
+
+  @override
+  String get musicAttribution =>
+      'Lagu daripada Audius · Radio daripada Radio Browser · Fail anda kekal pada telefon';
+
+  @override
+  String get musicNowPlaying => 'Sedang dimainkan';
+
+  @override
+  String get musicPlay => 'Main';
+
+  @override
+  String get musicPause => 'Jeda';
+
+  @override
+  String get musicNext => 'Seterusnya';
+
+  @override
+  String get musicPrevious => 'Sebelumnya';
+
+  @override
+  String get musicStop => 'Tutup pemain';
+
+  @override
+  String get musicVolume => 'Kelantangan';
+
+  @override
+  String get musicQueue => 'Baris gilir';
+
+  @override
+  String get musicEqualizer => 'Penyama (Equalizer)';
+
+  @override
+  String get musicEqPresetNormal => 'Normal';
+
+  @override
+  String get musicEqPresetBass => 'Bes';
+
+  @override
+  String get musicEqPresetTreble => 'Trebel';
+
+  @override
+  String get musicEqPresetVocal => 'Suara';
+
+  @override
+  String get musicEqPresetCustom => 'Tersuai';
+
+  @override
+  String get musicEqUnsupported => 'Penyama hanya tersedia pada Android.';
+
+  @override
+  String get musicEqEnable => 'Hidupkan penyama';
+
+  @override
+  String get musicDuckTitle => 'Semasa suara navigasi bercakap';
+
+  @override
+  String get musicDuckLower => 'Perlahankan muzik';
+
+  @override
+  String get musicDuckLowerHint =>
+      'Lalai. Muzik diperlahankan semasa arahan, kemudian pulih.';
+
+  @override
+  String get musicDuckPause => 'Jeda muzik';
+
+  @override
+  String get musicDuckPauseHint =>
+      'Muzik berhenti sepenuhnya semasa arahan, kemudian sambung.';
+
+  @override
+  String get musicOpenPlayer => 'Buka Muzik';
+
+  @override
+  String get musicClearLocal => 'Padam semua fail saya';
+
+  @override
+  String get musicSourceAudius => 'Audius';
+
+  @override
+  String get musicSourceRadio => 'Radio Browser';
+
+  @override
+  String get musicSourceLocal => 'Fail saya';
+
+  @override
+  String get musicLoading => 'Memuatkan…';
+
+  @override
+  String get musicError => 'Tidak dapat dimainkan. Cuba lagu lain.';
+
+  @override
+  String get musicDucked => 'Suara navigasi';
 
   @override
   String get settingsReduceMotion => 'Kurangkan animasi';
@@ -1118,7 +1503,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get legalAttribution =>
-      'Data peta © penyumbang OpenStreetMap (ODbL). Gaya dan jubin: OpenFreeMap, OpenMapTiles. Laluan: Valhalla. Carian: Photon (komoot) dan Nominatim. Harga petrol: data.gov.my.';
+      'Data peta © penyumbang OpenStreetMap (ODbL). Gaya dan jubin: OpenFreeMap, OpenMapTiles. Laluan: Valhalla. Carian: Photon (komoot) dan Nominatim. Harga petrol: data.gov.my. Muzik: Audius (Open Music License) dan Radio Browser; strim radio daripada stesen masing-masing. Rakaman azan: Aaqib Azeez / Atcovi, Wikimedia Commons, CC BY-SA 4.0.';
 
   @override
   String get aboutAttributionTitle => 'Sumber data';

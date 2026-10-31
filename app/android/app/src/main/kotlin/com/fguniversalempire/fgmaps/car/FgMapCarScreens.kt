@@ -153,7 +153,14 @@ class FgMapNavScreen(
 
     private fun routing(session: Map<String, Any?>): RoutingInfo? {
         val maneuver = session["maneuver"] as? String ?: return null
-        val step = Step.Builder(maneuver).build()
+        val stepBuilder = Step.Builder(maneuver)
+        // Ikon manuver piawai hos (bulatan dengan nombor keluar, belok, dll.) supaya skrin kereta
+        // sepadan dengan HUD telefon; teks kekal jika jenis tidak dikenali.
+        CarManeuvers.build(
+            session["maneuverKind"] as? String,
+            (session["roundaboutExit"] as? Number)?.toInt(),
+        )?.let { stepBuilder.setManeuver(it) }
+        val step = stepBuilder.build()
         val meters = (session["distanceToManeuverM"] as? Number)?.toDouble()
         val info = RoutingInfo.Builder()
         if (meters != null) {

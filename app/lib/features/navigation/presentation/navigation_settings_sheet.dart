@@ -11,6 +11,7 @@ Future<void> showNavigationSettingsSheet(
   BuildContext context, {
   VoidCallback? onShareEta,
   VoidCallback? onEmergency,
+  VoidCallback? onMusic,
 }) {
   return showModalBottomSheet<void>(
     context: context,
@@ -19,13 +20,22 @@ Future<void> showNavigationSettingsSheet(
     builder: (_) => NavigationSettingsSheet(
       onShareEta: onShareEta,
       onEmergency: onEmergency,
+      onMusic: onMusic,
     ),
   );
 }
 
 /// Tetapan navigasi sebagai lembaran sendiri (dibuka dari butang sisi semasa memandu).
 class NavigationSettingsSheet extends StatelessWidget {
-  const NavigationSettingsSheet({super.key, this.onShareEta, this.onEmergency});
+  const NavigationSettingsSheet({
+    super.key,
+    this.onShareEta,
+    this.onEmergency,
+    this.onMusic,
+  });
+
+  /// Buka Muzik (tiada butang sendiri pada HUD supaya skrin tidak sesak).
+  final VoidCallback? onMusic;
 
   /// Tindakan pantas di bahagian atas (kongsi masa tiba, kecemasan); tersembunyi jika null. Lembaran
   /// ditutup dahulu, kemudian tindakan dijalankan.
@@ -45,7 +55,7 @@ class NavigationSettingsSheet extends StatelessWidget {
             l10n.navSettingsTitle,
             style: Theme.of(context).textTheme.titleLarge,
           ),
-          if (onShareEta != null || onEmergency != null) ...[
+          if (onShareEta != null || onEmergency != null || onMusic != null) ...[
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
@@ -59,6 +69,16 @@ class NavigationSettingsSheet extends StatelessWidget {
                     onPressed: () {
                       Navigator.of(context).pop();
                       onShareEta!();
+                    },
+                  ),
+                if (onMusic != null)
+                  ActionChip(
+                    key: const ValueKey('nav-music'),
+                    avatar: const Icon(Icons.music_note_rounded, size: 18),
+                    label: Text(l10n.musicOpen),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      onMusic!();
                     },
                   ),
                 if (onEmergency != null)

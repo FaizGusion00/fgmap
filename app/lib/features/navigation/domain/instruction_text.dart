@@ -72,6 +72,19 @@ class InstructionText {
     };
   }
 
+  /// Teks pendek untuk kad manuver. Sama seperti [action] kecuali bulatan: ikon sudah menunjukkan
+  /// bulatan dan nombor keluar, jadi kad hanya menyebut tindakan ("Ambil simpang keluar ke-2" /
+  /// "Take the 2nd exit"). Ayat bersuara penuh kekal dalam [spoken].
+  String cardAction(NavManeuver m) {
+    final exit = m.roundaboutExit;
+    if (m.kind == ManeuverKind.roundabout && exit != null && exit > 0) {
+      return _ms
+          ? 'Ambil simpang keluar ke-$exit'
+          : 'Take the ${ordinalNumber(exit)} exit';
+    }
+    return action(m);
+  }
+
   /// Tindakan dengan nama jalan, cth. "Belok kanan ke Jalan Ampang".
   String actionWithStreet(NavManeuver m) {
     final street = m.street;
@@ -183,6 +196,7 @@ class InstructionText {
         : 'At the roundabout, take the ${_ordinal(exit)} exit';
   }
 
+  /// Ordinal bersuara: dieja untuk 1-6 (lebih semula jadi dalam TTS), angka selepas itu.
   static String _ordinal(int n) => switch (n) {
     1 => 'first',
     2 => 'second',
@@ -190,8 +204,20 @@ class InstructionText {
     4 => 'fourth',
     5 => 'fifth',
     6 => 'sixth',
-    _ => '${n}th',
+    _ => ordinalNumber(n),
   };
+
+  /// Ordinal angka Inggeris: 1st, 2nd, 3rd, 4th ... 11th, 12th, 13th ... 21st, 22nd.
+  static String ordinalNumber(int n) {
+    final mod100 = n % 100;
+    if (mod100 >= 11 && mod100 <= 13) return '${n}th';
+    return switch (n % 10) {
+      1 => '${n}st',
+      2 => '${n}nd',
+      3 => '${n}rd',
+      _ => '${n}th',
+    };
+  }
 
   static String _lowerFirst(String s) =>
       s.isEmpty ? s : s[0].toLowerCase() + s.substring(1);

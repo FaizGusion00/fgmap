@@ -11,6 +11,8 @@ import '../../../core/theme/theme_controller.dart';
 import '../../../core/widgets/fade_slide_in.dart';
 import '../../../core/widgets/fade_through_route.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../azan/presentation/azan_settings_section.dart';
+import '../../music/presentation/music_settings_section.dart';
 import '../../navigation/data/navigation_settings.dart';
 import '../../navigation/presentation/navigation_settings_sheet.dart';
 import '../../offline_maps/presentation/offline_maps_sheet.dart';
@@ -50,15 +52,19 @@ class SettingsPage extends ConsumerWidget {
             constraints: const BoxConstraints(maxWidth: 640),
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+              // Susunan untuk warga emas: paparan dan suara dahulu (yang paling kerap diubah),
+              // kemudian ciri, dan privasi/bantuan di akhir.
               children: const [
                 FadeSlideIn(index: 0, child: _AppearanceGroup()),
-                FadeSlideIn(index: 1, child: _SavedPlacesGroup()),
-                FadeSlideIn(index: 2, child: _NavigationGroup()),
-                FadeSlideIn(index: 3, child: _FuelGroup()),
-                FadeSlideIn(index: 4, child: _ReportsGroup()),
-                FadeSlideIn(index: 5, child: _MapsGroup()),
-                FadeSlideIn(index: 6, child: _PrivacyGroup()),
-                FadeSlideIn(index: 7, child: _HelpGroup()),
+                FadeSlideIn(index: 1, child: _NavigationGroup()),
+                FadeSlideIn(index: 2, child: _AzanGroup()),
+                FadeSlideIn(index: 3, child: _MusicGroup()),
+                FadeSlideIn(index: 4, child: _SavedPlacesGroup()),
+                FadeSlideIn(index: 5, child: _FuelGroup()),
+                FadeSlideIn(index: 6, child: _ReportsGroup()),
+                FadeSlideIn(index: 7, child: _MapsGroup()),
+                FadeSlideIn(index: 8, child: _PrivacyGroup()),
+                FadeSlideIn(index: 9, child: _HelpGroup()),
               ],
             ),
           ),
@@ -225,6 +231,15 @@ class _AppearanceGroup extends ConsumerWidget {
             value: settings.amoled,
             onChanged: controller.setAmoled,
           ),
+          SwitchListTile(
+            key: const ValueKey('easy-mode-switch'),
+            contentPadding: EdgeInsets.zero,
+            secondary: const Icon(Icons.accessibility_new_rounded),
+            title: Text(l10n.settingsEasyMode),
+            subtitle: Text(l10n.settingsEasyModeHint),
+            value: prefs.easyMode,
+            onChanged: prefsController.setEasyMode,
+          ),
           _Label(l10n.settingsTextSize, hint: l10n.settingsTextSizeHint),
           SizedBox(
             width: double.infinity,
@@ -281,6 +296,36 @@ class _AppearanceGroup extends ConsumerWidget {
           const SizedBox(height: 8),
         ],
       ),
+    );
+  }
+}
+
+/// Waktu Azan: notifikasi waktu solat untuk lokasi semasa (dikira pada peranti).
+class _AzanGroup extends StatelessWidget {
+  const _AzanGroup();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return _Group(
+      icon: Icons.mosque_rounded,
+      title: l10n.settingsAzan,
+      child: const AzanSettingsSection(),
+    );
+  }
+}
+
+/// Muzik: tingkah laku semasa suara navigasi, penyama, dan pintasan membuka pemain.
+class _MusicGroup extends StatelessWidget {
+  const _MusicGroup();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return _Group(
+      icon: Icons.music_note_rounded,
+      title: l10n.settingsMusic,
+      child: const MusicSettingsSection(),
     );
   }
 }

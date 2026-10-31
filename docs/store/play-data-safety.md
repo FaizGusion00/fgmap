@@ -23,10 +23,12 @@ menghantar borang; jawapan mesti sepadan dengan apa yang app lakukan pada versi 
 | Maklumat peribadi (nama, e-mel) | Tidak | Tidak | | | Tiada akaun |
 | Kewangan, kenalan, foto, fail | Tidak | Tidak | | | |
 | Log ranap / diagnostik | Tidak (tidak dihantar) | Tidak | | | Log ralat tempatan, pengguna menyalin sendiri jika mahu |
+| Fail audio (Muzik: import) | Tidak (kekal pada peranti) | Tidak | | | Disalin ke storan app melalui pemilih sistem; tidak dihantar |
+| Carian muzik (Audius) | Ya | Ya (Audius) | Fungsi app | Ya (hanya jika Muzik dibuka) | Teks carian dan ID lagu; tiada lokasi |
 
 "Dikongsi" bermaksud dihantar kepada pihak ketiga yang bukan pemproses bagi pihak kita (OpenStreetMap
-Foundation, komoot, FOSSGIS, OpenFreeMap, GitHub, Google untuk pautan pendek). Tiada data dijual atau
-digunakan untuk iklan.
+Foundation, komoot, FOSSGIS, OpenFreeMap, GitHub, Google untuk pautan pendek, Audius dan Radio Browser untuk
+Muzik). Waktu Azan dikira pada peranti: tiada data dihantar. Tiada data dijual atau digunakan untuk iklan.
 
 ## Kebenaran dan pengisytiharan lain
 
@@ -35,4 +37,8 @@ digunakan untuk iklan.
   Play Console meminta video/penjelasan penggunaan perkhidmatan latar depan jenis lokasi: sediakan demo navigasi.
 - Tiada `ACCESS_BACKGROUND_LOCATION`.
 - `POST_NOTIFICATIONS`, `WAKE_LOCK`, `INTERNET`.
+- `SCHEDULE_EXACT_ALARM` (pengguna membenarkan dalam tetapan sistem) + `RECEIVE_BOOT_COMPLETED`: notifikasi
+  Waktu Azan tepat pada waktunya dan dijadual semula selepas but. Bukan `USE_EXACT_ALARM`.
+- `FOREGROUND_SERVICE_MEDIA_PLAYBACK` (perkhidmatan `audio_service`, jenis mediaPlayback): Muzik terus
+  dimainkan dengan skrin dikunci; kawalan media pada notifikasi.
 - Kategori aplikasi: Peta & Navigasi. Iklan: tiada. Pembelian dalam app: tiada.

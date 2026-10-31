@@ -4,6 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/diagnostics/error_log.dart';
 import '../../../core/storage/preferences.dart';
 import '../../../core/theme/theme_controller.dart';
+import '../../azan/data/azan_location.dart';
+import '../../azan/presentation/azan_controller.dart';
 import '../../reports/presentation/reports_controller.dart';
 import '../../saved_places/data/saved_places_controller.dart';
 import '../../search/presentation/search_history_controller.dart';
@@ -24,7 +26,7 @@ Future<void> eraseNearbyCache(SharedPreferences prefs) async {
 }
 
 /// Memadam SEMUA data peribadi pada peranti: sejarah carian, tempat disimpan (termasuk Rumah/Kerja),
-/// laporan, simpanan carian berhampiran dan kedudukan matahari. Tetapan (tema, suara, bahasa) dan
+/// laporan, simpanan carian berhampiran, kedudukan matahari dan kedudukan waktu azan. Tetapan (tema, suara, bahasa) dan
 /// status sambutan kekal. Tiada data di pelayan untuk dipadam: app tidak mempunyai akaun.
 Future<void> eraseAllUserData(WidgetRef ref) async {
   await ref.read(searchHistoryControllerProvider.notifier).clear();
@@ -33,10 +35,11 @@ Future<void> eraseAllUserData(WidgetRef ref) async {
 
   final prefs = ref.read(sharedPreferencesProvider);
   await eraseNearbyCache(prefs);
-  for (final key in sunLocationKeys) {
+  for (final key in [...sunLocationKeys, ...azanLocationKeys, ...azanScheduleKeys]) {
     await prefs.remove(key);
   }
   ref.read(errorLogProvider).clear();
   // Bina semula supaya bacaan seterusnya (kini kosong) digunakan, bukan nilai dalam ingatan.
   ref.invalidate(sunLocationProvider);
+  ref.invalidate(azanLocationProvider);
 }

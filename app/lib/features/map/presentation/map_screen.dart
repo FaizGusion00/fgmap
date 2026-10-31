@@ -8,6 +8,17 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/app_config.dart';
+import '../../../core/settings/app_preferences.dart';
+import '../../../core/settings/easy_mode_scope.dart';
+import '../../azan/domain/prayer.dart';
+import '../../azan/presentation/azan_controller.dart';
+import '../../azan/presentation/azan_l10n.dart';
+import '../../azan/presentation/azan_now_banner.dart';
+import '../../azan/presentation/azan_sheet.dart';
+import '../../azan/presentation/azan_today_pill.dart';
+import '../../music/presentation/mini_player.dart';
+import '../../music/presentation/music_sheet.dart';
+import '../../music/presentation/player_controller.dart';
 import '../../../core/location/location_service.dart';
 import '../../../core/network/dio_provider.dart';
 import '../../../core/network/retry_interceptor.dart';
@@ -110,6 +121,13 @@ class _MapScreenState extends ConsumerState<MapScreen>
   @override
   void initState() {
     super.initState();
+    _azanTapSub = ref
+        .read(azanControllerProvider.notifier)
+        .tapped
+        .stream
+        .listen((_) {
+          if (mounted) unawaited(showAzanSheet(context));
+        });
     WidgetsBinding.instance.addObserver(this);
     _tracker.location.addListener(_feedSunLocation);
     _tracker.location.addListener(_feedCruise);
@@ -129,15 +147,17 @@ class _MapScreenState extends ConsumerState<MapScreen>
   void _feedCruise() {
     final location = _tracker.location.value;
     if (location == null || location.stale || !mounted) return;
-    ref.read(cruiseControllerProvider.notifier).noteIdle(
-      point: location.point,
-      speedMps: location.speedMps,
-      heading: location.headingDegrees,
-      time: location.time,
-      blocked:
-          ref.read(navigationControllerProvider).isActive ||
-          ref.read(routePreviewControllerProvider) is! RouteIdle,
-    );
+    ref
+        .read(cruiseControllerProvider.notifier)
+        .noteIdle(
+          point: location.point,
+          speedMps: location.speedMps,
+          heading: location.headingDegrees,
+          time: location.time,
+          blocked:
+              ref.read(navigationControllerProvider).isActive ||
+              ref.read(routePreviewControllerProvider) is! RouteIdle,
+        );
   }
 
   /// Menyimpan lokasi terakhir untuk mod tema matahari (hanya berubah jika berpindah jauh).
@@ -145,10 +165,14 @@ class _MapScreenState extends ConsumerState<MapScreen>
     final location = _tracker.location.value;
     if (location == null || location.stale || !mounted) return;
     ref.read(sunLocationProvider.notifier).update(location.point);
+    ref.read(azanControllerProvider.notifier).onLocation(location.point);
   }
+
+  StreamSubscription<String>? _azanTapSub;
 
   @override
   void dispose() {
+    unawaited(_azanTapSub?.cancel());
     _tracker.location.removeListener(_feedSunLocation);
     _tracker.location.removeListener(_feedCruise);
     _idle.dispose();
@@ -176,6 +200,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
     }
     // Pengguna mungkin menukar kebenaran di Tetapan sistem lalu kembali.
     if (state == AppLifecycleState.resumed) {
+      unawaited(ref.read(azanControllerProvider.notifier).onAppResumed());
       ref.read(navigationControllerProvider.notifier).noteBackground(false);
       ref.read(cruiseControllerProvider.notifier).noteBackground(false);
       if (_ticker != null && !_ticker!.isActive) unawaited(_ticker!.start());
@@ -677,9 +702,8 @@ class _MapScreenState extends ConsumerState<MapScreen>
       cameraMode: () => ref.read(navigationSettingsProvider).cameraMode,
       clock: ref.read(navClockProvider),
       reduceMotion: MediaQuery.disableAnimationsOf(context),
-      onPose: (pose, {required bool following}) => ref
-          .read(carSessionHubProvider)
-          .notePose(pose, following: following),
+      onPose: (pose, {required bool following}) =>
+          ref.read(carSessionHubProvider).notePose(pose, following: following),
     );
     driver.follow.addListener(() {
       if (mounted) setState(() {});
@@ -733,9 +757,8 @@ class _MapScreenState extends ConsumerState<MapScreen>
       cameraMode: () => ref.read(navigationSettingsProvider).cameraMode,
       clock: ref.read(navClockProvider),
       reduceMotion: MediaQuery.disableAnimationsOf(context),
-      onPose: (pose, {required bool following}) => ref
-          .read(carSessionHubProvider)
-          .notePose(pose, following: following),
+      onPose: (pose, {required bool following}) =>
+          ref.read(carSessionHubProvider).notePose(pose, following: following),
     );
     driver.follow.addListener(() {
       if (mounted) setState(() {});
@@ -1127,6 +1150,13 @@ class _MapScreenState extends ConsumerState<MapScreen>
     final vehicleKind = vehicle == RouteVehicle.motorcycle
         ? VehicleKind.motorcycle
         : VehicleKind.car;
+    // Waktu Azan: teks notifikasi ikut bahasa UI; sepanduk/cip apabila azan dimainkan dalam app.
+    ref
+        .read(azanControllerProvider.notifier)
+        .setTexts(azanNotificationTexts(l10n, Localizations.localeOf(context)));
+    final azanNow = ref.watch(
+      azanControllerProvider.select((s) => s.nowPlaying),
+    );
     // Sumber tunggal dengan app.dart: mod matahari sudah dipetakan kepada cerah/gelap di sana.
     final mapIsDark = isDarkTheme(
       ref.watch(effectiveThemeModeProvider),
@@ -1175,9 +1205,9 @@ class _MapScreenState extends ConsumerState<MapScreen>
       // Semasa laluan dipratonton, kamera dipegang oleh paparan laluan, bukan pengguna.
       if (next is RouteIdle) {
         _idle.resume(_Suspend.route);
-        ref.read(cruiseControllerProvider.notifier).setBlocked(
-          ref.read(navigationControllerProvider).isActive,
-        );
+        ref
+            .read(cruiseControllerProvider.notifier)
+            .setBlocked(ref.read(navigationControllerProvider).isActive);
         if (prev is! RouteIdle && _idle.following) unawaited(_flyToUser());
       } else {
         _idle.suspend(_Suspend.route);
@@ -1270,207 +1300,250 @@ class _MapScreenState extends ConsumerState<MapScreen>
           : _idle.release,
     );
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: style == null
-                ? const _MapLoading()
-                : ref.watch(mapViewBuilderProvider)(context, config),
-          ),
-          if (navigating && _driver != null)
+    // Skop Mod mudah untuk semua anak (HUD, pil carian, cip Rumah/Kerja, lembaran laluan); app.dart
+    // juga menyediakannya, tetapi ujian memasang MapScreen terus.
+    return EasyModeScope(
+      enabled: ref.watch(appPreferencesProvider.select((p) => p.easyMode)),
+      child: Scaffold(
+        body: Stack(
+          children: [
             Positioned.fill(
-              child: VehicleOverlay(
-                placement: _driver!.car,
-                palette: CarPalette.forBrightness(
-                  theme.colorScheme.primary,
-                  mapIsDark ? Brightness.dark : Brightness.light,
-                ),
-                kind: vehicleKind,
-              ),
+              child: style == null
+                  ? const _MapLoading()
+                  : ref.watch(mapViewBuilderProvider)(context, config),
             ),
-          // Free-ride: penanda peta 2D sahaja (tiada VehicleOverlay 3D).
-          if (!navigating)
-            SafeArea(
-              bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _GlassIconButton(
-                          icon: Icons.tune_rounded,
-                          tooltip: l10n.appearanceTooltip,
-                          onPressed: () => showSettingsSheet(context),
-                        ),
-                        Expanded(
-                          // topCenter, bukan Center: Row mengisi seluruh tinggi skrin, jadi Center
-                          // meletakkan pil di tengah peta.
-                          child: Align(
-                            alignment: Alignment.topCenter,
-                            child: _SearchPill(
-                              label: l10n.searchPillHint,
-                              hint: !_hintDismissed && state is RouteIdle
-                                  ? l10n.mapHintLongPress
-                                  : null,
-                              onTap: _openPlanner,
+            if (navigating && _driver != null)
+              Positioned.fill(
+                child: VehicleOverlay(
+                  placement: _driver!.car,
+                  palette: CarPalette.forBrightness(
+                    theme.colorScheme.primary,
+                    mapIsDark ? Brightness.dark : Brightness.light,
+                  ),
+                  kind: vehicleKind,
+                ),
+              ),
+            // Free-ride: penanda peta 2D sahaja (tiada VehicleOverlay 3D).
+            if (!navigating)
+              SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _GlassIconButton(
+                            icon: Icons.tune_rounded,
+                            tooltip: l10n.appearanceTooltip,
+                            onPressed: () => showSettingsSheet(context),
+                          ),
+                          Expanded(
+                            // topCenter, bukan Center: Row mengisi seluruh tinggi skrin, jadi Center
+                            // meletakkan pil di tengah peta.
+                            child: Align(
+                              alignment: Alignment.topCenter,
+                              child: _SearchPill(
+                                label: l10n.searchPillHint,
+                                hint: !_hintDismissed && state is RouteIdle
+                                    ? l10n.mapHintLongPress
+                                    : null,
+                                onTap: _openPlanner,
+                              ),
+                            ),
+                          ),
+                          _GlassIconButton(
+                            icon: Icons.music_note_rounded,
+                            tooltip: l10n.musicOpen,
+                            onPressed: () => unawaited(showMusicSheet(context)),
+                          ),
+                          _GlassIconButton(
+                            icon: Icons.cloud_download_outlined,
+                            tooltip: l10n.offlineMapsOpen,
+                            onPressed: () => showOfflineMapsSheet(context),
+                          ),
+                        ],
+                      ),
+                      if (state is RouteIdle) ...[
+                        const SizedBox(height: 10),
+                        RecentPlacesBar(
+                          onPick: (place) => unawaited(
+                            _planSelection(TripSelection(destination: place)),
+                          ),
+                          onGo: (place) => unawaited(_goNow(place)),
+                          onAssign: (kind) => unawaited(
+                            assignSavedPlace(
+                              context,
+                              ref,
+                              kind,
+                              near: _userPoint() ?? _cameraCenterOrDefault(),
+                              userLocation: _userPoint(),
                             ),
                           ),
                         ),
-                        _GlassIconButton(
-                          icon: Icons.cloud_download_outlined,
-                          tooltip: l10n.offlineMapsOpen,
-                          onPressed: () => showOfflineMapsSheet(context),
+                        const SizedBox(height: 8),
+                        const Align(
+                          alignment: Alignment.centerLeft,
+                          child: AzanTodayPill(),
                         ),
                       ],
-                    ),
-                    if (state is RouteIdle) ...[
-                      const SizedBox(height: 10),
-                      RecentPlacesBar(
-                        onPick: (place) => unawaited(
-                          _planSelection(TripSelection(destination: place)),
-                        ),
-                        onGo: (place) => unawaited(_goNow(place)),
-                        onAssign: (kind) => unawaited(
-                          assignSavedPlace(
-                            context,
-                            ref,
-                            kind,
-                            near: _userPoint() ?? _cameraCenterOrDefault(),
-                            userLocation: _userPoint(),
-                          ),
-                        ),
-                      ),
                     ],
+                  ),
+                ),
+              ),
+            if (!navigating)
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        12,
+                        0,
+                        12,
+                        sheetVisible ? 8 : 8 + bottomSafe,
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          const Spacer(),
+                          const SizedBox(width: 12),
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Skrin pendek (telefon mendatar): butang zum disembunyikan supaya lajur
+                              // kawalan tidak menutup lembaran laluan; mencubit tetap berfungsi.
+                              if (MediaQuery.sizeOf(context).height >= 500) ...[
+                                _MapZoomControls(
+                                  onZoomIn: () => unawaited(_zoomMap(1)),
+                                  onZoomOut: () => unawaited(_zoomMap(-1)),
+                                ),
+                                const SizedBox(height: 8),
+                              ],
+                              _GlassIconButton(
+                                icon: Icons.emergency_rounded,
+                                tooltip: l10n.emergencyTooltip,
+                                onPressed: _openEmergency,
+                              ),
+                              const SizedBox(height: 8),
+                              _GlassIconButton(
+                                icon: Icons.add_alert_rounded,
+                                tooltip: l10n.reportButtonTooltip,
+                                onPressed: _openReport,
+                              ),
+                              const SizedBox(height: 8),
+                              _GlassIconButton(
+                                icon: Icons.my_location_rounded,
+                                tooltip: l10n.myLocation,
+                                onPressed: _onMyLocationPressed,
+                                loading: _locating,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (_autoStart != null && state is RouteReady)
+                      AutoStartBanner(
+                        name: _autoStart!,
+                        onDone: () => unawaited(_finishAutoStart()),
+                        onCancel: _cancelAutoStart,
+                      ),
+                    // Pemain muzik kecil di atas lembaran laluan (bukan semasa navigasi).
+                    if (ref.watch(
+                      playerControllerProvider.select((p) => p.current != null),
+                    ))
+                      const Padding(
+                        padding: EdgeInsets.fromLTRB(12, 0, 12, 8),
+                        child: MiniPlayer(),
+                      ),
+                    Flexible(
+                      child: AnimatedSwitcher(
+                        duration: Motion.of(context, Motion.normal),
+                        // Pegas redaman kritikal: mendarat lembut tanpa lajak (lembaran melekat di bawah).
+                        switchInCurve: Motion.sheet,
+                        switchOutCurve: Motion.exit,
+                        transitionBuilder: (child, animation) =>
+                            SlideTransition(
+                              position: Tween(
+                                begin: const Offset(0, 1),
+                                end: Offset.zero,
+                              ).animate(animation),
+                              child: child,
+                            ),
+                        child: sheetVisible
+                            ? RouteSummarySheet(
+                                key: const ValueKey('route-sheet'),
+                                state: state,
+                                onSelect: _selectRoute,
+                                onShowMore: controller.showMore,
+                                onShare: state is RouteReady
+                                    ? () => unawaited(_shareDestination(state))
+                                    : null,
+                                fuelCostRm: state is RouteReady
+                                    ? estimateFuelCostRm(
+                                        distanceM: state.selected.distanceM,
+                                        litersPer100Km: fuelSettings
+                                            .litersPer100Km(
+                                              state.query.vehicle,
+                                            ),
+                                        pricePerLiter: fuelPrice,
+                                      )
+                                    : null,
+                                onVehicleChanged: (v) =>
+                                    unawaited(controller.setVehicle(v)),
+                                onRetry: controller.retry,
+                                onClear: controller.clear,
+                                onSave: state is RouteReady
+                                    ? () => unawaited(
+                                        showSavePlaceSheet(
+                                          context,
+                                          _destinationPlace(state),
+                                        ),
+                                      )
+                                    : null,
+                                onOpenOfflineMaps: () =>
+                                    showOfflineMapsSheet(context),
+                                onStart: state is RouteReady
+                                    ? () => _startNavigation(
+                                        state,
+                                        simulate: false,
+                                      )
+                                    : null,
+                                onSimulate: state is RouteReady
+                                    ? () => _startNavigation(
+                                        state,
+                                        simulate: true,
+                                      )
+                                    : null,
+                              )
+                            : const SizedBox.shrink(key: ValueKey('no-sheet')),
+                      ),
+                    ),
                   ],
                 ),
               ),
-            ),
-          if (!navigating)
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      12,
-                      0,
-                      12,
-                      sheetVisible ? 8 : 8 + bottomSafe,
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        const Spacer(),
-                        const SizedBox(width: 12),
-                        Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // Skrin pendek (telefon mendatar): butang zum disembunyikan supaya lajur
-                            // kawalan tidak menutup lembaran laluan; mencubit tetap berfungsi.
-                            if (MediaQuery.sizeOf(context).height >= 500) ...[
-                              _MapZoomControls(
-                                onZoomIn: () => unawaited(_zoomMap(1)),
-                                onZoomOut: () => unawaited(_zoomMap(-1)),
-                              ),
-                              const SizedBox(height: 8),
-                            ],
-                            _GlassIconButton(
-                              icon: Icons.emergency_rounded,
-                              tooltip: l10n.emergencyTooltip,
-                              onPressed: _openEmergency,
-                            ),
-                            const SizedBox(height: 8),
-                            _GlassIconButton(
-                              icon: Icons.add_alert_rounded,
-                              tooltip: l10n.reportButtonTooltip,
-                              onPressed: _openReport,
-                            ),
-                            const SizedBox(height: 8),
-                            _GlassIconButton(
-                              icon: Icons.my_location_rounded,
-                              tooltip: l10n.myLocation,
-                              onPressed: _onMyLocationPressed,
-                              loading: _locating,
-                            ),
-                          ],
-                        ),
-                      ],
+            if (cruising) ..._cruiseOverlay(),
+            if (navigating) ..._navigationOverlay(nav, navSettings, azanNow),
+            if (!navigating && azanNow != null)
+              SafeArea(
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 76, 12, 0),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 480),
+                      child: AzanNowBanner(prayer: azanNow),
                     ),
                   ),
-                  if (_autoStart != null && state is RouteReady)
-                    AutoStartBanner(
-                      name: _autoStart!,
-                      onDone: () => unawaited(_finishAutoStart()),
-                      onCancel: _cancelAutoStart,
-                    ),
-                  Flexible(
-                    child: AnimatedSwitcher(
-                      duration: Motion.of(context, Motion.normal),
-                      // Pegas redaman kritikal: mendarat lembut tanpa lajak (lembaran melekat di bawah).
-                      switchInCurve: Motion.sheet,
-                      switchOutCurve: Motion.exit,
-                      transitionBuilder: (child, animation) => SlideTransition(
-                        position: Tween(
-                          begin: const Offset(0, 1),
-                          end: Offset.zero,
-                        ).animate(animation),
-                        child: child,
-                      ),
-                      child: sheetVisible
-                          ? RouteSummarySheet(
-                              key: const ValueKey('route-sheet'),
-                              state: state,
-                              onSelect: _selectRoute,
-                              onShowMore: controller.showMore,
-                              onShare: state is RouteReady
-                                  ? () => unawaited(_shareDestination(state))
-                                  : null,
-                              fuelCostRm: state is RouteReady
-                                  ? estimateFuelCostRm(
-                                      distanceM: state.selected.distanceM,
-                                      litersPer100Km: fuelSettings
-                                          .litersPer100Km(state.query.vehicle),
-                                      pricePerLiter: fuelPrice,
-                                    )
-                                  : null,
-                              onVehicleChanged: (v) =>
-                                  unawaited(controller.setVehicle(v)),
-                              onRetry: controller.retry,
-                              onClear: controller.clear,
-                              onSave: state is RouteReady
-                                  ? () => unawaited(
-                                      showSavePlaceSheet(
-                                        context,
-                                        _destinationPlace(state),
-                                      ),
-                                    )
-                                  : null,
-                              onOpenOfflineMaps: () =>
-                                  showOfflineMapsSheet(context),
-                              onStart: state is RouteReady
-                                  ? () =>
-                                        _startNavigation(state, simulate: false)
-                                  : null,
-                              onSimulate: state is RouteReady
-                                  ? () =>
-                                        _startNavigation(state, simulate: true)
-                                  : null,
-                            )
-                          : const SizedBox.shrink(key: ValueKey('no-sheet')),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          if (cruising) ..._cruiseOverlay(),
-          if (navigating) ..._navigationOverlay(nav, navSettings),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1511,11 +1584,15 @@ class _MapScreenState extends ConsumerState<MapScreen>
   List<Widget> _navigationOverlay(
     NavigationState nav,
     NavigationSettings settings,
+    Prayer? azanNow,
   ) {
     final progress = nav.progress;
     final media = MediaQuery.of(context);
     final landscape = media.size.width > media.size.height;
-    final metrics = NavHudMetrics.forSize(media.size);
+    // Terus daripada tetapan (bukan EasyModeScope): konteks ini berada di atas skop yang dibina
+    // oleh skrin ini sendiri.
+    final easy = ref.watch(appPreferencesProvider.select((p) => p.easyMode));
+    final metrics = NavHudMetrics.forSize(media.size, easy: easy);
     final follow = _driver?.follow.value ?? NavFollow.following;
     final arrived = nav.phase == NavPhase.arrived;
     final stop = ref.read(navigationControllerProvider.notifier).stop;
@@ -1527,6 +1604,8 @@ class _MapScreenState extends ConsumerState<MapScreen>
         if (progress != null && !arrived)
           ManeuverBanner(progress: progress, liveAlongM: _driver?.alongM),
         NavStatusChip(state: nav),
+        // Azan semasa navigasi: cip kecil + bunyi pendek sahaja (lihat AzanController).
+        if (azanNow != null) AzanNavChip(prayer: azanNow),
       ],
     );
 
@@ -1569,13 +1648,16 @@ class _MapScreenState extends ConsumerState<MapScreen>
           RecenterButton(onPressed: _recenterTripCamera),
           const SizedBox(height: 10),
         ],
-        _MapZoomControls(
-          onZoomIn: () => unawaited(_zoomMap(1)),
-          onZoomOut: () => unawaited(_zoomMap(-1)),
-        ),
+        // Mod mudah: tiada butang zum (cubit masih berfungsi); skrin lebih lapang.
+        if (!easy)
+          _MapZoomControls(
+            onZoomIn: () => unawaited(_zoomMap(1)),
+            onZoomOut: () => unawaited(_zoomMap(-1)),
+          ),
       ],
     );
     final sideButtons = NavSideButtons(
+      compact: easy,
       voiceEnabled: settings.voiceEnabled,
       cameraMode: settings.cameraMode,
       onToggleVoice: () => ref
@@ -1587,6 +1669,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
         context,
         onShareEta: () => unawaited(_shareEta()),
         onEmergency: _openEmergency,
+        onMusic: () => unawaited(showMusicSheet(context)),
       ),
       onReport: _openReport,
       onChangeRoute: _changeRoute,
@@ -1890,7 +1973,9 @@ class _SearchPill extends StatelessWidget {
                 ),
                 onTap: onTap,
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(minHeight: 48),
+                  constraints: BoxConstraints(
+                    minHeight: EasyModeScope.of(context) ? 60 : 48,
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 10,

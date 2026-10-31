@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bunyi azan dirujuk hanya melalui nama (saluran notifikasi), jadi pengecilan sumber (isShrinkResources)
+     akan membuangnya tanpa peraturan simpan ini. -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@raw/azan,@raw/azan_short" />

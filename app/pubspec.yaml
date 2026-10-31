@@ -37,6 +37,14 @@ dependencies:
   app_links: ^6.4.1
   share_plus: ^13.3.1
   url_launcher: ^6.3.3
+  adhan_dart: ^2.0.1
+  flutter_local_notifications: ^22.3.3
+  timezone: ^0.11.2
+  flutter_timezone: ^5.1.1
+  just_audio: ^0.10.6
+  audio_service: ^0.18.19
+  audio_session: ^0.2.4
+  file_picker: ^13.3.0
 
 dev_dependencies:
   flutter_test:
@@ -52,6 +60,7 @@ flutter:
     - assets/fonts/OFL-PlusJakartaSans.txt
     - assets/tolls/my_tolls.json
     - assets/legal/
+    - assets/audio/
 
   fonts:
     # Fon variabel (paksi wght 200-800), dibundel supaya tidak dimuat turun masa jalan.
