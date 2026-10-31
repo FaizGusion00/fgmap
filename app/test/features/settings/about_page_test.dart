@@ -36,8 +36,8 @@ void main() {
       find.byKey(const ValueKey('about-whats-new')),
       300,
     );
-    expect(find.text('Baharu dalam versi 1.1.0'), findsOneWidget);
-    expect(find.textContaining('Waktu azan rasmi JAKIM'), findsOneWidget);
+    expect(find.text('Baharu dalam versi 1.2.0'), findsOneWidget);
+    expect(find.textContaining('IPU rasmi JAS'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('about-attribution')),
       300,

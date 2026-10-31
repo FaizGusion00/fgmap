@@ -1833,22 +1833,20 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
-  String get aboutNew1 =>
-      'Waktu azan rasmi JAKIM dengan notifikasi walaupun app ditutup';
+  String get aboutNew1 => 'IPU rasmi JAS daripada stesen pemantauan terdekat';
 
   @override
-  String get aboutNew2 =>
-      'Muzik dan radio dalam app: Malaysia, Indonesia, Korea dan K-pop';
+  String get aboutNew2 => 'Anggaran tol RM pada pratonton laluan';
 
   @override
-  String get aboutNew3 => 'Mod mudah: paparan besar untuk pemandu warga emas';
+  String get aboutNew3 => 'Pengecas EV sepanjang laluan';
 
   @override
-  String get aboutNew4 => 'Panduan lorong dan peta malam biru gaya Waze';
+  String get aboutNew4 => 'Arah kiblat dari GPS';
 
   @override
   String get aboutNew5 =>
-      'Ikon bulatan yang jelas dengan nombor simpang keluar';
+      'Amaran jerebu sepanjang laluan dan suara ringkas di Android Auto';
 
   @override
   String get alongRouteTitle => 'Sepanjang laluan';

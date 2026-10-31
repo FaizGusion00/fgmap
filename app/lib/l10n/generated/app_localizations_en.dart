@@ -1835,20 +1835,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutNew1 =>
-      'Official JAKIM prayer times with notifications even when the app is closed';
+      'Official JAS IPU from the nearest monitoring station';
 
   @override
-  String get aboutNew2 =>
-      'Music and radio in the app: Malaysia, Indonesia, Korea and K-pop';
+  String get aboutNew2 => 'Toll estimate in RM on the route preview';
 
   @override
-  String get aboutNew3 => 'Easy mode: large display for older drivers';
+  String get aboutNew3 => 'EV chargers along the route';
 
   @override
-  String get aboutNew4 => 'Lane guidance and a Waze-style navy night map';
+  String get aboutNew4 => 'Qibla direction from GPS';
 
   @override
-  String get aboutNew5 => 'Clear roundabout icon with the exit number';
+  String get aboutNew5 =>
+      'Haze alerts along the route and a short Android Auto voice cue';
 
   @override
   String get alongRouteTitle => 'Along the route';

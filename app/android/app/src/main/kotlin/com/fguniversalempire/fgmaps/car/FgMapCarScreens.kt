@@ -45,8 +45,8 @@ class FgMapSession : Session() {
  * Templat navigasi padat: manuver dan ETA di slot templat, peta MapLibre pada permukaan,
  * tindakan terhad kepada carian, pusatkan, dan tamat.
  *
- * Isyarat pemanduan (kamera > cuaca > R&R) dihantar sebagai Alert (API 5+) atau
- * teks langkah (API lebih rendah). AQI hanya dalam mod browse.
+ * Isyarat pemanduan (kamera > cuaca > R&R) sentiasa menjadi cue pada langkah
+ * (Car API 1). API 5+ menambah Alert berasingan. AQI hanya dalam mod browse.
  */
 class FgMapNavScreen(
     carContext: CarContext,
@@ -101,7 +101,7 @@ class FgMapNavScreen(
         }
         when (mode) {
             "navigating" -> {
-                routing(session, api)?.let { builder.setNavigationInfo(it) }
+                routing(session)?.let { builder.setNavigationInfo(it) }
                 estimate(session)?.let { builder.setDestinationTravelEstimate(it) }
             }
             "cruise" -> builder.setNavigationInfo(
@@ -166,7 +166,7 @@ class FgMapNavScreen(
         IconCompat.createWithResource(carContext, res),
     ).build()
 
-    private fun routing(session: Map<String, Any?>, api: Int): RoutingInfo? {
+    private fun routing(session: Map<String, Any?>): RoutingInfo? {
         val maneuver = session["maneuver"] as? String ?: return null
         val stepBuilder = Step.Builder(maneuver)
         // Ikon manuver piawai hos (bulatan dengan nombor keluar, belok, dll.) supaya skrin kereta
@@ -175,8 +175,8 @@ class FgMapNavScreen(
             session["maneuverKind"] as? String,
             (session["roundaboutExit"] as? Number)?.toInt(),
         )?.let { stepBuilder.setManeuver(it) }
-        // API < 5: isyarat kamera/cuaca/R&R sebagai cue pada langkah.
-        // API 5+: Alert berasingan (lihat syncDriveAlert); cue kekal sebagai sandaran visual.
+        // setCue ialah Car API 1, jadi hos lama memaparkan isyarat di sini.
+        // Alert (RequiresCarApi 5) ditambah dalam syncDriveAlert; cue kekal jika banner ditolak.
         driveAlertOf(session)?.let { stepBuilder.setCue(it) }
         val step = stepBuilder.build()
         val meters = (session["distanceToManeuverM"] as? Number)?.toDouble()

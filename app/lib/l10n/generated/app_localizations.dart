@@ -3281,31 +3281,31 @@ abstract class AppLocalizations {
   /// No description provided for @aboutNew1.
   ///
   /// In ms, this message translates to:
-  /// **'Waktu azan rasmi JAKIM dengan notifikasi walaupun app ditutup'**
+  /// **'IPU rasmi JAS daripada stesen pemantauan terdekat'**
   String get aboutNew1;
 
   /// No description provided for @aboutNew2.
   ///
   /// In ms, this message translates to:
-  /// **'Muzik dan radio dalam app: Malaysia, Indonesia, Korea dan K-pop'**
+  /// **'Anggaran tol RM pada pratonton laluan'**
   String get aboutNew2;
 
   /// No description provided for @aboutNew3.
   ///
   /// In ms, this message translates to:
-  /// **'Mod mudah: paparan besar untuk pemandu warga emas'**
+  /// **'Pengecas EV sepanjang laluan'**
   String get aboutNew3;
 
   /// No description provided for @aboutNew4.
   ///
   /// In ms, this message translates to:
-  /// **'Panduan lorong dan peta malam biru gaya Waze'**
+  /// **'Arah kiblat dari GPS'**
   String get aboutNew4;
 
   /// No description provided for @aboutNew5.
   ///
   /// In ms, this message translates to:
-  /// **'Ikon bulatan yang jelas dengan nombor simpang keluar'**
+  /// **'Amaran jerebu sepanjang laluan dan suara ringkas di Android Auto'**
   String get aboutNew5;
 
   /// No description provided for @alongRouteTitle.
