@@ -1517,7 +1517,24 @@ class _MapScreenState extends ConsumerState<MapScreen>
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          const Spacer(),
+                          // Dua pintu AI di kiri bawah, sejajar dengan "lokasi saya". Kapsul kanan
+                          // (zum, SOS, lapor) kekal di tepi kanan.
+                          Expanded(
+                            child: Align(
+                              alignment: Alignment.bottomLeft,
+                              child: _AiDock(
+                                onFgmaps: () =>
+                                    unawaited(showAssistantSheet(context, ref)),
+                                onMuslim: () => unawaited(
+                                  showAssistantSheet(
+                                    context,
+                                    ref,
+                                    mode: AssistantOpenMode.muslim,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
                           const SizedBox(width: 12),
                           Column(
                             mainAxisSize: MainAxisSize.min,
@@ -2160,6 +2177,116 @@ class _MapScreenState extends ConsumerState<MapScreen>
     RouteLoading() => state.destination,
     RouteIdle() => null,
   };
+}
+
+/// Dua pintu AI di kiri bawah peta, bertindih supaya label penuh muat di sebelah lajur lokasi.
+/// FGMaps di atas, FGMuslim paling bawah — sejajar dengan butang "lokasi saya".
+class _AiDock extends StatelessWidget {
+  const _AiDock({required this.onFgmaps, required this.onMuslim});
+
+  final VoidCallback onFgmaps;
+  final VoidCallback onMuslim;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final easy = EasyModeScope.of(context);
+    return Column(
+      key: const ValueKey('ai-dock'),
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _AiDockButton(
+          buttonKey: const ValueKey('ai-dock-fgmaps'),
+          icon: Icons.auto_awesome_rounded,
+          color: const Color(0xFF6D28D9),
+          label: l10n.assistantTitle,
+          easy: easy,
+          onPressed: onFgmaps,
+        ),
+        const SizedBox(height: 8),
+        _AiDockButton(
+          buttonKey: const ValueKey('ai-dock-muslim'),
+          icon: Icons.menu_book_rounded,
+          color: const Color(0xFF047857),
+          label: l10n.muslimAiTitle,
+          easy: easy,
+          onPressed: onMuslim,
+        ),
+      ],
+    );
+  }
+}
+
+class _AiDockButton extends StatelessWidget {
+  const _AiDockButton({
+    required this.buttonKey,
+    required this.icon,
+    required this.color,
+    required this.label,
+    required this.easy,
+    required this.onPressed,
+  });
+
+  final Key buttonKey;
+  final IconData icon;
+  final Color color;
+  final String label;
+  final bool easy;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final fg = context.fg;
+    final badge = easy ? 32.0 : 28.0;
+    return PressScale(
+      child: Tooltip(
+        message: label,
+        child: Material(
+          color: fg.glassSurface,
+          elevation: 2,
+          shadowColor: Colors.black.withValues(alpha: 0.16),
+          shape: StadiumBorder(side: BorderSide(color: fg.glassBorder)),
+          child: InkWell(
+            key: buttonKey,
+            customBorder: const StadiumBorder(),
+            onTap: onPressed,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: easy ? 48 : 44),
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(6, 4, easy ? 14 : 12, 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: badge,
+                      height: badge,
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.14),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(icon, size: easy ? 20 : 16, color: color),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      label,
+                      maxLines: 1,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.2,
+                        height: 1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _ToolSpec {

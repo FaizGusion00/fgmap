@@ -18,20 +18,32 @@ import '../data/muslim_ai_settings.dart';
 
 enum _AiMode { fgmaps, muslim }
 
-Future<void> showAssistantSheet(BuildContext context, WidgetRef ref) {
+/// Mod yang dibuka terus daripada peta: dua butang, dua pintu.
+enum AssistantOpenMode { fgmaps, muslim }
+
+Future<void> showAssistantSheet(
+  BuildContext context,
+  WidgetRef ref, {
+  AssistantOpenMode mode = AssistantOpenMode.fgmaps,
+}) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
     showDragHandle: true,
-    builder: (_) => const SheetBottomInset(child: AssistantSheet()),
+    builder: (_) => SheetBottomInset(child: AssistantSheet(initialMode: mode)),
   ).whenComplete(() {
     unawaited(ref.read(assistantControllerProvider.notifier).releaseModel());
   });
 }
 
 class AssistantSheet extends ConsumerStatefulWidget {
-  const AssistantSheet({super.key});
+  const AssistantSheet({
+    super.key,
+    this.initialMode = AssistantOpenMode.fgmaps,
+  });
+
+  final AssistantOpenMode initialMode;
 
   @override
   ConsumerState<AssistantSheet> createState() => _AssistantSheetState();
@@ -40,7 +52,9 @@ class AssistantSheet extends ConsumerStatefulWidget {
 class _AssistantSheetState extends ConsumerState<AssistantSheet> {
   final _input = TextEditingController();
   final _scroll = ScrollController();
-  _AiMode _mode = _AiMode.fgmaps;
+  late _AiMode _mode = widget.initialMode == AssistantOpenMode.muslim
+      ? _AiMode.muslim
+      : _AiMode.fgmaps;
 
   @override
   void dispose() {
@@ -120,9 +134,7 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
     final busy = isMuslim ? muslim.busy : maps.busy;
     final error = isMuslim ? muslim.error : maps.error;
     final messages = isMuslim ? muslim.messages : maps.messages;
-    final canType = isMuslim
-        ? muslimActive && !busy
-        : maps.modelReady && !busy;
+    final canType = isMuslim ? muslimActive && !busy : maps.modelReady && !busy;
 
     final wide = MediaQuery.sizeOf(context).width >= 700;
     final hPad = wide ? 28.0 : 16.0;
@@ -440,61 +452,75 @@ class _MuslimGate extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0.92, end: 1),
-            duration: Motion.of(context, Motion.emphasized),
-            curve: Motion.enter,
-            builder: (context, scale, child) =>
-                Transform.scale(scale: scale, child: child),
-            child: Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  colors: [
-                    theme.colorScheme.tertiaryContainer,
-                    theme.colorScheme.secondaryContainer,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final minHeight = constraints.maxHeight.isFinite
+            ? constraints.maxHeight
+            : 0.0;
+        return SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: minHeight),
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0.92, end: 1),
+                      duration: Motion.of(context, Motion.emphasized),
+                      curve: Motion.enter,
+                      builder: (context, scale, child) =>
+                          Transform.scale(scale: scale, child: child),
+                      child: Container(
+                        padding: const EdgeInsets.all(18),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            colors: [
+                              theme.colorScheme.tertiaryContainer,
+                              theme.colorScheme.secondaryContainer,
+                            ],
+                          ),
+                        ),
+                        child: Icon(
+                          Icons.menu_book_rounded,
+                          size: 40,
+                          color: theme.colorScheme.onTertiaryContainer,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      l10n.muslimAiGateTitle,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.muslimAiGateBody,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        height: 1.35,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    FilledButton.tonalIcon(
+                      key: const ValueKey('muslim-enable'),
+                      onPressed: onEnable,
+                      icon: const Icon(Icons.verified_user_outlined),
+                      label: Text(l10n.muslimAiEnableAction),
+                    ),
                   ],
                 ),
               ),
-              child: Icon(
-                Icons.menu_book_rounded,
-                size: 40,
-                color: theme.colorScheme.onTertiaryContainer,
-              ),
             ),
           ),
-          const SizedBox(height: 16),
-          Text(
-            l10n.muslimAiGateTitle,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            l10n.muslimAiGateBody,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-              height: 1.35,
-            ),
-          ),
-          const SizedBox(height: 20),
-          FilledButton.tonalIcon(
-            key: const ValueKey('muslim-enable'),
-            onPressed: onEnable,
-            icon: const Icon(Icons.verified_user_outlined),
-            label: Text(l10n.muslimAiEnableAction),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -648,10 +674,7 @@ class _MessageList extends StatelessWidget {
             child: _TypingDots(),
           );
         }
-        return _Bubble(
-          message: messages[i],
-          muslimTone: muslimTone,
-        );
+        return _Bubble(message: messages[i], muslimTone: muslimTone);
       },
     );
   }
@@ -757,7 +780,9 @@ class _Composer extends StatelessWidget {
     return AnimatedContainer(
       duration: Motion.of(context, Motion.fast),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.55),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(
+          alpha: 0.55,
+        ),
         borderRadius: BorderRadius.circular(28),
         border: Border.all(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.45),
@@ -911,10 +936,7 @@ class _DownloadProgress extends StatelessWidget {
 }
 
 class _Bubble extends StatelessWidget {
-  const _Bubble({
-    required this.message,
-    this.muslimTone = false,
-  });
+  const _Bubble({required this.message, this.muslimTone = false});
 
   final AssistantMessage message;
   final bool muslimTone;
@@ -951,9 +973,10 @@ class _Bubble extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: 10),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
           constraints: BoxConstraints(
-            maxWidth: (MediaQuery.sizeOf(context).width *
-                    (MediaQuery.sizeOf(context).width >= 700 ? 0.62 : 0.84))
-                .clamp(220.0, 560.0),
+            maxWidth:
+                (MediaQuery.sizeOf(context).width *
+                        (MediaQuery.sizeOf(context).width >= 700 ? 0.62 : 0.84))
+                    .clamp(220.0, 560.0),
           ),
           decoration: BoxDecoration(
             color: bg,
@@ -973,10 +996,7 @@ class _Bubble extends StatelessWidget {
           ),
           child: SelectableText(
             message.text,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: fg,
-              height: 1.4,
-            ),
+            style: theme.textTheme.bodyMedium?.copyWith(color: fg, height: 1.4),
           ),
         ),
       ),

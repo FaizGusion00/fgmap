@@ -18,6 +18,10 @@ import 'package:fgmap/features/search/domain/place.dart';
 import 'package:fgmap/features/map/data/map_style_loader.dart';
 import 'package:fgmap/core/theme/theme_controller.dart';
 import 'package:fgmap/features/map/presentation/idle_follow.dart';
+import 'package:fgmap/features/local_assistant/domain/assistant_message.dart';
+import 'package:fgmap/features/local_assistant/domain/local_llm.dart';
+import 'package:fgmap/features/local_assistant/presentation/assistant_controller.dart';
+import 'package:fgmap/features/local_assistant/presentation/assistant_sheet.dart';
 import 'package:fgmap/features/map/presentation/map_screen.dart';
 import 'package:fgmap/features/music/presentation/player_controller.dart';
 import 'package:fgmap/core/audio/audio_coordinator.dart';
@@ -57,6 +61,33 @@ class _NightLoader extends MapStyleLoader {
   Future<ResolvedMapStyle> resolve({required bool dark}) async => dark
       ? const ResolvedMapStyle('{"version":8,"layers":[]}', 'night:test')
       : light();
+}
+
+class _MapFakeLlm implements LocalLlmRuntime {
+  @override
+  Future<bool> isInstalled() async => true;
+
+  @override
+  Future<void> download({void Function(double progress)? onProgress}) async {}
+
+  @override
+  Future<void> delete() async {}
+
+  @override
+  Future<String> chat({
+    required String system,
+    required List<AssistantMessage> history,
+    required String userText,
+    required Future<Map<String, Object?>> Function(
+      String name,
+      Map<String, Object?> args,
+    )
+    onTool,
+    int maxToolTurns = 2,
+  }) async => '';
+
+  @override
+  Future<void> release() async {}
 }
 
 class _Reverse implements ReverseGeocoder {
@@ -158,6 +189,47 @@ void main() {
     expect(find.text('Mengira laluan…'), findsNothing);
     expect(map.config!.routes, isEmpty);
     expect(map.config!.destination, isNull);
+  });
+
+  testWidgets('dua butang AI di kiri bawah buka mod masing-masing', (
+    tester,
+  ) async {
+    await pumpScreen(
+      tester,
+      extra: [localLlmRuntimeProvider.overrideWithValue(_MapFakeLlm())],
+    );
+
+    final fgmaps = find.byKey(const ValueKey('ai-dock-fgmaps'));
+    final muslim = find.byKey(const ValueKey('ai-dock-muslim'));
+    final location = find.byTooltip('Lokasi saya');
+    expect(fgmaps, findsOneWidget);
+    expect(muslim, findsOneWidget);
+
+    final screenWidth =
+        tester.view.physicalSize.width / tester.view.devicePixelRatio;
+    final screenHeight =
+        tester.view.physicalSize.height / tester.view.devicePixelRatio;
+    final fgmapsRect = tester.getRect(fgmaps);
+    final muslimRect = tester.getRect(muslim);
+    final locationRect = tester.getRect(location);
+    expect(fgmapsRect.left, lessThan(screenWidth / 2));
+    expect(muslimRect.left, fgmapsRect.left);
+    expect(muslimRect.top, greaterThan(fgmapsRect.bottom));
+    expect(muslimRect.right, lessThan(locationRect.left));
+    expect(muslimRect.bottom, closeTo(locationRect.bottom, 8));
+    expect(muslimRect.bottom, greaterThan(screenHeight * 0.7));
+
+    await tester.tap(fgmaps);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('maps-body')), findsOneWidget);
+
+    Navigator.of(tester.element(find.byType(AssistantSheet))).pop();
+    await tester.pumpAndSettle();
+
+    await tester.tap(muslim);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('muslim-body')), findsOneWidget);
+    expect(find.byKey(const ValueKey('muslim-enable')), findsOneWidget);
   });
 
   testWidgets(
