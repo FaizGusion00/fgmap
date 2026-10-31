@@ -21,6 +21,22 @@ void main() {
     expect(snap.toMap()['maneuver'], isNull);
   });
 
+  test('browse menghantar AQI; tiada isyarat pemanduan', () {
+    final snap = mapCarSession(
+      navigating: false,
+      cruising: false,
+      airAqi: 'AQI 42 · Baik',
+      cameraAlert: 'should-ignore',
+      alongCue: 'should-ignore',
+    );
+    expect(snap.mode, CarDriveMode.browse);
+    expect(snap.airAqi, 'AQI 42 · Baik');
+    expect(snap.cameraAlert, isNull);
+    expect(snap.alongCue, isNull);
+    expect(snap.driveAlert, isNull);
+    expect(snap.toMap()['airAqi'], 'AQI 42 · Baik');
+  });
+
   test('cruise ada pose dan kelajuan, tiada laluan', () {
     final snap = mapCarSession(
       navigating: false,
@@ -81,5 +97,47 @@ void main() {
     );
     expect(snap.speed.showLimit, isFalse);
     expect(snap.toMap()['limitKmh'], isNull);
+  });
+
+  test('keutamaan isyarat: kamera menyembunyikan R&R', () {
+    final withCam = mapCarSession(
+      navigating: true,
+      cruising: false,
+      navigationRoute: route,
+      cameraAlert: 'Kamera AwAS · 600 m',
+      weatherAlert: 'Cuaca buruk',
+      alongCue: 'R&R · 2.0 km',
+    );
+    expect(withCam.cameraAlert, 'Kamera AwAS · 600 m');
+    expect(withCam.weatherAlert, 'Cuaca buruk');
+    expect(withCam.alongCue, isNull);
+    expect(withCam.driveAlert, 'Kamera AwAS · 600 m');
+    expect(withCam.toMap()['driveAlert'], 'Kamera AwAS · 600 m');
+    expect(withCam.toMap()['alongCue'], isNull);
+
+    final weatherOnly = mapCarSession(
+      navigating: true,
+      cruising: false,
+      navigationRoute: route,
+      weatherAlert: 'Cuaca buruk',
+      alongCue: 'R&R · 2.0 km',
+    );
+    expect(weatherOnly.driveAlert, 'Cuaca buruk');
+    expect(weatherOnly.alongCue, 'R&R · 2.0 km');
+
+    final alongOnly = mapCarSession(
+      navigating: true,
+      cruising: false,
+      navigationRoute: route,
+      alongCue: 'Minyak · 1.2 km',
+    );
+    expect(alongOnly.driveAlert, 'Minyak · 1.2 km');
+  });
+
+  test('carFormatDistance bundar meter dan km', () {
+    expect(carFormatDistance(42), '40 m');
+    expect(carFormatDistance(600), '600 m');
+    expect(carFormatDistance(1500), '1.5 km');
+    expect(carFormatDistance(12000), '12 km');
   });
 }

@@ -53,6 +53,11 @@ void main() {
       'remainingM',
       'remainingS',
       'etaEpochMs',
+      'cameraAlert',
+      'weatherAlert',
+      'alongCue',
+      'driveAlert',
+      'airAqi',
     ]) {
       expect(map.containsKey(key), isTrue, reason: key);
     }

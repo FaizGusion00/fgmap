@@ -27,6 +27,10 @@ class CarSessionSnapshot {
     this.dark = false,
     this.style,
     this.styleKey,
+    this.cameraAlert,
+    this.weatherAlert,
+    this.alongCue,
+    this.airAqi,
   });
 
   final CarDriveMode mode;
@@ -53,7 +57,22 @@ class CarSessionSnapshot {
   final String? style;
   final String? styleKey;
 
+  /// Amaran kamera AwAS/OSM (satu baris), cth. "Kamera AwAS · 600 m".
+  final String? cameraAlert;
+
+  /// Cuaca buruk semasa navigasi (jika dihidupkan), cth. "Cuaca buruk".
+  final String? weatherAlert;
+
+  /// R&R / minyak di hadapan (≤5 km). Hos menyembunyikan jika [cameraAlert] ada.
+  final String? alongCue;
+
+  /// AQI ringkas dalam mod browse sahaja, cth. "AQI 42 · Baik".
+  final String? airAqi;
+
   bool get hasRoute => mode == CarDriveMode.navigating && route.length >= 2;
+
+  /// Satu isyarat pemanduan: kamera > cuaca > R&R.
+  String? get driveAlert => cameraAlert ?? weatherAlert ?? alongCue;
 
   Map<String, Object?> toMap({
     bool includeRoute = true,
@@ -88,6 +107,11 @@ class CarSessionSnapshot {
       'dark': dark,
       if (includeStyle) 'style': style,
       if (includeStyle) 'styleKey': styleKey,
+      'cameraAlert': cameraAlert,
+      'weatherAlert': weatherAlert,
+      'alongCue': alongCue,
+      'driveAlert': driveAlert,
+      'airAqi': airAqi,
     };
   }
 }
@@ -113,6 +137,10 @@ CarSessionSnapshot mapCarSession({
   bool dark = false,
   String? style,
   String? styleKey,
+  String? cameraAlert,
+  String? weatherAlert,
+  String? alongCue,
+  String? airAqi,
 }) {
   final mode = navigating
       ? CarDriveMode.navigating
@@ -124,6 +152,8 @@ CarSessionSnapshot mapCarSession({
     limitKmh: limitKmh,
     overspeed: overspeed,
   );
+  // R&R disembunyikan apabila kamera aktif (keutamaan isyarat pemanduan).
+  final along = cameraAlert == null ? alongCue : null;
   if (mode == CarDriveMode.navigating) {
     return CarSessionSnapshot(
       mode: mode,
@@ -142,6 +172,9 @@ CarSessionSnapshot mapCarSession({
       dark: dark,
       style: style,
       styleKey: styleKey,
+      cameraAlert: cameraAlert,
+      weatherAlert: weatherAlert,
+      alongCue: along,
     );
   }
   if (mode == CarDriveMode.cruise) {
@@ -153,6 +186,8 @@ CarSessionSnapshot mapCarSession({
       dark: dark,
       style: style,
       styleKey: styleKey,
+      // Cruise: cuaca sahaja (tiada laluan → tiada kamera/R&R).
+      weatherAlert: weatherAlert,
     );
   }
   return CarSessionSnapshot(
@@ -161,5 +196,17 @@ CarSessionSnapshot mapCarSession({
     dark: dark,
     style: style,
     styleKey: styleKey,
+    airAqi: airAqi,
   );
+}
+
+/// Jarak ringkas untuk skrin kereta (tanpa l10n penuh).
+String carFormatDistance(double meters) {
+  if (meters < 995) {
+    final m = ((meters / 10).round() * 10).clamp(10, 990);
+    return '$m m';
+  }
+  final km = meters / 1000;
+  if (km < 10) return '${km.toStringAsFixed(1)} km';
+  return '${km.round()} km';
 }

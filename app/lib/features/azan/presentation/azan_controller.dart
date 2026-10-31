@@ -233,17 +233,30 @@ class AzanController extends Notifier<AzanState> {
   bool get _takesOver =>
       _foreground || ref.read(navigationControllerProvider).isActive;
 
-  int? _notificationIdOf(Prayer prayer) {
+  /// ID azan + peringatan untuk [prayer] pada hari jadual semasa (jika ada).
+  List<int> _notificationIdsOf(Prayer prayer) {
     final today = state.today;
-    return today == null ? null : azanNotificationId(today.day, prayer);
+    if (today == null) return const [];
+    final day = today.day;
+    return [
+      azanNotificationId(day, prayer),
+      azanNotificationId(day, prayer, reminder: true),
+    ];
+  }
+
+  /// Batalkan azan dan peringatan OS untuk waktu ini (ID berbeza: reminder = +1).
+  void _cancelPrayerNotifications(Prayer prayer) {
+    final scheduler = ref.read(azanSchedulerProvider);
+    for (final id in _notificationIdsOf(prayer)) {
+      unawaited(scheduler.cancel(id));
+    }
   }
 
   /// Beberapa saat sebelum waktu: jika app terbuka (atau navigasi aktif), batalkan notifikasi OS
   /// yang sepadan supaya hanya satu azan berbunyi. Jika app di latar, biarkan OS melakukannya.
   void _preempt(Prayer prayer) {
     if (!ref.mounted || !_takesOver) return;
-    final id = _notificationIdOf(prayer);
-    if (id != null) unawaited(ref.read(azanSchedulerProvider).cancel(id));
+    _cancelPrayerNotifications(prayer);
   }
 
   /// Waktu masuk.
@@ -254,8 +267,7 @@ class AzanController extends Notifier<AzanState> {
     final navigating = ref.read(navigationControllerProvider).isActive;
     final takesOver = _foreground || navigating;
     if (takesOver) {
-      final id = _notificationIdOf(prayer);
-      if (id != null) unawaited(ref.read(azanSchedulerProvider).cancel(id));
+      _cancelPrayerNotifications(prayer);
       final sound = navigating && !settings.playDuringNavigation
           ? AzanSound.short
           : settings.sound;

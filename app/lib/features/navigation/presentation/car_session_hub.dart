@@ -7,11 +7,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/theme/theme_controller.dart';
 import '../../../core/utils/geo.dart';
+import '../../air_quality/domain/air_quality.dart';
+import '../../air_quality/presentation/air_quality_controller.dart';
+import '../../along_route/domain/along_route_category.dart';
+import '../../cameras/domain/speed_camera.dart';
 import '../../map/data/map_style_loader.dart';
 import '../../route_preview/data/route_planner.dart';
 import '../../route_preview/domain/route_option.dart';
 import '../../search/data/photon_geocoder.dart';
 import '../../search/domain/place.dart';
+import '../data/navigation_settings.dart';
 import '../domain/camera_planner.dart';
 import '../domain/car_session.dart';
 import '../domain/instruction_text.dart';
@@ -152,6 +157,8 @@ class CarSessionHub {
                     )))
         : null;
     final now = ref.read(navClockProvider)();
+    final settings = ref.read(navigationSettingsProvider);
+    final en = language == VoiceLanguage.en;
     return mapCarSession(
       navigating: navigating,
       cruising: cruise.active,
@@ -183,7 +190,58 @@ class CarSessionHub {
           style?.style ??
           (dark ? AppConfig.mapStyleDark : AppConfig.mapStyleLight),
       styleKey: style?.key ?? (dark ? 'dark' : 'light'),
+      cameraAlert: _cameraLine(nav, en),
+      weatherAlert: _weatherLine(nav, settings, en),
+      alongCue: _alongLine(nav, progress?.alongM ?? 0, en),
+      airAqi: _airLine(en),
     );
+  }
+
+  String? _cameraLine(NavigationState nav, bool en) {
+    final alert = nav.cameraAlert;
+    if (alert == null) return null;
+    final dist = carFormatDistance(alert.distanceAheadM);
+    final awas = alert.camera.source == SpeedCameraSource.jpjAwas;
+    if (en) {
+      return awas ? 'AwAS camera · $dist' : 'Camera · $dist';
+    }
+    return awas ? 'Kamera AwAS · $dist' : 'Kamera · $dist';
+  }
+
+  String? _weatherLine(
+    NavigationState nav,
+    NavigationSettings settings,
+    bool en,
+  ) {
+    if (!nav.weatherSevere || !settings.weatherAlerts) return null;
+    return en ? 'Severe weather' : 'Cuaca buruk';
+  }
+
+  String? _alongLine(NavigationState nav, double alongNow, bool en) {
+    final poi = nav.upcomingAlongPoi;
+    if (poi == null) return null;
+    final ahead = poi.remainingFrom(alongNow);
+    // Skrin kereta: hanya isyarat dekat (≤5 km), sama seperti TTS.
+    if (ahead > 5200) return null;
+    final dist = carFormatDistance(ahead);
+    final isRr = poi.category == AlongRouteCategory.restArea;
+    if (en) return isRr ? 'R&R · $dist' : 'Fuel · $dist';
+    return isRr ? 'R&R · $dist' : 'Minyak · $dist';
+  }
+
+  String? _airLine(bool en) {
+    final air = ref.read(airQualityControllerProvider);
+    if (air is! AirUiReady) return null;
+    final aqi = air.reading.usAqi;
+    final band = switch (air.reading.band) {
+      AirBand.good => en ? 'Good' : 'Baik',
+      AirBand.moderate => en ? 'Moderate' : 'Sederhana',
+      AirBand.sensitive => en ? 'Sensitive' : 'Sensitif',
+      AirBand.unhealthy => en ? 'Unhealthy' : 'Tidak sihat',
+      AirBand.veryUnhealthy => en ? 'Very unhealthy' : 'Sangat tidak sihat',
+      AirBand.hazardous => en ? 'Hazardous' : 'Berbahaya',
+    };
+    return 'AQI $aqi · $band';
   }
 
   bool _dark() {
@@ -308,5 +366,7 @@ final carSessionHubProvider = Provider<CarSessionHub>((ref) {
     }
   });
   ref.listen(cruiseControllerProvider, (_, _) => hub.publish());
+  ref.listen(airQualityControllerProvider, (_, _) => hub.publish());
+  ref.listen(navigationSettingsProvider, (_, _) => hub.publish());
   return hub;
 });

@@ -1,12 +1,16 @@
 package com.fguniversalempire.fgmaps.car
 
 import android.content.Intent
+import androidx.car.app.AppManager
 import androidx.car.app.CarContext
 import androidx.car.app.Screen
 import androidx.car.app.Session
 import androidx.car.app.model.Action
 import androidx.car.app.model.ActionStrip
+import androidx.car.app.model.Alert
+import androidx.car.app.model.AlertCallback
 import androidx.car.app.model.CarIcon
+import androidx.car.app.model.CarText
 import androidx.car.app.model.Distance
 import androidx.car.app.model.ItemList
 import androidx.car.app.model.Row
@@ -40,12 +44,17 @@ class FgMapSession : Session() {
 /**
  * Templat navigasi padat: manuver dan ETA di slot templat, peta MapLibre pada permukaan,
  * tindakan terhad kepada carian, pusatkan, dan tamat.
+ *
+ * Isyarat pemanduan (kamera > cuaca > R&R) dihantar sebagai Alert (API 5+) atau
+ * teks langkah (API lebih rendah). AQI hanya dalam mod browse.
  */
 class FgMapNavScreen(
     carContext: CarContext,
     attachMap: Boolean = true,
 ) : Screen(carContext) {
     private val surface = CarMapSurface(carContext)
+    private var lastAlertText: String? = null
+    private var alertShowing = false
 
     init {
         if (attachMap) {
@@ -55,9 +64,15 @@ class FgMapNavScreen(
                         surface.apply(session)
                     } catch (_: Throwable) {
                     }
+                    syncDriveAlert(session)
                     invalidate()
                 }
-                CarBridge.session.let { if (it.isNotEmpty()) surface.apply(it) }
+                CarBridge.session.let {
+                    if (it.isNotEmpty()) {
+                        surface.apply(it)
+                        syncDriveAlert(it)
+                    }
+                }
                 surface.attach()
             } catch (_: Throwable) {
                 // Peta boleh gagal kemudian. Penemuan hos mesti tetap berjaya.
@@ -86,14 +101,14 @@ class FgMapNavScreen(
         }
         when (mode) {
             "navigating" -> {
-                routing(session)?.let { builder.setNavigationInfo(it) }
+                routing(session, api)?.let { builder.setNavigationInfo(it) }
                 estimate(session)?.let { builder.setDestinationTravelEstimate(it) }
             }
             "cruise" -> builder.setNavigationInfo(
-                MessageInfo.Builder("Memandu bebas").build(),
+                MessageInfo.Builder(cruiseMessage(session)).build(),
             )
             else -> builder.setNavigationInfo(
-                MessageInfo.Builder("FGMaps").build(),
+                MessageInfo.Builder(browseMessage(session)).build(),
             )
         }
         return builder.build()
@@ -151,7 +166,7 @@ class FgMapNavScreen(
         IconCompat.createWithResource(carContext, res),
     ).build()
 
-    private fun routing(session: Map<String, Any?>): RoutingInfo? {
+    private fun routing(session: Map<String, Any?>, api: Int): RoutingInfo? {
         val maneuver = session["maneuver"] as? String ?: return null
         val stepBuilder = Step.Builder(maneuver)
         // Ikon manuver piawai hos (bulatan dengan nombor keluar, belok, dll.) supaya skrin kereta
@@ -160,6 +175,9 @@ class FgMapNavScreen(
             session["maneuverKind"] as? String,
             (session["roundaboutExit"] as? Number)?.toInt(),
         )?.let { stepBuilder.setManeuver(it) }
+        // API < 5: isyarat kamera/cuaca/R&R sebagai cue pada langkah.
+        // API 5+: Alert berasingan (lihat syncDriveAlert); cue kekal sebagai sandaran visual.
+        driveAlertOf(session)?.let { stepBuilder.setCue(it) }
         val step = stepBuilder.build()
         val meters = (session["distanceToManeuverM"] as? Number)?.toDouble()
         val info = RoutingInfo.Builder()
@@ -190,6 +208,80 @@ class FgMapNavScreen(
         } else {
             Distance.create(meters, Distance.UNIT_METERS)
         }
+
+    private fun browseMessage(session: Map<String, Any?>): String {
+        val aqi = session["airAqi"] as? String
+        return if (!aqi.isNullOrBlank()) aqi else "FGMaps"
+    }
+
+    private fun cruiseMessage(session: Map<String, Any?>): String {
+        val weather = session["weatherAlert"] as? String
+        return if (!weather.isNullOrBlank()) weather else "Memandu bebas"
+    }
+
+    /** kamera > cuaca > R&R (Dart sudah menapis alongCue bila kamera ada). */
+    private fun driveAlertOf(session: Map<String, Any?>): String? {
+        val direct = session["driveAlert"] as? String
+        if (!direct.isNullOrBlank()) return direct
+        val camera = session["cameraAlert"] as? String
+        if (!camera.isNullOrBlank()) return camera
+        val weather = session["weatherAlert"] as? String
+        if (!weather.isNullOrBlank()) return weather
+        val along = session["alongCue"] as? String
+        return along?.takeIf { it.isNotBlank() }
+    }
+
+    /**
+     * API 5+: paparkan Alert host apabila teks isyarat berubah.
+     * Buang apabila tiada isyarat atau keluar navigasi.
+     */
+    private fun syncDriveAlert(session: Map<String, Any?>) {
+        if (carContext.carAppApiLevel < 5) return
+        val mode = session["mode"] as? String ?: "browse"
+        val text = if (mode == "navigating" || mode == "cruise") {
+            driveAlertOf(session)
+        } else {
+            null
+        }
+        try {
+            val manager = carContext.getCarService(AppManager::class.java)
+            if (text.isNullOrBlank()) {
+                if (alertShowing) {
+                    manager.dismissAlert(DRIVE_ALERT_ID)
+                    alertShowing = false
+                    lastAlertText = null
+                }
+                return
+            }
+            if (text == lastAlertText && alertShowing) return
+            lastAlertText = text
+            val alert = Alert.Builder(
+                DRIVE_ALERT_ID,
+                CarText.create(text),
+                ALERT_DURATION_MS,
+            )
+                .setCallback(object : AlertCallback {
+                    override fun onCancel(reason: Int) {
+                        alertShowing = false
+                    }
+
+                    override fun onDismiss() {
+                        alertShowing = false
+                    }
+                })
+                .build()
+            manager.showAlert(alert)
+            alertShowing = true
+        } catch (_: Throwable) {
+            // Hos lama / Alert tidak disokong: teks langkah (API < 5) sudah mencukupi.
+        }
+    }
+
+    companion object {
+        private const val DRIVE_ALERT_ID = 71001
+        // Cukup lama untuk kamera ~800 m pada 90 km/j; dimuat semula bila teks berubah.
+        private const val ALERT_DURATION_MS = 45_000L
+    }
 }
 
 class FgMapSearchScreen(carContext: CarContext) : Screen(carContext) {
