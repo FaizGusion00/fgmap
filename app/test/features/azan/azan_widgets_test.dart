@@ -189,11 +189,17 @@ void main() {
       expect(find.byType(AzanSheet), findsOneWidget);
     });
 
-    testWidgets('selepas Isyak pil hanya "Waktu solat"', (tester) async {
-      now = DateTime(2026, 10, 31, 22, 0);
-      await pump(tester, const AzanTodayPill());
-      expect(find.text('Waktu solat'), findsOneWidget);
-    });
+    testWidgets(
+      'selepas Isyak pil menunjukkan Subuh esok, bukan label kosong',
+      (tester) async {
+        now = DateTime(2026, 10, 31, 22, 0);
+        await pump(tester, const AzanTodayPill());
+        expect(find.text('Waktu solat'), findsNothing);
+        // Subuh 05:50 esok, tinggal 7 j 50 min.
+        expect(find.textContaining('Subuh'), findsOneWidget);
+        expect(find.textContaining('7 j 50 min'), findsOneWidget);
+      },
+    );
 
     testWidgets('sepanduk: Berhenti menghentikan azan', (tester) async {
       final c = await pump(tester, const AzanNowBanner(prayer: Prayer.dhuhr));

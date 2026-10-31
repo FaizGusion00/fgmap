@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:fgmap/core/utils/geo.dart';
 import 'package:fgmap/features/azan/data/azan_player.dart';
 import 'package:fgmap/features/azan/data/azan_scheduler.dart';
-import 'package:fgmap/features/azan/data/azan_settings.dart';
 import 'package:fgmap/features/azan/data/official_prayer_times.dart';
 import 'package:fgmap/features/azan/domain/azan_plan.dart';
 import 'package:fgmap/features/azan/domain/prayer.dart';

@@ -104,13 +104,26 @@ class AzanSheet extends ConsumerWidget {
                 fontWeight: FontWeight.w700,
               ),
             )
-          else
+          else ...[
             Text(
               l10n.azanAllDone,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
+            if (azan.upNext != null && azan.upNextAt != null)
+              Text(
+                l10n.azanNextTomorrow(
+                  prayerName(l10n, azan.upNext!),
+                  formatClock(context, azan.upNextAt!),
+                ),
+                key: const ValueKey('azan-next-line'),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+          ],
           const SizedBox(height: 4),
           if (!azan.isOfficial)
             Text(

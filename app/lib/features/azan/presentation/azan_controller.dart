@@ -27,6 +27,7 @@ class AzanState {
     this.today,
     this.next,
     this.nextAt,
+    this.tomorrow,
     this.nowPlaying,
     this.exactAllowed = true,
     this.permissionDenied = false,
@@ -40,6 +41,18 @@ class AzanState {
   /// Waktu fardu seterusnya hari ini; null selepas Isyak.
   final Prayer? next;
   final DateTime? nextAt;
+
+  /// Waktu esok, untuk paparan selepas Isyak (logik azan dan pemasa hanya menggunakan hari ini).
+  final DailyPrayerTimes? tomorrow;
+
+  /// Waktu seterusnya untuk PAPARAN: selepas Isyak melompat ke Subuh esok dan bukan "tiada". Pil dan
+  /// lembaran menggunakannya supaya tidak memaparkan label kosong sepanjang malam.
+  Prayer? get upNext =>
+      next ?? (tomorrow?.timeOf(Prayer.fajr) == null ? null : Prayer.fajr);
+  DateTime? get upNextAt => nextAt ?? tomorrow?.timeOf(Prayer.fajr);
+
+  /// [upNext] jatuh pada esok (hari ini sudah habis).
+  bool get upNextIsTomorrow => next == null && upNext != null;
 
   /// Azan yang sedang dimainkan dalam app (sepanduk/cip ditunjukkan); null jika tiada.
   final Prayer? nowPlaying;
@@ -69,6 +82,7 @@ class AzanState {
     DailyPrayerTimes? today,
     Prayer? next,
     DateTime? nextAt,
+    DailyPrayerTimes? tomorrow,
     bool clearNext = false,
     Prayer? nowPlaying,
     bool clearNowPlaying = false,
@@ -81,6 +95,7 @@ class AzanState {
     today: today ?? this.today,
     next: clearNext ? null : (next ?? this.next),
     nextAt: clearNext ? null : (nextAt ?? this.nextAt),
+    tomorrow: tomorrow ?? this.tomorrow,
     nowPlaying: clearNowPlaying ? null : (nowPlaying ?? this.nowPlaying),
     exactAllowed: exactAllowed ?? this.exactAllowed,
     permissionDenied: permissionDenied ?? this.permissionDenied,
@@ -170,6 +185,12 @@ class AzanController extends Notifier<AzanState> {
       _midnightTimer?.cancel();
     });
 
+    final tomorrow = calculator.compute(
+      at: location,
+      day: now.add(const Duration(days: 1)),
+      method: settings.method,
+      madhab: settings.madhab,
+    );
     final next = today.nextAfter(now);
     final hasRealLocation =
         settings.useCity || ref.watch(azanLocationProvider) != null;
@@ -177,6 +198,7 @@ class AzanController extends Notifier<AzanState> {
       today: today,
       next: next,
       nextAt: next == null ? null : today.timeOf(next),
+      tomorrow: tomorrow,
       location: location,
       locationKnown: hasRealLocation,
       exactAllowed: state.exactAllowed,

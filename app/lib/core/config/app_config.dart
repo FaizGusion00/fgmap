@@ -102,6 +102,18 @@ abstract final class AppConfig {
     defaultValue: 'FGMap/0.5 (+https://github.com/FaizGusion00/fgmap)',
   );
 
+  /// Carian fatwa percuma deen.ai (FGMuslim AI — sandaran). Tiada kunci.
+  static const deenApiUrl = String.fromEnvironment(
+    'DEEN_API_URL',
+    defaultValue: 'https://api.deen.ai',
+  );
+
+  /// Jawapan RAG berpetikan islamic.app (FGMuslim AI — utama). Tiada kunci; had rate.
+  static const islamicAppApiUrl = String.fromEnvironment(
+    'ISLAMIC_APP_API_URL',
+    defaultValue: 'https://api.islamic.app',
+  );
+
   static const mapStyleLight = String.fromEnvironment(
     'MAP_STYLE_LIGHT',
     defaultValue: 'https://tiles.openfreemap.org/styles/liberty',

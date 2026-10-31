@@ -50,6 +50,7 @@ class RecentPlacesBar extends ConsumerWidget {
         _ShortcutChip(
           key: const ValueKey('shortcut-home'),
           icon: Icons.home_rounded,
+          tint: const Color(0xFF2563EB),
           label: l10n.savedHome,
           set: byId(SavedPlace.homeId) != null,
           onTap: () {
@@ -73,6 +74,7 @@ class RecentPlacesBar extends ConsumerWidget {
         _ShortcutChip(
           key: const ValueKey('shortcut-work'),
           icon: Icons.work_rounded,
+          tint: const Color(0xFFD97706),
           label: l10n.savedWork,
           set: byId(SavedPlace.workId) != null,
           onTap: () {
@@ -98,6 +100,7 @@ class RecentPlacesBar extends ConsumerWidget {
         _ShortcutChip(
           key: ValueKey('recent-${place.point.lat}-${place.point.lng}'),
           icon: Icons.history_rounded,
+          tint: Theme.of(context).colorScheme.onSurfaceVariant,
           label: place.name,
           set: true,
           onTap: () => onPick(place),
@@ -107,7 +110,7 @@ class RecentPlacesBar extends ConsumerWidget {
 
     // Mod mudah: cip Rumah/Kerja setinggi 56 dp (sasaran sentuhan besar) dengan teks lebih besar.
     return SizedBox(
-      height: EasyModeScope.of(context) ? 56 : 44,
+      height: EasyModeScope.of(context) ? 56 : 40,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         clipBehavior: Clip.none,
@@ -123,6 +126,7 @@ class _ShortcutChip extends StatelessWidget {
   const _ShortcutChip({
     super.key,
     required this.icon,
+    required this.tint,
     required this.label,
     required this.set,
     required this.onTap,
@@ -130,6 +134,9 @@ class _ShortcutChip extends StatelessWidget {
   });
 
   final IconData icon;
+
+  /// Warna ikon dan latar bulat lembutnya.
+  final Color tint;
   final String label;
 
   /// Belum ditetapkan (Rumah/Kerja kosong): dipaparkan dengan tanda tambah.
@@ -142,6 +149,7 @@ class _ShortcutChip extends StatelessWidget {
     final fg = context.fg;
     final theme = Theme.of(context);
     final easy = EasyModeScope.of(context);
+    final badge = easy ? 40.0 : 28.0;
     return Material(
       color: fg.glassSurface,
       elevation: 2,
@@ -152,20 +160,30 @@ class _ShortcutChip extends StatelessWidget {
         onLongPress: onLongPress,
         child: ConstrainedBox(
           constraints: BoxConstraints(
-            maxWidth: easy ? 240 : 200,
-            minHeight: easy ? 56 : 44,
+            maxWidth: easy ? 240 : 190,
+            minHeight: easy ? 56 : 40,
           ),
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: easy ? 18 : 14),
+            padding: EdgeInsets.fromLTRB(6, 0, easy ? 18 : 14, 0),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  icon,
-                  size: easy ? 24 : 18,
-                  color: theme.colorScheme.primary,
+                // Lencana bulat bertinta: Rumah biru, Kerja jingga, terkini kelabu. Belum ditetapkan:
+                // lencana pudar dengan tanda tambah.
+                Container(
+                  width: badge,
+                  height: badge,
+                  decoration: BoxDecoration(
+                    color: tint.withValues(alpha: set ? 0.14 : 0.08),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    icon,
+                    size: easy ? 24 : 16,
+                    color: set ? tint : tint.withValues(alpha: 0.6),
+                  ),
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: easy ? 10 : 8),
                 Flexible(
                   child: Text(
                     label,
@@ -176,6 +194,7 @@ class _ShortcutChip extends StatelessWidget {
                                 ? theme.textTheme.titleMedium
                                 : theme.textTheme.labelLarge)
                             ?.copyWith(
+                              fontWeight: FontWeight.w600,
                               color: set
                                   ? theme.colorScheme.onSurface
                                   : theme.colorScheme.onSurfaceVariant,
@@ -183,10 +202,10 @@ class _ShortcutChip extends StatelessWidget {
                   ),
                 ),
                 if (!set) ...[
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 6),
                   Icon(
-                    Icons.add_rounded,
-                    size: 16,
+                    Icons.add_circle_outline_rounded,
+                    size: easy ? 22 : 16,
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ],

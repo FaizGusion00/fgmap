@@ -189,8 +189,8 @@ class _QiblaPageState extends ConsumerState<QiblaPage>
     final rounded = turn.round();
     if (_turn.value != rounded) _turn.value = rounded;
 
-    // Jangan dakwa "tepat" apabila sensor tidak boleh dipercayai.
-    final trusted = _sensorMissing || _accuracy != CompassAccuracy.unreliable;
+    // Jangan dakwa "tepat" apabila sensor tiada atau tidak boleh dipercayai.
+    final trusted = !_sensorMissing && _accuracy != CompassAccuracy.unreliable;
     final now = trusted && _alignment.update(turn);
     if (!trusted) _alignment.reset();
     if (now != _aligned) {
@@ -326,8 +326,7 @@ class _QiblaPageState extends ConsumerState<QiblaPage>
                       else
                         _TipCard(
                           icon: Icons.phone_android_rounded,
-                          title: l10n.qiblaHint,
-                          body: l10n.qiblaFlatTip,
+                          title: l10n.qiblaFlatTip,
                           color: theme.colorScheme.surfaceContainerHigh,
                           onColor: theme.colorScheme.onSurface,
                         ),
@@ -605,14 +604,14 @@ class _TipCard extends StatelessWidget {
     super.key,
     required this.icon,
     required this.title,
-    required this.body,
+    this.body,
     required this.color,
     required this.onColor,
   });
 
   final IconData icon;
   final String title;
-  final String body;
+  final String? body;
   final Color color;
   final Color onColor;
 
@@ -642,11 +641,13 @@ class _TipCard extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  body,
-                  style: theme.textTheme.bodySmall?.copyWith(color: onColor),
-                ),
+                if (body != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    body!,
+                    style: theme.textTheme.bodySmall?.copyWith(color: onColor),
+                  ),
+                ],
               ],
             ),
           ),

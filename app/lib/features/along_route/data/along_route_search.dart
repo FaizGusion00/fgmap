@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
@@ -13,11 +14,28 @@ import '../domain/along_route_poi.dart';
 import '../domain/along_route_projector.dart';
 
 /// Carian POI dalam koridor sepanjang polyline laluan.
+///
+/// Kelajuan: (1) satu pertanyaan polyline, bukan ratusan penyata bulat; (2) cermin Overpass
+/// dilumbakan, bukan dicuba berurutan: cermin kedua dimulakan jika yang pertama belum menjawab dalam
+/// [hedgeDelay], dan yang pertama berjaya menang. Dahulu satu cermin yang lembap menahan pengguna
+/// sehingga tamat masa (25 s) sebelum cermin seterusnya dicuba.
 class AlongRouteSearch {
-  AlongRouteSearch(this._dio, this._mirrors);
+  AlongRouteSearch(
+    this._dio,
+    this._mirrors, {
+    this.hedgeDelay = const Duration(seconds: 3),
+  });
 
   final Dio _dio;
   final List<String> _mirrors;
+
+  /// Berapa lama menunggu satu cermin sebelum memulakan yang seterusnya serentak.
+  final Duration hedgeDelay;
+
+  /// Garis yang dihantar kepada Overpass paling banyak ~250 titik dan sekurang-kurangnya 500 m
+  /// antara titik; padanan tepat dibuat kemudian pada laluan penuh.
+  static const _maxQueryPoints = 250;
+  static const _minQuerySpacingM = 500.0;
 
   Future<List<AlongRoutePoi>> search({
     required List<GeoPoint> routePoints,
@@ -26,60 +44,107 @@ class AlongRouteSearch {
     CancelToken? cancel,
   }) async {
     if (routePoints.length < 2 || _mirrors.isEmpty) return const [];
-    final samples = samplePolyline(routePoints, everyM: category.sampleEveryM);
-    // Had sampel supaya query Overpass tidak meletup (lebih padat = kurang POI terlepas).
-    final capped = samples.length <= 60
-        ? samples
-        : [
-            for (var i = 0; i < 60; i++)
-              samples[(i * (samples.length - 1) / 59).round()],
-          ];
-    final query = category.overpassQuery(capped.map((p) => (p.lat, p.lng)));
+    final along = cumulativeMeters(routePoints);
+    final spacing = along.last / _maxQueryPoints < _minQuerySpacingM
+        ? _minQuerySpacingM
+        : along.last / _maxQueryPoints;
+    final line = samplePolyline(routePoints, everyM: spacing);
+    final query = category.overpassQuery(line.map((p) => (p.lat, p.lng)));
 
+    final String? body;
+    try {
+      body = await _raceMirrors(query, cancel);
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.cancel) rethrow;
+      throw GeocodeFailure(GeocodeFailureKind.unavailable, e.toString());
+    }
+    return _parseAndProject(
+      body,
+      routePoints: routePoints,
+      along: along,
+      category: category,
+      fallbackName: fallbackName,
+    );
+  }
+
+  Future<String?> _post(String url, String query, CancelToken token) async {
+    final res = await _dio.post<String>(
+      url,
+      data: query,
+      options: Options(
+        responseType: ResponseType.plain,
+        contentType: 'application/x-www-form-urlencoded',
+        headers: {'User-Agent': AppConfig.userAgent},
+        sendTimeout: const Duration(seconds: 8),
+        receiveTimeout: const Duration(seconds: 20),
+      ),
+      cancelToken: token,
+    );
+    return responseText(res.data);
+  }
+
+  /// Mulakan cermin pertama; mulakan yang seterusnya selepas [hedgeDelay] atau serta-merta apabila
+  /// yang sebelumnya gagal. Jawapan berjaya pertama menang dan permintaan lain dibatalkan.
+  Future<String?> _raceMirrors(String query, CancelToken? outer) {
+    final done = Completer<String?>();
+    final tokens = <CancelToken>[];
+    Timer? hedge;
+    var started = 0;
+    var failed = 0;
     Object? lastError;
-    for (final url in _mirrors) {
-      if (cancel?.isCancelled ?? false) {
-        throw DioException(
-          requestOptions: RequestOptions(),
-          type: DioExceptionType.cancel,
-        );
-      }
-      try {
-        final res = await _dio.post<String>(
-          url,
-          data: query,
-          options: Options(
-            responseType: ResponseType.plain,
-            contentType: 'application/x-www-form-urlencoded',
-            headers: {'User-Agent': AppConfig.userAgent},
-            sendTimeout: const Duration(seconds: 20),
-            receiveTimeout: const Duration(seconds: 25),
-          ),
-          cancelToken: cancel,
-        );
-        final body = responseText(res);
-        return _parseAndProject(
-          body,
-          routePoints: routePoints,
-          category: category,
-          fallbackName: fallbackName,
-        );
-      } catch (e) {
-        lastError = e;
+
+    void finish() {
+      hedge?.cancel();
+      for (final t in tokens) {
+        if (!t.isCancelled) t.cancel();
       }
     }
-    if (lastError != null) {
-      throw GeocodeFailure(
-        GeocodeFailureKind.unavailable,
-        lastError.toString(),
+
+    late void Function() startNext;
+
+    void armHedge() {
+      hedge?.cancel();
+      if (started < _mirrors.length) hedge = Timer(hedgeDelay, startNext);
+    }
+
+    startNext = () {
+      if (done.isCompleted || started >= _mirrors.length) return;
+      final url = _mirrors[started++];
+      final token = CancelToken();
+      tokens.add(token);
+      armHedge();
+      _post(url, query, token).then(
+        (body) {
+          if (!done.isCompleted) done.complete(body);
+        },
+        onError: (Object e) {
+          if (done.isCompleted) return;
+          lastError = e;
+          failed++;
+          if (started < _mirrors.length) {
+            startNext(); // gagal: cermin seterusnya serta-merta, tanpa menunggu hedge
+          } else if (failed >= started) {
+            done.completeError(lastError!);
+          }
+        },
+      );
+    };
+
+    if (outer != null) {
+      unawaited(
+        outer.whenCancel.then((e) {
+          if (!done.isCompleted) done.completeError(e);
+        }),
       );
     }
-    return const [];
+    startNext();
+    return done.future.whenComplete(finish);
   }
 
   List<AlongRoutePoi> _parseAndProject(
     String? body, {
     required List<GeoPoint> routePoints,
+    required List<double> along,
     required AlongRouteCategory category,
     required String fallbackName,
   }) {
@@ -109,7 +174,7 @@ class AlongRouteSearch {
           t('operator') ??
           fallbackName;
       final point = GeoPoint(lat, lng);
-      final proj = projectOntoPolyline(routePoints, point);
+      final proj = projectOntoPolyline(routePoints, point, along: along);
       if (proj == null) continue;
       if (proj.crossTrackM > category.corridorM) continue;
       final type = e['type'];

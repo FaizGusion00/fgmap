@@ -950,6 +950,16 @@ class AppLocalizationsMs extends AppLocalizations {
   String get azanAllDone => 'Semua waktu hari ini telah berlalu';
 
   @override
+  String azanNextTomorrow(String prayer, String time) {
+    return 'Esok: $prayer $time';
+  }
+
+  @override
+  String azanRemainingLeft(String remaining) {
+    return '$remaining lagi';
+  }
+
+  @override
   String azanNowTitle(String prayer) {
     return 'Waktu $prayer';
   }
@@ -1840,20 +1850,24 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
-  String get aboutNew1 => 'IPU rasmi JAS daripada stesen pemantauan terdekat';
+  String get aboutNew1 =>
+      'Dibaiki: app tertutup sendiri sebaik dibuka pada sesetengah telefon Android';
 
   @override
-  String get aboutNew2 => 'Anggaran tol RM pada pratonton laluan';
+  String get aboutNew2 =>
+      'Kompas kiblat sebenar dengan sensor telefon, hijau apabila tepat';
 
   @override
-  String get aboutNew3 => 'Pengecas EV sepanjang laluan';
+  String get aboutNew3 =>
+      'Skrin utama lebih kemas: pintasan, waktu solat dan alat';
 
   @override
-  String get aboutNew4 => 'Arah kiblat dari GPS';
+  String get aboutNew4 =>
+      'R&R dan stesen minyak sepanjang laluan kini muncul, lebih pantas';
 
   @override
   String get aboutNew5 =>
-      'Amaran jerebu sepanjang laluan dan suara ringkas di Android Auto';
+      'Ikon cuaca berwarna dan beranimasi; azan di latar dengan satu ketukan';
 
   @override
   String get alongRouteTitle => 'Sepanjang laluan';
@@ -2136,6 +2150,148 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get qiblaTitle => 'Kiblat';
+
+  @override
+  String get assistantOpen => 'Pembantu';
+
+  @override
+  String get assistantTitle => 'FGMaps AI';
+
+  @override
+  String get assistantHint =>
+      'Sembang umum dalam telefon serta alat peta (tempat, IPU, cuaca, laluan). Model dimuat turun sekali dan kekal di peranti.';
+
+  @override
+  String get assistantInputHint => 'Tanya apa-apa atau beri arahan…';
+
+  @override
+  String get assistantClearChat => 'Padam sembang';
+
+  @override
+  String get assistantDownloadTitle => 'Muat turun model tempatan';
+
+  @override
+  String get assistantDownloadBody =>
+      'Qwen3 0.6B (~345 MB). Berjalan pada telefon; tiada kunci cloud. Wi‑Fi digalakkan.';
+
+  @override
+  String get assistantDownloadAction => 'Muat turun';
+
+  @override
+  String assistantDownloading(int percent) {
+    return 'Memuat turun… $percent%';
+  }
+
+  @override
+  String get assistantSettingsTitle => 'FGMaps AI';
+
+  @override
+  String get assistantSettingsReady => 'Model sedia pada telefon ini.';
+
+  @override
+  String get assistantSettingsMissing =>
+      'Belum dimuat turun. Pilihan; tanpa model, ciri lain kekal berfungsi.';
+
+  @override
+  String get assistantDeleteModel => 'Padam model';
+
+  @override
+  String get assistantModeFgmaps => 'FGMaps AI';
+
+  @override
+  String get assistantModeMuslim => 'FGMuslim';
+
+  @override
+  String get assistantEmptyTitle =>
+      'Tanya apa-apa — peta, cuaca, atau soalan umum';
+
+  @override
+  String get assistantSuggestRoute => 'Laluan ke KLCC';
+
+  @override
+  String get assistantSuggestIpu => 'IPU berhampiran';
+
+  @override
+  String get assistantSuggestGeneral => 'Jelaskan tol di MY';
+
+  @override
+  String get muslimAiTitle => 'FGMuslim AI';
+
+  @override
+  String get muslimAiHint =>
+      'Jawapan berpetikan teks klasik (islamic.app) serta pautan fatwa (deen.ai). Bukan nasihat JAKIM. Wallahu a\'lam.';
+
+  @override
+  String get muslimAiInputHint => 'Tanya tentang Quran, hadis, atau fiqh…';
+
+  @override
+  String get muslimAiGateTitle => 'Untuk Muslim yang memilih untuk aktifkan';
+
+  @override
+  String get muslimAiGateBody =>
+      'FGMuslim AI guna sumber pihak ketiga berpetikan. Setuju syarat dulu — ini bukan autoriti agama rasmi.';
+
+  @override
+  String get muslimAiEnableAction => 'Baca syarat & aktifkan';
+
+  @override
+  String get muslimAiEmptyTitle => 'Tanya dengan petikan — teks klasik dahulu';
+
+  @override
+  String get muslimAiSuggestZakat => 'Apa kata Islam tentang zakat?';
+
+  @override
+  String get muslimAiSuggestSolat => 'Apa itu sabar (sabr) dalam Islam?';
+
+  @override
+  String get muslimAiSuggestRiba => 'Apa itu riba?';
+
+  @override
+  String get muslimAiSettingsTitle => 'FGMuslim AI';
+
+  @override
+  String get muslimAiSettingsOn =>
+      'Hidup — petikan islamic.app + deen.ai (opt-in).';
+
+  @override
+  String get muslimAiSettingsOff =>
+      'Mati. Pilihan; untuk pengguna Muslim selepas bersetuju syarat.';
+
+  @override
+  String get muslimAiTermsTitle => 'Syarat FGMuslim AI';
+
+  @override
+  String get muslimAiTermsLead =>
+      'Sila baca teliti. Topik agama di Malaysia sensitif. Tandakan setiap kotak untuk teruskan.';
+
+  @override
+  String get muslimAiTermsMuslim =>
+      'Saya Muslim (atau mencari rujukan Islam untuk pembelajaran peribadi) dan memilih untuk mengaktifkan ciri pilihan ini.';
+
+  @override
+  String get muslimAiTermsNotOfficial =>
+      'Saya faham FGMuslim AI BUKAN fatwa rasmi JAKIM, pejabat mufti negeri, atau FGMaps.';
+
+  @override
+  String get muslimAiTermsNotAdvice =>
+      'Saya tidak akan anggap jawapan sebagai nasihat agama, undang-undang, atau perubatan peribadi. Untuk situasi saya, saya akan rujuk ulama yang berkelayakan.';
+
+  @override
+  String get muslimAiTermsThirdParty =>
+      'Saya faham soalan dihantar ke islamic.app dan deen.ai (pihak ketiga). Jawapan mungkin tidak lengkap, berat sebelah, atau silap; saya akan semak petikan.';
+
+  @override
+  String get muslimAiTermsHoldHarmless =>
+      'Saya bersetuju FGMaps dan penulisnya tidak bertanggungjawab atas cara saya guna atau tafsir kandungan ini.';
+
+  @override
+  String get muslimAiTermsAgree => 'Saya setuju — aktifkan FGMuslim AI';
+
+  @override
+  String get muslimAiTermsCancel => 'Batal';
+
+  @override
+  String get muslimAiOpenDeen => 'Buka islamic.app';
 
   @override
   String get qiblaOpen => 'Kiblat';

@@ -361,6 +361,9 @@ void main() {
 
       final chip = find.byKey(ValueKey('recent-${klia.lat}-${klia.lng}'));
       expect(chip, findsOneWidget);
+      // Baris pintasan boleh digelongsor: Rumah dan Kerja datang dahulu, jadi gulung chip ke paparan.
+      await tester.ensureVisible(chip);
+      await tester.pumpAndSettle();
       await tester.tap(chip);
       await tester.pumpAndSettle();
 

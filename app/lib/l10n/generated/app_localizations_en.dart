@@ -950,6 +950,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get azanAllDone => 'All of today\'s prayer times have passed';
 
   @override
+  String azanNextTomorrow(String prayer, String time) {
+    return 'Tomorrow: $prayer $time';
+  }
+
+  @override
+  String azanRemainingLeft(String remaining) {
+    return 'in $remaining';
+  }
+
+  @override
   String azanNowTitle(String prayer) {
     return '$prayer time';
   }
@@ -1842,20 +1852,23 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutNew1 =>
-      'Official JAS IPU from the nearest monitoring station';
+      'Fixed: the app closing by itself right after opening on some Android phones';
 
   @override
-  String get aboutNew2 => 'Toll estimate in RM on the route preview';
+  String get aboutNew2 =>
+      'A real Qibla compass using the phone’s sensor, green when you face it';
 
   @override
-  String get aboutNew3 => 'EV chargers along the route';
+  String get aboutNew3 =>
+      'A tidier home screen: shortcuts, prayer time and tools';
 
   @override
-  String get aboutNew4 => 'Qibla direction from GPS';
+  String get aboutNew4 =>
+      'R&R and fuel stops along the route now show up, and faster';
 
   @override
   String get aboutNew5 =>
-      'Haze alerts along the route and a short Android Auto voice cue';
+      'Colorful animated weather icons; azan in the background with one tap';
 
   @override
   String get alongRouteTitle => 'Along the route';
@@ -2135,6 +2148,148 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get qiblaTitle => 'Qibla';
+
+  @override
+  String get assistantOpen => 'Assistant';
+
+  @override
+  String get assistantTitle => 'FGMaps AI';
+
+  @override
+  String get assistantHint =>
+      'General chat on your phone plus map tools (places, IPU, weather, routes). The model downloads once and stays on device.';
+
+  @override
+  String get assistantInputHint => 'Ask anything or give a command…';
+
+  @override
+  String get assistantClearChat => 'Clear chat';
+
+  @override
+  String get assistantDownloadTitle => 'Download on-device model';
+
+  @override
+  String get assistantDownloadBody =>
+      'Qwen3 0.6B (~345 MB). Runs on your phone; no cloud key. Wi‑Fi recommended.';
+
+  @override
+  String get assistantDownloadAction => 'Download';
+
+  @override
+  String assistantDownloading(int percent) {
+    return 'Downloading… $percent%';
+  }
+
+  @override
+  String get assistantSettingsTitle => 'FGMaps AI';
+
+  @override
+  String get assistantSettingsReady => 'Model ready on this phone.';
+
+  @override
+  String get assistantSettingsMissing =>
+      'Not downloaded yet. Optional; other features work without it.';
+
+  @override
+  String get assistantDeleteModel => 'Delete model';
+
+  @override
+  String get assistantModeFgmaps => 'FGMaps AI';
+
+  @override
+  String get assistantModeMuslim => 'FGMuslim';
+
+  @override
+  String get assistantEmptyTitle =>
+      'Ask anything — maps, weather, or general questions';
+
+  @override
+  String get assistantSuggestRoute => 'Route to KLCC';
+
+  @override
+  String get assistantSuggestIpu => 'IPU near me';
+
+  @override
+  String get assistantSuggestGeneral => 'Explain tolls in MY';
+
+  @override
+  String get muslimAiTitle => 'FGMuslim AI';
+
+  @override
+  String get muslimAiHint =>
+      'Cited answers from classical texts (islamic.app) plus related fatwa links (deen.ai). Not JAKIM advice. Wallahu a\'lam.';
+
+  @override
+  String get muslimAiInputHint => 'Ask about Quran, hadith, or fiqh…';
+
+  @override
+  String get muslimAiGateTitle => 'For Muslims who opt in';
+
+  @override
+  String get muslimAiGateBody =>
+      'FGMuslim AI uses third-party cited sources. Agree to the terms first — it is not official religious authority.';
+
+  @override
+  String get muslimAiEnableAction => 'Review terms & enable';
+
+  @override
+  String get muslimAiEmptyTitle => 'Ask with citations — classical texts first';
+
+  @override
+  String get muslimAiSuggestZakat => 'What does Islam say about zakat?';
+
+  @override
+  String get muslimAiSuggestSolat => 'What is patience (sabr) in Islam?';
+
+  @override
+  String get muslimAiSuggestRiba => 'What is riba?';
+
+  @override
+  String get muslimAiSettingsTitle => 'FGMuslim AI';
+
+  @override
+  String get muslimAiSettingsOn =>
+      'On — islamic.app + deen.ai citations (opt-in).';
+
+  @override
+  String get muslimAiSettingsOff =>
+      'Off. Optional; for Muslim users only after agreeing to terms.';
+
+  @override
+  String get muslimAiTermsTitle => 'FGMuslim AI terms';
+
+  @override
+  String get muslimAiTermsLead =>
+      'Please read carefully. Religious topics in Malaysia are sensitive. Tick every box to continue.';
+
+  @override
+  String get muslimAiTermsMuslim =>
+      'I am Muslim (or seeking Islamic reference for personal learning) and I choose to enable this optional feature.';
+
+  @override
+  String get muslimAiTermsNotOfficial =>
+      'I understand FGMuslim AI is NOT an official fatwa from JAKIM, any state mufti office, or FGMaps.';
+
+  @override
+  String get muslimAiTermsNotAdvice =>
+      'I will not treat answers as personal religious, legal, or medical advice. For my situation I will ask a qualified scholar.';
+
+  @override
+  String get muslimAiTermsThirdParty =>
+      'I understand questions go to islamic.app and deen.ai (third parties). Answers may be incomplete, biased, or wrong; I will verify citations.';
+
+  @override
+  String get muslimAiTermsHoldHarmless =>
+      'I agree FGMaps and its authors are not liable for how I use or interpret this content.';
+
+  @override
+  String get muslimAiTermsAgree => 'I agree — enable FGMuslim AI';
+
+  @override
+  String get muslimAiTermsCancel => 'Cancel';
+
+  @override
+  String get muslimAiOpenDeen => 'Open islamic.app';
 
   @override
   String get qiblaOpen => 'Qibla';

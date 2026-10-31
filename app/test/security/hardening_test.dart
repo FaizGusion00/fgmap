@@ -130,6 +130,11 @@ void main() {
       expect(manifest, contains('android.permission.SCHEDULE_EXACT_ALARM'));
       expect(manifest, isNot(contains('android.permission.USE_EXACT_ALARM')));
       expect(manifest, contains('android.permission.RECEIVE_BOOT_COMPLETED'));
+      // Dialog "benarkan berjalan di latar" untuk azan; hanya diminta apabila pengguna menekan butang.
+      expect(
+        manifest,
+        contains('android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS'),
+      );
       expect(manifest, contains('FOREGROUND_SERVICE_MEDIA_PLAYBACK'));
       expect(
         manifest,

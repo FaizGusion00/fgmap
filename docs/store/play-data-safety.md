@@ -42,6 +42,13 @@ Muzik, WaktuSolat API untuk jadual rasmi JAKIM, Open-Meteo untuk cuaca, Jabatan 
 - `POST_NOTIFICATIONS`, `WAKE_LOCK`, `INTERNET`.
 - `SCHEDULE_EXACT_ALARM` (pengguna membenarkan dalam tetapan sistem) + `RECEIVE_BOOT_COMPLETED`: notifikasi
   Waktu Azan tepat pada waktunya dan dijadual semula selepas but. Bukan `USE_EXACT_ALARM`.
+- `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`: dialog sistem "benarkan berjalan di latar belakang", hanya apabila
+  pengguna menekan butang itu dalam tetapan Azan, supaya notifikasi azan berbunyi walaupun app ditutup pada
+  telefon yang agresif mematikan app. Play MEMBATASKAN kebenaran ini kepada app yang fungsi terasnya terjejas
+  (penggera/peringatan): pada borang Permissions Declaration, nyatakan Waktu Azan (peringatan solat tepat pada
+  waktunya) dan sertakan video menunjukkan dialog dan azan berbunyi dengan app ditutup. Jika Play menolak,
+  buang kebenaran ini dan butang utama dalam kad bateri (senarai bateri kekal sebagai sandaran).
+- Sensor kompas (kiblat): tiada kebenaran; bacaan di peranti sahaja, tidak disimpan atau dihantar.
 - `FOREGROUND_SERVICE_MEDIA_PLAYBACK` (perkhidmatan `audio_service`, jenis mediaPlayback): Muzik terus
   dimainkan dengan skrin dikunci; kawalan media pada notifikasi.
 - Kategori aplikasi: Peta & Navigasi. Iklan: tiada. Pembelian dalam app: tiada.

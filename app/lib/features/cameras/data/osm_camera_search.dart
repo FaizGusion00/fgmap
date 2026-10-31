@@ -53,7 +53,7 @@ class OsmCameraSearch {
           ),
           cancelToken: cancel,
         );
-        final body = responseText(res);
+        final body = responseText(res.data);
         if (body == null || body.isEmpty) continue;
         return _parse(body);
       } catch (_) {}

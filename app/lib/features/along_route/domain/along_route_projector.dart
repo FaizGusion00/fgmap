@@ -64,10 +64,16 @@ List<GeoPoint> samplePolyline(List<GeoPoint> points, {double everyM = 1500}) {
   return out;
 }
 
-/// Unjur [p] ke polyline; null jika polyline terlalu pendek.
-PolylineProjection? projectOntoPolyline(List<GeoPoint> points, GeoPoint p) {
+/// Unjur [p] ke polyline; null jika polyline terlalu pendek. Berikan [along] (hasil
+/// [cumulativeMeters]) apabila mengunjur banyak titik ke laluan yang sama: mengira semula jarak
+/// kumulatif seluruh laluan untuk setiap titik ialah kos O(n) yang tidak perlu.
+PolylineProjection? projectOntoPolyline(
+  List<GeoPoint> points,
+  GeoPoint p, {
+  List<double>? along,
+}) {
   if (points.length < 2) return null;
-  final along = cumulativeMeters(points);
+  along ??= cumulativeMeters(points);
   var bestDist = double.infinity;
   var bestAlong = 0.0;
   GeoPoint bestSnap = points.first;

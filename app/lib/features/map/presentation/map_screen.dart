@@ -54,6 +54,7 @@ import '../../search/presentation/trip_planner_page.dart';
 import '../../settings/presentation/settings_page.dart';
 import '../../air_quality/presentation/air_quality_sheet.dart';
 import '../../air_quality/presentation/route_haze_banner.dart';
+import '../../local_assistant/presentation/assistant_sheet.dart';
 import '../../qibla/presentation/qibla_page.dart';
 import '../../weather/presentation/weather_animated_icon.dart';
 import '../../weather/presentation/weather_controller.dart';
@@ -1430,44 +1431,8 @@ class _MapScreenState extends ConsumerState<MapScreen>
                           ),
                         ],
                       ),
-                      const SizedBox(height: 10),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _TintedMapButton(
-                              icon: Icons.air_rounded,
-                              tooltip: l10n.airQualityOpen,
-                              color: const Color(0xFF0D9488),
-                              onPressed: () =>
-                                  unawaited(showAirQualitySheet(context)),
-                            ),
-                            const SizedBox(width: 8),
-                            _TintedMapButton(
-                              icon: Icons.explore_rounded,
-                              tooltip: l10n.qiblaOpen,
-                              color: const Color(0xFFD97706),
-                              onPressed: () => unawaited(showQibla(context)),
-                            ),
-                            const SizedBox(width: 8),
-                            _TintedMapButton(
-                              icon: Icons.music_note_rounded,
-                              tooltip: l10n.musicOpen,
-                              color: const Color(0xFFDB2777),
-                              onPressed: () =>
-                                  unawaited(showMusicSheet(context)),
-                            ),
-                            const SizedBox(width: 8),
-                            _TintedMapButton(
-                              icon: Icons.cloud_download_rounded,
-                              tooltip: l10n.offlineMapsOpen,
-                              color: const Color(0xFF2563EB),
-                              onPressed: () => showOfflineMapsSheet(context),
-                            ),
-                          ],
-                        ),
-                      ),
+                      // Pintasan (Rumah, Kerja, terkini) terus di bawah carian, seragam setinggi satu
+                      // baris. Di bawahnya: waktu solat seterusnya (kiri) dan alat (kanan, satu kapsul).
                       if (state is RouteIdle) ...[
                         const SizedBox(height: 10),
                         RecentPlacesBar(
@@ -1485,12 +1450,52 @@ class _MapScreenState extends ConsumerState<MapScreen>
                             ),
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        const Align(
-                          alignment: Alignment.centerLeft,
-                          child: AzanTodayPill(),
-                        ),
                       ],
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          if (state is RouteIdle)
+                            const Expanded(
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: AzanTodayPill(),
+                              ),
+                            )
+                          else
+                            const Spacer(),
+                          const SizedBox(width: 8),
+                          _ToolRail(
+                            tools: [
+                              _ToolSpec(
+                                icon: Icons.air_rounded,
+                                tooltip: l10n.airQualityOpen,
+                                color: const Color(0xFF0D9488),
+                                onPressed: () =>
+                                    unawaited(showAirQualitySheet(context)),
+                              ),
+                              _ToolSpec(
+                                icon: Icons.explore_rounded,
+                                tooltip: l10n.qiblaOpen,
+                                color: const Color(0xFFD97706),
+                                onPressed: () => unawaited(showQibla(context)),
+                              ),
+                              _ToolSpec(
+                                icon: Icons.music_note_rounded,
+                                tooltip: l10n.musicOpen,
+                                color: const Color(0xFFDB2777),
+                                onPressed: () =>
+                                    unawaited(showMusicSheet(context)),
+                              ),
+                              _ToolSpec(
+                                icon: Icons.cloud_download_rounded,
+                                tooltip: l10n.offlineMapsOpen,
+                                color: const Color(0xFF2563EB),
+                                onPressed: () => showOfflineMapsSheet(context),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -1517,27 +1522,34 @@ class _MapScreenState extends ConsumerState<MapScreen>
                           Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              // Skrin pendek (telefon mendatar): butang zum disembunyikan supaya lajur
-                              // kawalan tidak menutup lembaran laluan; mencubit tetap berfungsi.
-                              if (MediaQuery.sizeOf(context).height >= 500) ...[
-                                _MapZoomControls(
-                                  onZoomIn: () => unawaited(_zoomMap(1)),
-                                  onZoomOut: () => unawaited(_zoomMap(-1)),
+                              // Semasa lembaran laluan ditunjukkan, ruang di atasnya sempit (lembaran boleh
+                              // menjangkau ~65% skrin). Lajur penuh (zum, SOS, lapor, lokasi) terdorong ke
+                              // atas dan menimpa bar carian dan alat, jadi hanya "lokasi saya" kekal; zum
+                              // dengan cubitan dan SOS/lapor tersedia sebaik sahaja lembaran ditutup.
+                              if (!sheetVisible) ...[
+                                // Skrin pendek (telefon mendatar): butang zum disembunyikan supaya lajur
+                                // kawalan tidak menutup lembaran laluan; mencubit tetap berfungsi.
+                                if (MediaQuery.sizeOf(context).height >=
+                                    500) ...[
+                                  _MapZoomControls(
+                                    onZoomIn: () => unawaited(_zoomMap(1)),
+                                    onZoomOut: () => unawaited(_zoomMap(-1)),
+                                  ),
+                                  const SizedBox(height: 8),
+                                ],
+                                _GlassIconButton(
+                                  icon: Icons.emergency_rounded,
+                                  tooltip: l10n.emergencyTooltip,
+                                  onPressed: _openEmergency,
+                                ),
+                                const SizedBox(height: 8),
+                                _GlassIconButton(
+                                  icon: Icons.add_alert_rounded,
+                                  tooltip: l10n.reportButtonTooltip,
+                                  onPressed: _openReport,
                                 ),
                                 const SizedBox(height: 8),
                               ],
-                              _GlassIconButton(
-                                icon: Icons.emergency_rounded,
-                                tooltip: l10n.emergencyTooltip,
-                                onPressed: _openEmergency,
-                              ),
-                              const SizedBox(height: 8),
-                              _GlassIconButton(
-                                icon: Icons.add_alert_rounded,
-                                tooltip: l10n.reportButtonTooltip,
-                                onPressed: _openReport,
-                              ),
-                              const SizedBox(height: 8),
                               _GlassIconButton(
                                 icon: Icons.my_location_rounded,
                                 tooltip: l10n.myLocation,
@@ -2150,8 +2162,8 @@ class _MapScreenState extends ConsumerState<MapScreen>
   };
 }
 
-class _TintedMapButton extends StatelessWidget {
-  const _TintedMapButton({
+class _ToolSpec {
+  const _ToolSpec({
     required this.icon,
     required this.tooltip,
     required this.color,
@@ -2162,21 +2174,52 @@ class _TintedMapButton extends StatelessWidget {
   final String tooltip;
   final Color color;
   final VoidCallback onPressed;
+}
+
+/// Alat peta (kualiti udara, kiblat, muzik, peta luar talian) dalam SATU kapsul kaca, bukan empat
+/// bulatan berwarna-warni yang bersaing dengan peta. Warna kekal sebagai bintik halus pada ikon.
+class _ToolRail extends StatelessWidget {
+  const _ToolRail({required this.tools});
+
+  final List<_ToolSpec> tools;
 
   @override
   Widget build(BuildContext context) {
-    return PressScale(
-      child: Material(
-        color: color,
-        elevation: 3,
-        shadowColor: color.withValues(alpha: 0.4),
-        shape: const CircleBorder(),
-        child: IconButton(
-          tooltip: tooltip,
-          onPressed: onPressed,
-          icon: Icon(icon, color: Colors.white),
-          iconSize: 22,
-          visualDensity: VisualDensity.compact,
+    final fg = context.fg;
+    final easy = EasyModeScope.of(context);
+    final size = easy ? 52.0 : 40.0;
+    return Material(
+      key: const ValueKey('tool-rail'),
+      color: fg.glassSurface,
+      elevation: 2,
+      shape: StadiumBorder(side: BorderSide(color: fg.glassBorder)),
+      child: Padding(
+        padding: const EdgeInsets.all(4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (var i = 0; i < tools.length; i++) ...[
+              if (i > 0) const SizedBox(width: 4),
+              PressScale(
+                child: IconButton(
+                  tooltip: tools[i].tooltip,
+                  onPressed: tools[i].onPressed,
+                  iconSize: easy ? 26 : 20,
+                  padding: EdgeInsets.zero,
+                  constraints: BoxConstraints.tightFor(
+                    width: size,
+                    height: size,
+                  ),
+                  style: IconButton.styleFrom(
+                    backgroundColor: tools[i].color.withValues(alpha: 0.14),
+                    foregroundColor: tools[i].color,
+                    shape: const CircleBorder(),
+                  ),
+                  icon: Icon(tools[i].icon),
+                ),
+              ),
+            ],
+          ],
         ),
       ),
     );

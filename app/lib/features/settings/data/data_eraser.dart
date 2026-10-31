@@ -7,6 +7,8 @@ import '../../../core/theme/theme_controller.dart';
 import '../../azan/data/azan_location.dart';
 import '../../azan/data/official_prayer_times.dart';
 import '../../azan/presentation/azan_controller.dart';
+import '../../local_assistant/data/chat_history_store.dart';
+import '../../local_assistant/data/muslim_ai_settings.dart';
 import '../../music/data/radio_favorites.dart';
 import '../../music/data/radio_health.dart';
 import '../../reports/presentation/reports_controller.dart';
@@ -39,6 +41,8 @@ Future<void> eraseAllUserData(WidgetRef ref) async {
   await ref.read(tripHistoryStoreProvider).clear();
   await ref.read(radioFavoritesProvider.notifier).clear();
   await ref.read(radioHealthProvider.notifier).clear();
+  await ref.read(chatHistoryStoreProvider).clear();
+  await ref.read(muslimChatHistoryStoreProvider).clear();
 
   final prefs = ref.read(sharedPreferencesProvider);
   await eraseNearbyCache(prefs);
@@ -47,9 +51,14 @@ Future<void> eraseAllUserData(WidgetRef ref) async {
     ...azanLocationKeys,
     ...azanScheduleKeys,
     azanOfficialCacheKey,
+    assistantChatPrefsKey,
+    muslimAiChatPrefsKey,
+    muslimAiEnabledKey,
+    muslimAiTermsVersionKey,
   ]) {
     await prefs.remove(key);
   }
+  ref.invalidate(muslimAiSettingsProvider);
   ref.read(errorLogProvider).clear();
   // Bina semula supaya bacaan seterusnya (kini kosong) digunakan, bukan nilai dalam ingatan.
   ref.invalidate(sunLocationProvider);

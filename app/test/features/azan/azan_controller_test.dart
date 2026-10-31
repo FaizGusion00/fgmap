@@ -70,6 +70,28 @@ void main() {
     expect(scheduler.replaced, isEmpty);
   });
 
+  test('selepas Isyak: "seterusnya" untuk paparan ialah Subuh esok, logik azan '
+      'tidak berubah', () {
+    now = DateTime(2026, 10, 31, 21, 0);
+    final c = make();
+    final s = c.read(azanControllerProvider);
+    // Logik azan (pemasa/penjadual) masih hanya hari ini.
+    expect(s.next, isNull);
+    expect(s.nextAt, isNull);
+    // Paparan (pil dan lembaran) tidak kosong sepanjang malam.
+    expect(s.upNext, Prayer.fajr);
+    expect(s.upNextAt, DateTime(2026, 11, 1, 5, 50));
+    expect(s.upNextIsTomorrow, isTrue);
+  });
+
+  test('sebelum Isyak: upNext sama dengan next dan bukan esok', () {
+    final c = make();
+    final s = c.read(azanControllerProvider);
+    expect(s.upNext, s.next);
+    expect(s.upNextAt, s.nextAt);
+    expect(s.upNextIsTomorrow, isFalse);
+  });
+
   test(
     'hidupkan: minta kebenaran, simpan, jadualkan seminggu dengan teks',
     () async {

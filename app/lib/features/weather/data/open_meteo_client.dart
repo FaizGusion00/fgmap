@@ -34,12 +34,14 @@ class OpenMeteoClient {
 
       // Destinasi + asal + sampel koridor serentak (bukan berurutan).
       final destFuture = _forecast(destination, rich: true, cancel: cancel);
+      // Asal ialah tambahan: ralatnya ditelan (versi "lembut"). Futures ini bermula serta-merta tetapi
+      // hanya ditunggu selepas destinasi; jika destinasi gagal dahulu, ralat asal yang tiada penunggu
+      // menjadi pengecualian async tidak ditangkap (tanpa internet, setiap kali laluan dipilih).
       final originFuture = wantOrigin
-          ? _forecast(origin, rich: true, cancel: cancel)
+          ? _softForecast(origin, rich: true, cancel: cancel)
           : null;
       final sampleFutures = [
-        for (final p in samples)
-          _softForecast(p, rich: false, cancel: cancel),
+        for (final p in samples) _softForecast(p, rich: false, cancel: cancel),
       ];
 
       final destData = await destFuture;

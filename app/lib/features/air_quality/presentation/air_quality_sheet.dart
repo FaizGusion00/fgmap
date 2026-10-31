@@ -436,7 +436,7 @@ class _GaugeState extends State<_Gauge> with SingleTickerProviderStateMixin {
         curve: Motion.enter,
         builder: (context, t, _) {
           final shown =
-              (widget.ipu * (widget.progress == 0 ? 1 : t / widget.progress))
+              (widget.ipu * (widget.progress == 0 ? 0 : t / widget.progress))
                   .round()
                   .clamp(0, widget.ipu);
           return AnimatedBuilder(

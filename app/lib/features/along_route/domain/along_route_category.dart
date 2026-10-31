@@ -41,14 +41,23 @@ enum AlongRouteCategory {
   final double corridorM;
   final double sampleEveryM;
 
-  String overpassQuery(Iterable<(double lat, double lng)> samples) {
-    final parts = <String>[];
-    for (final (lat, lng) in samples) {
-      final around = '(around:${corridorM.round()},$lat,$lng)';
-      for (final s in selectors) {
-        parts.add('nwr$s$around;');
-      }
-    }
-    return '[out:json][timeout:25];(${parts.join()});out tags center;';
+  /// Satu pertanyaan Overpass untuk seluruh laluan: SATU penapis `around` pada polyline (bukan satu
+  /// penapis bulat setiap sampel). Pada laluan jauh, versi lama menghasilkan ratusan penyata berasingan
+  /// yang mengambil masa puluhan saat pada pelayan awam; polyline dijawab dalam beberapa saat.
+  ///
+  /// [line] ialah laluan yang dipermudah (lihat `AlongRouteSearch`). Jejari ditambah sedikit
+  /// ([lineMarginM]) kerana garis dipermudah memotong selekoh; penapis silang-trek sebenar pada laluan
+  /// penuh dibuat selepas itu. Koordinat dibulatkan kepada ~1 m untuk memendekkan permintaan.
+  String overpassQuery(
+    Iterable<(double lat, double lng)> line, {
+    double lineMarginM = 120,
+  }) {
+    final pts = line
+        .map((p) => '${p.$1.toStringAsFixed(5)},${p.$2.toStringAsFixed(5)}')
+        .join(',');
+    final around = '(around:${(corridorM + lineMarginM).round()},$pts)';
+    final parts = selectors.map((s) => 'nw$s$around;').join();
+    // `qt`: tanpa isihan di pelayan (lebih pantas); kita isih ikut jarak sepanjang laluan sendiri.
+    return '[out:json][timeout:20];($parts);out tags center qt;';
   }
 }

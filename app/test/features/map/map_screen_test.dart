@@ -370,6 +370,32 @@ void main() {
     },
   );
 
+  testWidgets('lajur kawalan: penuh di skrin utama, hanya "lokasi saya" '
+      'semasa lembaran laluan (tidak menimpa bar atas)', (tester) async {
+    await pumpScreen(tester);
+    // Skrin utama: zum, SOS, lapor dan lokasi saya.
+    expect(find.byTooltip('Zum masuk'), findsOneWidget);
+    expect(find.byTooltip('Zum keluar'), findsOneWidget);
+    expect(find.byTooltip('Lokasi saya'), findsOneWidget);
+    expect(find.byIcon(Icons.emergency_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.add_alert_rounded), findsOneWidget);
+
+    map.config!.onLongPress(klia);
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Padam laluan'), findsOneWidget);
+    expect(find.byTooltip('Lokasi saya'), findsOneWidget);
+    expect(find.byTooltip('Zum masuk'), findsNothing);
+    expect(find.byTooltip('Zum keluar'), findsNothing);
+    expect(find.byIcon(Icons.emergency_rounded), findsNothing);
+    expect(find.byIcon(Icons.add_alert_rounded), findsNothing);
+
+    // Lembaran ditutup: lajur penuh kembali.
+    await tester.tap(find.byTooltip('Padam laluan'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Zum masuk'), findsOneWidget);
+    expect(find.byIcon(Icons.emergency_rounded), findsOneWidget);
+  });
+
   testWidgets('padam laluan menutup lembaran dan mengosongkan peta', (
     tester,
   ) async {

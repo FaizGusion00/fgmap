@@ -1766,6 +1766,18 @@ abstract class AppLocalizations {
   /// **'Semua waktu hari ini telah berlalu'**
   String get azanAllDone;
 
+  /// No description provided for @azanNextTomorrow.
+  ///
+  /// In ms, this message translates to:
+  /// **'Esok: {prayer} {time}'**
+  String azanNextTomorrow(String prayer, String time);
+
+  /// No description provided for @azanRemainingLeft.
+  ///
+  /// In ms, this message translates to:
+  /// **'{remaining} lagi'**
+  String azanRemainingLeft(String remaining);
+
   /// No description provided for @azanNowTitle.
   ///
   /// In ms, this message translates to:
@@ -3293,31 +3305,31 @@ abstract class AppLocalizations {
   /// No description provided for @aboutNew1.
   ///
   /// In ms, this message translates to:
-  /// **'IPU rasmi JAS daripada stesen pemantauan terdekat'**
+  /// **'Dibaiki: app tertutup sendiri sebaik dibuka pada sesetengah telefon Android'**
   String get aboutNew1;
 
   /// No description provided for @aboutNew2.
   ///
   /// In ms, this message translates to:
-  /// **'Anggaran tol RM pada pratonton laluan'**
+  /// **'Kompas kiblat sebenar dengan sensor telefon, hijau apabila tepat'**
   String get aboutNew2;
 
   /// No description provided for @aboutNew3.
   ///
   /// In ms, this message translates to:
-  /// **'Pengecas EV sepanjang laluan'**
+  /// **'Skrin utama lebih kemas: pintasan, waktu solat dan alat'**
   String get aboutNew3;
 
   /// No description provided for @aboutNew4.
   ///
   /// In ms, this message translates to:
-  /// **'Arah kiblat dari GPS'**
+  /// **'R&R dan stesen minyak sepanjang laluan kini muncul, lebih pantas'**
   String get aboutNew4;
 
   /// No description provided for @aboutNew5.
   ///
   /// In ms, this message translates to:
-  /// **'Amaran jerebu sepanjang laluan dan suara ringkas di Android Auto'**
+  /// **'Ikon cuaca berwarna dan beranimasi; azan di latar dengan satu ketukan'**
   String get aboutNew5;
 
   /// No description provided for @alongRouteTitle.
@@ -3817,6 +3829,258 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'Kiblat'**
   String get qiblaTitle;
+
+  /// No description provided for @assistantOpen.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pembantu'**
+  String get assistantOpen;
+
+  /// No description provided for @assistantTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'FGMaps AI'**
+  String get assistantTitle;
+
+  /// No description provided for @assistantHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Sembang umum dalam telefon serta alat peta (tempat, IPU, cuaca, laluan). Model dimuat turun sekali dan kekal di peranti.'**
+  String get assistantHint;
+
+  /// No description provided for @assistantInputHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tanya apa-apa atau beri arahan…'**
+  String get assistantInputHint;
+
+  /// No description provided for @assistantClearChat.
+  ///
+  /// In ms, this message translates to:
+  /// **'Padam sembang'**
+  String get assistantClearChat;
+
+  /// No description provided for @assistantDownloadTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Muat turun model tempatan'**
+  String get assistantDownloadTitle;
+
+  /// No description provided for @assistantDownloadBody.
+  ///
+  /// In ms, this message translates to:
+  /// **'Qwen3 0.6B (~345 MB). Berjalan pada telefon; tiada kunci cloud. Wi‑Fi digalakkan.'**
+  String get assistantDownloadBody;
+
+  /// No description provided for @assistantDownloadAction.
+  ///
+  /// In ms, this message translates to:
+  /// **'Muat turun'**
+  String get assistantDownloadAction;
+
+  /// No description provided for @assistantDownloading.
+  ///
+  /// In ms, this message translates to:
+  /// **'Memuat turun… {percent}%'**
+  String assistantDownloading(int percent);
+
+  /// No description provided for @assistantSettingsTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'FGMaps AI'**
+  String get assistantSettingsTitle;
+
+  /// No description provided for @assistantSettingsReady.
+  ///
+  /// In ms, this message translates to:
+  /// **'Model sedia pada telefon ini.'**
+  String get assistantSettingsReady;
+
+  /// No description provided for @assistantSettingsMissing.
+  ///
+  /// In ms, this message translates to:
+  /// **'Belum dimuat turun. Pilihan; tanpa model, ciri lain kekal berfungsi.'**
+  String get assistantSettingsMissing;
+
+  /// No description provided for @assistantDeleteModel.
+  ///
+  /// In ms, this message translates to:
+  /// **'Padam model'**
+  String get assistantDeleteModel;
+
+  /// No description provided for @assistantModeFgmaps.
+  ///
+  /// In ms, this message translates to:
+  /// **'FGMaps AI'**
+  String get assistantModeFgmaps;
+
+  /// No description provided for @assistantModeMuslim.
+  ///
+  /// In ms, this message translates to:
+  /// **'FGMuslim'**
+  String get assistantModeMuslim;
+
+  /// No description provided for @assistantEmptyTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tanya apa-apa — peta, cuaca, atau soalan umum'**
+  String get assistantEmptyTitle;
+
+  /// No description provided for @assistantSuggestRoute.
+  ///
+  /// In ms, this message translates to:
+  /// **'Laluan ke KLCC'**
+  String get assistantSuggestRoute;
+
+  /// No description provided for @assistantSuggestIpu.
+  ///
+  /// In ms, this message translates to:
+  /// **'IPU berhampiran'**
+  String get assistantSuggestIpu;
+
+  /// No description provided for @assistantSuggestGeneral.
+  ///
+  /// In ms, this message translates to:
+  /// **'Jelaskan tol di MY'**
+  String get assistantSuggestGeneral;
+
+  /// No description provided for @muslimAiTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'FGMuslim AI'**
+  String get muslimAiTitle;
+
+  /// No description provided for @muslimAiHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Jawapan berpetikan teks klasik (islamic.app) serta pautan fatwa (deen.ai). Bukan nasihat JAKIM. Wallahu a\'lam.'**
+  String get muslimAiHint;
+
+  /// No description provided for @muslimAiInputHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tanya tentang Quran, hadis, atau fiqh…'**
+  String get muslimAiInputHint;
+
+  /// No description provided for @muslimAiGateTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Untuk Muslim yang memilih untuk aktifkan'**
+  String get muslimAiGateTitle;
+
+  /// No description provided for @muslimAiGateBody.
+  ///
+  /// In ms, this message translates to:
+  /// **'FGMuslim AI guna sumber pihak ketiga berpetikan. Setuju syarat dulu — ini bukan autoriti agama rasmi.'**
+  String get muslimAiGateBody;
+
+  /// No description provided for @muslimAiEnableAction.
+  ///
+  /// In ms, this message translates to:
+  /// **'Baca syarat & aktifkan'**
+  String get muslimAiEnableAction;
+
+  /// No description provided for @muslimAiEmptyTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tanya dengan petikan — teks klasik dahulu'**
+  String get muslimAiEmptyTitle;
+
+  /// No description provided for @muslimAiSuggestZakat.
+  ///
+  /// In ms, this message translates to:
+  /// **'Apa kata Islam tentang zakat?'**
+  String get muslimAiSuggestZakat;
+
+  /// No description provided for @muslimAiSuggestSolat.
+  ///
+  /// In ms, this message translates to:
+  /// **'Apa itu sabar (sabr) dalam Islam?'**
+  String get muslimAiSuggestSolat;
+
+  /// No description provided for @muslimAiSuggestRiba.
+  ///
+  /// In ms, this message translates to:
+  /// **'Apa itu riba?'**
+  String get muslimAiSuggestRiba;
+
+  /// No description provided for @muslimAiSettingsTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'FGMuslim AI'**
+  String get muslimAiSettingsTitle;
+
+  /// No description provided for @muslimAiSettingsOn.
+  ///
+  /// In ms, this message translates to:
+  /// **'Hidup — petikan islamic.app + deen.ai (opt-in).'**
+  String get muslimAiSettingsOn;
+
+  /// No description provided for @muslimAiSettingsOff.
+  ///
+  /// In ms, this message translates to:
+  /// **'Mati. Pilihan; untuk pengguna Muslim selepas bersetuju syarat.'**
+  String get muslimAiSettingsOff;
+
+  /// No description provided for @muslimAiTermsTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Syarat FGMuslim AI'**
+  String get muslimAiTermsTitle;
+
+  /// No description provided for @muslimAiTermsLead.
+  ///
+  /// In ms, this message translates to:
+  /// **'Sila baca teliti. Topik agama di Malaysia sensitif. Tandakan setiap kotak untuk teruskan.'**
+  String get muslimAiTermsLead;
+
+  /// No description provided for @muslimAiTermsMuslim.
+  ///
+  /// In ms, this message translates to:
+  /// **'Saya Muslim (atau mencari rujukan Islam untuk pembelajaran peribadi) dan memilih untuk mengaktifkan ciri pilihan ini.'**
+  String get muslimAiTermsMuslim;
+
+  /// No description provided for @muslimAiTermsNotOfficial.
+  ///
+  /// In ms, this message translates to:
+  /// **'Saya faham FGMuslim AI BUKAN fatwa rasmi JAKIM, pejabat mufti negeri, atau FGMaps.'**
+  String get muslimAiTermsNotOfficial;
+
+  /// No description provided for @muslimAiTermsNotAdvice.
+  ///
+  /// In ms, this message translates to:
+  /// **'Saya tidak akan anggap jawapan sebagai nasihat agama, undang-undang, atau perubatan peribadi. Untuk situasi saya, saya akan rujuk ulama yang berkelayakan.'**
+  String get muslimAiTermsNotAdvice;
+
+  /// No description provided for @muslimAiTermsThirdParty.
+  ///
+  /// In ms, this message translates to:
+  /// **'Saya faham soalan dihantar ke islamic.app dan deen.ai (pihak ketiga). Jawapan mungkin tidak lengkap, berat sebelah, atau silap; saya akan semak petikan.'**
+  String get muslimAiTermsThirdParty;
+
+  /// No description provided for @muslimAiTermsHoldHarmless.
+  ///
+  /// In ms, this message translates to:
+  /// **'Saya bersetuju FGMaps dan penulisnya tidak bertanggungjawab atas cara saya guna atau tafsir kandungan ini.'**
+  String get muslimAiTermsHoldHarmless;
+
+  /// No description provided for @muslimAiTermsAgree.
+  ///
+  /// In ms, this message translates to:
+  /// **'Saya setuju — aktifkan FGMuslim AI'**
+  String get muslimAiTermsAgree;
+
+  /// No description provided for @muslimAiTermsCancel.
+  ///
+  /// In ms, this message translates to:
+  /// **'Batal'**
+  String get muslimAiTermsCancel;
+
+  /// No description provided for @muslimAiOpenDeen.
+  ///
+  /// In ms, this message translates to:
+  /// **'Buka islamic.app'**
+  String get muslimAiOpenDeen;
 
   /// No description provided for @qiblaOpen.
   ///

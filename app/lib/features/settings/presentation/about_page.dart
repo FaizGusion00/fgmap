@@ -9,7 +9,7 @@ final appPackageInfoProvider = FutureProvider<PackageInfo>(
 );
 
 /// Versi yang diterangkan oleh kad "Baharu dalam versi" (bukan versi binaan yang sedang berjalan).
-const aboutWhatsNewVersion = '1.2.0';
+const aboutWhatsNewVersion = '1.2.1';
 
 class AboutPage extends ConsumerWidget {
   const AboutPage({super.key});

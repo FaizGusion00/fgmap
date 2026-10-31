@@ -1,21 +1,24 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
-import '../domain/weather_codes.dart';
+import 'weather_icon_painter.dart';
 
-/// Ikon cuaca dengan gerakan lembut (nadi / hujan / drift) — hormati Reduce Motion.
+/// Ikon cuaca berwarna dengan gerakan: matahari bersinar dan berputar, bulan dan bintang berkelip,
+/// awan hanyut, hujan dan salji jatuh, kilat berkelip, kabus bergerak. Dilukis sendiri
+/// ([WeatherIconPainter]) supaya konsisten pada semua peranti, bukan glif Material satu warna.
+/// Hormati Reduce Motion: ikon kekal statik (tetapi masih berwarna).
 class WeatherAnimatedIcon extends StatefulWidget {
   const WeatherAnimatedIcon({
     super.key,
     required this.weatherCode,
     this.size = 40,
-    this.color,
+    this.isDay,
   });
 
   final int weatherCode;
   final double size;
-  final Color? color;
+
+  /// Siang atau malam (matahari atau bulan). Null = ikut waktu setempat sekarang.
+  final bool? isDay;
 
   @override
   State<WeatherAnimatedIcon> createState() => _WeatherAnimatedIconState();
@@ -23,30 +26,24 @@ class WeatherAnimatedIcon extends StatefulWidget {
 
 class _WeatherAnimatedIconState extends State<WeatherAnimatedIcon>
     with SingleTickerProviderStateMixin {
+  // Gandaan 1/8 saat dalam painter: gelung 8 saat tidak tersentak.
   late final AnimationController _c = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 2400),
+    duration: const Duration(seconds: 8),
   );
+
+  /// Bingkai tetap untuk Reduce Motion: sinar, titisan dan awan berada pada kedudukan yang menarik.
+  static const _stillProgress = 0.3;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _sync();
-  }
-
-  @override
-  void didUpdateWidget(covariant WeatherAnimatedIcon oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.weatherCode != widget.weatherCode) _sync();
-  }
-
-  void _sync() {
     if (MediaQuery.disableAnimationsOf(context)) {
       _c.stop();
-      _c.value = 0;
-      return;
+      _c.value = _stillProgress;
+    } else if (!_c.isAnimating) {
+      _c.repeat();
     }
-    if (!_c.isAnimating) _c.repeat();
   }
 
   @override
@@ -57,34 +54,18 @@ class _WeatherAnimatedIconState extends State<WeatherAnimatedIcon>
 
   @override
   Widget build(BuildContext context) {
-    final color = widget.color ?? Theme.of(context).colorScheme.primary;
-    final icon = WeatherCodes.icon(widget.weatherCode);
-    final rainy = WeatherCodes.isRainy(widget.weatherCode);
-    final clear = widget.weatherCode == 0;
-
-    return AnimatedBuilder(
-      animation: _c,
-      builder: (context, child) {
-        final t = _c.value;
-        var scale = 1.0;
-        var dy = 0.0;
-        var angle = 0.0;
-        if (clear) {
-          scale = 1.0 + 0.04 * math.sin(t * math.pi * 2);
-        } else if (rainy) {
-          dy = 2.5 * math.sin(t * math.pi * 2);
-        } else {
-          angle = 0.06 * math.sin(t * math.pi * 2);
-        }
-        return Transform.translate(
-          offset: Offset(0, dy),
-          child: Transform.rotate(
-            angle: angle,
-            child: Transform.scale(scale: scale, child: child),
+    final isDay = widget.isDay ?? isDaytime(DateTime.now());
+    return ExcludeSemantics(
+      child: RepaintBoundary(
+        child: CustomPaint(
+          size: Size.square(widget.size),
+          painter: WeatherIconPainter(
+            glyph: weatherGlyphFor(widget.weatherCode),
+            isDay: isDay,
+            progress: _c,
           ),
-        );
-      },
-      child: Icon(icon, size: widget.size, color: color),
+        ),
+      ),
     );
   }
 }
@@ -143,7 +124,7 @@ class _WeatherSevereBannerState extends State<WeatherSevereBanner>
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Row(
           children: [
-            WeatherAnimatedIcon(weatherCode: 95, size: 22, color: fg),
+            const WeatherAnimatedIcon(weatherCode: 95, size: 28),
             const SizedBox(width: 10),
             Expanded(
               child: Text(

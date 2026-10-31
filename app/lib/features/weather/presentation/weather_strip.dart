@@ -11,6 +11,7 @@ import '../domain/weather_codes.dart';
 import '../domain/weather_snapshot.dart';
 import 'weather_animated_icon.dart';
 import 'weather_controller.dart';
+import 'weather_icon_painter.dart' show isDaytime;
 
 /// Jalur cuaca destinasi (+ lokasi semasa) pada lembaran pratonton laluan.
 class WeatherStrip extends ConsumerWidget {
@@ -228,7 +229,7 @@ class _WeatherReady extends StatelessWidget {
                   if (!easy && weather.hours.isNotEmpty) ...[
                     const SizedBox(height: 12),
                     SizedBox(
-                      height: 72,
+                      height: 84,
                       child: ListView.separated(
                         scrollDirection: Axis.horizontal,
                         itemCount: weather.hours.length,
@@ -316,7 +317,7 @@ class _PlaceBlock extends StatelessWidget {
     final theme = Theme.of(context);
     final label =
         subtitle ?? WeatherCodes.label(point.weatherCode, malay: malay);
-    final iconSize = easy ? 44.0 : (emphasize ? 40.0 : 32.0);
+    final iconSize = easy ? 56.0 : (emphasize ? 48.0 : 38.0);
     final tempStyle =
         (emphasize ? theme.textTheme.headlineSmall : theme.textTheme.titleLarge)
             ?.copyWith(
@@ -328,11 +329,7 @@ class _PlaceBlock extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        WeatherAnimatedIcon(
-          weatherCode: point.weatherCode,
-          size: iconSize,
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.9),
-        ),
+        WeatherAnimatedIcon(weatherCode: point.weatherCode, size: iconSize),
         SizedBox(width: easy ? 12 : 10),
         Expanded(
           child: Column(
@@ -423,10 +420,10 @@ class _HourChip extends StatelessWidget {
         children: [
           Text(time, style: theme.textTheme.labelSmall),
           const SizedBox(height: 2),
-          Icon(
-            WeatherCodes.icon(hour.weatherCode),
-            size: 18,
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.85),
+          WeatherAnimatedIcon(
+            weatherCode: hour.weatherCode,
+            size: 30,
+            isDay: isDaytime(hour.time.toLocal()),
           ),
           Text(
             '${hour.tempC.round()}°',

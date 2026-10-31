@@ -45,7 +45,8 @@ android {
         applicationId = "com.fguniversalempire.fgmaps"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        // LiteRT-LM (pembantu tempatan) memerlukan API 30+.
+        minSdk = maxOf(flutter.minSdkVersion, 30)
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

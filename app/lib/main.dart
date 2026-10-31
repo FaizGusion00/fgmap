@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_edge_ai/flutter_edge_ai.dart';
+import 'package:flutter_edge_ai_litertlm/flutter_edge_ai_litertlm.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -28,6 +30,14 @@ Future<void> main() async {
   registerBundledLicenses();
   _requireSecureEndpoints();
   if (FrameMonitor.enabled) FrameMonitor().start();
+
+  // Enjin LiteRT-LM untuk pembantu tempatan (model dimuat turun kemudian).
+  await FlutterEdgeAi.initialize(
+    inferenceEngines: const [LiteRtLmEngine()],
+    huggingFaceToken: const String.fromEnvironment('HUGGINGFACE_TOKEN').isEmpty
+        ? null
+        : const String.fromEnvironment('HUGGINGFACE_TOKEN'),
+  );
 
   // Dimuat sebelum frame pertama supaya tema yang disimpan digunakan serta-merta; jika tidak,
   // app yang dibuka dalam mod gelap akan berkelip putih seketika.

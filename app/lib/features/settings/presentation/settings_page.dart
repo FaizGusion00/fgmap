@@ -12,6 +12,7 @@ import '../../../core/widgets/fade_slide_in.dart';
 import '../../../core/widgets/fade_through_route.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../azan/presentation/azan_settings_section.dart';
+import '../../local_assistant/presentation/assistant_settings_section.dart';
 import '../../music/presentation/music_settings_section.dart';
 import '../../navigation/data/navigation_settings.dart';
 import '../../navigation/presentation/navigation_settings_sheet.dart';
@@ -59,14 +60,15 @@ class SettingsPage extends ConsumerWidget {
                 FadeSlideIn(index: 0, child: _AppearanceGroup()),
                 FadeSlideIn(index: 1, child: _NavigationGroup()),
                 FadeSlideIn(index: 2, child: _AzanGroup()),
-                FadeSlideIn(index: 3, child: _MusicGroup()),
-                FadeSlideIn(index: 4, child: _SavedPlacesGroup()),
-                FadeSlideIn(index: 5, child: _FuelGroup()),
-                FadeSlideIn(index: 6, child: _TripHistoryGroup()),
-                FadeSlideIn(index: 7, child: _ReportsGroup()),
-                FadeSlideIn(index: 8, child: _MapsGroup()),
-                FadeSlideIn(index: 9, child: _PrivacyGroup()),
-                FadeSlideIn(index: 10, child: _HelpGroup()),
+                FadeSlideIn(index: 3, child: _AssistantGroup()),
+                FadeSlideIn(index: 4, child: _MusicGroup()),
+                FadeSlideIn(index: 5, child: _SavedPlacesGroup()),
+                FadeSlideIn(index: 6, child: _FuelGroup()),
+                FadeSlideIn(index: 7, child: _TripHistoryGroup()),
+                FadeSlideIn(index: 8, child: _ReportsGroup()),
+                FadeSlideIn(index: 9, child: _MapsGroup()),
+                FadeSlideIn(index: 10, child: _PrivacyGroup()),
+                FadeSlideIn(index: 11, child: _HelpGroup()),
               ],
             ),
           ),
@@ -467,6 +469,21 @@ class _AzanGroup extends StatelessWidget {
       icon: Icons.mosque_rounded,
       title: l10n.settingsAzan,
       child: const AzanSettingsSection(),
+    );
+  }
+}
+
+/// Pembantu tempatan: muat turun / padam model Qwen pada telefon.
+class _AssistantGroup extends StatelessWidget {
+  const _AssistantGroup();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return _Group(
+      icon: Icons.smart_toy_rounded,
+      title: l10n.assistantSettingsTitle,
+      child: const AssistantSettingsSection(),
     );
   }
 }

@@ -25,19 +25,11 @@ void main() {
 
   test('abaikan di belakang, terlalu dekat, atau di luar withinM', () {
     expect(
-      nextAlongPoiAhead(
-        pois: [_poi('a', 520)],
-        alongNow: 500,
-        minAheadM: 80,
-      ),
+      nextAlongPoiAhead(pois: [_poi('a', 520)], alongNow: 500, minAheadM: 80),
       isNull,
     );
     expect(
-      nextAlongPoiAhead(
-        pois: [_poi('b', 9000)],
-        alongNow: 0,
-        withinM: 8000,
-      ),
+      nextAlongPoiAhead(pois: [_poi('b', 9000)], alongNow: 0, withinM: 8000),
       isNull,
     );
   });

@@ -15,6 +15,7 @@ class QiblaDialColors {
     required this.gold,
     required this.ok,
     required this.phoneMark,
+    this.fontFamily,
   });
 
   final Color disc;
@@ -25,6 +26,9 @@ class QiblaDialColors {
   final Color gold;
   final Color ok;
   final Color phoneMark;
+
+  /// Fon tema aplikasi; TextPainter tidak mewarisinya melalui konteks.
+  final String? fontFamily;
 
   factory QiblaDialColors.of(ThemeData theme) {
     final dark = theme.brightness == Brightness.dark;
@@ -38,6 +42,7 @@ class QiblaDialColors {
       gold: const Color(0xFFE0A526),
       ok: dark ? const Color(0xFF4ADE80) : const Color(0xFF16A34A),
       phoneMark: cs.primary,
+      fontFamily: theme.textTheme.bodyMedium?.fontFamily,
     );
   }
 }
@@ -77,7 +82,12 @@ class QiblaDialPainter extends CustomPainter {
       final tp = TextPainter(
         text: TextSpan(
           text: s,
-          style: TextStyle(fontSize: size, color: color, fontWeight: w),
+          style: TextStyle(
+            fontFamily: colors.fontFamily,
+            fontSize: size,
+            color: color,
+            fontWeight: w,
+          ),
         ),
         textDirection: TextDirection.ltr,
       )..layout();
@@ -205,11 +215,11 @@ class QiblaDialPainter extends CustomPainter {
     // Garis dan ikon Kaabah pada bearing kiblat.
     final qa = qibla * math.pi / 180;
     final dir = Offset(math.sin(qa), -math.cos(qa));
-    final kaabaC = dir * (r * 0.60);
+    final kaabaC = dir * (r * 0.5);
     final lineColor = aligned ? colors.ok : colors.gold;
     canvas.drawLine(
       dir * (r * 0.22),
-      dir * (r * 0.60 - s * 0.075),
+      dir * (r * 0.5 - s * 0.08),
       Paint()
         ..color = lineColor
         ..strokeCap = StrokeCap.round
@@ -218,7 +228,7 @@ class QiblaDialPainter extends CustomPainter {
     canvas.save();
     canvas.translate(kaabaC.dx, kaabaC.dy);
     canvas.rotate(-rot); // ikon sentiasa tegak
-    _paintKaaba(canvas, s * (aligned ? 0.19 : 0.16), aligned);
+    _paintKaaba(canvas, s * (aligned ? 0.17 : 0.145), aligned);
     canvas.restore();
 
     canvas.restore();

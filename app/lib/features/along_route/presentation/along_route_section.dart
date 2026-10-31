@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/settings/easy_mode_scope.dart';
+import '../../../core/widgets/skeleton.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../route_preview/presentation/route_format.dart';
 import '../domain/along_route_category.dart';
@@ -65,9 +66,10 @@ class AlongRouteSection extends ConsumerWidget {
         ),
         const SizedBox(height: 8),
         if (state.loading)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
-            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+          // Baris kerangka (bukan pemutar bulat): bentuk hasil sudah kelihatan semasa memuat.
+          const Column(
+            key: ValueKey('along-loading'),
+            children: [_SkeletonRow(), _SkeletonRow(), _SkeletonRow()],
           )
         else if (state.error != null)
           Padding(
@@ -180,4 +182,31 @@ class AlongRouteSection extends ConsumerWidget {
     AlongRouteCategory.mosque => Icons.mosque_rounded,
     AlongRouteCategory.toilets => Icons.wc_rounded,
   };
+}
+
+class _SkeletonRow extends StatelessWidget {
+  const _SkeletonRow();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+      child: Row(
+        children: [
+          SkeletonBox(width: 24, height: 24, radius: 12),
+          SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SkeletonBox(height: 14, radius: 6),
+                SizedBox(height: 6),
+                SkeletonBox(width: 90, height: 11, radius: 6),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
