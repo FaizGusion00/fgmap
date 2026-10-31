@@ -111,6 +111,9 @@ manifest.
 - **Muzik** (butang nota di skrin utama, atau lembaran tetapan navigasi): cari lagu (Audius), radio Malaysia
   (Radio Browser, HTTPS sahaja) atau fail yang diimport; pemain penuh dengan kawalan skrin kunci dan penyama
   (Android). Suara navigasi sentiasa mengatasi muzik: diperlahankan (lalai) atau dijeda (tetapan).
+- **Panduan lorong**: "Guna lorong kiri/kanan" pada kad dan dalam peringatan awal (diterbitkan daripada
+  manuver; jalur lorong sebenar dilukis apabila Valhalla memberi `lanes`). Peta malam kini biru laut tua
+  (gaya Waze), bukan hitam.
 - **Mod mudah** (Tetapan > Paparan, atau semasa sambutan): teks dan butang lebih besar, kad arahan
   berkontras tinggi, kawalan lebih sedikit semasa memandu. Lihat [ADR 0012](docs/adr/0012-waktu-azan-muzik-dan-mod-mudah.md).
 

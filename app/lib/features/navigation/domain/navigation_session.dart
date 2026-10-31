@@ -504,9 +504,7 @@ class NavigationSession {
       following: following,
       // Soft hold: status offRoute tetapi kedudukan kekal terpadan supaya kereta 3D / AA tidak ke tepi.
       position: displayOnRoute ? route.displayPointAt(_along) : fix.point,
-      bearing: displayOnRoute
-          ? route.displayBearingAt(_along)
-          : _lastBearing,
+      bearing: displayOnRoute ? route.displayBearingAt(_along) : _lastBearing,
       speedMps: fix.speedMps,
       accuracyM: fix.accuracyM,
       crossTrackM: match.crossTrackM,

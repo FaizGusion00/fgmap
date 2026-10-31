@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import '../../reports/domain/report.dart';
 
+import 'lane_guidance.dart';
 import 'nav_route.dart';
 
 /// Bahasa arahan. Ayat dijana sendiri daripada jenis manuver (Bahagian 8.2 pelan), bukan teks
@@ -83,6 +84,31 @@ class InstructionText {
           : 'Take the ${ordinalNumber(exit)} exit';
     }
     return action(m);
+  }
+
+  /// "Guna lorong kanan." untuk peringatan awal (jauh/dekat), supaya pemandu bersedia di lorong yang
+  /// betul. Null jika tiada sisi, atau arahan sudah menyebut sisi (kekal/bergabung/tiba).
+  String? lanePhrase(NavManeuver m) {
+    switch (m.kind) {
+      case ManeuverKind.keepLeft:
+      case ManeuverKind.keepRight:
+      case ManeuverKind.keepStraight:
+      case ManeuverKind.merge:
+      case ManeuverKind.mergeLeft:
+      case ManeuverKind.mergeRight:
+      case ManeuverKind.arrive:
+      case ManeuverKind.arriveLeft:
+      case ManeuverKind.arriveRight:
+      case ManeuverKind.depart:
+        return null;
+      default:
+        break;
+    }
+    return switch (laneSideFor(m)) {
+      LaneSide.left => _ms ? 'Guna lorong kiri.' : 'Use the left lane.',
+      LaneSide.right => _ms ? 'Guna lorong kanan.' : 'Use the right lane.',
+      null => null,
+    };
   }
 
   /// Tindakan dengan nama jalan, cth. "Belok kanan ke Jalan Ampang".

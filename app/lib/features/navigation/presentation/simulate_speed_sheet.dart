@@ -57,7 +57,9 @@ class _SimulateSpeedSheetState extends ConsumerState<_SimulateSpeedSheet> {
                   ChoiceChip(
                     key: ValueKey('sim-speed-$kmh'),
                     label: Text(
-                      kmh == 0 ? l10n.navSimSpeedAuto : l10n.navSimSpeedKmh(kmh),
+                      kmh == 0
+                          ? l10n.navSimSpeedAuto
+                          : l10n.navSimSpeedKmh(kmh),
                     ),
                     selected: _selected == kmh,
                     onSelected: (_) => setState(() => _selected = kmh),

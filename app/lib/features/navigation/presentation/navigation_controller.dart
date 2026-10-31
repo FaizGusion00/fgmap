@@ -152,7 +152,8 @@ class NavigationController extends Notifier<NavigationState> {
   ReplayLocationSource? _simReplay;
 
   /// Pengganda kelajuan simulasi semasa (null jika bukan simulasi).
-  ValueListenable<double>? get simSpeedMultiplier => _simReplay?.speedMultiplier;
+  ValueListenable<double>? get simSpeedMultiplier =>
+      _simReplay?.speedMultiplier;
 
   /// Tukar kelajuan masa simulasi semasa main (1 = biasa, 4 = 4× lebih pantas).
   void setSimSpeedMultiplier(double value) {
@@ -696,19 +697,21 @@ class NavigationController extends Notifier<NavigationState> {
       return;
     }
     _persistedAlong = along;
-    await ref.read(tripStoreProvider).write(
-      NavigationTrip(
-        savedAt: ref.read(navClockProvider)().toUtc(),
-        route: route.option,
-        query: query,
-        alongM: along,
-        language: _voiceLanguage(),
-        position: progress?.position ?? route.points.first,
-        bearing: progress?.bearing ?? 0,
-        speedMps: progress?.speedMps ?? 0,
-        arrived: state.phase == NavPhase.arrived,
-      ),
-    );
+    await ref
+        .read(tripStoreProvider)
+        .write(
+          NavigationTrip(
+            savedAt: ref.read(navClockProvider)().toUtc(),
+            route: route.option,
+            query: query,
+            alongM: along,
+            language: _voiceLanguage(),
+            position: progress?.position ?? route.points.first,
+            bearing: progress?.bearing ?? 0,
+            speedMps: progress?.speedMps ?? 0,
+            arrived: state.phase == NavPhase.arrived,
+          ),
+        );
   }
 
   void _speak(List<Announcement> announcements) {

@@ -287,6 +287,11 @@
       }
     }
   },
+  "navLaneLeft": "Guna lorong kiri",
+  "navLaneRight": "Guna lorong kanan",
+  "navLaneStripSemantics": "Lorong: {lanes}",
+  "@navLaneStripSemantics": {"placeholders": {"lanes": {"type": "String"}}},
+  "navLaneUse": "Guna lorong yang ditanda",
   "navGetReady": "Bersedia",
   "navSimulatedBadge": "Simulasi",
   "navSpeedUnit": "km/j",

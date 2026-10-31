@@ -174,13 +174,16 @@ class AnnouncementPlanner {
       case _Stage.far:
         return Announcement(
           kind: AnnouncementKind.far,
-          text: _text.spoken(m, distanceM: distance),
+          text: _withLane(_text.spoken(m, distanceM: distance), m),
           chime: ChimeKind.early,
         );
       case _Stage.near:
         return Announcement(
           kind: AnnouncementKind.near,
-          text: _text.spoken(m, distanceM: distance, then: chained),
+          text: _withLane(
+            _text.spoken(m, distanceM: distance, then: chained),
+            m,
+          ),
           chime: ChimeKind.early,
         );
       case _Stage.now:
@@ -191,6 +194,13 @@ class AnnouncementPlanner {
           interrupt: true,
         );
     }
+  }
+
+  /// Peringatan awal menyebut lorong ("... Guna lorong kanan.") supaya pemandu bersedia; arahan
+  /// "sekarang" tidak, kerana sudah terlambat untuk bertukar lorong.
+  String _withLane(String sentence, NavManeuver m) {
+    final lane = _text.lanePhrase(m);
+    return lane == null ? sentence : '$sentence $lane';
   }
 
   /// Dipanggil sesi apabila destinasi dicapai. Sekali sahaja.

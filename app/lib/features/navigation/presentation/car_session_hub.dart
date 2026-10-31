@@ -43,7 +43,8 @@ class CarSessionHub {
     // notePose ~60 Hz: 0.5°/bingkai ≈ 30°/s — cukup untuk selekoh bandar.
     // Ambang 2.5° hampir tidak pernah tercapai dan AA kekal pada 200 ms.
     final turning =
-        previous != null && angleDelta(previous.bearing, pose.bearing).abs() > 0.5;
+        previous != null &&
+        angleDelta(previous.bearing, pose.bearing).abs() > 0.5;
     final nearTurn = (nav.progress?.distanceToNextM ?? double.infinity) < 80;
     final urgent = nav.rerouting || turning || nearTurn;
     _schedule(urgent ? const Duration(milliseconds: 60) : _defaultThrottle);
@@ -94,7 +95,8 @@ class CarSessionHub {
     _dirty = false;
     try {
       final snapshot = _snapshot();
-      final includeRoute = snapshot.routeVersion != _sentRouteVersion ||
+      final includeRoute =
+          snapshot.routeVersion != _sentRouteVersion ||
           snapshot.mode != CarDriveMode.navigating;
       final includeStyle = snapshot.styleKey != _sentStyleKey;
       await carSessionChannel.invokeMethod<void>(
@@ -154,9 +156,7 @@ class CarSessionHub {
       navigating: navigating,
       cruising: cruise.active,
       pose: pose,
-      speedMps: navigating
-          ? (progress?.speedMps ?? 0)
-          : cruise.speedMps,
+      speedMps: navigating ? (progress?.speedMps ?? 0) : cruise.speedMps,
       limitKmh: navigating ? nav.currentLimitKmh : cruise.limitKmh,
       overspeed: navigating ? nav.overspeed : cruise.overspeed,
       // Langkah kasar di lurus, halus di selekoh — muatan AA jauh lebih kecil daripada telefon.
@@ -179,7 +179,8 @@ class CarSessionHub {
                 .millisecondsSinceEpoch,
       following: _following,
       dark: dark,
-      style: style?.style ??
+      style:
+          style?.style ??
           (dark ? AppConfig.mapStyleDark : AppConfig.mapStyleLight),
       styleKey: style?.key ?? (dark ? 'dark' : 'light'),
     );
@@ -189,10 +190,7 @@ class CarSessionHub {
     final mode = ref.read(effectiveThemeModeProvider);
     if (mode == ThemeMode.dark) return true;
     if (mode == ThemeMode.light) return false;
-    return WidgetsBinding
-            .instance
-            .platformDispatcher
-            .platformBrightness ==
+    return WidgetsBinding.instance.platformDispatcher.platformBrightness ==
         Brightness.dark;
   }
 
@@ -230,10 +228,7 @@ class CarSessionHub {
   VoidCallback? _recenter;
   VoidCallback? _pan;
 
-  void bindCamera({
-    required VoidCallback recenter,
-    required VoidCallback pan,
-  }) {
+  void bindCamera({required VoidCallback recenter, required VoidCallback pan}) {
     _recenter = recenter;
     _pan = pan;
   }
@@ -241,9 +236,7 @@ class CarSessionHub {
   Future<List<Map<String, Object?>>> _search(String query) async {
     final near = _near();
     try {
-      final places = await ref
-          .read(geocoderProvider)
-          .search(query, near: near);
+      final places = await ref.read(geocoderProvider).search(query, near: near);
       return [
         for (final p in places)
           {

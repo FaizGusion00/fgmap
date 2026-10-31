@@ -166,6 +166,10 @@ RouteOption _parseTrip(Map<String, dynamic> trip, RouteSource source) {
           beginShapeIndex: m['begin_shape_index'] as int,
           roundaboutExitCount: m['roundabout_exit_count'] as int?,
           toll: m['toll'] == true,
+          lanes: [
+            for (final l in (m['lanes'] as List<dynamic>? ?? const []))
+              ?Lane.fromJson(l),
+          ],
         ),
     ],
   );

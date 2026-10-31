@@ -13,6 +13,7 @@ import '../domain/camera_planner.dart';
 import '../domain/instruction_text.dart';
 import '../domain/nav_route.dart';
 import '../domain/navigation_session.dart';
+import 'lane_strip.dart';
 import 'maneuver_glyph.dart';
 import 'navigation_controller.dart';
 import '../../../core/widgets/press_scale.dart';
@@ -422,6 +423,13 @@ class _BannerContent extends StatelessWidget {
                           height: 1.3,
                         ),
                       ),
+                    // Panduan lorong: lorong sebenar jika ada data, jika tidak "Guna lorong kanan".
+                    LaneGuidance(
+                      maneuver: maneuver,
+                      distanceM: distanceM,
+                      color: onPrimary,
+                      compact: metrics.landscape,
+                    ),
                   ],
                 ),
               ),

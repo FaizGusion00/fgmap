@@ -34,6 +34,7 @@ class Maneuver {
     required this.beginShapeIndex,
     this.roundaboutExitCount,
     this.toll = false,
+    this.lanes = const [],
   });
 
   final int type;
@@ -49,6 +50,69 @@ class Maneuver {
 
   /// Manuver ini berada di jalan bertol (bendera `toll` Valhalla, daripada data OSM).
   final bool toll;
+
+  /// Lorong pada jalan sebelum manuver (daripada `turn:lanes` OSM melalui Valhalla), kiri ke kanan.
+  /// Kosong jika data tiada (biasa di Malaysia): UI jatuh kepada petunjuk sisi.
+  final List<Lane> lanes;
+}
+
+/// Satu lorong: topeng arah Valhalla (`directions`), arah yang sah untuk laluan ini (`valid`) dan
+/// arah yang disyorkan (`active`). Topeng bit: 1 kosong, 2 lurus, 4 kiri tajam, 8 kiri, 16 kiri
+/// sedikit, 32 kanan sedikit, 64 kanan, 128 kanan tajam, 256 pusing U, 512 gabung kiri,
+/// 1024 gabung kanan.
+@immutable
+class Lane {
+  const Lane({required this.directions, this.valid = 0, this.active = 0});
+
+  final int directions;
+  final int valid;
+  final int active;
+
+  static const none = 1;
+  static const through = 2;
+  static const sharpLeft = 4;
+  static const left = 8;
+  static const slightLeft = 16;
+  static const slightRight = 32;
+  static const right = 64;
+  static const sharpRight = 128;
+  static const reverse = 256;
+  static const mergeToLeft = 512;
+  static const mergeToRight = 1024;
+
+  bool get isValid => valid != 0;
+  bool get isActive => active != 0;
+
+  /// Arah yang patut digambarkan: aktif > sah > semua arah lorong.
+  int get shownDirections =>
+      active != 0 ? active : (valid != 0 ? valid : directions);
+
+  Map<String, Object?> toJson() => {
+    'd': directions,
+    if (valid != 0) 'v': valid,
+    if (active != 0) 'a': active,
+  };
+
+  static Lane? fromJson(Object? json) {
+    if (json is! Map) return null;
+    final d = (json['d'] ?? json['directions']) as num?;
+    if (d == null) return null;
+    return Lane(
+      directions: d.toInt(),
+      valid: ((json['v'] ?? json['valid']) as num?)?.toInt() ?? 0,
+      active: ((json['a'] ?? json['active']) as num?)?.toInt() ?? 0,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is Lane &&
+      other.directions == directions &&
+      other.valid == valid &&
+      other.active == active;
+
+  @override
+  int get hashCode => Object.hash(directions, valid, active);
 }
 
 /// Jalan bertol yang dilalui satu laluan (cth. "Lebuhraya Maju" / "E20"), dengan jarak terkumpul.

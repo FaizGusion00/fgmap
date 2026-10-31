@@ -55,7 +55,10 @@ class CarSessionSnapshot {
 
   bool get hasRoute => mode == CarDriveMode.navigating && route.length >= 2;
 
-  Map<String, Object?> toMap({bool includeRoute = true, bool includeStyle = true}) {
+  Map<String, Object?> toMap({
+    bool includeRoute = true,
+    bool includeStyle = true,
+  }) {
     final pose = this.pose;
     final limit = speed.showLimit ? speed.limitKmh : null;
     return {
@@ -71,7 +74,10 @@ class CarSessionSnapshot {
       'limitKmh': limit,
       'overspeed': speed.overspeed,
       'routeVersion': routeVersion,
-      if (includeRoute) 'route': [for (final p in route) [p.lat, p.lng]],
+      if (includeRoute)
+        'route': [
+          for (final p in route) [p.lat, p.lng],
+        ],
       'maneuver': maneuver,
       'maneuverKind': maneuverKind,
       'roundaboutExit': roundaboutExit,

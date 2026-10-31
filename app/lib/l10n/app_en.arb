@@ -204,6 +204,11 @@
       }
     }
   },
+  "navLaneLeft": "Use the left lane",
+  "navLaneRight": "Use the right lane",
+  "navLaneStripSemantics": "Lanes: {lanes}",
+  "@navLaneStripSemantics": {"placeholders": {"lanes": {"type": "String"}}},
+  "navLaneUse": "Use the marked lane",
   "navGetReady": "Get ready",
   "navSimulatedBadge": "Simulation",
   "navSpeedUnit": "km/h",

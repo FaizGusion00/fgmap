@@ -944,6 +944,30 @@ abstract class AppLocalizations {
   /// **'Bulatan, ambil simpang keluar ke-{n}'**
   String navRoundaboutExitSemantics(int n);
 
+  /// No description provided for @navLaneLeft.
+  ///
+  /// In ms, this message translates to:
+  /// **'Guna lorong kiri'**
+  String get navLaneLeft;
+
+  /// No description provided for @navLaneRight.
+  ///
+  /// In ms, this message translates to:
+  /// **'Guna lorong kanan'**
+  String get navLaneRight;
+
+  /// No description provided for @navLaneStripSemantics.
+  ///
+  /// In ms, this message translates to:
+  /// **'Lorong: {lanes}'**
+  String navLaneStripSemantics(String lanes);
+
+  /// No description provided for @navLaneUse.
+  ///
+  /// In ms, this message translates to:
+  /// **'Guna lorong yang ditanda'**
+  String get navLaneUse;
+
   /// No description provided for @navGetReady.
   ///
   /// In ms, this message translates to:

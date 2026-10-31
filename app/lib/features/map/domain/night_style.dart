@@ -2,36 +2,37 @@ import 'dart:convert';
 
 /// Warna gaya peta malam (kontras tinggi, kurang silau). Terdedah supaya diuji nisbah kontras.
 abstract final class NightPalette {
-  static const background = 0xFF0F141B;
-  static const water = 0xFF0B2B45;
-  static const waterway = 0xFF123A5C;
-  static const green = 0xFF14281F;
-  static const wood = 0xFF12261C;
-  static const residential = 0xFF131A23;
-  static const commercial = 0xFF161E29;
-  static const institution = 0xFF172230;
-  static const landDefault = 0xFF141B25;
-  static const building = 0xFF1E2733;
-  static const buildingOutline = 0xFF2E3A4D;
-  static const boundary = 0xFF475569;
+  // Biru laut tua (gaya Waze), bukan hitam: lebih tenang pada waktu malam dan jalan terang menonjol.
+  static const background = 0xFF13213A;
+  static const water = 0xFF0A3961;
+  static const waterway = 0xFF134C7A;
+  static const green = 0xFF173A42;
+  static const wood = 0xFF15343B;
+  static const residential = 0xFF172843;
+  static const commercial = 0xFF1A2D4A;
+  static const institution = 0xFF1C3050;
+  static const landDefault = 0xFF15253F;
+  static const building = 0xFF233857;
+  static const buildingOutline = 0xFF344E78;
+  static const boundary = 0xFF5A7398;
 
-  static const roadCasing = 0xFF070A0E;
-  static const motorway = 0xFFF5A524;
-  static const trunk = 0xFFE8B04B;
-  static const primary = 0xFFDCE6F5;
-  static const secondary = 0xFFB9C7DB;
-  static const tertiary = 0xFF9DB0C9;
-  static const minor = 0xFF8497B2;
-  static const service = 0xFF667892;
-  static const path = 0xFF6B7C96;
-  static const rail = 0xFF5F6B82;
+  static const roadCasing = 0xFF0C172B;
+  static const motorway = 0xFFF6B445;
+  static const trunk = 0xFFECC46E;
+  static const primary = 0xFFE4EDFA;
+  static const secondary = 0xFFC3D3EB;
+  static const tertiary = 0xFFA4B9D8;
+  static const minor = 0xFF8CA2C4;
+  static const service = 0xFF7790B4;
+  static const path = 0xFF7088A8;
+  static const rail = 0xFF6A82A5;
 
-  static const placeLabel = 0xFFF2F6FC;
-  static const label = 0xFFE6EDF7;
-  static const roadLabel = 0xFFC9D6E8;
-  static const waterLabel = 0xFF7FB2E5;
-  static const poiLabel = 0xFFA9BBD2;
-  static const halo = 0xFF0B0F14;
+  static const placeLabel = 0xFFF6F9FF;
+  static const label = 0xFFEAF1FB;
+  static const roadLabel = 0xFFD2DFF2;
+  static const waterLabel = 0xFF8FC2F2;
+  static const poiLabel = 0xFFB6C8E2;
+  static const halo = 0xFF0C172B;
 }
 
 /// Mewarnakan semula gaya peta vektor OpenMapTiles (OpenFreeMap) menjadi gaya malam.

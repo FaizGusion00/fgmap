@@ -502,6 +502,20 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get navLaneLeft => 'Use the left lane';
+
+  @override
+  String get navLaneRight => 'Use the right lane';
+
+  @override
+  String navLaneStripSemantics(String lanes) {
+    return 'Lanes: $lanes';
+  }
+
+  @override
+  String get navLaneUse => 'Use the marked lane';
+
+  @override
   String get navGetReady => 'Get ready';
 
   @override

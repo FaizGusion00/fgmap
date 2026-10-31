@@ -37,9 +37,7 @@ NavProgress restoredProgress({
     remainingM: math.max(0.0, route.totalM - along),
     remainingS: route.plannedRemainingTime(along),
     next: next,
-    distanceToNextM: next == null
-        ? null
-        : math.max(0.0, next.startM - along),
+    distanceToNextM: next == null ? null : math.max(0.0, next.startM - along),
     following: following,
     position: position,
     bearing: bearing,

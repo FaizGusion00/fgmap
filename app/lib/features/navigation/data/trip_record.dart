@@ -171,6 +171,7 @@ Map<String, Object?> _encodeRoute(RouteOption route) => {
         'begin': m.beginShapeIndex,
         'exit': m.roundaboutExitCount,
         'toll': m.toll,
+        if (m.lanes.isNotEmpty) 'lanes': [for (final l in m.lanes) l.toJson()],
       },
   ],
 };
@@ -205,6 +206,9 @@ RouteOption? _decodeRoute(Object? raw) {
           beginShapeIndex: (m['begin'] as num?)?.toInt() ?? 0,
           roundaboutExitCount: (m['exit'] as num?)?.toInt(),
           toll: m['toll'] == true,
+          lanes: m['lanes'] is List
+              ? [for (final l in m['lanes'] as List) ?Lane.fromJson(l)]
+              : const [],
         ),
       );
     }

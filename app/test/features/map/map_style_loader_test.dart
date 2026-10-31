@@ -92,7 +92,7 @@ void main() {
     expect(r.isJson, isTrue);
     expect(r.key, startsWith('night:'));
     final bg = (jsonDecode(r.style)['layers'] as List).first;
-    expect(bg['paint']['background-color'], '#0f141b');
+    expect(bg['paint']['background-color'], '#13213a');
     expect(dir.listSync(), hasLength(1));
   });
 

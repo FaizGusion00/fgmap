@@ -501,6 +501,20 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
+  String get navLaneLeft => 'Guna lorong kiri';
+
+  @override
+  String get navLaneRight => 'Guna lorong kanan';
+
+  @override
+  String navLaneStripSemantics(String lanes) {
+    return 'Lorong: $lanes';
+  }
+
+  @override
+  String get navLaneUse => 'Guna lorong yang ditanda';
+
+  @override
   String get navGetReady => 'Bersedia';
 
   @override

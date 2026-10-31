@@ -247,13 +247,10 @@ class CruiseController extends Notifier<CruiseState> {
         language: _language,
       ),
     );
-    _speak(
-      ref.read(reportAlertsProvider.notifier).onFix(fix, _language),
-    );
+    _speak(ref.read(reportAlertsProvider.notifier).onFix(fix, _language));
     _trail.add(fix.point);
     if (_trail.due(time, fix.point)) unawaited(_refreshLimit(fix.point, time));
-    final accurateEnough =
-        accuracy == null || accuracy <= _snapMinAccuracyM;
+    final accurateEnough = accuracy == null || accuracy <= _snapMinAccuracyM;
     final lastSnap = _lastSnapAt;
     if (accurateEnough &&
         (lastSnap == null || time.difference(lastSnap) >= _snapEvery)) {
@@ -264,7 +261,9 @@ class CruiseController extends Notifier<CruiseState> {
   }
 
   bool _overspeed(double speedMps, int? limit) {
-    final tolerance = ref.read(navigationSettingsProvider).overspeedToleranceKmh;
+    final tolerance = ref
+        .read(navigationSettingsProvider)
+        .overspeedToleranceKmh;
     if (tolerance < 0) return false;
     return overspeedLevel(
           speedKmh: speedMps * 3.6,
@@ -386,19 +385,20 @@ class CruiseController extends Notifier<CruiseState> {
       return;
     }
     _lastPersist = now;
-    await ref.read(tripStoreProvider).write(
-      CruiseTrip(
-        savedAt: now.toUtc(),
-        position: point,
-        bearing: state.bearing,
-        speedMps: state.speedMps,
-        limitKmh: state.limitKmh,
-        languageCode: _language.code,
-      ),
-    );
+    await ref
+        .read(tripStoreProvider)
+        .write(
+          CruiseTrip(
+            savedAt: now.toUtc(),
+            position: point,
+            bearing: state.bearing,
+            speedMps: state.speedMps,
+            limitKmh: state.limitKmh,
+            languageCode: _language.code,
+          ),
+        );
   }
 }
 
-final cruiseControllerProvider = NotifierProvider<CruiseController, CruiseState>(
-  CruiseController.new,
-);
+final cruiseControllerProvider =
+    NotifierProvider<CruiseController, CruiseState>(CruiseController.new);

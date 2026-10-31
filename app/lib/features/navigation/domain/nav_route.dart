@@ -78,6 +78,7 @@ class NavManeuver {
     required this.timeS,
     required this.streetNames,
     this.roundaboutExit,
+    this.lanes = const [],
   });
 
   /// Indeks dalam [NavRoute.maneuvers].
@@ -92,6 +93,9 @@ class NavManeuver {
   final double timeS;
   final List<String> streetNames;
   final int? roundaboutExit;
+
+  /// Lorong sebelum manuver (kiri ke kanan); kosong jika Valhalla tiada data `turn:lanes`.
+  final List<Lane> lanes;
 
   bool get isArrival =>
       kind == ManeuverKind.arrive ||
@@ -144,6 +148,7 @@ class NavRoute {
           timeS: m.timeS.toDouble(),
           streetNames: m.streetNames,
           roundaboutExit: m.roundaboutExitCount,
+          lanes: m.lanes,
         ),
       );
     }

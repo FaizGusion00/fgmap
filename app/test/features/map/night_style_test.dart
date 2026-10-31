@@ -222,32 +222,32 @@ void main() {
   group('NightStyle.apply', () {
     test('latar, air, bangunan dan tanah diwarnakan malam', () {
       final s = _apply();
-      expect(_layer(s, 'background')['paint']['background-color'], '#0f141b');
-      expect(_layer(s, 'water')['paint']['fill-color'], '#0b2b45');
-      expect(_layer(s, 'building')['paint']['fill-color'], '#1e2733');
+      expect(_layer(s, 'background')['paint']['background-color'], '#13213a');
+      expect(_layer(s, 'water')['paint']['fill-color'], '#0a3961');
+      expect(_layer(s, 'building')['paint']['fill-color'], '#233857');
       expect(
         _layer(s, 'building-3d')['paint']['fill-extrusion-color'],
-        '#1e2733',
+        '#233857',
       );
-      expect(_layer(s, 'landcover_wood')['paint']['fill-color'], '#12261c');
-      expect(_layer(s, 'park')['paint']['fill-color'], '#14281f');
+      expect(_layer(s, 'landcover_wood')['paint']['fill-color'], '#15343b');
+      expect(_layer(s, 'park')['paint']['fill-color'], '#173a42');
       expect(
         _layer(s, 'landuse_residential')['paint']['fill-color'],
-        '#131a23',
+        '#172843',
       );
     });
 
     test('jalan mengikut kelas; casing gelap', () {
       final s = _apply();
       String color(String id) => _layer(s, id)['paint']['line-color'] as String;
-      expect(color('road_motorway'), '#f5a524');
-      expect(color('road_primary'), '#dce6f5');
-      expect(color('road_secondary_tertiary'), '#b9c7db');
-      expect(color('road_minor'), '#8497b2');
-      expect(color('road_path'), '#6b7c96');
-      expect(color('railway'), '#5f6b82');
-      expect(color('road_motorway_casing'), '#070a0e');
-      expect(color('boundary_state'), '#475569');
+      expect(color('road_motorway'), '#f6b445');
+      expect(color('road_primary'), '#e4edfa');
+      expect(color('road_secondary_tertiary'), '#c3d3eb');
+      expect(color('road_minor'), '#8ca2c4');
+      expect(color('road_path'), '#7088a8');
+      expect(color('railway'), '#6a82a5');
+      expect(color('road_motorway_casing'), '#0c172b');
+      expect(color('boundary_state'), '#5a7398');
     });
 
     test('lebar jalan diskala untuk nombor, stops dan interpolate', () {
@@ -277,19 +277,19 @@ void main() {
     test('label: warna terang, halo gelap, saiz diskala', () {
       final s = _apply();
       final road = _layer(s, 'highway-name-major');
-      expect(road['paint']['text-color'], '#c9d6e8');
-      expect(road['paint']['text-halo-color'], '#0b0f14');
+      expect(road['paint']['text-color'], '#d2dff2');
+      expect(road['paint']['text-halo-color'], '#0c172b');
       expect(road['paint']['text-halo-width'], greaterThanOrEqualTo(1.5));
       final size = road['layout']['text-size'] as List;
       expect(size[4], closeTo(10 * 1.1, 1e-9));
       expect(size[6], closeTo(16 * 1.1, 1e-9));
-      expect(_layer(s, 'label_city')['paint']['text-color'], '#f2f6fc');
+      expect(_layer(s, 'label_city')['paint']['text-color'], '#f6f9ff');
       expect(
         _layer(s, 'label_city')['layout']['text-size'],
         closeTo(14 * 1.1, 1e-9),
       );
-      expect(_layer(s, 'water_name')['paint']['text-color'], '#7fb2e5');
-      expect(_layer(s, 'poi_r20')['paint']['text-color'], '#a9bbd2');
+      expect(_layer(s, 'water_name')['paint']['text-color'], '#8fc2f2');
+      expect(_layer(s, 'poi_r20')['paint']['text-color'], '#b6c8e2');
     });
 
     test('lapisan ikon tanpa teks tidak diubah', () {

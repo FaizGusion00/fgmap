@@ -44,17 +44,16 @@ class QueuedVoiceGuide implements VoiceGuide {
     required TtsEngine tts,
     required ChimePlayer chimes,
     this.maxQueued = 2,
-    AudioCoordinator? coordinator,
+    this.coordinator,
   }) : _tts = tts,
-       _chimes = chimes,
-       _coordinator = coordinator;
+       _chimes = chimes;
 
   final TtsEngine _tts;
   final ChimePlayer _chimes;
   final int maxQueued;
 
   /// Memberitahu pemain muzik dalam app supaya memberi laluan semasa bunyi isyarat + ayat.
-  final AudioCoordinator? _coordinator;
+  final AudioCoordinator? coordinator;
 
   final Queue<(Announcement, VoiceLanguage)> _queue = Queue();
   bool _running = false;
@@ -84,7 +83,7 @@ class QueuedVoiceGuide implements VoiceGuide {
       while (_queue.isNotEmpty && !_disposed) {
         final generation = _generation;
         final (a, language) = _queue.removeFirst();
-        final coordinator = _coordinator;
+        final coordinator = this.coordinator;
         if (coordinator != null) await coordinator.beginSpeech();
         try {
           final chime = a.chime;
@@ -154,15 +153,11 @@ class FlutterTtsEngine implements TtsEngine {
     await _tts.setPitch(1.0);
     if (defaultTargetPlatform == TargetPlatform.iOS) {
       await _tts.setSharedInstance(true);
-      await _tts.setIosAudioCategory(
-        IosTextToSpeechAudioCategory.playback,
-        [
-          IosTextToSpeechAudioCategoryOptions.duckOthers,
-          IosTextToSpeechAudioCategoryOptions
-              .interruptSpokenAudioAndMixWithOthers,
-        ],
-        IosTextToSpeechAudioMode.voicePrompt,
-      );
+      await _tts.setIosAudioCategory(IosTextToSpeechAudioCategory.playback, [
+        IosTextToSpeechAudioCategoryOptions.duckOthers,
+        IosTextToSpeechAudioCategoryOptions
+            .interruptSpokenAudioAndMixWithOthers,
+      ], IosTextToSpeechAudioMode.voicePrompt);
     } else if (defaultTargetPlatform == TargetPlatform.android) {
       await _tts.setAudioAttributesForNavigation();
     }

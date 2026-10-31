@@ -22,6 +22,22 @@ dalam falsafah RM0 / tanpa kunci API / tanpa pelayan sendiri (ADR 0004) dan HTTP
 - Android Auto menerima `maneuverKind` + `roundaboutExit` dan memetakan ke `Maneuver.TYPE_*` hos
   (`ROUNDABOUT_ENTER_AND_EXIT_CW` + nombor keluar), jadi skrin kereta sepadan dengan telefon.
 
+### Panduan lorong
+- Pelayan Valhalla awam (3.9.1) **tidak memulangkan `lanes`** untuk mana-mana laluan Malaysia yang diuji
+  (4 laluan, 0 manuver berlorong): liputan `turn:lanes` OSM di Malaysia nipis. Maka dua lapisan:
+  (1) jika data lorong wujud (Valhalla hadapan, jubin peranti, kawasan lain), `Lane` dihurai daripada
+  topeng bit dan dilukis sebagai jalur lorong dengan lorong yang sah/aktif diserlahkan; (2) jika tiada,
+  petunjuk sisi "Guna lorong kiri/kanan" diterbitkan daripada jenis manuver (belok/keluar/susur ikut
+  sisi; pusingan U kanan; bulatan keluar 1 = kiri, keluar >= 3 = kanan). Dipaparkan dalam 700 m dan
+  disebut pada peringatan jauh/dekat ("... Guna lorong kanan."), bukan pada arahan "sekarang".
+- Tiada pengambilan `turn:lanes` melalui Overpass: kuota penggunaan wajar dan kelewatan tidak sepadan
+  dengan nilai pada liputan semasa.
+
+### Peta malam gaya Waze
+- `NightPalette` ditukar daripada hampir hitam (#0F141B) kepada biru laut tua (#13213A) dengan jalan
+  kelabu-biru cerah dan lebuh raya kuning; semua jalan >= 4.5:1 terhadap latar (minor 6.2:1), label
+  >= 11:1. Mod AMOLED (hitam tulen) kekal sebagai pilihan tema.
+
 ### Mod mudah (`app.easyMode`)
 - Satu suis (Tetapan > Paparan; juga dalam sambutan). Kesan: teks sekurang-kurangnya 115%; HUD 25% lebih
   besar (ikon/butang) dan 15% (nombor); kad arahan berkontras tinggi (biru tua + putih / hitam + kuning,
