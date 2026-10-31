@@ -1,25 +1,19 @@
 PODS:
-  - fg_apple_music (0.1.0):
-    - Flutter
   - Flutter (1.0.0)
   - home_widget (0.0.1):
     - Flutter
 
 DEPENDENCIES:
-  - fg_apple_music (from `.symlinks/plugins/fg_apple_music/ios`)
   - Flutter (from `Flutter`)
   - home_widget (from `.symlinks/plugins/home_widget/ios`)
 
 EXTERNAL SOURCES:
-  fg_apple_music:
-    :path: ".symlinks/plugins/fg_apple_music/ios"
   Flutter:
     :path: Flutter
   home_widget:
     :path: ".symlinks/plugins/home_widget/ios"
 
 SPEC CHECKSUMS:
-  fg_apple_music: 44b300d64ad9f63b08612369ce2cbcd707d15422
   Flutter: 71a624a5bc0c04062bf19101d501e466baf2fb47
   home_widget: f169fc41fd807b4d46ab6615dc44d62adbf9f64f
 

@@ -7,7 +7,7 @@ Pod::Spec.new do |s|
   s.license          = { :type => 'MIT' }
   s.author           = { 'FGMaps' => 'noreply@fgmaps.invalid' }
   s.source           = { :path => '.' }
-  s.source_files     = 'Classes/**/*'
+  s.source_files     = 'fg_apple_music/Sources/fg_apple_music/**/*'
   s.dependency 'Flutter'
   s.platform         = :ios, '16.4'
   s.swift_version    = '5.9'
