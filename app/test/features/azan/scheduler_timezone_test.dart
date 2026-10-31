@@ -75,10 +75,7 @@ void main() {
   );
 
   test('ID kosong dilangkau dan tidak melempar', () {
-    final loc = resolveTimezone(
-      '',
-      deviceOffset: const Duration(hours: 1),
-    );
+    final loc = resolveTimezone('', deviceOffset: const Duration(hours: 1));
     expect(
       tz.TZDateTime(loc, 2026, 1, 1).timeZoneOffset,
       const Duration(hours: 1),

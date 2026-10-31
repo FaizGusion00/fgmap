@@ -23,6 +23,7 @@ import 'azan_test_support.dart';
 class _FakeSystemSettings implements SystemSettings {
   int notificationCalls = 0;
   int batteryCalls = 0;
+  int requestCalls = 0;
   bool ignoringBattery = true;
 
   @override
@@ -34,6 +35,12 @@ class _FakeSystemSettings implements SystemSettings {
   @override
   Future<bool> openBatterySettings() async {
     batteryCalls++;
+    return true;
+  }
+
+  @override
+  Future<bool> requestIgnoreBatteryOptimizations() async {
+    requestCalls++;
     return true;
   }
 
@@ -170,7 +177,13 @@ void main() {
     await pump(tester);
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('azan-battery-card')), findsOneWidget);
-    await tester.tap(find.text('Buka tetapan bateri'));
+    // Butang utama: dialog sistem terus untuk FGMaps (bukan senarai yang menyorokkan app ini).
+    await tester.tap(find.byKey(const ValueKey('azan-battery-allow')));
+    expect(system.requestCalls, 1);
+    expect(system.batteryCalls, 0);
+    // Pilihan kedua: senarai bateri, dengan arahan menukar penapis kepada "All apps".
+    expect(find.textContaining('All apps'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('azan-battery-list')));
     expect(system.batteryCalls, 1);
   });
 

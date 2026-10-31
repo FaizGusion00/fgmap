@@ -13,8 +13,15 @@ abstract interface class SystemSettings {
   /// Buka skrin notifikasi app. Mengembalikan false jika gagal dibuka.
   Future<bool> openNotificationSettings();
 
-  /// Buka senarai pengecualian pengoptimuman bateri (Android sahaja).
+  /// Buka senarai pengecualian pengoptimuman bateri (Android sahaja). Senarai ini lalai menapis
+  /// "Not optimized" sehingga app yang masih dioptimumkan tidak kelihatan; guna
+  /// [requestIgnoreBatteryOptimizations] dahulu.
   Future<bool> openBatterySettings();
+
+  /// Android: tunjuk dialog sistem "benarkan app ini berjalan di latar belakang" terus untuk app ini.
+  /// Jika dialog tidak tersedia, buka senarai bateri, kemudian butiran app. True jika sesuatu dibuka
+  /// atau app sudah dikecualikan. Platform lain: false.
+  Future<bool> requestIgnoreBatteryOptimizations();
 
   /// Android: app dikecualikan daripada pengoptimuman bateri? Platform lain: true.
   Future<bool> isIgnoringBatteryOptimizations();
@@ -48,6 +55,10 @@ class PlatformSystemSettings implements SystemSettings {
   @override
   Future<bool> openBatterySettings() async =>
       _android ? _call('openBatterySettings') : false;
+
+  @override
+  Future<bool> requestIgnoreBatteryOptimizations() async =>
+      _android ? _call('requestIgnoreBatteryOptimizations') : false;
 
   @override
   Future<bool> isIgnoringBatteryOptimizations() async =>

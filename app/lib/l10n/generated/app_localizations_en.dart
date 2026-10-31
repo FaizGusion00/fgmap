@@ -1764,10 +1764,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get azanBatteryBody =>
-      'Some phones stop apps in the background. If the azan does not play, allow FGMaps to run without battery restrictions.';
+      'Some phones stop apps in the background. If the azan does not play, allow FGMaps to run in the background.';
 
   @override
-  String get azanBatteryAction => 'Open battery settings';
+  String get azanBatteryAction => 'Allow in the background';
+
+  @override
+  String get azanBatteryList => 'Open battery list';
+
+  @override
+  String get azanBatteryListHint =>
+      'Or open the battery list: change the top filter from “Not optimized” to “All apps”, then pick FGMaps and “Don’t optimize”.';
 
   @override
   String get azanLocationUnknown =>
@@ -2073,6 +2080,57 @@ class AppLocalizationsEn extends AppLocalizations {
   String get airBandHazardous => 'Hazardous';
 
   @override
+  String get airQualityScale => 'Official JAS scale';
+
+  @override
+  String airQualityDominant(String name) {
+    return 'Dominant pollutant: $name';
+  }
+
+  @override
+  String airQualityObserved(String time) {
+    return 'Reading $time';
+  }
+
+  @override
+  String get airPollutantPm25 => 'PM2.5';
+
+  @override
+  String get airPollutantPm10 => 'PM10';
+
+  @override
+  String get airPollutantSo2 => 'SO₂';
+
+  @override
+  String get airPollutantNo2 => 'NO₂';
+
+  @override
+  String get airPollutantO3 => 'Ozone';
+
+  @override
+  String get airPollutantCo => 'CO';
+
+  @override
+  String get airPollutantSeveral => 'More than one';
+
+  @override
+  String get airAdviceGood => 'Fine for outdoor activity. No health effects.';
+
+  @override
+  String get airAdviceModerate => 'Fine for outdoor activity.';
+
+  @override
+  String get airAdviceUnhealthy =>
+      'Cut back long outdoor activity. Sensitive groups may be affected.';
+
+  @override
+  String get airAdviceVeryUnhealthy =>
+      'Avoid outdoor activity. Everyone may be affected.';
+
+  @override
+  String get airAdviceHazardous => 'Health emergency. Stay indoors.';
+
+  @override
   String get alongRouteEv => 'EV charging';
 
   @override
@@ -2087,8 +2145,84 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get qiblaHint =>
-      'Point the top of the phone toward the arrow for Makkah.';
+  String get qiblaHint => 'Point the top of your phone at the Kaaba icon.';
+
+  @override
+  String get qiblaFacing => 'Facing the Qibla';
+
+  @override
+  String qiblaTurnRight(String degrees) {
+    return 'Turn right $degrees°';
+  }
+
+  @override
+  String qiblaTurnLeft(String degrees) {
+    return 'Turn left $degrees°';
+  }
+
+  @override
+  String get qiblaWaitingSensor => 'Starting the compass…';
+
+  @override
+  String get qiblaLocating => 'Finding your location…';
+
+  @override
+  String get qiblaNoSensor =>
+      'This phone has no compass sensor. The dial only follows your direction of travel while you move.';
+
+  @override
+  String get qiblaDirectionLabel => 'Qibla bearing';
+
+  @override
+  String get qiblaDistanceLabel => 'Distance to the Kaaba';
+
+  @override
+  String qiblaDistanceValue(String km) {
+    return '$km km';
+  }
+
+  @override
+  String get qiblaSensorLabel => 'Sensor accuracy';
+
+  @override
+  String get qiblaAccuracyHigh => 'High';
+
+  @override
+  String get qiblaAccuracyMedium => 'Medium';
+
+  @override
+  String get qiblaAccuracyLow => 'Low';
+
+  @override
+  String get qiblaAccuracyUnreliable => 'Needs calibration';
+
+  @override
+  String get qiblaCalibrateTitle => 'Calibrate the compass';
+
+  @override
+  String get qiblaCalibrateBody =>
+      'Move your phone in a figure 8 a few times. Keep it away from magnets, magnetic cases and metal.';
+
+  @override
+  String get qiblaFlatTip =>
+      'Hold your phone flat and steady for the most accurate reading.';
+
+  @override
+  String get qiblaNorthTrue => 'True north (magnetic declination applied)';
+
+  @override
+  String get qiblaNorthMagnetic => 'Magnetic north (waiting for location)';
+
+  @override
+  String get qiblaCardinals => 'N,E,S,W';
+
+  @override
+  String get qiblaKaaba => 'Kaaba';
+
+  @override
+  String qiblaSemantics(String heading, String qibla, String guidance) {
+    return 'Qibla compass. Phone heading $heading degrees, Qibla $qibla degrees. $guidance';
+  }
 
   @override
   String get qiblaUnavailable => 'Need a GPS fix for qibla direction.';

@@ -3155,14 +3155,26 @@ abstract class AppLocalizations {
   /// No description provided for @azanBatteryBody.
   ///
   /// In ms, this message translates to:
-  /// **'Sesetengah telefon menghentikan app di latar belakang. Jika azan tidak berbunyi, benarkan FGMaps tanpa had bateri.'**
+  /// **'Sesetengah telefon menghentikan app di latar belakang. Jika azan tidak berbunyi, benarkan FGMaps berjalan di latar belakang.'**
   String get azanBatteryBody;
 
   /// No description provided for @azanBatteryAction.
   ///
   /// In ms, this message translates to:
-  /// **'Buka tetapan bateri'**
+  /// **'Benarkan di latar belakang'**
   String get azanBatteryAction;
+
+  /// No description provided for @azanBatteryList.
+  ///
+  /// In ms, this message translates to:
+  /// **'Buka senarai bateri'**
+  String get azanBatteryList;
+
+  /// No description provided for @azanBatteryListHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Atau buka senarai bateri: tukar penapis atas daripada “Not optimized” kepada “All apps”, kemudian pilih FGMaps dan “Don’t optimize”.'**
+  String get azanBatteryListHint;
 
   /// No description provided for @azanLocationUnknown.
   ///
@@ -3704,6 +3716,96 @@ abstract class AppLocalizations {
   /// **'Berbahaya'**
   String get airBandHazardous;
 
+  /// No description provided for @airQualityScale.
+  ///
+  /// In ms, this message translates to:
+  /// **'Skala rasmi JAS'**
+  String get airQualityScale;
+
+  /// No description provided for @airQualityDominant.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pencemar dominan: {name}'**
+  String airQualityDominant(String name);
+
+  /// No description provided for @airQualityObserved.
+  ///
+  /// In ms, this message translates to:
+  /// **'Bacaan {time}'**
+  String airQualityObserved(String time);
+
+  /// No description provided for @airPollutantPm25.
+  ///
+  /// In ms, this message translates to:
+  /// **'PM2.5'**
+  String get airPollutantPm25;
+
+  /// No description provided for @airPollutantPm10.
+  ///
+  /// In ms, this message translates to:
+  /// **'PM10'**
+  String get airPollutantPm10;
+
+  /// No description provided for @airPollutantSo2.
+  ///
+  /// In ms, this message translates to:
+  /// **'SO₂'**
+  String get airPollutantSo2;
+
+  /// No description provided for @airPollutantNo2.
+  ///
+  /// In ms, this message translates to:
+  /// **'NO₂'**
+  String get airPollutantNo2;
+
+  /// No description provided for @airPollutantO3.
+  ///
+  /// In ms, this message translates to:
+  /// **'Ozon'**
+  String get airPollutantO3;
+
+  /// No description provided for @airPollutantCo.
+  ///
+  /// In ms, this message translates to:
+  /// **'CO'**
+  String get airPollutantCo;
+
+  /// No description provided for @airPollutantSeveral.
+  ///
+  /// In ms, this message translates to:
+  /// **'Lebih daripada satu'**
+  String get airPollutantSeveral;
+
+  /// No description provided for @airAdviceGood.
+  ///
+  /// In ms, this message translates to:
+  /// **'Sesuai untuk aktiviti luar. Tiada kesan kesihatan.'**
+  String get airAdviceGood;
+
+  /// No description provided for @airAdviceModerate.
+  ///
+  /// In ms, this message translates to:
+  /// **'Sesuai untuk aktiviti luar.'**
+  String get airAdviceModerate;
+
+  /// No description provided for @airAdviceUnhealthy.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kurangkan aktiviti luar yang lama. Kumpulan sensitif mungkin terjejas.'**
+  String get airAdviceUnhealthy;
+
+  /// No description provided for @airAdviceVeryUnhealthy.
+  ///
+  /// In ms, this message translates to:
+  /// **'Elakkan aktiviti luar. Semua orang mungkin terjejas.'**
+  String get airAdviceVeryUnhealthy;
+
+  /// No description provided for @airAdviceHazardous.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kecemasan kesihatan. Tinggal di dalam bangunan.'**
+  String get airAdviceHazardous;
+
   /// No description provided for @alongRouteEv.
   ///
   /// In ms, this message translates to:
@@ -3731,8 +3833,140 @@ abstract class AppLocalizations {
   /// No description provided for @qiblaHint.
   ///
   /// In ms, this message translates to:
-  /// **'Halakan bahagian atas telefon ke anak panah menuju Makkah.'**
+  /// **'Halakan bahagian atas telefon ke ikon Kaabah.'**
   String get qiblaHint;
+
+  /// No description provided for @qiblaFacing.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tepat ke arah kiblat'**
+  String get qiblaFacing;
+
+  /// No description provided for @qiblaTurnRight.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pusing ke kanan {degrees}°'**
+  String qiblaTurnRight(String degrees);
+
+  /// No description provided for @qiblaTurnLeft.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pusing ke kiri {degrees}°'**
+  String qiblaTurnLeft(String degrees);
+
+  /// No description provided for @qiblaWaitingSensor.
+  ///
+  /// In ms, this message translates to:
+  /// **'Menyediakan kompas…'**
+  String get qiblaWaitingSensor;
+
+  /// No description provided for @qiblaLocating.
+  ///
+  /// In ms, this message translates to:
+  /// **'Mencari lokasi anda…'**
+  String get qiblaLocating;
+
+  /// No description provided for @qiblaNoSensor.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tiada sensor kompas pada telefon ini. Dail hanya mengikut arah perjalanan apabila anda bergerak.'**
+  String get qiblaNoSensor;
+
+  /// No description provided for @qiblaDirectionLabel.
+  ///
+  /// In ms, this message translates to:
+  /// **'Arah kiblat'**
+  String get qiblaDirectionLabel;
+
+  /// No description provided for @qiblaDistanceLabel.
+  ///
+  /// In ms, this message translates to:
+  /// **'Jarak ke Kaabah'**
+  String get qiblaDistanceLabel;
+
+  /// No description provided for @qiblaDistanceValue.
+  ///
+  /// In ms, this message translates to:
+  /// **'{km} km'**
+  String qiblaDistanceValue(String km);
+
+  /// No description provided for @qiblaSensorLabel.
+  ///
+  /// In ms, this message translates to:
+  /// **'Ketepatan sensor'**
+  String get qiblaSensorLabel;
+
+  /// No description provided for @qiblaAccuracyHigh.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tinggi'**
+  String get qiblaAccuracyHigh;
+
+  /// No description provided for @qiblaAccuracyMedium.
+  ///
+  /// In ms, this message translates to:
+  /// **'Sederhana'**
+  String get qiblaAccuracyMedium;
+
+  /// No description provided for @qiblaAccuracyLow.
+  ///
+  /// In ms, this message translates to:
+  /// **'Rendah'**
+  String get qiblaAccuracyLow;
+
+  /// No description provided for @qiblaAccuracyUnreliable.
+  ///
+  /// In ms, this message translates to:
+  /// **'Perlu kalibrasi'**
+  String get qiblaAccuracyUnreliable;
+
+  /// No description provided for @qiblaCalibrateTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kalibrasi kompas'**
+  String get qiblaCalibrateTitle;
+
+  /// No description provided for @qiblaCalibrateBody.
+  ///
+  /// In ms, this message translates to:
+  /// **'Gerakkan telefon dalam bentuk angka 8 beberapa kali. Jauhkan daripada magnet, sarung bermagnet dan logam.'**
+  String get qiblaCalibrateBody;
+
+  /// No description provided for @qiblaFlatTip.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pegang telefon mendatar dan stabil untuk bacaan paling tepat.'**
+  String get qiblaFlatTip;
+
+  /// No description provided for @qiblaNorthTrue.
+  ///
+  /// In ms, this message translates to:
+  /// **'Utara benar (deklinasi magnet dikira)'**
+  String get qiblaNorthTrue;
+
+  /// No description provided for @qiblaNorthMagnetic.
+  ///
+  /// In ms, this message translates to:
+  /// **'Utara magnet (menunggu lokasi)'**
+  String get qiblaNorthMagnetic;
+
+  /// No description provided for @qiblaCardinals.
+  ///
+  /// In ms, this message translates to:
+  /// **'U,T,S,B'**
+  String get qiblaCardinals;
+
+  /// No description provided for @qiblaKaaba.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kaabah'**
+  String get qiblaKaaba;
+
+  /// No description provided for @qiblaSemantics.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kompas kiblat. Arah telefon {heading} darjah, kiblat {qibla} darjah. {guidance}'**
+  String qiblaSemantics(String heading, String qibla, String guidance);
 
   /// No description provided for @qiblaUnavailable.
   ///

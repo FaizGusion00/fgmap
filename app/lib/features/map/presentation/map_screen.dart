@@ -54,7 +54,7 @@ import '../../search/presentation/trip_planner_page.dart';
 import '../../settings/presentation/settings_page.dart';
 import '../../air_quality/presentation/air_quality_sheet.dart';
 import '../../air_quality/presentation/route_haze_banner.dart';
-import '../../qibla/presentation/qibla_sheet.dart';
+import '../../qibla/presentation/qibla_page.dart';
 import '../../weather/presentation/weather_animated_icon.dart';
 import '../../weather/presentation/weather_controller.dart';
 import '../../weather/presentation/weather_strip.dart';
@@ -1448,8 +1448,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
                               icon: Icons.explore_rounded,
                               tooltip: l10n.qiblaOpen,
                               color: const Color(0xFFD97706),
-                              onPressed: () =>
-                                  unawaited(showQiblaSheet(context)),
+                              onPressed: () => unawaited(showQibla(context)),
                             ),
                             const SizedBox(width: 8),
                             _TintedMapButton(

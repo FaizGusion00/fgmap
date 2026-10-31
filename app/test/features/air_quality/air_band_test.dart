@@ -21,4 +21,17 @@ void main() {
     expect(r.usAqi, 450);
     expect(r.band, AirBand.hazardous);
   });
+
+  test('simbol pencemar APIMS dipetakan, simbol asing diabaikan', () {
+    expect(pollutantFromSymbol('**'), DominantPollutant.pm25);
+    expect(pollutantFromSymbol('*'), DominantPollutant.pm10);
+    expect(pollutantFromSymbol('a'), DominantPollutant.so2);
+    expect(pollutantFromSymbol('B'), DominantPollutant.no2);
+    expect(pollutantFromSymbol('c'), DominantPollutant.o3);
+    expect(pollutantFromSymbol('d'), DominantPollutant.co);
+    expect(pollutantFromSymbol('&'), DominantPollutant.several);
+    expect(pollutantFromSymbol('z'), isNull);
+    expect(pollutantFromSymbol(null), isNull);
+    expect(pollutantFromSymbol(''), isNull);
+  });
 }

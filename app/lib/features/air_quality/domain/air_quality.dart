@@ -9,6 +9,44 @@ enum AirBand { good, moderate, unhealthy, veryUnhealthy, hazardous }
 /// Ambang jerebu / udara buruk untuk amaran sepanjang laluan.
 const ipuAlertThreshold = 101;
 
+/// Simbol pencemar dominan pada jadual APIMS.
+/// `**` PM2.5, `*` PM10, `a` SO₂, `b` NO₂, `c` O₃, `d` CO, `&` lebih daripada satu.
+enum DominantPollutant { pm25, pm10, so2, no2, o3, co, several }
+
+DominantPollutant? pollutantFromSymbol(String? raw) {
+  switch (raw?.trim()) {
+    case '**':
+      return DominantPollutant.pm25;
+    case '*':
+      return DominantPollutant.pm10;
+    case 'a':
+    case 'A':
+      return DominantPollutant.so2;
+    case 'b':
+    case 'B':
+      return DominantPollutant.no2;
+    case 'c':
+    case 'C':
+      return DominantPollutant.o3;
+    case 'd':
+    case 'D':
+      return DominantPollutant.co;
+    case '&':
+      return DominantPollutant.several;
+    default:
+      return null;
+  }
+}
+
+/// Had bawah dan atas jalur (atas null = tiada siling, Berbahaya).
+(int min, int? max) airBandRange(AirBand band) => switch (band) {
+  AirBand.good => (0, 50),
+  AirBand.moderate => (51, 100),
+  AirBand.unhealthy => (101, 200),
+  AirBand.veryUnhealthy => (201, 300),
+  AirBand.hazardous => (301, null),
+};
+
 AirBand airBandFor(int ipu) {
   if (ipu <= 50) return AirBand.good;
   if (ipu <= 100) return AirBand.moderate;
@@ -25,6 +63,7 @@ class AirStation {
     required this.point,
     required this.ipu,
     required this.observedAt,
+    this.pollutant,
   });
 
   final String id;
@@ -32,6 +71,7 @@ class AirStation {
   final GeoPoint point;
   final int ipu;
   final DateTime observedAt;
+  final DominantPollutant? pollutant;
 
   AirBand get band => airBandFor(ipu);
 }
@@ -48,6 +88,7 @@ class AirReading {
     this.here = false,
     this.fromCache = false,
     this.observedAt,
+    this.pollutant,
   });
 
   final int ipu;
@@ -61,6 +102,7 @@ class AirReading {
   final bool here;
   final bool fromCache;
   final DateTime? observedAt;
+  final DominantPollutant? pollutant;
 
   AirBand get band => airBandFor(ipu);
 

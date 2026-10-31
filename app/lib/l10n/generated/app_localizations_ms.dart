@@ -1763,10 +1763,17 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get azanBatteryBody =>
-      'Sesetengah telefon menghentikan app di latar belakang. Jika azan tidak berbunyi, benarkan FGMaps tanpa had bateri.';
+      'Sesetengah telefon menghentikan app di latar belakang. Jika azan tidak berbunyi, benarkan FGMaps berjalan di latar belakang.';
 
   @override
-  String get azanBatteryAction => 'Buka tetapan bateri';
+  String get azanBatteryAction => 'Benarkan di latar belakang';
+
+  @override
+  String get azanBatteryList => 'Buka senarai bateri';
+
+  @override
+  String get azanBatteryListHint =>
+      'Atau buka senarai bateri: tukar penapis atas daripada “Not optimized” kepada “All apps”, kemudian pilih FGMaps dan “Don’t optimize”.';
 
   @override
   String get azanLocationUnknown =>
@@ -2072,6 +2079,59 @@ class AppLocalizationsMs extends AppLocalizations {
   String get airBandHazardous => 'Berbahaya';
 
   @override
+  String get airQualityScale => 'Skala rasmi JAS';
+
+  @override
+  String airQualityDominant(String name) {
+    return 'Pencemar dominan: $name';
+  }
+
+  @override
+  String airQualityObserved(String time) {
+    return 'Bacaan $time';
+  }
+
+  @override
+  String get airPollutantPm25 => 'PM2.5';
+
+  @override
+  String get airPollutantPm10 => 'PM10';
+
+  @override
+  String get airPollutantSo2 => 'SO₂';
+
+  @override
+  String get airPollutantNo2 => 'NO₂';
+
+  @override
+  String get airPollutantO3 => 'Ozon';
+
+  @override
+  String get airPollutantCo => 'CO';
+
+  @override
+  String get airPollutantSeveral => 'Lebih daripada satu';
+
+  @override
+  String get airAdviceGood =>
+      'Sesuai untuk aktiviti luar. Tiada kesan kesihatan.';
+
+  @override
+  String get airAdviceModerate => 'Sesuai untuk aktiviti luar.';
+
+  @override
+  String get airAdviceUnhealthy =>
+      'Kurangkan aktiviti luar yang lama. Kumpulan sensitif mungkin terjejas.';
+
+  @override
+  String get airAdviceVeryUnhealthy =>
+      'Elakkan aktiviti luar. Semua orang mungkin terjejas.';
+
+  @override
+  String get airAdviceHazardous =>
+      'Kecemasan kesihatan. Tinggal di dalam bangunan.';
+
+  @override
   String get alongRouteEv => 'Pengecas EV';
 
   @override
@@ -2086,8 +2146,84 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
-  String get qiblaHint =>
-      'Halakan bahagian atas telefon ke anak panah menuju Makkah.';
+  String get qiblaHint => 'Halakan bahagian atas telefon ke ikon Kaabah.';
+
+  @override
+  String get qiblaFacing => 'Tepat ke arah kiblat';
+
+  @override
+  String qiblaTurnRight(String degrees) {
+    return 'Pusing ke kanan $degrees°';
+  }
+
+  @override
+  String qiblaTurnLeft(String degrees) {
+    return 'Pusing ke kiri $degrees°';
+  }
+
+  @override
+  String get qiblaWaitingSensor => 'Menyediakan kompas…';
+
+  @override
+  String get qiblaLocating => 'Mencari lokasi anda…';
+
+  @override
+  String get qiblaNoSensor =>
+      'Tiada sensor kompas pada telefon ini. Dail hanya mengikut arah perjalanan apabila anda bergerak.';
+
+  @override
+  String get qiblaDirectionLabel => 'Arah kiblat';
+
+  @override
+  String get qiblaDistanceLabel => 'Jarak ke Kaabah';
+
+  @override
+  String qiblaDistanceValue(String km) {
+    return '$km km';
+  }
+
+  @override
+  String get qiblaSensorLabel => 'Ketepatan sensor';
+
+  @override
+  String get qiblaAccuracyHigh => 'Tinggi';
+
+  @override
+  String get qiblaAccuracyMedium => 'Sederhana';
+
+  @override
+  String get qiblaAccuracyLow => 'Rendah';
+
+  @override
+  String get qiblaAccuracyUnreliable => 'Perlu kalibrasi';
+
+  @override
+  String get qiblaCalibrateTitle => 'Kalibrasi kompas';
+
+  @override
+  String get qiblaCalibrateBody =>
+      'Gerakkan telefon dalam bentuk angka 8 beberapa kali. Jauhkan daripada magnet, sarung bermagnet dan logam.';
+
+  @override
+  String get qiblaFlatTip =>
+      'Pegang telefon mendatar dan stabil untuk bacaan paling tepat.';
+
+  @override
+  String get qiblaNorthTrue => 'Utara benar (deklinasi magnet dikira)';
+
+  @override
+  String get qiblaNorthMagnetic => 'Utara magnet (menunggu lokasi)';
+
+  @override
+  String get qiblaCardinals => 'U,T,S,B';
+
+  @override
+  String get qiblaKaaba => 'Kaabah';
+
+  @override
+  String qiblaSemantics(String heading, String qibla, String guidance) {
+    return 'Kompas kiblat. Arah telefon $heading darjah, kiblat $qibla darjah. $guidance';
+  }
 
   @override
   String get qiblaUnavailable => 'Perlukan GPS untuk arah kiblat.';

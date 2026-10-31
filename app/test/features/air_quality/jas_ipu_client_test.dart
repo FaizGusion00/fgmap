@@ -42,6 +42,7 @@ Map<String, Object?> _row({
   required double lng,
   required int api,
   String dt = '2026-10-31T19:00:00',
+  String? symbol,
 }) => {
   'STATION_ID': id,
   'STATION_LOCATION': name,
@@ -49,6 +50,7 @@ Map<String, Object?> _row({
   'LONGITUDE': lng,
   'API': api,
   'DATETIME': dt,
+  'PARAM_SYMBOL': ?symbol,
 };
 
 void main() {
@@ -63,74 +65,68 @@ void main() {
     expect(airBandFor(301), AirBand.hazardous);
   });
 
-  test('mengambil bacaan terkini setiap stesen dan stesen KL terdekat', () async {
-    final adapter = _FakeAdapter(
-      (_) => {
-        'api_table_hourly': [
-          _row(
-            id: 'CA01R',
-            name: 'Kangar, PERLIS',
-            lat: 6.43,
-            lng: 100.21,
-            api: 31,
-          ),
-          _row(
-            id: 'CA02',
-            name: 'Cheras, W.P. KUALA LUMPUR',
-            lat: 3.106,
-            lng: 101.718,
-            api: 80,
-            dt: '2026-10-31T18:00:00',
-          ),
-          _row(
-            id: 'CA02',
-            name: 'Cheras, W.P. KUALA LUMPUR',
-            lat: 3.106,
-            lng: 101.718,
-            api: 90,
-            dt: '2026-10-31T19:00:00',
-          ),
-        ],
-      },
-    );
-    final dio = Dio()..httpClientAdapter = adapter;
-    final c = JasIpuClient(dio);
-    final stations = await c.stations();
-    expect(stations, hasLength(2));
-    final reading = await c.nearest(point: _kl, here: true);
-    expect(reading, isNotNull);
-    expect(reading!.stationName, contains('Cheras'));
-    expect(reading.ipu, 90);
-    expect(reading.band, AirBand.moderate);
-    expect(reading.here, isTrue);
-    expect(adapter.requests.single.uri.host, 'eqms.doe.gov.my');
-  });
+  test(
+    'mengambil bacaan terkini setiap stesen dan stesen KL terdekat',
+    () async {
+      final adapter = _FakeAdapter(
+        (_) => {
+          'api_table_hourly': [
+            _row(
+              id: 'CA01R',
+              name: 'Kangar, PERLIS',
+              lat: 6.43,
+              lng: 100.21,
+              api: 31,
+            ),
+            _row(
+              id: 'CA02',
+              name: 'Cheras, W.P. KUALA LUMPUR',
+              lat: 3.106,
+              lng: 101.718,
+              api: 80,
+              dt: '2026-10-31T18:00:00',
+            ),
+            _row(
+              id: 'CA02',
+              name: 'Cheras, W.P. KUALA LUMPUR',
+              lat: 3.106,
+              lng: 101.718,
+              api: 90,
+              dt: '2026-10-31T19:00:00',
+              symbol: '**',
+            ),
+          ],
+        },
+      );
+      final dio = Dio()..httpClientAdapter = adapter;
+      final c = JasIpuClient(dio);
+      final stations = await c.stations();
+      expect(stations, hasLength(2));
+      final reading = await c.nearest(point: _kl, here: true);
+      expect(reading, isNotNull);
+      expect(reading!.stationName, contains('Cheras'));
+      expect(reading.ipu, 90);
+      expect(reading.band, AirBand.moderate);
+      expect(reading.pollutant, DominantPollutant.pm25);
+      expect(reading.observedAt, DateTime(2026, 10, 31, 19));
+      expect(reading.here, isTrue);
+      expect(adapter.requests.single.uri.host, 'eqms.doe.gov.my');
+    },
+  );
 
   test('alertAlong memilih stesen IPU tinggi berhampiran sampel', () async {
     final adapter = _FakeAdapter(
       (_) => {
         'api_table_hourly': [
-          _row(
-            id: 'GOOD',
-            name: 'Baik',
-            lat: 3.15,
-            lng: 101.70,
-            api: 40,
-          ),
-          _row(
-            id: 'BAD',
-            name: 'Jerebu',
-            lat: 3.20,
-            lng: 101.75,
-            api: 150,
-          ),
+          _row(id: 'GOOD', name: 'Baik', lat: 3.15, lng: 101.70, api: 40),
+          _row(id: 'BAD', name: 'Jerebu', lat: 3.20, lng: 101.75, api: 150),
         ],
       },
     );
     final dio = Dio()..httpClientAdapter = adapter;
-    final alert = await JasIpuClient(dio).alertAlong(
-      samples: const [_kl, GeoPoint(3.18, 101.72)],
-    );
+    final alert = await JasIpuClient(
+      dio,
+    ).alertAlong(samples: const [_kl, GeoPoint(3.18, 101.72)]);
     expect(alert?.id, 'BAD');
     expect(alert?.ipu, 150);
   });

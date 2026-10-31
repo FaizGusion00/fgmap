@@ -87,9 +87,11 @@ class JasIpuClient {
       stationDistanceM: bestM,
       placeLabel: placeLabel,
       here: here,
-      fromCache: _cacheAt != null &&
+      fromCache:
+          _cacheAt != null &&
           DateTime.now().difference(_cacheAt!) > const Duration(seconds: 2),
       observedAt: best.observedAt,
+      pollutant: best.pollutant,
     );
   }
 
@@ -143,6 +145,7 @@ class JasIpuClient {
       point: GeoPoint(lat, lng),
       ipu: api,
       observedAt: observed,
+      pollutant: pollutantFromSymbol(row['PARAM_SYMBOL']?.toString()),
     );
   }
 }

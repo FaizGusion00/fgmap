@@ -31,8 +31,7 @@ class AirQualityController extends Notifier<AirUiState> {
             fallbackAccuracyMeters: 5000,
           );
       point = fix?.point;
-      point ??=
-          (await ref.read(locationServiceProvider).lastKnownFix())?.point;
+      point ??= (await ref.read(locationServiceProvider).lastKnownFix())?.point;
     } catch (_) {}
     if (seq != _seq) return;
     if (point == null) {
@@ -59,9 +58,7 @@ class AirQualityController extends Notifier<AirUiState> {
             for (var i = 0; i < 8; i++)
               samples[(i * (samples.length - 1) / 7).round()],
           ];
-    return ref
-        .read(jasIpuClientProvider)
-        .alertAlong(samples: capped);
+    return ref.read(jasIpuClientProvider).alertAlong(samples: capped);
   }
 
   Future<void> _fetch(
@@ -72,16 +69,9 @@ class AirQualityController extends Notifier<AirUiState> {
   }) async {
     final reading = await ref
         .read(jasIpuClientProvider)
-        .nearest(
-          point: point,
-          placeLabel: label,
-          here: here,
-          cancel: _cancel,
-        );
+        .nearest(point: point, placeLabel: label, here: here, cancel: _cancel);
     if (seq != _seq) return;
-    state = reading == null
-        ? const AirUiUnavailable()
-        : AirUiReady(reading);
+    state = reading == null ? const AirUiUnavailable() : AirUiReady(reading);
   }
 }
 

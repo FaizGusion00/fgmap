@@ -17,6 +17,9 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.VIBRATE"/>
+    <!-- Waktu Azan: dialog sistem "benarkan berjalan di latar belakang" supaya azan berbunyi walaupun app
+         ditutup pada telefon yang agresif mematikan app. Hanya diminta apabila pengguna menekan butang itu. -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
     <!-- Muzik: main audio di latar dengan kawalan skrin kunci (audio_service). -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>
     <!-- Android Auto: templat navigasi dan permukaan peta. -->

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -122,17 +124,7 @@ class AzanSettingsSection extends ConsumerWidget {
           ),
         if (settings.enabled &&
             (ref.watch(azanBatteryRestrictedProvider).value ?? false))
-          _NoticeCard(
-            key: const ValueKey('azan-battery-card'),
-            color: theme.colorScheme.surfaceContainerHighest,
-            onColor: theme.colorScheme.onSurface,
-            icon: Icons.battery_alert_rounded,
-            title: l10n.azanBatteryTitle,
-            body: l10n.azanBatteryBody,
-            action: l10n.azanBatteryAction,
-            onAction: () =>
-                ref.read(systemSettingsProvider).openBatterySettings(),
-          ),
+          const _BatteryCard(key: ValueKey('azan-battery-card')),
         if (settings.enabled || !showEnable) ...[
           label(l10n.azanPrayersLabel),
           Wrap(
@@ -349,6 +341,102 @@ class _NoticeCard extends StatelessWidget {
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(onPressed: onAction, child: Text(action)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Kad "azan berbunyi walaupun app ditutup". Butang utama menunjukkan dialog sistem untuk FGMaps terus
+/// (bukan senarai panjang yang menapis "Not optimized" dan menyorokkan FGMaps). Senarai kekal sebagai
+/// pilihan kedua dengan arahan langkah demi langkah. Status disemak semula apabila app kembali ke
+/// depan (selepas dialog/tetapan ditutup).
+class _BatteryCard extends ConsumerStatefulWidget {
+  const _BatteryCard({super.key});
+
+  @override
+  ConsumerState<_BatteryCard> createState() => _BatteryCardState();
+}
+
+class _BatteryCardState extends ConsumerState<_BatteryCard>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.invalidate(azanBatteryRestrictedProvider);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final onColor = theme.colorScheme.onSurface;
+    final system = ref.read(systemSettingsProvider);
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      color: theme.colorScheme.surfaceContainerHighest,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.battery_alert_rounded, color: onColor, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    l10n.azanBatteryTitle,
+                    style: theme.textTheme.titleSmall?.copyWith(color: onColor),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              l10n.azanBatteryBody,
+              style: theme.textTheme.bodySmall?.copyWith(color: onColor),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.tonalIcon(
+                key: const ValueKey('azan-battery-allow'),
+                onPressed: () =>
+                    unawaited(system.requestIgnoreBatteryOptimizations()),
+                icon: const Icon(Icons.verified_user_rounded, size: 18),
+                label: Text(l10n.azanBatteryAction),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              l10n.azanBatteryListHint,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                key: const ValueKey('azan-battery-list'),
+                onPressed: () => unawaited(system.openBatterySettings()),
+                child: Text(l10n.azanBatteryList),
+              ),
             ),
           ],
         ),
