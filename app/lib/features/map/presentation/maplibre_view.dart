@@ -125,6 +125,9 @@ class _MapLibreViewState extends State<MapLibreView> {
       old.navAlong?.removeListener(_onNavAlong);
       cfg.navAlong?.addListener(_onNavAlong);
     }
+    if (_overlaysReady && old.navStale != cfg.navStale) {
+      _enqueue(_applyStale);
+    }
     if (!identical(old.userLocation, cfg.userLocation)) {
       old.userLocation?.removeListener(_pushUserLocation);
       cfg.userLocation?.addListener(_pushUserLocation);
@@ -480,6 +483,7 @@ class _MapLibreViewState extends State<MapLibreView> {
   LineLayerProperties _plainProps(String hex, double width) =>
       LineLayerProperties(
         lineColor: hex,
+        lineOpacity: _routeOpacity,
         lineWidth: width,
         lineCap: 'round',
         lineJoin: 'round',
@@ -523,6 +527,42 @@ class _MapLibreViewState extends State<MapLibreView> {
     _trimChunk = chunk;
   }
 
+  /// Kelegapan garisan laluan navigasi: pudar apabila lapuk (lihat [MapViewConfig.navStale]).
+  static const _staleOpacity = 0.35;
+  double get _routeOpacity => widget.config.navStale ? _staleOpacity : 1.0;
+
+  /// Menghantar semula sifat semua lapisan laluan navigasi dengan kelegapan semasa. Plugin menetapkan
+  /// semula sifat yang tidak dihantar, jadi setiap lapisan dihantar lengkap.
+  Future<void> _applyStale() async {
+    final c = _controller;
+    final nav = _sentNav;
+    if (c == null || !_overlaysReady || nav == null) return;
+    final colors = widget.config.colors;
+    final fraction = _gradientOk
+        ? nav.chunkFractionAt(widget.config.navAlong?.value ?? 0)
+        : null;
+    try {
+      await c.setLayerProperties(
+        _casingFarLayer,
+        _plainProps(_hex(colors.routeCasing), 12),
+      );
+      await c.setLayerProperties(
+        _mainFarLayer,
+        _plainProps(_hex(colors.mainRoute), 7),
+      );
+      await c.setLayerProperties(
+        _casingLayer,
+        _casingProps(colors, fraction, gradient: _gradientOk),
+      );
+      await c.setLayerProperties(
+        _mainLayer,
+        _mainProps(colors, fraction, gradient: _gradientOk),
+      );
+    } on Object catch (e) {
+      logDiag('Kelegapan laluan gagal ditetapkan: $e');
+    }
+  }
+
   LineLayerProperties _mainProps(
     MapOverlayColors colors,
     double? fraction, {
@@ -531,6 +571,7 @@ class _MapLibreViewState extends State<MapLibreView> {
     final hex = _hex(colors.mainRoute);
     return LineLayerProperties(
       lineColor: hex,
+      lineOpacity: _routeOpacity,
       lineWidth: 7,
       lineCap: 'round',
       lineJoin: 'round',
@@ -550,6 +591,7 @@ class _MapLibreViewState extends State<MapLibreView> {
     final hex = _hex(colors.routeCasing);
     return LineLayerProperties(
       lineColor: hex,
+      lineOpacity: _routeOpacity,
       lineWidth: 12,
       lineCap: 'round',
       lineJoin: 'round',

@@ -9,6 +9,8 @@ import 'package:fgmap/features/search/presentation/search_history_controller.dar
 import 'package:fgmap/features/settings/data/data_eraser.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fgmap/features/music/data/radio_favorites.dart';
+import 'package:fgmap/features/music/domain/track.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -127,8 +129,25 @@ void main() {
       await prefs.setDouble('azan.lat', 3.14);
       await prefs.setDouble('azan.lng', 101.69);
       await prefs.setInt('azan.scheduledAt', 1);
+      await prefs.setString('azan.official.v1', '[]');
+      await prefs.setString('azan.scheduledSig', 'x');
+      await ref
+          .read(radioFavoritesProvider.notifier)
+          .toggle(
+            Track(
+              id: 'r1',
+              source: TrackSource.radio,
+              title: 'Sinar FM',
+              streamUri: Uri.parse('https://example.test/live'),
+            ),
+          );
+      expect(ref.read(radioFavoritesProvider), isNotEmpty);
 
       await eraseAllUserData(ref);
+
+      expect(ref.read(radioFavoritesProvider), isEmpty);
+      expect(prefs.containsKey('music.radio.favorites.v1'), isFalse);
+      expect(prefs.containsKey('music.radio.failed.v1'), isFalse);
 
       expect(ref.read(searchHistoryControllerProvider), isEmpty);
       expect(ref.read(savedPlacesControllerProvider), isEmpty);
@@ -139,6 +158,8 @@ void main() {
       expect(prefs.containsKey('azan.lat'), isFalse);
       expect(prefs.containsKey('azan.lng'), isFalse);
       expect(prefs.containsKey('azan.scheduledAt'), isFalse);
+      expect(prefs.containsKey('azan.official.v1'), isFalse);
+      expect(prefs.containsKey('azan.scheduledSig'), isFalse);
       expect(prefs.getBool('azan.enabled'), isTrue);
       expect(ref.read(sunLocationProvider), const GeoPoint(3.139, 101.687));
       // Kekal.

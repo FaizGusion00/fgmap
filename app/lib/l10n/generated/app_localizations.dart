@@ -155,7 +155,7 @@ abstract class AppLocalizations {
   /// No description provided for @locationRationaleBody.
   ///
   /// In ms, this message translates to:
-  /// **'Lokasi anda digunakan untuk menunjukkan kedudukan anda di peta dan sebagai titik mula laluan. Ia dihantar ke pelayan FGMaps hanya untuk mengira laluan.'**
+  /// **'Lokasi anda digunakan untuk menunjukkan kedudukan anda di peta dan sebagai titik mula laluan. Ia dihantar terus ke perkhidmatan laluan awam hanya untuk mengira laluan dan tidak disimpan di mana-mana pelayan kami.'**
   String get locationRationaleBody;
 
   /// No description provided for @locationAllow.
@@ -1559,13 +1559,13 @@ abstract class AppLocalizations {
   /// No description provided for @azanEnable.
   ///
   /// In ms, this message translates to:
-  /// **'Notifikasi azan'**
+  /// **'Sentiasa ingatkan waktu azan'**
   String get azanEnable;
 
   /// No description provided for @azanEnableHint.
   ///
   /// In ms, this message translates to:
-  /// **'Beritahu saya setiap kali masuk waktu solat di lokasi semasa.'**
+  /// **'Notifikasi dan bunyi azan pada setiap waktu solat, walaupun app ditutup.'**
   String get azanEnableHint;
 
   /// No description provided for @azanPrayerFajr.
@@ -1943,13 +1943,13 @@ abstract class AppLocalizations {
   /// No description provided for @musicEmptySongs.
   ///
   /// In ms, this message translates to:
-  /// **'Taip nama lagu atau artis, kemudian ketik untuk main. Lagu daripada Audius (katalog terbuka, percuma).'**
+  /// **'Taip nama lagu atau artis, atau ketik cadangan di atas. Katalog percuma Audius ialah muzik bebas; lagu artis label besar tiada di sini. Untuk lagu Malay, Indonesia, Japan dan K-pop, cuba tab Radio.'**
   String get musicEmptySongs;
 
   /// No description provided for @musicEmptyRadio.
   ///
   /// In ms, this message translates to:
-  /// **'Stesen radio Malaysia. Ketik untuk dengar siaran langsung.'**
+  /// **'Pilih kawasan di atas, atau taip nama stesen (cth. Hitz, Prambors, KBS). Ketik untuk dengar siaran langsung.'**
   String get musicEmptyRadio;
 
   /// No description provided for @musicEmptyLocal.
@@ -2747,7 +2747,7 @@ abstract class AppLocalizations {
   /// No description provided for @legalAttribution.
   ///
   /// In ms, this message translates to:
-  /// **'Data peta © penyumbang OpenStreetMap (ODbL). Gaya dan jubin: OpenFreeMap, OpenMapTiles. Laluan: Valhalla. Carian: Photon (komoot) dan Nominatim. Harga petrol: data.gov.my. Muzik: Audius (Open Music License) dan Radio Browser; strim radio daripada stesen masing-masing. Rakaman azan: Aaqib Azeez / Atcovi, Wikimedia Commons, CC BY-SA 4.0.'**
+  /// **'Data peta © penyumbang OpenStreetMap (ODbL). Gaya dan jubin: OpenFreeMap, OpenMapTiles. Laluan: Valhalla. Carian: Photon (komoot) dan Nominatim. Harga petrol: data.gov.my. Waktu solat: JAKIM e-Solat melalui WaktuSolat API (api.waktusolat.app), dan pengiraan Adhan. Muzik: Audius (Open Music License) dan Radio Browser; strim radio daripada stesen masing-masing. Rakaman azan: Aaqib Azeez / Atcovi, Wikimedia Commons, CC BY-SA 4.0.'**
   String get legalAttribution;
 
   /// No description provided for @aboutAttributionTitle.
@@ -2977,6 +2977,534 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'Tiada ralat direkodkan'**
   String get settingsErrorReportEmpty;
+
+  /// No description provided for @azanEnabledSnack.
+  ///
+  /// In ms, this message translates to:
+  /// **'Azan dihidupkan. {source}'**
+  String azanEnabledSnack(String source);
+
+  /// No description provided for @azanSourceOfficial.
+  ///
+  /// In ms, this message translates to:
+  /// **'Waktu rasmi JAKIM e-Solat, zon {zone}'**
+  String azanSourceOfficial(String zone);
+
+  /// No description provided for @azanSourceCalculated.
+  ///
+  /// In ms, this message translates to:
+  /// **'Dikira pada telefon ({method})'**
+  String azanSourceCalculated(String method);
+
+  /// No description provided for @azanDeniedTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Notifikasi dimatikan'**
+  String get azanDeniedTitle;
+
+  /// No description provided for @azanDeniedBody.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tanpa kebenaran notifikasi, azan tidak boleh berbunyi apabila app ditutup. Buka tetapan dan benarkan notifikasi untuk FGMaps.'**
+  String get azanDeniedBody;
+
+  /// No description provided for @azanOpenAppSettings.
+  ///
+  /// In ms, this message translates to:
+  /// **'Buka tetapan'**
+  String get azanOpenAppSettings;
+
+  /// No description provided for @azanExactDialogTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Benarkan penggera tepat'**
+  String get azanExactDialogTitle;
+
+  /// No description provided for @azanExactDialogBody.
+  ///
+  /// In ms, this message translates to:
+  /// **'Supaya azan berbunyi tepat pada waktunya dan bukan lewat beberapa minit, benarkan “Penggera & peringatan” untuk FGMaps pada skrin seterusnya.'**
+  String get azanExactDialogBody;
+
+  /// No description provided for @azanNotificationsOffTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Notifikasi azan dimatikan'**
+  String get azanNotificationsOffTitle;
+
+  /// No description provided for @azanNotificationsOffBody.
+  ///
+  /// In ms, this message translates to:
+  /// **'Azan tidak akan berbunyi apabila app ditutup sehingga anda membenarkan notifikasi semula.'**
+  String get azanNotificationsOffBody;
+
+  /// No description provided for @azanBatteryTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pastikan azan berbunyi apabila app ditutup'**
+  String get azanBatteryTitle;
+
+  /// No description provided for @azanBatteryBody.
+  ///
+  /// In ms, this message translates to:
+  /// **'Sesetengah telefon menghentikan app di latar belakang. Jika azan tidak berbunyi, benarkan FGMaps tanpa had bateri.'**
+  String get azanBatteryBody;
+
+  /// No description provided for @azanBatteryAction.
+  ///
+  /// In ms, this message translates to:
+  /// **'Buka tetapan bateri'**
+  String get azanBatteryAction;
+
+  /// No description provided for @azanLocationUnknown.
+  ///
+  /// In ms, this message translates to:
+  /// **'Lokasi belum diketahui. Waktu dikira untuk Kuala Lumpur. Benarkan lokasi atau pilih bandar di bawah.'**
+  String get azanLocationUnknown;
+
+  /// No description provided for @azanUseOfficial.
+  ///
+  /// In ms, this message translates to:
+  /// **'Waktu rasmi JAKIM'**
+  String get azanUseOfficial;
+
+  /// No description provided for @azanUseOfficialHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Ambil jadual e-Solat rasmi melalui internet (hanya lokasi ~1 km dihantar). Tanpa talian, waktu dikira pada telefon.'**
+  String get azanUseOfficialHint;
+
+  /// No description provided for @onbAzan.
+  ///
+  /// In ms, this message translates to:
+  /// **'Ingatkan waktu azan'**
+  String get onbAzan;
+
+  /// No description provided for @onbAzanHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Notifikasi dan azan pada setiap waktu solat, walaupun app ditutup. Kami akan minta kebenaran notifikasi.'**
+  String get onbAzanHint;
+
+  /// No description provided for @musicRegionMalaysia.
+  ///
+  /// In ms, this message translates to:
+  /// **'Malaysia'**
+  String get musicRegionMalaysia;
+
+  /// No description provided for @musicRegionIndonesia.
+  ///
+  /// In ms, this message translates to:
+  /// **'Indonesia'**
+  String get musicRegionIndonesia;
+
+  /// No description provided for @musicRegionFavorites.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kegemaran'**
+  String get musicRegionFavorites;
+
+  /// No description provided for @musicEmptyFavorites.
+  ///
+  /// In ms, this message translates to:
+  /// **'Belum ada stesen kegemaran. Ketik bintang pada mana-mana stesen untuk simpan di sini.'**
+  String get musicEmptyFavorites;
+
+  /// No description provided for @musicFavoriteAdd.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tambah ke kegemaran'**
+  String get musicFavoriteAdd;
+
+  /// No description provided for @musicFavoriteRemove.
+  ///
+  /// In ms, this message translates to:
+  /// **'Buang daripada kegemaran'**
+  String get musicFavoriteRemove;
+
+  /// No description provided for @musicRadioUnreachable.
+  ///
+  /// In ms, this message translates to:
+  /// **'Gagal disambung tadi'**
+  String get musicRadioUnreachable;
+
+  /// No description provided for @musicRegionJapan.
+  ///
+  /// In ms, this message translates to:
+  /// **'Japan'**
+  String get musicRegionJapan;
+
+  /// No description provided for @musicRegionJpop.
+  ///
+  /// In ms, this message translates to:
+  /// **'J-pop'**
+  String get musicRegionJpop;
+
+  /// No description provided for @musicRegionKorea.
+  ///
+  /// In ms, this message translates to:
+  /// **'Korea'**
+  String get musicRegionKorea;
+
+  /// No description provided for @musicRegionKpop.
+  ///
+  /// In ms, this message translates to:
+  /// **'K-pop'**
+  String get musicRegionKpop;
+
+  /// No description provided for @musicNoResultsSongsHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Katalog percuma Audius ialah muzik bebas; lagu artis label besar tiada di sini. Cuba Radio untuk lagu Malay, Indonesia, Japan atau Korea.'**
+  String get musicNoResultsSongsHint;
+
+  /// No description provided for @musicTryRadio.
+  ///
+  /// In ms, this message translates to:
+  /// **'Cari dalam Radio'**
+  String get musicTryRadio;
+
+  /// No description provided for @aboutWhatsNewTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Baharu dalam versi {version}'**
+  String aboutWhatsNewTitle(String version);
+
+  /// No description provided for @aboutNew1.
+  ///
+  /// In ms, this message translates to:
+  /// **'Waktu azan rasmi JAKIM dengan notifikasi walaupun app ditutup'**
+  String get aboutNew1;
+
+  /// No description provided for @aboutNew2.
+  ///
+  /// In ms, this message translates to:
+  /// **'Muzik dan radio dalam app: Malaysia, Indonesia, Korea dan K-pop'**
+  String get aboutNew2;
+
+  /// No description provided for @aboutNew3.
+  ///
+  /// In ms, this message translates to:
+  /// **'Mod mudah: paparan besar untuk pemandu warga emas'**
+  String get aboutNew3;
+
+  /// No description provided for @aboutNew4.
+  ///
+  /// In ms, this message translates to:
+  /// **'Panduan lorong dan peta malam biru gaya Waze'**
+  String get aboutNew4;
+
+  /// No description provided for @aboutNew5.
+  ///
+  /// In ms, this message translates to:
+  /// **'Ikon bulatan yang jelas dengan nombor simpang keluar'**
+  String get aboutNew5;
+
+  /// No description provided for @alongRouteTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Sepanjang laluan'**
+  String get alongRouteTitle;
+
+  /// No description provided for @alongRouteDisclaimer.
+  ///
+  /// In ms, this message translates to:
+  /// **'Data OpenStreetMap; mungkin tak lengkap.'**
+  String get alongRouteDisclaimer;
+
+  /// No description provided for @alongRouteUnavailable.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tidak dapat memuatkan tempat sepanjang laluan. Cuba lagi kemudian.'**
+  String get alongRouteUnavailable;
+
+  /// No description provided for @alongRouteEmpty.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tiada tempat dijumpai sepanjang laluan untuk kategori ini.'**
+  String get alongRouteEmpty;
+
+  /// No description provided for @alongRouteIn.
+  ///
+  /// In ms, this message translates to:
+  /// **'Dalam {distance}'**
+  String alongRouteIn(String distance);
+
+  /// No description provided for @alongRouteRr.
+  ///
+  /// In ms, this message translates to:
+  /// **'R&R'**
+  String get alongRouteRr;
+
+  /// No description provided for @alongRouteFuel.
+  ///
+  /// In ms, this message translates to:
+  /// **'Minyak'**
+  String get alongRouteFuel;
+
+  /// No description provided for @alongRouteMosque.
+  ///
+  /// In ms, this message translates to:
+  /// **'Surau'**
+  String get alongRouteMosque;
+
+  /// No description provided for @alongRouteToilets.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tandas'**
+  String get alongRouteToilets;
+
+  /// No description provided for @alongRouteAddStop.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tambah sebagai perhentian'**
+  String get alongRouteAddStop;
+
+  /// No description provided for @alongRouteAddedStop.
+  ///
+  /// In ms, this message translates to:
+  /// **'Ditambah sebagai perhentian — mengira semula laluan'**
+  String get alongRouteAddedStop;
+
+  /// No description provided for @tripHistoryExport.
+  ///
+  /// In ms, this message translates to:
+  /// **'Eksport JSON'**
+  String get tripHistoryExport;
+
+  /// No description provided for @tripHistoryExported.
+  ///
+  /// In ms, this message translates to:
+  /// **'Sejarah perjalanan disalin'**
+  String get tripHistoryExported;
+
+  /// No description provided for @tripHistoryRetentionDays.
+  ///
+  /// In ms, this message translates to:
+  /// **'{days} hari'**
+  String tripHistoryRetentionDays(int days);
+
+  /// No description provided for @tripHistoryRetentionForever.
+  ///
+  /// In ms, this message translates to:
+  /// **'Selamanya'**
+  String get tripHistoryRetentionForever;
+
+  /// No description provided for @tripHistoryRetentionOff.
+  ///
+  /// In ms, this message translates to:
+  /// **'Mati'**
+  String get tripHistoryRetentionOff;
+
+  /// No description provided for @pickingStopHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pilih perhentian, kemudian pilih destinasi'**
+  String get pickingStopHint;
+
+  /// No description provided for @cameraAwasAhead.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kamera AwAS di hadapan — patuhi had laju'**
+  String get cameraAwasAhead;
+
+  /// No description provided for @cameraOsmAhead.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kamera (OSM) di hadapan — patuhi had laju'**
+  String get cameraOsmAhead;
+
+  /// No description provided for @settingsCameras.
+  ///
+  /// In ms, this message translates to:
+  /// **'Amaran kamera'**
+  String get settingsCameras;
+
+  /// No description provided for @settingsCamerasHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Amaran AwAS rasmi (JPJ). Bukan semua kamera Malaysia.'**
+  String get settingsCamerasHint;
+
+  /// No description provided for @settingsCamerasOsm.
+  ///
+  /// In ms, this message translates to:
+  /// **'Termasuk kamera OSM'**
+  String get settingsCamerasOsm;
+
+  /// No description provided for @settingsCamerasOsmHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Data komuniti; mungkin tak lengkap atau usang.'**
+  String get settingsCamerasOsmHint;
+
+  /// No description provided for @settingsCamerasDistance.
+  ///
+  /// In ms, this message translates to:
+  /// **'Jarak amaran'**
+  String get settingsCamerasDistance;
+
+  /// No description provided for @addStop.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tambah perhentian'**
+  String get addStop;
+
+  /// No description provided for @stopsTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Perhentian'**
+  String get stopsTitle;
+
+  /// No description provided for @removeStop.
+  ///
+  /// In ms, this message translates to:
+  /// **'Buang perhentian'**
+  String get removeStop;
+
+  /// No description provided for @nextStop.
+  ///
+  /// In ms, this message translates to:
+  /// **'Perhentian seterusnya'**
+  String get nextStop;
+
+  /// No description provided for @skipStop.
+  ///
+  /// In ms, this message translates to:
+  /// **'Langkau perhentian'**
+  String get skipStop;
+
+  /// No description provided for @tripHistoryTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Perjalanan'**
+  String get tripHistoryTitle;
+
+  /// No description provided for @tripHistoryEmpty.
+  ///
+  /// In ms, this message translates to:
+  /// **'Belum ada perjalanan tersimpan.'**
+  String get tripHistoryEmpty;
+
+  /// No description provided for @tripHistoryMonth.
+  ///
+  /// In ms, this message translates to:
+  /// **'Bulan ini'**
+  String get tripHistoryMonth;
+
+  /// No description provided for @tripHistoryKm.
+  ///
+  /// In ms, this message translates to:
+  /// **'{km} km'**
+  String tripHistoryKm(String km);
+
+  /// No description provided for @tripHistoryDuration.
+  ///
+  /// In ms, this message translates to:
+  /// **'{hours} j {mins} min'**
+  String tripHistoryDuration(int hours, int mins);
+
+  /// No description provided for @tripHistoryToll.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tol ~RM {amount}'**
+  String tripHistoryToll(String amount);
+
+  /// No description provided for @tripHistoryTrips.
+  ///
+  /// In ms, this message translates to:
+  /// **'{count} perjalanan'**
+  String tripHistoryTrips(int count);
+
+  /// No description provided for @tripHistoryRetention.
+  ///
+  /// In ms, this message translates to:
+  /// **'Simpan sejarah'**
+  String get tripHistoryRetention;
+
+  /// No description provided for @tripHistoryDeleteAll.
+  ///
+  /// In ms, this message translates to:
+  /// **'Padam semua perjalanan'**
+  String get tripHistoryDeleteAll;
+
+  /// No description provided for @weatherTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Cuaca'**
+  String get weatherTitle;
+
+  /// No description provided for @weatherAttribution.
+  ///
+  /// In ms, this message translates to:
+  /// **'Cuaca: Open-Meteo · lokasi GPS'**
+  String get weatherAttribution;
+
+  /// No description provided for @weatherUnavailable.
+  ///
+  /// In ms, this message translates to:
+  /// **'Cuaca tidak tersedia'**
+  String get weatherUnavailable;
+
+  /// No description provided for @weatherRainAlong.
+  ///
+  /// In ms, this message translates to:
+  /// **'Hujan dijangka sepanjang laluan'**
+  String get weatherRainAlong;
+
+  /// No description provided for @weatherSevere.
+  ///
+  /// In ms, this message translates to:
+  /// **'Cuaca buruk dijangka — pandu berhati-hati'**
+  String get weatherSevere;
+
+  /// No description provided for @weatherHere.
+  ///
+  /// In ms, this message translates to:
+  /// **'Di sini'**
+  String get weatherHere;
+
+  /// No description provided for @weatherAtDestination.
+  ///
+  /// In ms, this message translates to:
+  /// **'Destinasi'**
+  String get weatherAtDestination;
+
+  /// No description provided for @weatherFeelsLike.
+  ///
+  /// In ms, this message translates to:
+  /// **'Rasa'**
+  String get weatherFeelsLike;
+
+  /// No description provided for @weatherCached.
+  ///
+  /// In ms, this message translates to:
+  /// **'Cache'**
+  String get weatherCached;
+
+  /// No description provided for @settingsWeather.
+  ///
+  /// In ms, this message translates to:
+  /// **'Amaran cuaca'**
+  String get settingsWeather;
+
+  /// No description provided for @settingsWeatherHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Banner hujan lebat semasa navigasi'**
+  String get settingsWeatherHint;
+
+  /// No description provided for @settingsAlongRouteAnnounce.
+  ///
+  /// In ms, this message translates to:
+  /// **'Umumkan R&R / minyak'**
+  String get settingsAlongRouteAnnounce;
+
+  /// No description provided for @settingsAlongRouteAnnounceHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Suara bila R&R atau stesen minyak di hadapan (chip tetap dipaparkan)'**
+  String get settingsAlongRouteAnnounceHint;
 }
 
 class _AppLocalizationsDelegate

@@ -7,6 +7,8 @@ import '../../../core/location/location_service.dart';
 import '../../../core/settings/app_preferences.dart';
 import '../../../core/theme/motion.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../azan/data/azan_settings.dart';
+import '../../azan/presentation/azan_enable_flow.dart';
 import '../../legal/presentation/legal_page.dart';
 import '../../map/presentation/location_prompt.dart';
 import '../../navigation/data/navigation_settings.dart';
@@ -380,6 +382,17 @@ class _SetupPage extends ConsumerWidget {
           subtitle: Text(l10n.onbEasyModeHint),
           value: prefs.easyMode,
           onChanged: ref.read(appPreferencesProvider.notifier).setEasyMode,
+        ),
+        // Waktu azan: kebenaran notifikasi diminta di sini dengan penjelasan, bukan diam-diam
+        // selepas pengguna mencari suis dalam Tetapan.
+        SwitchListTile(
+          key: const ValueKey('onboarding-azan'),
+          contentPadding: EdgeInsets.zero,
+          secondary: const Icon(Icons.notifications_active_rounded),
+          title: Text(l10n.onbAzan),
+          subtitle: Text(l10n.onbAzanHint),
+          value: ref.watch(azanSettingsProvider.select((s) => s.enabled)),
+          onChanged: (on) => setAzanEnabled(context, ref, on),
         ),
       ],
     );

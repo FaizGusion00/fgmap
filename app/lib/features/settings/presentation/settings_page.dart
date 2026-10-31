@@ -26,6 +26,7 @@ import '../../saved_places/domain/saved_place.dart';
 import '../../saved_places/presentation/assign_place_flow.dart';
 import '../../saved_places/presentation/save_place_sheet.dart';
 import '../../search/presentation/search_history_controller.dart';
+import '../../trip_history/presentation/trip_history_page.dart';
 import 'about_page.dart';
 
 /// Membuka halaman Tetapan (skrin penuh). Nama lama dikekalkan supaya panggilan sedia ada tidak berubah.
@@ -61,10 +62,11 @@ class SettingsPage extends ConsumerWidget {
                 FadeSlideIn(index: 3, child: _MusicGroup()),
                 FadeSlideIn(index: 4, child: _SavedPlacesGroup()),
                 FadeSlideIn(index: 5, child: _FuelGroup()),
-                FadeSlideIn(index: 6, child: _ReportsGroup()),
-                FadeSlideIn(index: 7, child: _MapsGroup()),
-                FadeSlideIn(index: 8, child: _PrivacyGroup()),
-                FadeSlideIn(index: 9, child: _HelpGroup()),
+                FadeSlideIn(index: 6, child: _TripHistoryGroup()),
+                FadeSlideIn(index: 7, child: _ReportsGroup()),
+                FadeSlideIn(index: 8, child: _MapsGroup()),
+                FadeSlideIn(index: 9, child: _PrivacyGroup()),
+                FadeSlideIn(index: 10, child: _HelpGroup()),
               ],
             ),
           ),
@@ -404,6 +406,28 @@ class _NavigationGroup extends StatelessWidget {
       icon: Icons.navigation_outlined,
       title: l10n.settingsNavigation,
       child: const NavigationSettingsSection(),
+    );
+  }
+}
+
+class _TripHistoryGroup extends StatelessWidget {
+  const _TripHistoryGroup();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return _Group(
+      icon: Icons.history_rounded,
+      title: l10n.tripHistoryTitle,
+      child: ListTile(
+        key: const ValueKey('trip-history-open'),
+        contentPadding: EdgeInsets.zero,
+        leading: const Icon(Icons.route_rounded),
+        title: Text(l10n.tripHistoryTitle),
+        subtitle: Text(l10n.tripHistoryMonth),
+        trailing: const Icon(Icons.chevron_right_rounded),
+        onTap: () => unawaited(showTripHistoryPage(context)),
+      ),
     );
   }
 }

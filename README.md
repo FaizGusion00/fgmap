@@ -30,7 +30,7 @@ docs/legal, docs/store  Dasar Privasi/Terma (draf, perlu semakan peguam) dan jaw
 | Cari berhampiran (minyak, makan, surau...) | Overpass API (data OSM), cache dalam peranti | RM0, penggunaan wajar |
 | Pek peta offline | GitHub Release `tiles`, dikemas kini mingguan oleh `tiles.yml` | RM0 |
 | Harga petrol/diesel (anggaran kos minyak) | data.gov.my (CC BY 4.0), cache 24 j | RM0 |
-| Waktu Azan | Dikira pada peranti (`adhan_dart`, kaedah JAKIM 20°/18°); notifikasi tempatan ([ADR 0012](docs/adr/0012-waktu-azan-muzik-dan-mod-mudah.md)) | RM0, luar talian |
+| Waktu Azan | Jadual rasmi JAKIM e-Solat melalui WaktuSolat API (tanpa kunci, cache bulanan); sandaran dikira pada peranti (`adhan_dart`, 20°/18°); notifikasi tempatan ([ADR 0012](docs/adr/0012-waktu-azan-muzik-dan-mod-mudah.md)) | RM0, sandaran luar talian |
 | Muzik: lagu | Audius API awam (tanpa kunci; Open Music License) | RM0, katalog dimuat naik pengguna |
 | Muzik: radio | Radio Browser (cermin komuniti), strim HTTPS sahaja | RM0, tiada SLA |
 | Muzik: fail saya | Diimport ke storan app | Luar talian |
@@ -104,13 +104,19 @@ manifest.
 
 ## Waktu Azan, Muzik dan Mod mudah
 
-- **Waktu Azan** (Tetapan > Waktu Azan, atau pil di skrin utama): dikira pada peranti untuk lokasi semasa
-  (kaedah JAKIM; anggaran, ikut e-Solat untuk imsak/berbuka). Notifikasi dengan **azan penuh** secara lalai;
-  pilihan nada pendek/senyap, peringatan awal, pilih bandar jika tiada GPS. Semasa navigasi hanya bunyi
+- **Waktu Azan** (Tetapan > Waktu Azan, atau pil di skrin utama): jadual **rasmi JAKIM e-Solat** untuk zon
+  anda (lokasi disegarkan setiap kali dihidupkan/app dibuka; sandaran dikira pada telefon jika tiada talian).
+  Notifikasi seminggu ke hadapan dengan **azan penuh** secara lalai dan berbunyi walaupun app ditutup;
+  pilihan nada pendek/senyap, peringatan awal, pilih bandar jika tiada GPS. Kebenaran notifikasi diminta
+  semasa sambutan atau apabila suis dihidupkan. Semasa navigasi hanya bunyi
   pendek + cip HUD melainkan dibenarkan. Android 12+: benarkan "penggera tepat" supaya tidak lewat.
 - **Muzik** (butang nota di skrin utama, atau lembaran tetapan navigasi): cari lagu (Audius), radio Malaysia
   (Radio Browser, HTTPS sahaja) atau fail yang diimport; pemain penuh dengan kawalan skrin kunci dan penyama
   (Android). Suara navigasi sentiasa mengatasi muzik: diperlahankan (lalai) atau dijeda (tetapan).
+- **Kad manuver yang jelas**: gambar rajah simpang (jalan diambil tebal, jalan tidak diambil pudar), papan tanda
+  "Menuju Klang" dan nombor keluar daripada data Valhalla, kod jalan dibaca "Laluan 3217". Laluan
+  "Disyorkan" menimbang kelas jalan sebenar supaya mengutamakan jalan utama berbanding jalan kampung.
+  Cubit untuk zum diingat sebagai pilihan zum memandu. Lihat [ADR 0012](docs/adr/0012-waktu-azan-muzik-dan-mod-mudah.md).
 - **Panduan lorong**: "Guna lorong kiri/kanan" pada kad dan dalam peringatan awal (diterbitkan daripada
   manuver; jalur lorong sebenar dilukis apabila Valhalla memberi `lanes`). Peta malam kini biru laut tua
   (gaya Waze), bukan hitam.

@@ -101,6 +101,111 @@ void main() {
     expect(driver.zoomBias, -3);
   });
 
+  group('zum cubit pengguna', () {
+    int i = 0;
+    void frames(int n) {
+      for (var k = 0; k < n; k++) {
+        clock.advance(const Duration(milliseconds: 16));
+        driver.step(t(16 * i++));
+      }
+    }
+
+    CameraPose pinched(double deltaZoom) => CameraPose(
+      center: camera.pose!.center,
+      zoom: camera.pose!.zoom + deltaZoom,
+      tilt: camera.pose!.tilt,
+      bearing: camera.pose!.bearing,
+    );
+
+    setUp(() => i = 0);
+
+    test(
+      'mencubit untuk zum masuk: zum dikekalkan selepas kamera kembali mengikut',
+      () {
+        frames(400);
+        final auto = camera.moveToCalls.last.zoom;
+        driver.userInteracted();
+        expect(driver.follow.value, NavFollow.free);
+        camera.pose = pinched(1.2); // pengguna mencubit
+        driver.recenter();
+        expect(driver.zoomBias, closeTo(1.2, 0.01));
+        frames(500);
+        expect(driver.follow.value, NavFollow.following);
+        expect(camera.moveToCalls.last.zoom, closeTo(auto + 1.2, 0.15));
+      },
+    );
+
+    test(
+      'mencubit untuk zum keluar juga dikekalkan; berkumpul dengan butang +/-',
+      () {
+        frames(400);
+        driver.nudgeZoom(0.5);
+        driver.userInteracted();
+        camera.pose = pinched(-1.0);
+        driver.recenter();
+        expect(driver.zoomBias, closeTo(-0.5, 0.01));
+      },
+    );
+
+    test(
+      'menggerakkan peta sahaja (zum tidak berubah) tidak mengubah bias',
+      () {
+        frames(400);
+        driver.userInteracted();
+        // Pengguna menyeret: pusat berubah, zum sama.
+        camera.pose = CameraPose(
+          center: const GeoPoint(3.2, 101.7),
+          zoom: camera.pose!.zoom,
+          tilt: camera.pose!.tilt,
+          bearing: camera.pose!.bearing,
+        );
+        driver.recenter();
+        expect(driver.zoomBias, 0);
+      },
+    );
+
+    test('perubahan zum kecil (< 0.3) dianggap hingar', () {
+      frames(400);
+      driver.userInteracted();
+      camera.pose = pinched(0.2);
+      driver.recenter();
+      expect(driver.zoomBias, 0);
+    });
+
+    test('bias dihad seperti butang +/-', () {
+      frames(400);
+      driver.nudgeZoom(1.5);
+      driver.userInteracted();
+      camera.pose = pinched(1.0);
+      driver.recenter();
+      expect(driver.zoomBias, 2); // 1.5 + 1.0 dihad 2
+    });
+
+    test(
+      'zum meninjau yang sangat besar (> 2.5 tahap) kembali ke zum automatik',
+      () {
+        frames(400);
+        driver.userInteracted();
+        camera.pose = pinched(-4); // zum keluar jauh untuk meninjau
+        driver.recenter();
+        expect(driver.zoomBias, 0);
+        driver.userInteracted();
+        camera.pose = pinched(3);
+        driver.recenter();
+        expect(driver.zoomBias, 0);
+      },
+    );
+
+    test('zum ikhtisar laluan bukan pilihan pengguna', () {
+      frames(400);
+      driver.userInteracted();
+      driver.showOverview(route.points, padding: const EdgeInsets.all(20));
+      camera.pose = pinched(-6); // fitTo menjauhkan zum
+      driver.recenter();
+      expect(driver.zoomBias, 0);
+    });
+  });
+
   test('tiada lonjakan antara bingkai berturutan (kenderaan dan kamera)', () {
     final cars = <GeoPoint>[];
     for (var i = 0; i < 300; i++) {

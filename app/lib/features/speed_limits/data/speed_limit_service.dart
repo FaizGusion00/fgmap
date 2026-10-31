@@ -147,11 +147,12 @@ class SpeedLimitService {
   /// Had laju di hujung jejak GPS pendek (memandu bebas, tiada laluan). Awam dahulu, kemudian enjin
   /// dalam peranti jika pek dipasang. Null jika jejak terlalu pendek atau semua sumber gagal: pemanggil
   /// tetap menunjukkan kelajuan dan menyembunyikan papan had.
-  Future<int?> limitForTrace(List<GeoPoint> points, RouteVehicle vehicle) async {
+  Future<int?> limitForTrace(
+    List<GeoPoint> points,
+    RouteVehicle vehicle,
+  ) async {
     if (points.length < 2) return null;
-    final request = jsonEncode(
-      buildTraceAttributesRequest(points, vehicle),
-    );
+    final request = jsonEncode(buildTraceAttributesRequest(points, vehicle));
     for (final source in [_online, _offline]) {
       try {
         final limits = parseSpeedLimits(await source(request));
@@ -177,9 +178,7 @@ class SpeedLimitService {
     RouteVehicle vehicle,
   ) async {
     if (points.length < 2) return null;
-    final request = jsonEncode(
-      buildTraceAttributesRequest(points, vehicle),
-    );
+    final request = jsonEncode(buildTraceAttributesRequest(points, vehicle));
     for (final source in [_online, _offline]) {
       try {
         final snapped = parseMatchedEnd(await source(request));

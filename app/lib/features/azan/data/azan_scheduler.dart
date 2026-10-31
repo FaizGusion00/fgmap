@@ -44,6 +44,40 @@ class AzanNotificationTexts {
   final String channelReminder;
 }
 
+/// Alias zon masa Malaysia/Brunei yang tiada dalam pangkalan data `latest_10y` (pakej `timezone`
+/// membuang pautan IANA). `Asia/Kuala_Lumpur` ialah ID yang dilaporkan semua telefon Semenanjung;
+/// tanpa alias ini permulaan notifikasi gagal senyap-senyap dan azan tidak pernah dijadualkan.
+const _timezoneAliases = {
+  'Asia/Kuala_Lumpur': 'Asia/Singapore',
+  'Asia/Brunei': 'Asia/Singapore',
+  'Singapore': 'Asia/Singapore',
+  'Asia/Kuching': 'Asia/Kuching',
+};
+
+/// Zon masa untuk menjadualkan notifikasi. Tidak pernah melempar: ID dikenali -> alias -> zon
+/// tetap mengikut ofset peranti (Malaysia tiada DST, jadi ofset tetap tepat).
+/// Pangkalan data zon masa mesti sudah dimulakan.
+tz.Location resolveTimezone(String? id, {Duration? deviceOffset}) {
+  for (final name in [?id, ?_timezoneAliases[id]]) {
+    try {
+      return tz.getLocation(name);
+    } on Object {
+      // cuba seterusnya
+    }
+  }
+  final offset = deviceOffset ?? DateTime.now().timeZoneOffset;
+  if (offset == const Duration(hours: 8)) {
+    try {
+      return tz.getLocation('Asia/Singapore');
+    } on Object {
+      // jatuh ke zon tetap di bawah
+    }
+  }
+  return tz.Location('Device', [tz.minTime], [0], [
+    tz.TimeZone(offset, isDst: false, abbreviation: 'LOCAL'),
+  ]);
+}
+
 /// Penjadual notifikasi azan. Antara muka supaya pengawal boleh diuji dengan palsu.
 abstract interface class AzanScheduler {
   /// Pangkalan data zon masa, plugin dan saluran. Selamat dipanggil berulang kali.
@@ -51,6 +85,9 @@ abstract interface class AzanScheduler {
 
   /// Kebenaran notifikasi (Android 13+ POST_NOTIFICATIONS; iOS alert + sound).
   Future<bool> requestPermissions();
+
+  /// Adakah notifikasi app dibenarkan sekarang (pengguna boleh menariknya balik dalam tetapan)?
+  Future<bool> notificationsEnabled();
 
   /// Android 12+: adakah penggera tepat dibenarkan? Platform lain: true.
   Future<bool> canScheduleExact();
@@ -65,6 +102,10 @@ abstract interface class AzanScheduler {
   );
 
   Future<void> cancelAll();
+
+  /// Batalkan satu notifikasi (juga menghentikan bunyinya jika sedang berbunyi). Digunakan apabila
+  /// app terbuka dan memainkan azan sendiri, supaya tidak berbunyi dua kali.
+  Future<void> cancel(int id);
 
   /// ID notifikasi yang masih tertunda.
   Future<Set<int>> pendingIds();
@@ -104,16 +145,20 @@ class LocalNotificationsAzanScheduler implements AzanScheduler {
     }
   }
 
+  /// Dimulakan sekali; jika gagal, percubaan berikutnya mencuba semula (bukan kegagalan kekal).
   @override
-  Future<void> ensureInitialized() => _init ??= () async {
-    tzdata.initializeTimeZones();
-    final id = await _timezoneId();
+  Future<void> ensureInitialized() async {
     try {
-      tz.setLocalLocation(tz.getLocation(id ?? 'Asia/Kuala_Lumpur'));
+      await (_init ??= _initialize());
     } on Object {
-      // Peranti dengan ID zon yang tidak dikenali: Malaysia tiada DST, jadi KL selamat.
-      tz.setLocalLocation(tz.getLocation('Asia/Kuala_Lumpur'));
+      _init = null;
+      rethrow;
     }
+  }
+
+  Future<void> _initialize() async {
+    tzdata.initializeTimeZones();
+    tz.setLocalLocation(resolveTimezone(await _timezoneId()));
     await _plugin.initialize(
       settings: const InitializationSettings(
         android: AndroidInitializationSettings('@mipmap/ic_launcher'),
@@ -138,7 +183,7 @@ class LocalNotificationsAzanScheduler implements AzanScheduler {
         payload.startsWith(payloadPrefix)) {
       _taps.add(payload);
     }
-  }();
+  }
 
   AndroidFlutterLocalNotificationsPlugin? get _android =>
       !kIsWeb && Platform.isAndroid
@@ -157,8 +202,8 @@ class LocalNotificationsAzanScheduler implements AzanScheduler {
 
   @override
   Future<bool> requestPermissions() async {
-    await ensureInitialized();
     try {
+      await ensureInitialized();
       final android = _android;
       if (android != null) {
         return await android.requestNotificationsPermission() ?? true;
@@ -169,6 +214,25 @@ class LocalNotificationsAzanScheduler implements AzanScheduler {
       }
     } on Object catch (e) {
       logDiag('Kebenaran notifikasi azan gagal: $e');
+      return false;
+    }
+    return true;
+  }
+
+  @override
+  Future<bool> notificationsEnabled() async {
+    try {
+      await ensureInitialized();
+      final android = _android;
+      if (android != null) {
+        return await android.areNotificationsEnabled() ?? true;
+      }
+      final ios = _ios;
+      if (ios != null) {
+        return (await ios.checkPermissions())?.isEnabled ?? false;
+      }
+    } on Object catch (e) {
+      logDiag('Semakan kebenaran notifikasi gagal: $e');
       return false;
     }
     return true;
@@ -329,6 +393,16 @@ class LocalNotificationsAzanScheduler implements AzanScheduler {
   Future<void> cancelAll() async {
     await ensureInitialized();
     await _plugin.cancelAllPendingNotifications();
+  }
+
+  @override
+  Future<void> cancel(int id) async {
+    try {
+      await ensureInitialized();
+      await _plugin.cancel(id: id);
+    } on Object catch (e) {
+      logDiag('Pembatalan notifikasi azan gagal: $e');
+    }
   }
 
   @override

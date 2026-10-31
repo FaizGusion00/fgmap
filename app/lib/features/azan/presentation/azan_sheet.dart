@@ -1,24 +1,37 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/widgets/sheet_bottom_inset.dart';
 import '../../../core/settings/easy_mode_scope.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../data/azan_settings.dart';
 import '../domain/malaysia_cities.dart';
 import '../domain/prayer.dart';
 import 'azan_controller.dart';
+import 'azan_enable_flow.dart';
 import 'azan_l10n.dart';
 import 'azan_settings_section.dart';
 
 /// Lembaran waktu solat hari ini: senarai besar, waktu seterusnya ditonjolkan, suis notifikasi, dan
 /// tetapan lanjut di bawah.
-Future<void> showAzanSheet(BuildContext context) => showModalBottomSheet<void>(
-  context: context,
-  isScrollControlled: true,
-  useSafeArea: true,
-  showDragHandle: true,
-  builder: (_) => const AzanSheet(),
-);
+Future<void> showAzanSheet(BuildContext context) {
+  // Segarkan waktu rasmi JAKIM untuk lokasi semasa (cache bulanan; senyap jika tiada talian).
+  unawaited(
+    ProviderScope.containerOf(
+      context,
+      listen: false,
+    ).read(azanControllerProvider.notifier).refreshOfficial(),
+  );
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    showDragHandle: true,
+    builder: (_) => const SheetBottomInset(child: AzanSheet()),
+  );
+}
 
 class AzanSheet extends ConsumerWidget {
   const AzanSheet({super.key});
@@ -58,6 +71,16 @@ class AzanSheet extends ConsumerWidget {
               color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
+          const SizedBox(height: 2),
+          Text(
+            azanSourceText(l10n, azan, settings),
+            key: const ValueKey('azan-source-line'),
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: azan.isOfficial
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
           const SizedBox(height: 12),
           if (today != null)
             for (final p in Prayer.values)
@@ -89,13 +112,14 @@ class AzanSheet extends ConsumerWidget {
               ),
             ),
           const SizedBox(height: 4),
-          Text(
-            l10n.azanEstimateNote(azanMethodName(l10n, settings.method)),
-            key: const ValueKey('azan-estimate-note'),
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+          if (!azan.isOfficial)
+            Text(
+              l10n.azanEstimateNote(azanMethodName(l10n, settings.method)),
+              key: const ValueKey('azan-estimate-note'),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
-          ),
           const Divider(height: 32),
           const AzanSettingsSection(),
         ],

@@ -4,16 +4,19 @@ import 'package:fgmap/features/music/domain/music_repository.dart';
 import 'package:fgmap/features/music/domain/player_state.dart';
 import 'package:fgmap/features/music/domain/track.dart';
 
-Track track(String id, {TrackSource source = TrackSource.audius, String? title}) =>
-    Track(
-      id: id,
-      source: source,
-      title: title ?? 'Lagu $id',
-      artist: 'Artis',
-      streamUri: Uri.parse('https://example.test/$id.mp3'),
-      duration: source == TrackSource.radio ? null : const Duration(minutes: 3),
-      radioUuid: source == TrackSource.radio ? 'uuid-$id' : null,
-    );
+Track track(
+  String id, {
+  TrackSource source = TrackSource.audius,
+  String? title,
+}) => Track(
+  id: id,
+  source: source,
+  title: title ?? 'Lagu $id',
+  artist: 'Artis',
+  streamUri: Uri.parse('https://example.test/$id.mp3'),
+  duration: source == TrackSource.radio ? null : const Duration(minutes: 3),
+  radioUuid: source == TrackSource.radio ? 'uuid-$id' : null,
+);
 
 /// Enjin palsu: merekod panggilan dan membenarkan ujian menolak gambar keadaan.
 class FakeMusicEngine implements MusicEngine {
@@ -30,16 +33,23 @@ class FakeMusicEngine implements MusicEngine {
   @override
   Stream<EngineSnapshot> get snapshots => _snapshots.stream;
 
-  void emit(PlayerStatus status, {int? index, Duration? position, Duration? duration, String? error}) =>
-      _snapshots.add(
-        EngineSnapshot(
-          status: status,
-          index: index ?? this.index,
-          position: position ?? Duration.zero,
-          duration: duration,
-          error: error,
-        ),
-      );
+  void emit(
+    PlayerStatus status, {
+    int? index,
+    Duration? position,
+    Duration? duration,
+    String? error,
+    String? nowPlaying,
+  }) => _snapshots.add(
+    EngineSnapshot(
+      status: status,
+      index: index ?? this.index,
+      position: position ?? Duration.zero,
+      duration: duration,
+      error: error,
+      nowPlaying: nowPlaying,
+    ),
+  );
 
   @override
   Future<void> setQueue(List<Track> tracks, int startIndex) async {
@@ -59,7 +69,8 @@ class FakeMusicEngine implements MusicEngine {
   Future<void> stop() async => calls.add('stop');
 
   @override
-  Future<void> seek(Duration position) async => calls.add('seek:${position.inSeconds}');
+  Future<void> seek(Duration position) async =>
+      calls.add('seek:${position.inSeconds}');
 
   @override
   Future<void> seekToIndex(int i) async {
@@ -74,7 +85,10 @@ class FakeMusicEngine implements MusicEngine {
   }
 
   @override
-  Future<void> setEqualizer({required bool enabled, required List<double> gainsDb}) async {
+  Future<void> setEqualizer({
+    required bool enabled,
+    required List<double> gainsDb,
+  }) async {
     eqEnabled = enabled;
     eqGains = gainsDb;
   }
@@ -87,7 +101,11 @@ class FakeMusicEngine implements MusicEngine {
 }
 
 class FakeAudiusRepository implements AudiusRepository {
-  FakeAudiusRepository({this.results = const [], this.trendingResults = const [], this.error});
+  FakeAudiusRepository({
+    this.results = const [],
+    this.trendingResults = const [],
+    this.error,
+  });
   List<Track> results;
   List<Track> trendingResults;
   Object? error;
@@ -112,12 +130,20 @@ class FakeRadioRepository implements RadioRepository {
   List<Track> results;
   Object? error;
   final clicks = <String>[];
+  final regions = <RadioRegion>[];
 
   @override
-  Future<List<Track>> stations({String query = ''}) async {
+  Future<List<Track>> stations({
+    String query = '',
+    RadioRegion region = RadioRegion.malaysia,
+  }) async {
+    regions.add(region);
     if (error != null) throw error!;
     final q = query.toLowerCase();
-    return [for (final t in results) if (t.title.toLowerCase().contains(q)) t];
+    return [
+      for (final t in results)
+        if (t.title.toLowerCase().contains(q)) t,
+    ];
   }
 
   @override

@@ -172,6 +172,8 @@ Map<String, Object?> _encodeRoute(RouteOption route) => {
         'exit': m.roundaboutExitCount,
         'toll': m.toll,
         if (m.lanes.isNotEmpty) 'lanes': [for (final l in m.lanes) l.toJson()],
+        if (m.towards.isNotEmpty) 'toward': m.towards,
+        if (m.exitNumber != null) 'exitNo': m.exitNumber,
       },
   ],
 };
@@ -209,6 +211,10 @@ RouteOption? _decodeRoute(Object? raw) {
           lanes: m['lanes'] is List
               ? [for (final l in m['lanes'] as List) ?Lane.fromJson(l)]
               : const [],
+          towards: m['toward'] is List
+              ? [for (final t in m['toward'] as List) t.toString()]
+              : const [],
+          exitNumber: m['exitNo']?.toString(),
         ),
       );
     }
@@ -246,6 +252,9 @@ Map<String, Object?> _encodeQuery(RouteQuery query) => {
   'radiusM': query.destinationRadiusM,
   'shortest': query.shortest,
   'headingTolerance': query.headingToleranceDegrees,
+  'via': [
+    for (final v in query.via) {'lat': v.lat, 'lng': v.lng},
+  ],
 };
 
 RouteQuery? _decodeQuery(Object? raw) {
@@ -256,6 +265,16 @@ RouteQuery? _decodeQuery(Object? raw) {
   final dLat = (json['destLat'] as num?)?.toDouble();
   final dLng = (json['destLng'] as num?)?.toDouble();
   if (oLat == null || oLng == null || dLat == null || dLng == null) return null;
+  final viaRaw = json['via'];
+  final via = <GeoPoint>[];
+  if (viaRaw is List) {
+    for (final e in viaRaw) {
+      if (e is! Map) continue;
+      final lat = (e['lat'] as num?)?.toDouble();
+      final lng = (e['lng'] as num?)?.toDouble();
+      if (lat != null && lng != null) via.add(GeoPoint(lat, lng));
+    }
+  }
   return RouteQuery(
     origin: GeoPoint(oLat, oLng),
     destination: GeoPoint(dLat, dLng),
@@ -270,5 +289,6 @@ RouteQuery? _decodeQuery(Object? raw) {
     shortest: json['shortest'] == true,
     headingToleranceDegrees: (json['headingTolerance'] as num?)?.toInt(),
     alternates: 0,
+    via: via,
   );
 }

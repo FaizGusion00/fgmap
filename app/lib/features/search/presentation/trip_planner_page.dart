@@ -25,9 +25,12 @@ import '../../../core/utils/haptics.dart';
 /// Destinasi pilihan. Asal laluan sentiasa lokasi GPS pengguna.
 @immutable
 class TripSelection {
-  const TripSelection({required this.destination});
+  const TripSelection({required this.destination, this.stops = const []});
 
   final Place destination;
+
+  /// Perhentian tengah (Valhalla `through`), maks. 5.
+  final List<Place> stops;
 }
 
 /// Halaman penuh untuk memilih destinasi. Asal lalai ialah
@@ -105,6 +108,11 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
   final _destFocus = FocusNode();
 
   Place? _destination;
+  final List<Place> _stops = [];
+  bool _pickingStop = false;
+  /// Jika pengguna menambah perhentian, jangan auto-pop — biar mereka pilih destinasi lalu tekan Mula.
+  bool _multiStopFlow = false;
+  static const _maxStops = 5;
 
   @override
   void initState() {
@@ -215,17 +223,35 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
     }
     Haptics.selection();
     ref.read(searchHistoryControllerProvider.notifier).record(place);
+    if (_pickingStop) {
+      if (_stops.length < _maxStops) {
+        setState(() {
+          _stops.add(place);
+          _pickingStop = false;
+          _multiStopFlow = true;
+          _destText.clear();
+        });
+      }
+      ref.read(placeSearchControllerProvider.notifier).clear();
+      _destFocus.unfocus();
+      return;
+    }
     _destination = place;
     _destText.text = place.name;
     ref.read(placeSearchControllerProvider.notifier).clear();
-    _finish();
-    setState(() {});
+    if (!_multiStopFlow && _stops.isEmpty) {
+      _finish();
+    } else {
+      setState(() {});
+    }
   }
 
   void _finish() {
     final destination = _destination;
     if (destination == null) return;
-    Navigator.of(context).pop(TripSelection(destination: destination));
+    Navigator.of(
+      context,
+    ).pop(TripSelection(destination: destination, stops: List.of(_stops)));
   }
 
   @override
@@ -266,9 +292,72 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
                           ),
                         ),
                       ),
+                      if (widget.assign == null) ...[
+                        for (var i = 0; i < _stops.length; i++) ...[
+                          const SizedBox(height: 8),
+                          _FieldBox(
+                            label: '${l10n.stopsTitle} ${i + 1}',
+                            icon: Icons.flag_rounded,
+                            trailing: IconButton(
+                              tooltip: l10n.removeStop,
+                              icon: const Icon(Icons.close_rounded),
+                              onPressed: () =>
+                                  setState(() => _stops.removeAt(i)),
+                            ),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                _stops[i].name,
+                                style: theme.textTheme.bodyLarge,
+                              ),
+                            ),
+                          ),
+                        ],
+                        if (_stops.length < _maxStops) ...[
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: TextButton.icon(
+                              key: ValueKey(
+                                _pickingStop ? 'picking-stop' : 'add-stop',
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _pickingStop = !_pickingStop;
+                                  if (_pickingStop) {
+                                    _multiStopFlow = true;
+                                    _destFocus.requestFocus();
+                                  }
+                                });
+                              },
+                              icon: Icon(
+                                _pickingStop
+                                    ? Icons.close_rounded
+                                    : Icons.add_rounded,
+                              ),
+                              label: Text(
+                                _pickingStop ? l10n.searchClear : l10n.addStop,
+                              ),
+                            ),
+                          ),
+                        ],
+                        if (_pickingStop)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                l10n.pickingStopHint,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
                       const SizedBox(height: 8),
                       _FieldBox(
-                        label: l10n.tripTo,
+                        label: _pickingStop ? l10n.addStop : l10n.tripTo,
                         icon: Icons.place_rounded,
                         trailing: _destText.text.isEmpty
                             ? null
@@ -288,7 +377,9 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
                           onChanged: _onChanged,
                           decoration: InputDecoration(
                             hintText: widget.assign == null
-                                ? l10n.searchHint
+                                ? (_pickingStop
+                                      ? l10n.pickingStopHint
+                                      : l10n.searchHint)
                                 : l10n.savedAssigning(
                                     savedKindLabel(l10n, widget.assign!),
                                   ),
@@ -298,6 +389,19 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
                           style: theme.textTheme.bodyLarge,
                         ),
                       ),
+                      if (_destination != null &&
+                          (_multiStopFlow || _stops.isNotEmpty)) ...[
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton.icon(
+                            key: const ValueKey('plan-with-stops'),
+                            onPressed: _finish,
+                            icon: const Icon(Icons.route_rounded),
+                            label: Text(l10n.navStart),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),

@@ -398,10 +398,9 @@ void main() {
           contentType: 'application/json',
         ),
       );
-      final limit = await service(adapter).limitForTrace(
-        const [klcc, klia],
-        RouteVehicle.car,
-      );
+      final limit = await service(
+        adapter,
+      ).limitForTrace(const [klcc, klia], RouteVehicle.car);
       expect(limit, isNotNull);
       expect(engine.traceRequests, isEmpty);
       expect(
@@ -410,20 +409,23 @@ void main() {
       );
     });
 
-    test('jejak: online gagal lalu pek offline; kegagalan semua -> null', () async {
-      await installPack();
-      final failed = await service(
-        FailingAdapter(DioExceptionType.connectionError),
-      ).limitForTrace(const [klcc, klia], RouteVehicle.car);
-      expect(failed, isNotNull);
-      expect(engine.traceRequests, hasLength(1));
+    test(
+      'jejak: online gagal lalu pek offline; kegagalan semua -> null',
+      () async {
+        await installPack();
+        final failed = await service(
+          FailingAdapter(DioExceptionType.connectionError),
+        ).limitForTrace(const [klcc, klia], RouteVehicle.car);
+        expect(failed, isNotNull);
+        expect(engine.traceRequests, hasLength(1));
 
-      engine.traceError = StateError('tutup');
-      final none = await service(
-        FailingAdapter(DioExceptionType.connectionError),
-      ).limitForTrace(const [klcc], RouteVehicle.car);
-      expect(none, isNull);
-    });
+        engine.traceError = StateError('tutup');
+        final none = await service(
+          FailingAdapter(DioExceptionType.connectionError),
+        ).limitForTrace(const [klcc], RouteVehicle.car);
+        expect(none, isNull);
+      },
+    );
   });
 
   group('overspeedLevel', () {

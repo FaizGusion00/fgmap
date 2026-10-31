@@ -13,24 +13,29 @@ void main() {
 
   test('mati: tiada jadual', () {
     expect(
-      planAzanSchedule(now: now, at: kl, settings: const AzanSettings(), calculator: calc),
+      planAzanSchedule(
+        now: now,
+        at: kl,
+        settings: const AzanSettings(),
+        calculator: calc,
+      ),
       isEmpty,
     );
   });
 
-  test('hanya waktu hadapan dan waktu yang dipilih, 2 hari, tersusun', () {
+  test('hanya waktu hadapan dan waktu yang dipilih, 7 hari, tersusun', () {
     final items = planAzanSchedule(
       now: now,
       at: kl,
       settings: const AzanSettings(enabled: true),
       calculator: calc,
     );
-    // Hari ini: Asar, Maghrib, Isyak; esok: 5 waktu.
-    expect(items, hasLength(8));
+    // Hari ini: Asar, Maghrib, Isyak; enam hari lagi: 5 waktu setiap hari.
+    expect(items, hasLength(3 + 6 * 5));
     expect(items.first.prayer, Prayer.asr);
     expect(items.first.at, DateTime(2026, 10, 31, 16, 25));
     expect(items.last.prayer, Prayer.isha);
-    expect(items.last.at.day, 1);
+    expect(items.last.at.day, 6);
     expect(items.last.at.month, 11);
     for (var i = 1; i < items.length; i++) {
       expect(items[i].at.isAfter(items[i - 1].at), isTrue);
@@ -48,7 +53,7 @@ void main() {
       calculator: calc,
     );
     expect(items.map((i) => i.prayer).toSet(), {Prayer.maghrib});
-    expect(items, hasLength(2));
+    expect(items, hasLength(azanScheduleDays));
   });
 
   test('peringatan awal ditambah sebelum setiap waktu dengan nada pendek', () {
@@ -78,7 +83,7 @@ void main() {
     final day = DateTime(2026, 10, 31);
     final a = azanNotificationId(day, Prayer.fajr);
     expect(a, azanNotificationId(DateTime(2026, 10, 31, 23, 59), Prayer.fajr));
-    // Unik sepanjang satu tahun (ID berulang tahun ke tahun; hanya 2 hari dijadualkan).
+    // Unik sepanjang satu tahun (ID berulang tahun ke tahun; hanya 7 hari dijadualkan).
     final ids = <int>{};
     for (var d = 0; d < 365; d++) {
       final dd = DateTime(2026, 1, 1 + d);
@@ -103,8 +108,52 @@ void main() {
       ),
       calculator: c,
     );
-    expect(c.calls, hasLength(2));
+    expect(c.calls, hasLength(azanScheduleDays));
     expect(c.calls.first.$3, AzanMethod.mwl);
     expect(c.calls.first.$4, AzanMadhab.hanafi);
   });
+
+  test('had notifikasi tertunda: yang terdekat dikekalkan (iOS 64)', () {
+    final items = planAzanSchedule(
+      now: now,
+      at: kl,
+      settings: const AzanSettings(enabled: true, reminderMinutes: 10),
+      calculator: calc,
+    );
+    // 33 azan + 33 peringatan > 60.
+    expect(items, hasLength(azanMaxPending));
+    expect(items.first.at, DateTime(2026, 10, 31, 16, 15)); // peringatan Asar
+    for (var i = 1; i < items.length; i++) {
+      expect(items[i].at.isAfter(items[i - 1].at), isTrue);
+    }
+  });
+
+  test(
+    'tandatangan jadual berubah apabila tetapan yang mempengaruhi OS berubah',
+    () {
+      String sig(
+        AzanSettings s, {
+        String source = 'calc',
+        String locale = 'ms',
+        bool exact = true,
+      }) => azanScheduleSignature(
+        s,
+        source: source,
+        locale: locale,
+        exact: exact,
+      );
+      const base = AzanSettings(enabled: true);
+      final a = sig(base);
+      expect(sig(base), a);
+      expect(sig(base.copyWith(sound: AzanSound.short)), isNot(a));
+      expect(sig(base.copyWith(reminderMinutes: 5)), isNot(a));
+      expect(sig(base.copyWith(prayers: {Prayer.fajr})), isNot(a));
+      expect(sig(base.copyWith(method: AzanMethod.mwl)), isNot(a));
+      expect(sig(base, source: 'WLY01'), isNot(a));
+      expect(sig(base, locale: 'en'), isNot(a));
+      expect(sig(base, exact: false), isNot(a));
+      // Tidak mempengaruhi OS: tidak menjadualkan semula.
+      expect(sig(base.copyWith(playDuringNavigation: true)), a);
+    },
+  );
 }

@@ -8,8 +8,10 @@ import '../data/just_audio_engine.dart';
 import '../data/music_audio_handler.dart';
 import '../data/music_settings.dart';
 import '../data/radio_browser_repository.dart';
+import '../data/radio_health.dart';
 import '../domain/music_repository.dart';
 import '../domain/player_state.dart';
+import '../domain/stream_title.dart';
 import '../domain/track.dart';
 
 /// Enjin audio; ditimpa dengan palsu dalam ujian.
@@ -65,7 +67,25 @@ class PlayerController extends Notifier<PlayerState> implements DuckTarget {
       next = next.copyWith(index: idx);
       _countRadioClick(state.queue[idx]);
     }
+    final current = next.current;
+    final song = current != null && current.isLive
+        ? cleanStreamTitle(s.nowPlaying, station: current.title)
+        : null;
+    next = next.copyWith(nowPlaying: song, clearNowPlaying: song == null);
     state = next;
+    _recordHealth(current, s.status);
+  }
+
+  /// Ingat stesen yang gagal (dan lupakan apabila ia berjaya main) supaya senarai Radio
+  /// membenamkan stesen mati pada peranti ini.
+  void _recordHealth(Track? t, PlayerStatus status) {
+    if (t == null || !t.isLive) return;
+    final health = ref.read(radioHealthProvider.notifier);
+    if (status == PlayerStatus.error) {
+      unawaited(health.markFailed(t));
+    } else if (status == PlayerStatus.playing) {
+      unawaited(health.markOk(t));
+    }
   }
 
   MusicEngine get _engine => ref.read(musicEngineProvider);
@@ -101,6 +121,7 @@ class PlayerController extends Notifier<PlayerState> implements DuckTarget {
     } on Object catch (e) {
       logDiag('Main muzik gagal: $e');
       state = state.copyWith(status: PlayerStatus.error, error: e.toString());
+      _recordHealth(track, PlayerStatus.error);
     }
   }
 

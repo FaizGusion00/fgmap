@@ -30,6 +30,9 @@ FGMaps ialah app navigasi untuk Malaysia. Laluan dikira dalam telefon anda, term
 • Anggaran tol dan kos minyak
 • Carian tempat, Rumah/Kerja, dan cari berhampiran
 • Tema Cerah, Gelap, AMOLED dan Matahari
+• Waktu Azan rasmi JAKIM dengan notifikasi walaupun app ditutup
+• Muzik dan radio dalam app (Malaysia, Indonesia, Korea, K-pop)
+• Mod mudah untuk warga emas dan panduan lorong
 • Percuma — tiada akaun, tiada iklan, tiada penjejakan
 
 Data peta © penyumbang OpenStreetMap. Dibangunkan oleh Faiz Nasir · FG Universal Empire Company.
@@ -43,6 +46,9 @@ FGMaps is navigation built for Malaysia. Routes are calculated on your phone, in
 • Toll and fuel cost estimates
 • Place search, Home/Work, and nearby search
 • Light, Dark, AMOLED and Sun themes
+• Official JAKIM prayer times with notifications even when the app is closed
+• Music and radio in the app (Malaysia, Indonesia, Korea, K-pop)
+• Easy mode for older drivers and lane guidance
 • Free — no account, no ads, no tracking
 
 Map data © OpenStreetMap contributors. Built by Faiz Nasir · FG Universal Empire Company.

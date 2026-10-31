@@ -298,14 +298,10 @@ void main() {
             ? (const Duration(milliseconds: 600), StubAdapter.json(many))
             : (Duration.zero, StubAdapter.json(many));
       });
-      final search = OverpassNearbySearch(
-        Dio()..httpClientAdapter = adapter,
-        [
-          'https://m1.example/api/interpreter',
-          'https://m2.example/api/interpreter',
-        ],
-        hedgeAfter: const Duration(milliseconds: 40),
-      );
+      final search = OverpassNearbySearch(Dio()..httpClientAdapter = adapter, [
+        'https://m1.example/api/interpreter',
+        'https://m2.example/api/interpreter',
+      ], hedgeAfter: const Duration(milliseconds: 40));
       final watch = Stopwatch()..start();
       final result = await search.search(
         NearbyCategory.fuel,

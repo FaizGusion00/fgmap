@@ -66,12 +66,7 @@ void main() {
     final g = gate();
     g.seedActive();
     expect(
-      g.update(
-        time: t0,
-        speedMps: 0,
-        headingKnown: false,
-        blocked: false,
-      ),
+      g.update(time: t0, speedMps: 0, headingKnown: false, blocked: false),
       isTrue,
     );
     expect(

@@ -53,8 +53,17 @@ dalam falsafah RM0 / tanpa kunci API / tanpa pelayan sendiri (ADR 0004) dan HTTP
   untuk seluruh zon, jadi nilai berbeza beberapa minit (Subuh paling ketara, ~7 min di KL). UI menyatakan
   "anggaran; ikut jadual rasmi untuk berbuka dan imsak". Pengguna boleh menukar kaedah (MWL, Mesir,
   Karachi, Umm al-Qura) dan mazhab Asar.
-- Tiada API waktu solat: semua sumber dalam talian sama ada berkunci, berkuota atau tiada jaminan. Pengiraan
-  tempatan berfungsi luar talian dan tiada data keluar.
+- **Semakan 1.1.0: sumber rasmi.** Pengiraan sahaja berbeza beberapa minit daripada jadual rasmi, dan
+  pengguna mahu waktu yang "sah". Ditemui **WaktuSolat API** (`api.waktusolat.app`): percuma, tanpa kunci,
+  HTTPS, menukar koordinat kepada zon JAKIM (`/v2/solat/gps/{lat}/{lng}`) dan memulangkan jadual bulanan
+  e-Solat (cap masa Unix). Jadual itu kini sumber utama (kaedah JAKIM + mazhab Syafie sahaja; itulah yang
+  dipakai jadual rasmi); pengiraan pada peranti kekal sebagai sandaran (tiada talian, di luar Malaysia,
+  API turun, atau pilihan "Waktu rasmi JAKIM" dimatikan: tiada permintaan rangkaian langsung).
+  Hanya koordinat 0.01° (~1 km), tahun dan bulan dihantar; tiada pengenal pasti. Jadual disimpan pada
+  telefon (`azan.official.v1`, maks. 6 bulan, sah dalam 15 km) dan dipadam oleh "Padam semua data saya".
+  Data dihuraikan dengan ketat (waktu mesti menaik; hari rosak dibuang) supaya respons buruk tidak pernah
+  mengatasi pengiraan. Risiko: API komuniti tanpa SLA; sandaran menanganinya. Sumber waktu dipaparkan
+  dalam lembaran waktu ("zon WLY01" atau "dikira pada telefon").
 - Notifikasi: `flutter_local_notifications` + `timezone`. Lalai bunyi = **azan penuh** (saluran Android
   dengan atribut ALARM supaya kedengaran walaupun kelantangan notifikasi rendah; Jangan Ganggu dihormati).
   Pilihan: nada pendek, senyap, peringatan 5/10/15 minit. Saluran berversi (`azan_full_v1` ...) kerana bunyi
@@ -62,11 +71,20 @@ dalam falsafah RM0 / tanpa kunci API / tanpa pelayan sendiri (ADR 0004) dan HTTP
   29 saat digunakan; azan penuh hanya apabila app terbuka.
 - Penggera tepat: `SCHEDULE_EXACT_ALARM` yang dibenarkan pengguna (kad dalam tetapan), jatuh balik kepada
   `inexactAllowWhileIdle` (mungkin lewat beberapa minit; UI memberitahu). Bukan `USE_EXACT_ALARM`: polisi
-  Play mengehadkannya kepada app jam/kalendar. Jadual 2 hari (<= 20 notifikasi, bawah had iOS 64), ID
+  Play mengehadkannya kepada app jam/kalendar. Jadual 7 hari (dihadkan 60 notifikasi, bawah had iOS 64; yang terdekat dahulu), ID
   tetap mengikut (hari, waktu, peringatan), dijadual semula apabila tetapan berubah, lokasi berpindah
   >= 20 km, app kembali ke hadapan, tengah malam, atau but semula.
 - Semasa navigasi aktif: hanya bunyi pendek + cip pada HUD (arahan suara tidak boleh ditenggelamkan oleh
-  azan 90 saat), melainkan "Main azan penuh semasa navigasi" dihidupkan. Notifikasi OS tetap dihantar.
+  azan 90 saat), melainkan "Main azan penuh semasa navigasi" dihidupkan. Notifikasi OS ialah laluan
+  yang boleh dipercayai apabila app ditutup; apabila app terbuka (atau navigasi aktif) pengawal mengambil
+  alih 2 saat sebelum waktu dan **membatalkan notifikasi OS yang sepadan** supaya azan tidak berbunyi dua
+  kali dan peraturan navigasi dipatuhi. App di latar tanpa navigasi: OS sahaja yang berbunyi.
+- **Pembetulan 1.1.0 (suis azan tidak berfungsi):** pangkalan data `timezone/latest_10y` tiada
+  `Asia/Kuala_Lumpur` (pautan IANA ke Singapura). Semua telefon Semenanjung melaporkan ID itu, jadi
+  permulaan notifikasi melontar dan ralat ditelan senyap: suis tidak berbuat apa-apa dan tiada azan pernah
+  dijadualkan. Kini `resolveTimezone` menggunakan alias (+8) dan jatuh balik kepada ofset peranti;
+  permulaan yang gagal tidak lagi di-cache; setiap hasil kebenaran (ditolak, disekat, penggera tepat belum
+  dibenarkan) ada dialog jelas dengan butang ke tetapan; kebenaran notifikasi turut diminta semasa sambutan.
 - Lokasi: kedudukan dibundarkan ke 0.01° (~1 km; ralat waktu < 10 saat), ditulis hanya selepas berpindah
   >= 20 km; sandaran: lokasi matahari (0.1°) atau bandar yang dipilih daripada senarai 21 bandar. Kunci
   `azan.lat/lng` dipadam oleh "Padam semua data saya".
@@ -104,3 +122,123 @@ dalam falsafah RM0 / tanpa kunci API / tanpa pelayan sendiri (ADR 0004) dan HTTP
 - Fail `.caf` iOS didaftarkan dalam `project.pbxproj` tanpa Xcode (sama seperti ADR 0010); sahkan di Mac.
 - Ujian nilai mutlak waktu solat hanya dijalankan apabila zon masa ujian +08:00.
 - Golden dijana pada Flutter 3.47.8 (CI 3.41.7); semak toleransi 0.5% dalam CI.
+
+## Tambahan 1.1.0: HUD manuver, pemilihan laluan dan kamera
+
+### Gambar rajah manuver (`ManeuverDiagram`)
+- Ikon Material (terutama `fork_right`, `ramp_right`) sukar dibaca sekilas: "Kekal kanan" kelihatan
+  seperti anak panah bercabang tanpa makna, dan "Ambil susur" dengan anak panah lurus langsung tidak
+  menunjukkan arah. Diganti dengan gambar rajah simpang yang dilukis sendiri (`CustomPainter`, ruang
+  100x100, versi kiri = cermin versi kanan, untuk lalu lintas sebelah kiri): jalan yang diambil =
+  garisan tebal + kepala anak panah; jalan lain yang TIDAK diambil = garisan pudar. Belok = jalan lurus
+  pudar + laluan membelok; kekal = jalan bercabang dengan satu cabang ditonjolkan; susur = jalan utama
+  pudar + cabang keluar; gabung = jalan disertai pudar + laluan masuk; pusingan U. Bulatan kekal gelang +
+  nombor keluar; mula/tiba/feri kekal glif Material. Lembaran semua simbol dijaga oleh golden
+  `maneuver_diagrams.png`.
+
+### Papan tanda dan kod jalan
+- Valhalla memulangkan `sign` (nombor keluar dan "menuju ...") pada cabang, susur dan keluar, tetapi app
+  hanya memaparkan nama jalan; kad menunjukkan "Kekal kanan / 3217". Kini `towards` dan `exitNumber`
+  dihuraikan, disimpan dalam rekod perjalanan, dan dipaparkan ("Keluar 1306B · Menuju Klang · I-City") serta
+  disebut ("Kekal di sebelah kanan menuju Klang"). Untuk belok biasa, nama jalan kekal.
+- Kod jalan nombor sahaja ("3217", "2") bukan nama yang bermakna: dikenal pasti sebagai kod (regex
+  `[A-Z]{0,3}\s?\d+[A-Z]?`), tidak diutamakan berbanding nama sebenar, dan dipaparkan/disebut "Laluan 3217".
+
+### Kualiti jalan dalam pemilihan laluan "Disyorkan"
+- Diukur terhadap Valhalla awam (8 perjalanan, Lembah Klang dan luar bandar): laluan lalai sudah 91-97%
+  jalan utama di Lembah Klang, tetapi sesetengah perjalanan luar bandar melalui 25-30% secondary/tidak
+  dikelaskan (Seremban-KLIA: 20% secondary + 8% unclassified). Pilihan costing (`maneuver_penalty`,
+  `service_penalty`, `use_highways` 1.0) hampir tidak mengubah hasil: Valhalla tiada kawalan untuk
+  mengelak tertiari/kampung. Maka kelas jalan SEBENAR dinilai selepas laluan dikira: `trace_attributes`
+  (`edge.road_class`) pada laluan yang bersaing (masa dalam 1.15x terpantas, maks. 6 permintaan satu
+  carian, tidak untuk re-route) memberi `roadPenalty` = jumlah (pecahan jarak x berat kelas; secondary
+  0.06, tertiari 0.30, tidak dikelaskan 0.40, kediaman 0.50, servis 0.80, dihad 0.6) yang ditambah pada
+  skor sebagai pecahan masa. Ia hanya mempengaruhi pilihan "Disyorkan" (dan menghalang laluan "dikalahkan"
+  oleh laluan yang sedikit lebih laju tetapi melalui jalan kampung); masa dan jarak yang dipaparkan tidak
+  berubah. Gagal/tamat masa = tingkah laku lama. Bentuk beberapa laluan calon dihantar ke pelayan yang
+  sama dengan had laju (privasi dikemas kini).
+
+### Zum
+- Mencubit untuk zum semasa kamera dilepaskan kini diingat sebagai bias zum apabila kamera kembali
+  mengikut (sama seperti butang +/-), dan zum automatik (kelajuan, menghampiri simpang) terus berfungsi
+  di atasnya. Perubahan < 0.3 tahap dianggap hingar; > 2.5 tahap dianggap meninjau peta dan kamera
+  kembali ke zum automatik.
+
+
+### Semakan 1.2: Radio diperkukuh, YouTube ditolak (keputusan dan bukti)
+
+Permintaan: lagu Melayu/Indonesia/Japan yang banyak "macam Spotify/YouTube Music". Diukur terhadap API sebenar
+(31 Okt 2026), bukan diandaikan.
+
+**Mengapa katalog label tiada.** Audius (lagu muat naik pengguna): "siti nurhaliza" = 4 hasil, semuanya
+remix/bootleg; Spring = 0. Deezer dan iTunes ada katalog sebenar (Deezer: 235 lagu Siti Nurhaliza; Awie, Ziana
+Zain, Exists, Dewa 19, Tulus, YOASOBI ditemui) tetapi **hanya pratonton 30 saat**. Terma Deezer: "Personal
+Applications", penggunaan "non-commercial", audio tidak boleh disimpan luar talian, pautan pratonton mempunyai
+`exp=` (tamat tempoh). Tiada API percuma yang memberi lagu penuh artis label.
+
+**Ditolak, dengan sebab:**
+- `mohd-baquir-qureshi/music-api`: repo satu fail README, tiada lesen, dinyahaktifkan oleh pengarangnya (13 Mei 2024),
+  membungkus enjin Gaana/JioSaavn (katalog India, tiada Melayu/Indonesia/Japan), dan endpoint-nya mati
+  (`error code: 1042`). Pengikis tidak berlesen: tidak diguna.
+- Pengekstrak YouTube (Piped/Invidious/youtube-dl): terma pembangun YouTube melarang secara nyata mengasingkan
+  audio, menyimpan/menyalin kandungan, dan menggunakan API tidak didokumenkan (III.E.1, III.D.7, III.I). App Store
+  5.2.3 melarang menyimpan/menukar/memuat turun daripada YouTube tanpa kebenaran dan memberi amaran strim juga
+  boleh melanggar terma; Play melarang app yang menggalakkan pelanggaran hak cipta. Tiada cara menjadikannya
+  "selamat": menyembunyikan ciri daripada penyemak kedai (flag jauh) ialah penipuan dasar dan boleh menamatkan
+  akaun pembangun, bukan sekadar membuang app. Ditolak (sama seperti ADR ini sebelum ini).
+- Pemain tertanam YouTube rasmi (sah): lagu penuh, tetapi pemain mesti kelihatan (>= 200x200, tiada tindanan),
+  tiada main latar, dan carian `search.list` lalai hanya **100 panggilan/hari** untuk seluruh projek (permohonan
+  kuota melalui audit pematuhan). Pemandu juga akan melihat video. Tidak dibina; boleh dipertimbang semula
+  untuk senarai main kurasi (`playlistItems.list` = 1 unit) jika diputuskan.
+- Spotify: strim hanya untuk Premium dan kuota lanjutan memerlukan organisasi berdaftar dengan >= 250k MAU
+  (polisi 15 Mei 2025). Apple Music (MusicKit, Android + iOS) sah untuk pelanggan, belum dinilai.
+
+**Dibina (Radio, penuh dan sah):**
+- Diukur (strim sebenar disambung dari lokasi pembangun): 150 teratas Malaysia 54/54 HTTPS berfungsi, Indonesia
+  114/121, Japan 105/108, **Korea hanya 27/62** (stesen KBS/SBS/MBC besar dikembalikan HTTP error dari luar Korea).
+- `ssl_error` (sijil rosak) kini dibuang: OS tidak akan menyambungnya.
+- Naik taraf HTTP -> HTTPS **hanya jika disahkan**: 8/30 stesen http Malaysia (RTM Nasional FM, Asyik FM, Klasik
+  Nasional, Langkawi FM, Keningau FM, WAI FM Iban...), 9/29 Indonesia, 24/42 Japan menyiar audio melalui HTTPS;
+  selebihnya tiada HTTPS dan kekal tersembunyi (ADR 0010 tidak dilonggarkan). Semakan: maks. 30 stesen, 8 selari,
+  had 5 saat, hanya pengepala dibaca, keputusan diingat untuk sesi. Privasi dikemas kini (pelayan stesen dihubungi).
+- Tajuk ICY ("Artis - Lagu") dipaparkan pada pemain kecil, pemain penuh dan skrin kunci; tajuk kosong/URL/nama stesen
+  dibuang (`cleanStreamTitle`). Tidak tersedia untuk strim HLS dan stesen yang tidak menghantarnya.
+- Stesen Kegemaran (bintang; pada peranti, maks. 60, dipadam oleh "Padam semua data saya") dan ingatan stesen
+  gagal 24 jam (dibenam ke bawah senarai, bukan disembunyikan, kerana kegagalan bergantung pada lokasi).
+- Kawasan Japan dan J-pop (Radio Browser `countrycode=JP`, `tag=jpop`); "Melayu" dalam teks muzik jadi "Malay".
+
+**Had:** ICY tidak diuji pada peranti. Kegemaran menyimpan URL strim semasa penyimpanan: stesen yang berpindah
+URL perlu disimpan semula. Stesen yang hilang dari Radio Browser: lihat Semakan 1.3.
+
+### Semakan 1.3: stesen disahkan dan ukuran tab Lagu
+
+**Stesen disahkan (`curated_stations.dart`).** Senarai "tertinggal" pada 1.2 sebahagiannya salah: Hitz, Sinar, Mix,
+Lite, Melody, Fly, Hot FM, Zayan, Raaga dan Eight sebenarnya ada dalam Radio Browser (Hitz sekadar tamat masa
+sekali semasa ukuran). Yang benar-benar hilang atau rosak: ERA, Suria FM, THR Gegar. URL calon daripada direktori
+awam disahkan sendiri (sambungan sebenar, audio diterima, segmen HLS diambil) sebelum dimasukkan:
+- Suria FM, Sabah FM, Sarawak FM: mount StreamTheWorld `*_FMAAC_SC`; `icy-name` strim sepadan dengan stesen.
+- ERA dan THR Gegar: Revma (ID `crec9cmbv4uvv`, `cn0zcqsbv4uvv`, akhiran sama seperti stesen Astro lain). URL penuh
+  `.../playlist.m3u8` bagi ERA dalam direktori itu mengembalikan HTTP 400 (basi); bentuk asas `stream.rcs.revma.com/<id>`
+  berfungsi dan membawa ICY. Revma hanya memulangkan ID sebagai `icy-name`, jadi **identiti ERA bergantung pada
+  direktori awam ditambah semakan kandungan** (lagu yang bersiaran ialah lagu Melayu, "Insomniacks, Yonnyboii -
+  Bersuara"). Jika pengguna melaporkan salah stesen, buang entri ini.
+- Digabung ke hadapan senarai Malaysia; stesen Radio Browser dengan nama sama (atau sama + frekuensi) diganti;
+  jika direktori tidak dapat dicapai senarai ini masih dipaparkan. Semak semula: `python3 -I
+  tools/radio/check_curated_stations.py`. Tiada token dilangkau dan tiada wilayah dipintas.
+- **Tidak boleh ditambah:** J-WAVE, TOKYO FM, NACK5 (dan Inter FM, FM Yokohama) hanya disiarkan melalui radiko yang
+  dikunci kepada Japan tanpa strim awam; mengambilnya bermakna memintas sekatan wilayah. Molek FM, Kool 101, Salam FM
+  dan Capital FM: tiada URL awam ditemui (mount StreamTheWorld yang dicuba tidak wujud). Tidak diteka.
+  Japan kekal dilayan oleh NHK World, Listen.moe, Gensokyo, BOX City Pop, asia DREAM radio, J1 Hits (semuanya sah dan
+  disahkan menyiar).
+
+**Tab Lagu (Audius) diukur semula**, 300 hasil teratas setiap pertanyaan. Angka kelihatan banyak ("Malay" 290,
+"K-pop" 297) tetapi itu padanan teks pada tajuk/nama pengguna, bukan lagu bahasa itu: "Malay" -> "Green Malay",
+"SPRUNG (feat. Malay)"; "Indonesia" -> "Bangga Indonesia (Remix)"; "K-pop" -> remix demo/produser; "Spring" ->
+"Flume & Eprom - Spring". Dikira berapa hasil yang benar-benar menyebut nama artis (padanan serpihan perkataan
+lain dibuang secara manual): Siti Nurhaliza 3 (remix DJ dan satu penyanyi lain), Ziana Zain 0, Awie 0, Dewa 19 1 (audio
+lirik muat naik pengguna), Sheila on 7 9 (muat naik pengguna), Spring/Tulus/Raisa 0 artis berkenaan (hanya perkataan
+"spring" atau serpihan nama lain). BTS/BLACKPINK/NewJeans: remix dan muat naik pengguna, bukan rilis rasmi
+(sebahagiannya tampak seperti salinan tidak berlesen, risiko semakan Play).
+Kesimpulan: tab Lagu **tidak** menyediakan katalog Melayu/Indonesia/Korea/Japan arus perdana; cip cadangan di situ
+memberi hasil bising untuk bahasa/negara. Radio ialah laluan yang berfungsi. Cadangan terbuka: cip Malay/Indonesia/
+Japan/K-pop membuka tab Radio pada kawasan itu (belum dibuat; mengubah tingkah laku cip sedia ada).

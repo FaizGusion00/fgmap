@@ -9,7 +9,7 @@ FGMaps ("app") dikendalikan oleh **{{entity}}** (No. pendaftaran: {{regNo}}), be
 ## 2. Ringkasan
 
 - Tiada akaun, tiada iklan, tiada analitik dan tiada penjejakan.
-- Sejarah carian, tempat disimpan (Rumah, Kerja, kegemaran), laporan dan tetapan kekal pada telefon anda. Kami tidak mempunyai pelayan yang menyimpannya.
+- Sejarah carian, tempat disimpan (Rumah, Kerja, kegemaran), sejarah perjalanan, laporan dan tetapan kekal pada telefon anda. Kami tidak mempunyai pelayan yang menyimpannya.
 - Untuk memaparkan peta, mencari tempat dan mengira laluan, app menghantar permintaan terus ke perkhidmatan awam pihak ketiga (bahagian 4). Kami tidak mengendalikan perkhidmatan itu dan tidak menerima salinan permintaan anda.
 - Anda boleh memadam semua data tempatan pada bila-bila masa: Tetapan > Privasi > Padam semua data saya.
 
@@ -17,11 +17,13 @@ FGMaps ("app") dikendalikan oleh **{{entity}}** (No. pendaftaran: {{regNo}}), be
 
 - Tetapan app (tema, bahasa, suara navigasi, jenis kenderaan dan sebagainya).
 - Sejarah carian dan destinasi terkini.
+- Sejarah perjalanan (ringkasan pilihan perjalanan selesai: jarak, tempoh, nama destinasi, dan anggaran tol/minyak jika diketahui). Disimpan mengikut tempoh yang anda pilih dalam Tetapan (lalai 90 hari; atau 30 hari, selamanya, atau dimatikan). Tidak pernah dimuat naik.
+- Stesen radio kegemaran (nama dan alamat strim) dan stesen yang gagal disambung dalam 24 jam lalu, pada telefon anda sahaja.
 - Tempat disimpan: Rumah, Kerja dan kegemaran, termasuk koordinat yang anda pilih atau lokasi semasa yang anda simpan.
 - Laporan jalan (kemalangan, sekatan dan sebagainya) yang anda buat. Buat masa ini ia hanya disimpan pada telefon anda dan tidak dikongsi dengan pengguna lain.
 - Simpanan sementara: hasil carian berhampiran (hingga 30 hari), gaya peta, peta luar talian yang anda muat turun, dan kedudukan kasar (dibundarkan kira-kira 11 km) untuk mengira waktu matahari terbit dan terbenam bagi tema automatik.
 - Log ralat ringkas pada telefon (jika dihidupkan), yang tidak mengandungi koordinat atau URL dan tidak dihantar ke mana-mana kecuali anda salin dan hantar sendiri.
-- Waktu Azan: waktu solat dikira pada telefon anda sendiri (tiada pelayan). Kedudukan kasar (dibundarkan kira-kira 1 km) atau bandar yang anda pilih disimpan untuk pengiraan dan penjadualan notifikasi.
+- Waktu Azan: kedudukan kasar (dibundarkan kira-kira 1 km) atau bandar yang anda pilih disimpan untuk menentukan waktu solat dan menjadualkan notifikasi. Waktu solat diambil daripada jadual rasmi JAKIM (bahagian 4) atau dikira pada telefon anda sendiri jika tiada talian atau anda mematikan pilihan itu; jadual bulanan yang diambil disimpan pada telefon.
 - Muzik: fail audio yang anda import dari telefon disalin ke storan app; tetapan pemain (penyama, tingkah laku semasa suara navigasi) juga disimpan di sini.
 
 Data ini tidak disandarkan ke awan (sandaran Android dimatikan).
@@ -32,13 +34,15 @@ App perlu menghubungi perkhidmatan berikut untuk berfungsi. Setiap satu turut me
 
 - **Peta (OpenFreeMap):** permintaan jubin dan gaya peta. Ia mendedahkan kawasan yang anda lihat.
 - **Carian tempat (Photon oleh komoot, Jerman; sandaran Nominatim oleh Yayasan OpenStreetMap, UK):** teks yang anda taip dan kedudukan anggaran anda sebagai keutamaan hasil. Apabila anda memilih "Guna lokasi semasa" untuk Rumah atau Kerja, kedudukan tepat dihantar sekali untuk mendapatkan nama alamat.
-- **Laluan dan had laju (Valhalla oleh FOSSGIS e.V., Jerman):** kedudukan GPS semasa anda sebagai asal, destinasi, arah perjalanan, jenis kenderaan dan pilihan laluan. Semasa navigasi, app mengira semula laluan jika anda menyimpang, dan menghantar bentuk laluan untuk mendapatkan had laju.
+- **Laluan dan had laju (Valhalla oleh FOSSGIS e.V., Jerman):** kedudukan GPS semasa anda sebagai asal, destinasi, arah perjalanan, jenis kenderaan dan pilihan laluan. Semasa navigasi, app mengira semula laluan jika anda menyimpang, dan menghantar bentuk laluan untuk mendapatkan had laju. Semasa pratonton, bentuk beberapa laluan calon juga dihantar (tanpa pengenal pasti) untuk mengetahui kelas jalannya supaya laluan yang disyorkan mengutamakan jalan utama berbanding jalan kampung.
 - **Tempat berhampiran dan plaza tol (Overpass API; cermin di Eropah):** titik tengah atau kotak sempadan kawasan yang dicari.
 - **Peta luar talian (GitHub Releases):** muat turun pek peta yang anda pilih. Hanya alamat IP dan butiran muat turun yang terlibat.
 - **Harga petrol (data.gov.my, Kerajaan Malaysia):** permintaan tanpa data peribadi; hanya alamat IP.
 - **Pautan peta pendek (maps.app.goo.gl, Google):** hanya apabila anda membuka pautan yang dikongsi dengan anda; app meminta pautan itu untuk mengetahui destinasinya.
+- **Waktu solat rasmi (WaktuSolat API, api.waktusolat.app):** hanya apabila Waktu Azan dihidupkan atau lembaran waktu solat dibuka dan pilihan "Waktu rasmi JAKIM" aktif. API komuniti ini mengambil jadual e-Solat JAKIM; ia menerima kedudukan kasar anda (dibundarkan kira-kira 1 km) serta tahun dan bulan, dan memulangkan jadual bulan untuk zon JAKIM anda. Tiada pengenal pasti dihantar. Matikan pilihan itu untuk menghentikan permintaan (waktu kemudian dikira pada telefon).
+- **Cuaca (Open-Meteo, api.open-meteo.com):** hanya apabila anda pratonton atau menavigasi laluan dan jalur cuaca dipaparkan. Ia menerima destinasi dan sehingga empat titik sampel sepanjang laluan, setiap satu dibundarkan kira-kira 100 m (3 perpuluhan), lalu memulangkan suhu, kod cuaca dan kebarangkalian hujan. Tiada akaun, kunci API atau pengenal pasti dihantar. Jika permintaan gagal atau anda tiada talian, jalur cuaca hanya disembunyikan (soft-fail) dan tiada perkara lain berubah.
 - **Muzik: Audius (Audius API dan nod kandungan yang dikendalikan pihak ketiga):** hanya apabila anda membuka Muzik dan mencari atau memainkan lagu; teks carian dan ID lagu yang dimainkan dihantar (tiada lokasi). Lagu dimainkan secara strim dan tidak disimpan.
-- **Muzik: Radio Browser (cermin komuniti di Eropah) dan pelayan strim stesen radio itu sendiri:** hanya apabila anda membuka tab Radio atau memainkan stesen; senarai stesen Malaysia diminta dan satu kiraan "main" tanpa nama dihantar setiap kali anda memainkan stesen. Strim datang terus daripada pelayan stesen (HTTPS sahaja).
+- **Muzik: Radio Browser (cermin komuniti di Eropah) dan pelayan strim stesen radio itu sendiri:** hanya apabila anda membuka tab Radio atau memainkan stesen; senarai stesen bagi kawasan yang anda pilih diminta dan satu kiraan "main" tanpa nama dihantar setiap kali anda memainkan stesen. Bagi stesen yang hanya disenaraikan melalui HTTP biasa, app turut menyemak (sehingga 30 setiap senarai, hanya pengepala respons, tiada audio dimuat turun) sama ada stesen itu juga menjawab melalui HTTPS, dan memaparkannya hanya jika ya; ini menghubungi pelayan stesen berkenaan, yang melihat alamat IP dan nama app anda, sama seperti apabila anda memainkannya. Strim datang terus daripada pelayan stesen (HTTPS sahaja).
 
 Perkhidmatan ini dikendalikan di luar Malaysia (terutamanya Eropah, dan GitHub di Amerika Syarikat).
 

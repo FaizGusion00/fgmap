@@ -22,18 +22,21 @@ void main() {
   });
 
   group('AzanSettings', () {
-    test('lalai: mati, lima waktu, azan penuh, JAKIM, Syafie, tiada peringatan', () {
-      final s = container.read(azanSettingsProvider);
-      expect(s.enabled, isFalse);
-      expect(s.prayers, Prayer.fardu.toSet());
-      expect(s.sound, AzanSound.full);
-      expect(s.method, AzanMethod.jakim);
-      expect(s.madhab, AzanMadhab.shafi);
-      expect(s.reminderMinutes, 0);
-      expect(s.playDuringNavigation, isFalse);
-      expect(s.cityName, isNull);
-      expect(s.useCity, isFalse);
-    });
+    test(
+      'lalai: mati, lima waktu, azan penuh, JAKIM, Syafie, tiada peringatan',
+      () {
+        final s = container.read(azanSettingsProvider);
+        expect(s.enabled, isFalse);
+        expect(s.prayers, Prayer.fardu.toSet());
+        expect(s.sound, AzanSound.full);
+        expect(s.method, AzanMethod.jakim);
+        expect(s.madhab, AzanMadhab.shafi);
+        expect(s.reminderMinutes, 0);
+        expect(s.playDuringNavigation, isFalse);
+        expect(s.cityName, isNull);
+        expect(s.useCity, isFalse);
+      },
+    );
 
     test('setiap tetapan disimpan dan dibaca semula', () async {
       final c = container.read(azanSettingsProvider.notifier);
@@ -61,7 +64,12 @@ void main() {
       addTearDown(again.dispose);
       final s = again.read(azanSettingsProvider);
       expect(s.enabled, isTrue);
-      expect(s.prayers, {Prayer.dhuhr, Prayer.asr, Prayer.maghrib, Prayer.isha});
+      expect(s.prayers, {
+        Prayer.dhuhr,
+        Prayer.asr,
+        Prayer.maghrib,
+        Prayer.isha,
+      });
       expect(s.sound, AzanSound.short);
       expect(s.method, AzanMethod.mwl);
       expect(s.madhab, AzanMadhab.hanafi);
@@ -88,39 +96,62 @@ void main() {
   });
 
   group('AzanLocation', () {
-    test('dibundarkan ke 0.01 darjah dan hanya ditulis selepas 20 km', () async {
-      final c = container.read(azanLocationProvider.notifier);
-      expect(container.read(azanLocationProvider), isNull);
-      c.update(const GeoPoint(3.13912, 101.68734));
-      expect(container.read(azanLocationProvider), const GeoPoint(3.14, 101.69));
-      expect(prefs.getDouble('azan.lat'), 3.14);
-      // 5 km: tidak ditulis semula.
-      c.update(const GeoPoint(3.18, 101.69));
-      expect(container.read(azanLocationProvider), const GeoPoint(3.14, 101.69));
-      // Johor Bahru: ditulis.
-      c.update(const GeoPoint(1.4927, 103.7414));
-      expect(container.read(azanLocationProvider), const GeoPoint(1.49, 103.74));
-    });
+    test(
+      'dibundarkan ke 0.01 darjah dan hanya ditulis selepas 20 km',
+      () async {
+        final c = container.read(azanLocationProvider.notifier);
+        expect(container.read(azanLocationProvider), isNull);
+        c.update(const GeoPoint(3.13912, 101.68734));
+        expect(
+          container.read(azanLocationProvider),
+          const GeoPoint(3.14, 101.69),
+        );
+        expect(prefs.getDouble('azan.lat'), 3.14);
+        // 5 km: tidak ditulis semula.
+        c.update(const GeoPoint(3.18, 101.69));
+        expect(
+          container.read(azanLocationProvider),
+          const GeoPoint(3.14, 101.69),
+        );
+        // Johor Bahru: ditulis.
+        c.update(const GeoPoint(1.4927, 103.7414));
+        expect(
+          container.read(azanLocationProvider),
+          const GeoPoint(1.49, 103.74),
+        );
+      },
+    );
 
-    test('lokasi berkesan: bandar > tersimpan > lokasi matahari (KL)', () async {
-      expect(
-        container.read(effectiveAzanLocationProvider),
-        const GeoPoint(3.139, 101.687),
-      );
-      container.read(azanLocationProvider.notifier).update(const GeoPoint(5.98, 116.07));
-      expect(container.read(effectiveAzanLocationProvider), const GeoPoint(5.98, 116.07));
-      await container.read(azanSettingsProvider.notifier).setCity('Kuching');
-      expect(
-        container.read(effectiveAzanLocationProvider),
-        cityNamed('Kuching')!.point,
-      );
-    });
+    test(
+      'lokasi berkesan: bandar > tersimpan > lokasi matahari (KL)',
+      () async {
+        expect(
+          container.read(effectiveAzanLocationProvider),
+          const GeoPoint(3.139, 101.687),
+        );
+        container
+            .read(azanLocationProvider.notifier)
+            .update(const GeoPoint(5.98, 116.07));
+        expect(
+          container.read(effectiveAzanLocationProvider),
+          const GeoPoint(5.98, 116.07),
+        );
+        await container.read(azanSettingsProvider.notifier).setCity('Kuching');
+        expect(
+          container.read(effectiveAzanLocationProvider),
+          cityNamed('Kuching')!.point,
+        );
+      },
+    );
 
     test('bandar terdekat', () {
       expect(nearestCity(const GeoPoint(3.0, 101.6)).name, 'Shah Alam');
       expect(nearestCity(const GeoPoint(6.0, 116.1)).name, 'Kota Kinabalu');
       expect(cityNamed('Tiada'), isNull);
-      expect(malaysianCities.map((c) => c.name).toSet().length, malaysianCities.length);
+      expect(
+        malaysianCities.map((c) => c.name).toSet().length,
+        malaysianCities.length,
+      );
     });
   });
 }

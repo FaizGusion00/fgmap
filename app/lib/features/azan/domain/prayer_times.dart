@@ -5,11 +5,16 @@ import 'prayer.dart';
 /// Waktu solat untuk satu hari tempatan di satu lokasi. Semua [DateTime] dalam waktu tempatan.
 @immutable
 class DailyPrayerTimes {
-  const DailyPrayerTimes({required this.day, required this.times});
+  const DailyPrayerTimes({required this.day, required this.times, this.zone});
 
   /// Hari (tengah malam tempatan) yang dikira.
   final DateTime day;
   final Map<Prayer, DateTime> times;
+
+  /// Kod zon JAKIM (cth. `WLY01`) jika waktu ini data rasmi e-Solat; null = dikira pada telefon.
+  final String? zone;
+
+  bool get isOfficial => zone != null;
 
   DateTime? timeOf(Prayer p) => times[p];
 
@@ -36,8 +41,9 @@ class DailyPrayerTimes {
   bool operator ==(Object other) =>
       other is DailyPrayerTimes &&
       other.day == day &&
+      other.zone == zone &&
       mapEquals(other.times, times);
 
   @override
-  int get hashCode => Object.hash(day, Object.hashAll(times.values));
+  int get hashCode => Object.hash(day, zone, Object.hashAll(times.values));
 }

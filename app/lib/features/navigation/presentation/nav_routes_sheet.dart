@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/widgets/sheet_bottom_inset.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../route_preview/domain/route_option.dart';
 import '../../route_preview/presentation/route_format.dart';
@@ -16,7 +17,7 @@ Future<bool?> showNavRoutesSheet(BuildContext context) {
     isScrollControlled: true,
     useSafeArea: true,
     showDragHandle: true,
-    builder: (_) => const NavRoutesSheet(),
+    builder: (_) => const SheetBottomInset(child: NavRoutesSheet()),
   );
 }
 

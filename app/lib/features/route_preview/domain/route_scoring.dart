@@ -26,9 +26,13 @@ const _slowStretchM = 500;
 ///  - feri (+15 min) dan jalan bersekatan masa (+5 min): jadual/ketersediaan tidak pasti;
 ///  - pusingan-U (+90 s setiap satu): berisiko dan perlahan;
 ///  - belokan (+6 s setiap satu): lebih banyak belokan = lebih banyak peluang tersilap dan konflik;
-///  - jalan panjang yang purata kelajuannya sangat rendah (+25% masanya): lorong kecil/sesak.
+///  - jalan panjang yang purata kelajuannya sangat rendah (+25% masanya): lorong kecil/sesak;
+///  - jalan kecil mengikut kelas jalan sebenar ([RouteOption.roadPenalty]): "jalan kampung" yang
+///    singkat tetapi sempit, berlubang dan tanpa lampu ialah pilihan buruk berbanding jalan utama
+///    yang beberapa minit lebih lama. Ini yang membezakan laluan "proper" gaya Waze.
 double routeScore(RouteOption route) {
   var score = route.durationS.toDouble();
+  score += route.durationS * route.roadPenalty;
   score += turnCountOf(route) * 6;
   score += uTurnCountOf(route) * 90;
   if (route.hasFerry) score += 900;

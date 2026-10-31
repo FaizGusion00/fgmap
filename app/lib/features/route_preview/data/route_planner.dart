@@ -17,6 +17,7 @@ import '../domain/route_candidates.dart';
 import '../domain/route_option.dart';
 import '../domain/route_options_merge.dart';
 import '../domain/routing_failure.dart';
+import 'road_quality_service.dart';
 import 'valhalla_codec.dart';
 import '../../../core/utils/log.dart';
 
@@ -175,10 +176,22 @@ class MultiRoutePlanner implements ProgressiveRoutePlanner {
     this.maxConcurrent = 2,
     this.stagger = const Duration(milliseconds: 250),
     this.retryDelay = const Duration(milliseconds: 600),
+    this.quality,
   });
 
   /// Perancang bagi laluan biasa (dasar online/offline pengguna).
   final RoutePlanner primary;
+
+  /// Penilai kualiti jalan (kelas jalan sebenar). Null = tidak digunakan. Hanya laluan yang bersaing
+  /// untuk menjadi "Disyorkan" dinilai, dan jumlah permintaan dihadkan ([maxQualityChecks]).
+  final RoadQualityService? quality;
+
+  /// Bilangan penilaian kualiti jalan maksimum bagi satu carian (melindungi pelayan awam).
+  static const maxQualityChecks = 6;
+
+  /// Laluan hanya dinilai jika masanya dalam nisbah ini daripada yang terpantas: tetingkap laluan
+  /// utama ialah 1.08, dengan sedikit lebihan.
+  static const qualityTimeWindow = 1.15;
 
   /// Perancang yang terhad kepada satu sumber, untuk permintaan tambahan.
   final RoutePlanner Function(RouteSource source) forSource;
@@ -235,6 +248,32 @@ class MultiRoutePlanner implements ProgressiveRoutePlanner {
       }
 
       final memo = SameRouteMemo();
+      final fastestS = standard.map((r) => r.durationS).reduce(math.min);
+      var qualityChecks = 0;
+      // Menilai kualiti jalan satu kumpulan laluan yang bersaing; gagal = laluan tidak berubah.
+      Future<List<RouteOption>> rate(List<RouteOption> routes) async {
+        final q = quality;
+        if (q == null || query.urgent) return routes;
+        return Future.wait([
+          for (final r in routes)
+            () async {
+              if (r.roadPenalty > 0 ||
+                  r.durationS > fastestS * qualityTimeWindow ||
+                  qualityChecks >= maxQualityChecks) {
+                return r;
+              }
+              qualityChecks++;
+              try {
+                final penalty = await q.penaltyFor(r);
+                return penalty == null ? r : r.withRoadPenalty(penalty);
+              } on Object {
+                return r;
+              }
+            }(),
+        ]);
+      }
+
+      var rated = standard;
       final requests = planCandidateRequests(
         query,
         standard,
@@ -245,7 +284,7 @@ class MultiRoutePlanner implements ProgressiveRoutePlanner {
       RouteOption? lastPrimary;
       List<RouteOption> merged() => mergeRouteCandidates(
         incumbent: lastPrimary,
-        standard: standard,
+        standard: rated,
         noTolls: found[RouteCandidateOrigin.noTolls] ?? const [],
         noHighways: found[RouteCandidateOrigin.noHighways] ?? const [],
         shortest: found[RouteCandidateOrigin.shortest] ?? const [],
@@ -263,8 +302,17 @@ class MultiRoutePlanner implements ProgressiveRoutePlanner {
         out.add(RouteBatch(options, done: done));
       }
 
-      emit(done: requests.isEmpty);
-      if (requests.isEmpty) return;
+      emit(done: false);
+      // Nilai laluan biasa sambil menunggu calon lain; senarai dikemas kini apabila siap.
+      final ratingStandard = rate(standard).then((r) {
+        rated = r;
+        if (!isCancelled()) emit(done: false);
+      });
+      if (requests.isEmpty) {
+        await ratingStandard;
+        if (!isCancelled()) emit(done: true);
+        return;
+      }
 
       final planner = forSource(standard.first.source);
       var next = 0;
@@ -279,7 +327,7 @@ class MultiRoutePlanner implements ProgressiveRoutePlanner {
           final request = requests[next++];
           for (var attempt = 0; attempt < 2; attempt++) {
             try {
-              final routes = await planner.plan(request.query);
+              final routes = await rate(await planner.plan(request.query));
               (found[request.origin] ??= []).addAll(routes);
               transientFailures = 0;
               break;
@@ -312,6 +360,7 @@ class MultiRoutePlanner implements ProgressiveRoutePlanner {
 
       await Future.wait([
         for (var i = 0; i < math.max(1, maxConcurrent); i++) worker(i),
+        ratingStandard,
       ]);
       if (!isCancelled()) emit(done: true);
     } on Object catch (e, st) {
@@ -322,7 +371,8 @@ class MultiRoutePlanner implements ProgressiveRoutePlanner {
   }
 
   static String _signature(List<RouteOption> options) => [
-    for (final o in options) '${o.label.name}:${o.durationS}:${o.distanceM}',
+    for (final o in options)
+      '${o.label.name}:${o.durationS}:${o.distanceM}:${o.roadPenalty.toStringAsFixed(2)}',
   ].join('|');
 }
 
@@ -466,6 +516,7 @@ final routeOptionsPlannerProvider = Provider<RoutePlanner>((ref) {
       RouteSource.online => ref.read(_onlinePlannerProvider),
       RouteSource.offline => ref.read(_offlinePlannerProvider),
     },
+    quality: ref.watch(roadQualityServiceProvider),
   );
 });
 

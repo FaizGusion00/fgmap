@@ -33,6 +33,8 @@ class RouteSummarySheet extends StatelessWidget {
     this.onShare,
     this.fuelCostRm,
     this.now,
+    this.weather,
+    this.alongRoute,
   });
 
   final RoutePreviewState state;
@@ -62,6 +64,12 @@ class RouteSummarySheet extends StatelessWidget {
 
   /// Masa semasa untuk mengira waktu tiba; lalai `DateTime.now()`. Ujian golden menetapkannya.
   final DateTime? now;
+
+  /// Jalur cuaca destinasi (Open-Meteo); null = jangan papar.
+  final Widget? weather;
+
+  /// Bahagian "Sepanjang laluan"; null = jangan papar.
+  final Widget? alongRoute;
 
   @override
   Widget build(BuildContext context) {
@@ -117,6 +125,8 @@ class RouteSummarySheet extends StatelessWidget {
                       onShare: onShare,
                       fuelCostRm: fuelCostRm,
                       now: now ?? DateTime.now(),
+                      weather: weather,
+                      alongRoute: alongRoute,
                     ),
                     RouteFailed() => _FailedBody(
                       key: const ValueKey('failed'),
@@ -207,6 +217,8 @@ class _ReadyBody extends StatelessWidget {
     this.onShowMore,
     this.onShare,
     this.fuelCostRm,
+    this.weather,
+    this.alongRoute,
   });
 
   final RouteReady state;
@@ -220,6 +232,8 @@ class _ReadyBody extends StatelessWidget {
   final VoidCallback? onShare;
   final double? fuelCostRm;
   final DateTime now;
+  final Widget? weather;
+  final Widget? alongRoute;
 
   @override
   Widget build(BuildContext context) {
@@ -430,8 +444,12 @@ class _ReadyBody extends StatelessWidget {
             ),
           ],
         ),
+        // Cuaca + sepanjang laluan sebelum Mula supaya butang utama kekal kelihatan tanpa
+        // scroll panjang pada skrin pendek.
+        if (weather != null) ...[const SizedBox(height: 12), ?weather],
+        ?alongRoute,
         if (onStart != null || onSimulate != null) ...[
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: _StartRow(onStart: onStart, onSimulate: onSimulate),

@@ -42,46 +42,49 @@ void main() {
     }
   }
 
-  test('pan bebas → recenter mengembalikan follow dan puck 2D (tiada overlay 3D)', () {
-    final clock = FakeClock()..now = DateTime.utc(2026, 1, 1, 12);
-    final camera = FakeCamera()
-      ..pose = const CameraPose(
-        center: point,
-        zoom: 17,
-        tilt: 0,
+  test(
+    'pan bebas → recenter mengembalikan follow dan puck 2D (tiada overlay 3D)',
+    () {
+      final clock = FakeClock()..now = DateTime.utc(2026, 1, 1, 12);
+      final camera = FakeCamera()
+        ..pose = const CameraPose(
+          center: point,
+          zoom: 17,
+          tilt: 0,
+          bearing: 90,
+        );
+      final fix = CruiseFix(
+        point: point,
         bearing: 90,
+        speedMps: 12,
+        time: clock.now,
       );
-    final fix = CruiseFix(
-      point: point,
-      bearing: 90,
-      speedMps: 12,
-      time: clock.now,
-    );
-    final driver = buildDriver(
-      camera: camera,
-      clock: clock,
-      sample: () => fix,
-    );
+      final driver = buildDriver(
+        camera: camera,
+        clock: clock,
+        sample: () => fix,
+      );
 
-    runFrames(driver, clock, 20);
-    expect(driver.follow.value, NavFollow.following);
-    expect(driver.car.value, isNull);
-    expect(camera.vehicleCalls, isNotEmpty);
-    expect(camera.moveToCalls.last.tilt, lessThan(5));
+      runFrames(driver, clock, 20);
+      expect(driver.follow.value, NavFollow.following);
+      expect(driver.car.value, isNull);
+      expect(camera.vehicleCalls, isNotEmpty);
+      expect(camera.moveToCalls.last.tilt, lessThan(5));
 
-    driver.userInteracted();
-    expect(driver.follow.value, NavFollow.free);
-    runFrames(driver, clock, 5);
-    expect(driver.car.value, isNull);
-    expect(camera.vehicleCalls, isNotEmpty);
+      driver.userInteracted();
+      expect(driver.follow.value, NavFollow.free);
+      runFrames(driver, clock, 5);
+      expect(driver.car.value, isNull);
+      expect(camera.vehicleCalls, isNotEmpty);
 
-    driver.recenter();
-    expect(driver.follow.value, NavFollow.following);
-    runFrames(driver, clock, 120);
-    expect(driver.car.value, isNull);
-    expect(camera.moveToCalls.last.tilt, lessThan(5));
-    expect(camera.vehicleCalls.last, isNotNull);
-  });
+      driver.recenter();
+      expect(driver.follow.value, NavFollow.following);
+      runFrames(driver, clock, 120);
+      expect(driver.car.value, isNull);
+      expect(camera.moveToCalls.last.tilt, lessThan(5));
+      expect(camera.vehicleCalls.last, isNotNull);
+    },
+  );
 
   test('mod navigasi diabaikan: free-ride sentiasa tilt ~0', () {
     final clock = FakeClock()..now = DateTime.utc(2026, 1, 1, 12);
@@ -116,12 +119,7 @@ void main() {
   test('auto-recenter selepas pan walaupun sample null sekejap', () {
     final clock = FakeClock()..now = DateTime.utc(2026, 1, 1, 12);
     final camera = FakeCamera()
-      ..pose = const CameraPose(
-        center: point,
-        zoom: 17,
-        tilt: 0,
-        bearing: 10,
-      );
+      ..pose = const CameraPose(center: point, zoom: 17, tilt: 0, bearing: 10);
     CruiseFix? fix = CruiseFix(
       point: point,
       bearing: 10,

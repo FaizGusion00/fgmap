@@ -77,12 +77,33 @@ void main() {
 
     test('ordinal Inggeris: 1st, 2nd, 3rd, 11th-13th, 21st', () {
       expect(
-        [1, 2, 3, 4, 11, 12, 13, 21, 22, 23, 101, 111]
-            .map(InstructionText.ordinalNumber)
-            .toList(),
         [
-          '1st', '2nd', '3rd', '4th', '11th', '12th', '13th',
-          '21st', '22nd', '23rd', '101st', '111th',
+          1,
+          2,
+          3,
+          4,
+          11,
+          12,
+          13,
+          21,
+          22,
+          23,
+          101,
+          111,
+        ].map(InstructionText.ordinalNumber).toList(),
+        [
+          '1st',
+          '2nd',
+          '3rd',
+          '4th',
+          '11th',
+          '12th',
+          '13th',
+          '21st',
+          '22nd',
+          '23rd',
+          '101st',
+          '111th',
         ],
       );
       // Sebutan: dieja hingga enam, angka selepas itu (bukan "21th").
@@ -260,6 +281,115 @@ void main() {
       expect(
         out.firstWhere((a) => a.kind == AnnouncementKind.far).text,
         startsWith('In '),
+      );
+    });
+  });
+
+  group('papan tanda dan kod jalan', () {
+    NavManeuver m(
+      ManeuverKind kind, {
+      List<String> streets = const [],
+      List<String> towards = const [],
+      String? exitNo,
+    }) => NavManeuver(
+      index: 0,
+      kind: kind,
+      startM: 0,
+      lengthM: 100,
+      timeS: 10,
+      streetNames: streets,
+      towards: towards,
+      exitNumber: exitNo,
+    );
+    const ms = InstructionText(VoiceLanguage.ms);
+    const en = InstructionText(VoiceLanguage.en);
+
+    test(
+      'kod jalan ialah nombor sahaja: dibaca sebagai Laluan, bukan nama',
+      () {
+        expect(NavManeuver.isRoadRef('3217'), isTrue);
+        expect(NavManeuver.isRoadRef('B1'), isTrue);
+        expect(NavManeuver.isRoadRef('E12'), isTrue);
+        expect(NavManeuver.isRoadRef('1306A'), isTrue);
+        expect(NavManeuver.isRoadRef('Jalan Ampang'), isFalse);
+        expect(NavManeuver.isRoadRef('Jalan 3'), isFalse);
+        expect(ms.streetLabel('3217'), 'Laluan 3217');
+        expect(en.streetLabel('B1'), 'Route B1');
+        expect(ms.streetLabel('Jalan Ampang'), 'Jalan Ampang');
+        // Nama sebenar diutamakan berbanding kod.
+        expect(
+          m(ManeuverKind.right, streets: const ['3217', 'Jalan Klang']).street,
+          'Jalan Klang',
+        );
+        expect(m(ManeuverKind.right, streets: const ['3217']).street, '3217');
+      },
+    );
+
+    test(
+      'kekal/susur/keluar menyebut papan tanda; belok menyebut nama jalan',
+      () {
+        final keep = m(
+          ManeuverKind.keepRight,
+          streets: const ['3217'],
+          towards: const ['Klang', 'I-City', 'Subang'],
+        );
+        expect(
+          ms.actionWithStreet(keep),
+          'Kekal di sebelah kanan menuju Klang dan I-City',
+        );
+        expect(en.actionWithStreet(keep), 'Keep right toward Klang and I-City');
+        expect(
+          ms.spoken(keep, distanceM: 500),
+          'Dalam 500 meter, kekal di sebelah kanan menuju Klang dan I-City.',
+        );
+        // Tanpa papan tanda: jatuh kepada nama jalan (kod -> Laluan).
+        final noSign = m(ManeuverKind.keepRight, streets: const ['3217']);
+        expect(
+          ms.actionWithStreet(noSign),
+          'Kekal di sebelah kanan ke Laluan 3217',
+        );
+        // Belok: nama jalan, walaupun ada papan tanda.
+        final turn = m(
+          ManeuverKind.right,
+          streets: const ['Jalan Ampang'],
+          towards: const ['KLCC'],
+        );
+        expect(ms.actionWithStreet(turn), 'Belok kanan ke Jalan Ampang');
+      },
+    );
+
+    test('baris butiran kad: nombor keluar + menuju (maks 3)', () {
+      final exit = m(
+        ManeuverKind.exitRight,
+        towards: const ['Klang', 'Subang', 'Shah Alam', 'Petaling Jaya'],
+        exitNo: '1306B',
+      );
+      expect(
+        ms.cardDetail(exit),
+        'Keluar 1306B · Menuju Klang · Subang · Shah Alam',
+      );
+      expect(
+        en.cardDetail(exit),
+        'Exit 1306B · Toward Klang · Subang · Shah Alam',
+      );
+      expect(ms.cardDetail(m(ManeuverKind.right)), isNull);
+      expect(
+        ms.cardDetail(m(ManeuverKind.arrive, towards: const ['X'])),
+        isNull,
+      );
+      // Nombor keluar tidak ditunjuk untuk belok biasa.
+      expect(
+        ms.cardDetail(
+          m(ManeuverKind.right, exitNo: '12', towards: const ['Y']),
+        ),
+        'Menuju Y',
+      );
+    });
+
+    test('ikut jalan: kod jalan dibaca Laluan', () {
+      expect(
+        ms.keepGoing('3217', 4200),
+        'Ikut Laluan 3217 sejauh 4 kilometer.',
       );
     });
   });

@@ -54,6 +54,50 @@ void main() {
     expect(nav.language, VoiceLanguage.en);
   });
 
+  test(
+    'papan tanda (menuju, nombor keluar) dan lorong kekal selepas dipulihkan',
+    () {
+      final option = lShapedRoute(legM: 500);
+      final withSigns = RouteOption(
+        distanceM: option.distanceM,
+        durationS: option.durationS,
+        hasTolls: false,
+        points: option.points,
+        source: option.source,
+        maneuvers: [
+          const Maneuver(
+            type: 23,
+            streetNames: ['3217'],
+            lengthM: 400,
+            timeS: 30,
+            beginShapeIndex: 1,
+            towards: ['Klang', 'I-City'],
+            exitNumber: '1306B',
+          ),
+          ...option.maneuvers.skip(1),
+        ],
+      );
+      final saved = NavigationTrip(
+        savedAt: DateTime.utc(2026, 5, 1),
+        route: withSigns,
+        query: RouteQuery(
+          origin: option.points.first,
+          destination: option.points.last,
+        ),
+        alongM: 10,
+        language: VoiceLanguage.ms,
+        position: option.points[1],
+        bearing: 0,
+        speedMps: 5,
+      );
+      final nav = decodeTrip(encodeTrip(saved))! as NavigationTrip;
+      final m = nav.route.maneuvers.first;
+      expect(m.towards, ['Klang', 'I-City']);
+      expect(m.exitNumber, '1306B');
+      expect(m.streetNames, ['3217']);
+    },
+  );
+
   test('cruise yang sudah lama berhenti tidak dipulihkan', () {
     final stale = CruiseTrip(
       savedAt: DateTime.utc(2026, 1, 1),
@@ -71,126 +115,140 @@ void main() {
     expect(moving.restorable(DateTime.utc(2026, 1, 1, 0, 2)), isTrue);
   });
 
-  test('pulihkan sebelum sebarang fix: destinasi dan manuver ada, bukan peta kosong', () async {
-    final option = lShapedRoute(legM: 2000);
-    final navRoute = NavRoute(option);
-    final query = RouteQuery(
-      origin: option.points.first,
-      destination: const GeoPoint(3, 101.05),
-      destinationLabel: 'Destinasi',
-      avoidTolls: true,
-    );
-    final record = NavigationTrip(
-      savedAt: DateTime.utc(2026, 4, 2),
-      route: option,
-      query: query,
-      alongM: 400,
-      language: VoiceLanguage.ms,
-      position: navRoute.pointAt(400),
-      bearing: 90,
-      speedMps: 11,
-    );
-    SharedPreferences.setMockInitialValues({TripStore.key: encodeTrip(record)!});
-    final prefs = await SharedPreferences.getInstance();
-    final clock = FakeClock(DateTime.utc(2026, 4, 2, 1));
-    final location = FakeLocationService();
-    final planner = FakeRoutePlanner((_) async => [option]);
-    final container = ProviderContainer(
-      overrides: [
-        sharedPreferencesProvider.overrideWithValue(prefs),
-        navClockProvider.overrideWithValue(clock.call),
-        reportsClockProvider.overrideWithValue(clock.call),
-        voiceGuideProvider.overrideWithValue(FakeVoice()),
-        screenAwakeProvider.overrideWithValue(FakeAwake()),
-        speedLimitServiceProvider.overrideWithValue(FakeSpeedLimitService()),
-        routePlannerProvider.overrideWithValue(planner),
-        locationServiceProvider.overrideWithValue(location),
-      ],
-    );
-    addTearDown(container.dispose);
-
-    final state = container.read(navigationControllerProvider);
-    expect(state.isActive, isTrue);
-    expect(state.phase, NavPhase.active);
-    expect(state.query!.destinationLabel, 'Destinasi');
-    expect(state.query!.avoidTolls, isTrue);
-    expect(state.progress, isNotNull);
-    expect(state.progress!.alongM, closeTo(400, 1));
-    expect(state.progress!.next, isNotNull);
-    expect(state.route!.points, isNotEmpty);
-
-    final off = destinationPoint(navRoute.pointAt(400), 0, 500);
-    for (var i = 0; i < 4; i++) {
-      clock.now = DateTime.utc(2026, 4, 2, 1, 0, i);
-      location.navigationController.add(
-        LocationFix(
-          point: off,
-          headingDegrees: 0,
-          accuracyMeters: 8,
-          speedMps: 12,
-          timestamp: clock.now,
-        ),
-      );
-      await pumpEventQueue();
-    }
-    await pumpEventQueue();
-    expect(container.read(navigationControllerProvider).isActive, isTrue);
-    expect(planner.queries, isNotEmpty);
-    final reroute = planner.queries.single;
-    expect(reroute.destination, query.destination);
-    expect(reroute.destinationLabel, 'Destinasi');
-    expect(reroute.urgent, isTrue);
-    expect(reroute.alternates, 0);
-    expect(reroute.avoidTolls, isTrue);
-  });
-
-  test('latar belakang: GPS kekal, wakelock skrin dilepaskan; tamat memadam rekod', () async {
-    SharedPreferences.setMockInitialValues({});
-    final prefs = await SharedPreferences.getInstance();
-    final clock = FakeClock();
-    final voice = FakeVoice();
-    final awake = FakeAwake();
-    final option = lShapedRoute();
-    final container = ProviderContainer(
-      overrides: [
-        sharedPreferencesProvider.overrideWithValue(prefs),
-        navClockProvider.overrideWithValue(clock.call),
-        reportsClockProvider.overrideWithValue(clock.call),
-        voiceGuideProvider.overrideWithValue(voice),
-        screenAwakeProvider.overrideWithValue(awake),
-        speedLimitServiceProvider.overrideWithValue(FakeSpeedLimitService()),
-        routePlannerProvider.overrideWithValue(FakeRoutePlanner((_) async => [option])),
-        locationServiceProvider.overrideWithValue(FakeLocationService()),
-      ],
-    );
-    addTearDown(container.dispose);
-    final source = _HoldSource();
-    final ok = await container.read(navigationControllerProvider.notifier).start(
-      option,
-      RouteQuery(
+  test(
+    'pulihkan sebelum sebarang fix: destinasi dan manuver ada, bukan peta kosong',
+    () async {
+      final option = lShapedRoute(legM: 2000);
+      final navRoute = NavRoute(option);
+      final query = RouteQuery(
         origin: option.points.first,
-        destination: option.points.last,
-        destinationLabel: 'Rumah',
-      ),
-      uiLanguage: VoiceLanguage.ms,
-      source: source,
-    );
-    expect(ok, isTrue);
-    await pumpEventQueue();
-    expect(prefs.getString(TripStore.key), isNotNull);
-    expect(source.listeners, 1);
+        destination: const GeoPoint(3, 101.05),
+        destinationLabel: 'Destinasi',
+        avoidTolls: true,
+      );
+      final record = NavigationTrip(
+        savedAt: DateTime.utc(2026, 4, 2),
+        route: option,
+        query: query,
+        alongM: 400,
+        language: VoiceLanguage.ms,
+        position: navRoute.pointAt(400),
+        bearing: 90,
+        speedMps: 11,
+      );
+      SharedPreferences.setMockInitialValues({
+        TripStore.key: encodeTrip(record)!,
+      });
+      final prefs = await SharedPreferences.getInstance();
+      final clock = FakeClock(DateTime.utc(2026, 4, 2, 1));
+      final location = FakeLocationService();
+      final planner = FakeRoutePlanner((_) async => [option]);
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          navClockProvider.overrideWithValue(clock.call),
+          reportsClockProvider.overrideWithValue(clock.call),
+          voiceGuideProvider.overrideWithValue(FakeVoice()),
+          screenAwakeProvider.overrideWithValue(FakeAwake()),
+          speedLimitServiceProvider.overrideWithValue(FakeSpeedLimitService()),
+          routePlannerProvider.overrideWithValue(planner),
+          locationServiceProvider.overrideWithValue(location),
+        ],
+      );
+      addTearDown(container.dispose);
 
-    container.read(navigationControllerProvider.notifier).noteBackground(true);
-    await pumpEventQueue();
-    expect(awake.enabled, isFalse);
-    expect(source.listeners, 1);
-    expect(container.read(navigationControllerProvider).isActive, isTrue);
+      final state = container.read(navigationControllerProvider);
+      expect(state.isActive, isTrue);
+      expect(state.phase, NavPhase.active);
+      expect(state.query!.destinationLabel, 'Destinasi');
+      expect(state.query!.avoidTolls, isTrue);
+      expect(state.progress, isNotNull);
+      expect(state.progress!.alongM, closeTo(400, 1));
+      expect(state.progress!.next, isNotNull);
+      expect(state.route!.points, isNotEmpty);
 
-    await container.read(navigationControllerProvider.notifier).stop();
-    expect(prefs.getString(TripStore.key), isNull);
-    expect(source.listeners, 0);
-    expect(container.read(navigationControllerProvider).isActive, isFalse);
-  });
+      final off = destinationPoint(navRoute.pointAt(400), 0, 500);
+      for (var i = 0; i < 4; i++) {
+        clock.now = DateTime.utc(2026, 4, 2, 1, 0, i);
+        location.navigationController.add(
+          LocationFix(
+            point: off,
+            headingDegrees: 0,
+            accuracyMeters: 8,
+            speedMps: 12,
+            timestamp: clock.now,
+          ),
+        );
+        await pumpEventQueue();
+      }
+      await pumpEventQueue();
+      expect(container.read(navigationControllerProvider).isActive, isTrue);
+      expect(planner.queries, isNotEmpty);
+      final reroute = planner.queries.single;
+      expect(reroute.destination, query.destination);
+      expect(reroute.destinationLabel, 'Destinasi');
+      expect(reroute.urgent, isTrue);
+      expect(reroute.alternates, 0);
+      expect(reroute.avoidTolls, isTrue);
+    },
+  );
+
+  test(
+    'latar belakang: GPS kekal, wakelock skrin dilepaskan; tamat memadam rekod',
+    () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final clock = FakeClock();
+      final voice = FakeVoice();
+      final awake = FakeAwake();
+      final option = lShapedRoute();
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          navClockProvider.overrideWithValue(clock.call),
+          reportsClockProvider.overrideWithValue(clock.call),
+          voiceGuideProvider.overrideWithValue(voice),
+          screenAwakeProvider.overrideWithValue(awake),
+          speedLimitServiceProvider.overrideWithValue(FakeSpeedLimitService()),
+          routePlannerProvider.overrideWithValue(
+            FakeRoutePlanner((_) async => [option]),
+          ),
+          locationServiceProvider.overrideWithValue(FakeLocationService()),
+        ],
+      );
+      addTearDown(container.dispose);
+      final source = _HoldSource();
+      final ok = await container
+          .read(navigationControllerProvider.notifier)
+          .start(
+            option,
+            RouteQuery(
+              origin: option.points.first,
+              destination: option.points.last,
+              destinationLabel: 'Rumah',
+            ),
+            uiLanguage: VoiceLanguage.ms,
+            source: source,
+          );
+      expect(ok, isTrue);
+      await pumpEventQueue();
+      expect(prefs.getString(TripStore.key), isNotNull);
+      expect(source.listeners, 1);
+
+      container
+          .read(navigationControllerProvider.notifier)
+          .noteBackground(true);
+      await pumpEventQueue();
+      expect(awake.enabled, isFalse);
+      expect(source.listeners, 1);
+      expect(container.read(navigationControllerProvider).isActive, isTrue);
+
+      await container.read(navigationControllerProvider.notifier).stop();
+      expect(prefs.getString(TripStore.key), isNull);
+      expect(source.listeners, 0);
+      expect(container.read(navigationControllerProvider).isActive, isFalse);
+    },
+  );
 }
 
 class _HoldSource implements NavLocationSource {

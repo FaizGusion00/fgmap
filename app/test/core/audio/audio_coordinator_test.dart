@@ -61,54 +61,60 @@ void main() {
     expect(c.speaking, isFalse);
   });
 
-  test('sasaran yang mendaftar semasa bercakap terus diperlahankan; gagal tidak menyekat', () async {
-    final c = AudioCoordinator();
-    await c.beginSpeech();
-    final t = _Target()..fail = true;
-    c.register(t);
-    await Future<void>.delayed(Duration.zero);
-    expect(t.events, ['start']);
-    await c.endSpeech();
-    expect(t.events, ['start', 'end']);
-    c.unregister(t);
-    await c.beginSpeech();
-    expect(t.events, hasLength(2));
-  });
+  test(
+    'sasaran yang mendaftar semasa bercakap terus diperlahankan; gagal tidak menyekat',
+    () async {
+      final c = AudioCoordinator();
+      await c.beginSpeech();
+      final t = _Target()..fail = true;
+      c.register(t);
+      await Future<void>.delayed(Duration.zero);
+      expect(t.events, ['start']);
+      await c.endSpeech();
+      expect(t.events, ['start', 'end']);
+      c.unregister(t);
+      await c.beginSpeech();
+      expect(t.events, hasLength(2));
+    },
+  );
 
-  test('QueuedVoiceGuide membalut bunyi isyarat + ayat dengan begin/end, juga apabila TTS gagal', () async {
-    final c = AudioCoordinator();
-    final target = _Target();
-    c.register(target);
-    final log = <String>[];
-    final tts = _Tts(log);
-    final guide = QueuedVoiceGuide(
-      tts: tts,
-      chimes: _Chimes(log),
-      coordinator: c,
-    );
-    await guide.announce(
-      const Announcement(
-        kind: AnnouncementKind.now,
-        text: 'Belok kiri',
-        chime: ChimeKind.now,
-      ),
-      VoiceLanguage.ms,
-    );
-    await Future<void>.delayed(const Duration(milliseconds: 10));
-    expect(log, ['chime:now', 'speak:Belok kiri']);
-    expect(target.events, ['start', 'end']);
+  test(
+    'QueuedVoiceGuide membalut bunyi isyarat + ayat dengan begin/end, juga apabila TTS gagal',
+    () async {
+      final c = AudioCoordinator();
+      final target = _Target();
+      c.register(target);
+      final log = <String>[];
+      final tts = _Tts(log);
+      final guide = QueuedVoiceGuide(
+        tts: tts,
+        chimes: _Chimes(log),
+        coordinator: c,
+      );
+      await guide.announce(
+        const Announcement(
+          kind: AnnouncementKind.now,
+          text: 'Belok kiri',
+          chime: ChimeKind.now,
+        ),
+        VoiceLanguage.ms,
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      expect(log, ['chime:now', 'speak:Belok kiri']);
+      expect(target.events, ['start', 'end']);
 
-    tts.fail = true;
-    await guide.announce(
-      const Announcement(
-        kind: AnnouncementKind.near,
-        text: 'Belok kanan',
-        chime: null,
-      ),
-      VoiceLanguage.ms,
-    );
-    await Future<void>.delayed(const Duration(milliseconds: 10));
-    expect(target.events, ['start', 'end', 'start', 'end']);
-    await guide.dispose();
-  });
+      tts.fail = true;
+      await guide.announce(
+        const Announcement(
+          kind: AnnouncementKind.near,
+          text: 'Belok kanan',
+          chime: null,
+        ),
+        VoiceLanguage.ms,
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      expect(target.events, ['start', 'end', 'start', 'end']);
+      await guide.dispose();
+    },
+  );
 }

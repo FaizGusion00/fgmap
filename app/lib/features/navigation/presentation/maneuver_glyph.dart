@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../domain/nav_route.dart';
 import 'navigation_hud.dart' show maneuverIcon;
+import 'maneuver_diagram.dart';
 import 'roundabout_exit_icon.dart';
 
-/// Satu simbol = satu makna. Bulatan dilukis sendiri (gelang + nombor keluar); manuver lain guna
-/// glif Material yang dipilih untuk lalu lintas sebelah kiri (lihat [maneuverIcon]).
+/// Satu simbol = satu makna. Bulatan dilukis sendiri (gelang + nombor keluar); belok, kekal, susur,
+/// gabung dan pusingan U dilukis sebagai gambar rajah simpang ([ManeuverDiagram]); mula, tiba dan
+/// feri guna glif Material (lihat [maneuverIcon]).
 class ManeuverGlyph extends StatelessWidget {
   const ManeuverGlyph({
     super.key,
@@ -32,16 +34,14 @@ class ManeuverGlyph extends StatelessWidget {
         semanticsLabel: semanticsLabel,
       );
     }
-    final icon = Icon(
+    if (ManeuverDiagram.draws(kind)) {
+      return ManeuverDiagram(kind: kind, size: size, color: color);
+    }
+    return Icon(
       maneuverIcon(kind),
       size: size,
       color: color,
       semanticLabel: semanticsLabel,
     );
-    // Material hanya ada satu glif gabung; cermin untuk "bergabung ke kiri".
-    if (kind == ManeuverKind.mergeLeft) {
-      return Transform.flip(flipX: true, child: icon);
-    }
-    return icon;
   }
 }

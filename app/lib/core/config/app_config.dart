@@ -55,6 +55,14 @@ abstract final class AppConfig {
     defaultValue: 'https://api.audius.co',
   );
 
+  /// Waktu solat rasmi JAKIM (e-Solat) melalui API komuniti WaktuSolat (percuma, tanpa kunci). Ia
+  /// menukar koordinat kepada zon JAKIM dan memulangkan jadual bulanan rasmi. Hanya koordinat
+  /// dibundarkan ~1 km, tahun dan bulan dihantar. Jika gagal, waktu dikira pada telefon.
+  static const waktuSolatUrl = String.fromEnvironment(
+    'WAKTU_SOLAT_URL',
+    defaultValue: 'https://api.waktusolat.app',
+  );
+
   /// Nama app yang dihantar kepada Audius (dasar: setiap app pengeluaran menghantar nama unik).
   static const audiusAppName = 'FGMaps';
 
@@ -114,6 +122,7 @@ abstract final class AppConfig {
     'NOMINATIM_URL': nominatimUrl,
     'OVERPASS_URLS': overpassUrls.join(','),
     'AUDIUS_URL': audiusUrl,
+    'WAKTU_SOLAT_URL': waktuSolatUrl,
     'RADIO_BROWSER_URLS': radioBrowserUrls.join(','),
     'OFFLINE_MANIFEST_URL': offlineManifestUrl,
     'MAP_STYLE_LIGHT': mapStyleLight,

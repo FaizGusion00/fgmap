@@ -111,20 +111,23 @@ void main() {
     );
   });
 
-  test('nextAfter dan currentAt: sebelum Subuh, tengah hari, selepas Isyak', () {
-    final t = calc.compute(
-      at: kl,
-      day: day,
-      method: AzanMethod.jakim,
-      madhab: AzanMadhab.shafi,
-    );
-    expect(t.nextAfter(DateTime(2026, 10, 31, 4)), Prayer.fajr);
-    expect(t.currentAt(DateTime(2026, 10, 31, 4)), isNull);
-    expect(t.nextAfter(DateTime(2026, 10, 31, 14)), Prayer.asr);
-    expect(t.currentAt(DateTime(2026, 10, 31, 14)), Prayer.dhuhr);
-    expect(t.nextAfter(DateTime(2026, 10, 31, 23)), isNull);
-    expect(t.currentAt(DateTime(2026, 10, 31, 23)), Prayer.isha);
-  });
+  test(
+    'nextAfter dan currentAt: sebelum Subuh, tengah hari, selepas Isyak',
+    () {
+      final t = calc.compute(
+        at: kl,
+        day: day,
+        method: AzanMethod.jakim,
+        madhab: AzanMadhab.shafi,
+      );
+      expect(t.nextAfter(DateTime(2026, 10, 31, 4)), Prayer.fajr);
+      expect(t.currentAt(DateTime(2026, 10, 31, 4)), isNull);
+      expect(t.nextAfter(DateTime(2026, 10, 31, 14)), Prayer.asr);
+      expect(t.currentAt(DateTime(2026, 10, 31, 14)), Prayer.dhuhr);
+      expect(t.nextAfter(DateTime(2026, 10, 31, 23)), isNull);
+      expect(t.currentAt(DateTime(2026, 10, 31, 23)), Prayer.isha);
+    },
+  );
 }
 
 /// Ujian nilai mutlak hanya bermakna apabila zon masa ujian ialah Malaysia (+8, tiada DST);

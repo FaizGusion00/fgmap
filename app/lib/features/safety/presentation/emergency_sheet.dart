@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/widgets/sheet_bottom_inset.dart';
 import '../../../core/platform/external_actions.dart';
 import '../../../core/utils/geo.dart';
 import '../../../core/utils/haptics.dart';
@@ -22,7 +23,7 @@ Future<void> showEmergencySheet(
     showDragHandle: true,
     isScrollControlled: true,
     useSafeArea: true,
-    builder: (_) => EmergencySheet(locate: locate),
+    builder: (_) => SheetBottomInset(child: EmergencySheet(locate: locate)),
   );
 }
 

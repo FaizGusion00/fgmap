@@ -40,7 +40,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get locationRationaleBody =>
-      'Your location is used to show where you are on the map and as the starting point of a route. It is sent to the FGMaps server only to calculate the route.';
+      'Your location is used to show where you are on the map and as the starting point of a route. It is sent directly to the public routing service only to calculate the route, and is not stored on any server of ours.';
 
   @override
   String get locationAllow => 'Allow';
@@ -835,11 +835,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get azanTitle => 'Prayer times';
 
   @override
-  String get azanEnable => 'Azan notifications';
+  String get azanEnable => 'Always remind me of prayer times';
 
   @override
   String get azanEnableHint =>
-      'Tell me when each prayer time begins at my current location.';
+      'A notification with the azan at every prayer time, even when the app is closed.';
 
   @override
   String get azanPrayerFajr => 'Fajr';
@@ -1052,10 +1052,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get musicEmptySongs =>
-      'Type a song or artist name, then tap to play. Songs come from Audius (an open, free catalogue).';
+      'Type a song or artist, or tap a suggestion above. The free Audius catalogue is independent music; major-label songs are not here. For Malay, Indonesian, Japanese and K-pop songs, try the Radio tab.';
 
   @override
-  String get musicEmptyRadio => 'Malaysian radio stations. Tap to listen live.';
+  String get musicEmptyRadio =>
+      'Pick a region above, or type a station name (e.g. Hitz, Prambors, KBS). Tap to listen live.';
 
   @override
   String get musicEmptyLocal =>
@@ -1516,7 +1517,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get legalAttribution =>
-      'Map data © OpenStreetMap contributors (ODbL). Styles and tiles: OpenFreeMap, OpenMapTiles. Routing: Valhalla. Search: Photon (komoot) and Nominatim. Fuel prices: data.gov.my. Music: Audius (Open Music License) and Radio Browser; radio streams from each station. Azan recording: Aaqib Azeez / Atcovi, Wikimedia Commons, CC BY-SA 4.0.';
+      'Map data © OpenStreetMap contributors (ODbL). Style and tiles: OpenFreeMap, OpenMapTiles. Routing: Valhalla. Search: Photon (komoot) and Nominatim. Fuel prices: data.gov.my. Prayer times: JAKIM e-Solat via the WaktuSolat API (api.waktusolat.app), and Adhan calculation. Music: Audius (Open Music License) and Radio Browser; radio streams come from the stations themselves. Azan recording: Aaqib Azeez / Atcovi, Wikimedia Commons, CC BY-SA 4.0.';
 
   @override
   String get aboutAttributionTitle => 'Data sources';
@@ -1656,4 +1657,305 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsErrorReportEmpty => 'No errors recorded';
+
+  @override
+  String azanEnabledSnack(String source) {
+    return 'Azan turned on. $source';
+  }
+
+  @override
+  String azanSourceOfficial(String zone) {
+    return 'Official JAKIM e-Solat times, zone $zone';
+  }
+
+  @override
+  String azanSourceCalculated(String method) {
+    return 'Calculated on this phone ($method)';
+  }
+
+  @override
+  String get azanDeniedTitle => 'Notifications are off';
+
+  @override
+  String get azanDeniedBody =>
+      'Without notification permission the azan cannot play while the app is closed. Open settings and allow notifications for FGMaps.';
+
+  @override
+  String get azanOpenAppSettings => 'Open settings';
+
+  @override
+  String get azanExactDialogTitle => 'Allow exact alarms';
+
+  @override
+  String get azanExactDialogBody =>
+      'So the azan plays exactly on time and not minutes late, allow “Alarms & reminders” for FGMaps on the next screen.';
+
+  @override
+  String get azanNotificationsOffTitle => 'Azan notifications are off';
+
+  @override
+  String get azanNotificationsOffBody =>
+      'The azan will not play while the app is closed until you allow notifications again.';
+
+  @override
+  String get azanBatteryTitle =>
+      'Make sure the azan plays when the app is closed';
+
+  @override
+  String get azanBatteryBody =>
+      'Some phones stop apps in the background. If the azan does not play, allow FGMaps to run without battery restrictions.';
+
+  @override
+  String get azanBatteryAction => 'Open battery settings';
+
+  @override
+  String get azanLocationUnknown =>
+      'Location not known yet. Times are for Kuala Lumpur. Allow location or choose a city below.';
+
+  @override
+  String get azanUseOfficial => 'Official JAKIM times';
+
+  @override
+  String get azanUseOfficialHint =>
+      'Fetch the official e-Solat timetable over the internet (only a ~1 km location is sent). Offline, times are calculated on the phone.';
+
+  @override
+  String get onbAzan => 'Remind me of prayer times';
+
+  @override
+  String get onbAzanHint =>
+      'A notification and the azan at every prayer time, even when the app is closed. We will ask for notification permission.';
+
+  @override
+  String get musicRegionMalaysia => 'Malaysia';
+
+  @override
+  String get musicRegionIndonesia => 'Indonesia';
+
+  @override
+  String get musicRegionFavorites => 'Favourites';
+
+  @override
+  String get musicEmptyFavorites =>
+      'No favourite stations yet. Tap the star on any station to keep it here.';
+
+  @override
+  String get musicFavoriteAdd => 'Add to favourites';
+
+  @override
+  String get musicFavoriteRemove => 'Remove from favourites';
+
+  @override
+  String get musicRadioUnreachable => 'Couldn\'t connect earlier';
+
+  @override
+  String get musicRegionJapan => 'Japan';
+
+  @override
+  String get musicRegionJpop => 'J-pop';
+
+  @override
+  String get musicRegionKorea => 'Korea';
+
+  @override
+  String get musicRegionKpop => 'K-pop';
+
+  @override
+  String get musicNoResultsSongsHint =>
+      'The free Audius catalogue is independent music; major-label songs are not here. Try Radio for Malay, Indonesian, Japanese or Korean songs.';
+
+  @override
+  String get musicTryRadio => 'Search in Radio';
+
+  @override
+  String aboutWhatsNewTitle(String version) {
+    return 'New in version $version';
+  }
+
+  @override
+  String get aboutNew1 =>
+      'Official JAKIM prayer times with notifications even when the app is closed';
+
+  @override
+  String get aboutNew2 =>
+      'Music and radio in the app: Malaysia, Indonesia, Korea and K-pop';
+
+  @override
+  String get aboutNew3 => 'Easy mode: large display for older drivers';
+
+  @override
+  String get aboutNew4 => 'Lane guidance and a Waze-style navy night map';
+
+  @override
+  String get aboutNew5 => 'Clear roundabout icon with the exit number';
+
+  @override
+  String get alongRouteTitle => 'Along the route';
+
+  @override
+  String get alongRouteDisclaimer => 'OpenStreetMap data; may be incomplete.';
+
+  @override
+  String get alongRouteUnavailable =>
+      'Couldn’t load places along the route. Try again later.';
+
+  @override
+  String get alongRouteEmpty =>
+      'No places found along the route for this category.';
+
+  @override
+  String alongRouteIn(String distance) {
+    return 'In $distance';
+  }
+
+  @override
+  String get alongRouteRr => 'R&R';
+
+  @override
+  String get alongRouteFuel => 'Fuel';
+
+  @override
+  String get alongRouteMosque => 'Mosque';
+
+  @override
+  String get alongRouteToilets => 'Toilets';
+
+  @override
+  String get alongRouteAddStop => 'Add as stop';
+
+  @override
+  String get alongRouteAddedStop => 'Added as a stop — recalculating route';
+
+  @override
+  String get tripHistoryExport => 'Export JSON';
+
+  @override
+  String get tripHistoryExported => 'Trip history copied';
+
+  @override
+  String tripHistoryRetentionDays(int days) {
+    return '$days days';
+  }
+
+  @override
+  String get tripHistoryRetentionForever => 'Forever';
+
+  @override
+  String get tripHistoryRetentionOff => 'Off';
+
+  @override
+  String get pickingStopHint => 'Choose a stop, then pick your destination';
+
+  @override
+  String get cameraAwasAhead => 'AwAS camera ahead — observe the speed limit';
+
+  @override
+  String get cameraOsmAhead => 'Camera (OSM) ahead — observe the speed limit';
+
+  @override
+  String get settingsCameras => 'Camera alerts';
+
+  @override
+  String get settingsCamerasHint =>
+      'Official AwAS (JPJ) alerts. Not every camera in Malaysia.';
+
+  @override
+  String get settingsCamerasOsm => 'Include OSM cameras';
+
+  @override
+  String get settingsCamerasOsmHint =>
+      'Community data; may be incomplete or outdated.';
+
+  @override
+  String get settingsCamerasDistance => 'Alert distance';
+
+  @override
+  String get addStop => 'Add stop';
+
+  @override
+  String get stopsTitle => 'Stops';
+
+  @override
+  String get removeStop => 'Remove stop';
+
+  @override
+  String get nextStop => 'Next stop';
+
+  @override
+  String get skipStop => 'Skip stop';
+
+  @override
+  String get tripHistoryTitle => 'Trips';
+
+  @override
+  String get tripHistoryEmpty => 'No saved trips yet.';
+
+  @override
+  String get tripHistoryMonth => 'This month';
+
+  @override
+  String tripHistoryKm(String km) {
+    return '$km km';
+  }
+
+  @override
+  String tripHistoryDuration(int hours, int mins) {
+    return '$hours h $mins min';
+  }
+
+  @override
+  String tripHistoryToll(String amount) {
+    return 'Toll ~RM $amount';
+  }
+
+  @override
+  String tripHistoryTrips(int count) {
+    return '$count trips';
+  }
+
+  @override
+  String get tripHistoryRetention => 'Keep history';
+
+  @override
+  String get tripHistoryDeleteAll => 'Delete all trips';
+
+  @override
+  String get weatherTitle => 'Weather';
+
+  @override
+  String get weatherAttribution => 'Weather: Open-Meteo · GPS location';
+
+  @override
+  String get weatherUnavailable => 'Weather unavailable';
+
+  @override
+  String get weatherRainAlong => 'Rain expected along the route';
+
+  @override
+  String get weatherSevere => 'Severe weather expected — drive carefully';
+
+  @override
+  String get weatherHere => 'Here';
+
+  @override
+  String get weatherAtDestination => 'Destination';
+
+  @override
+  String get weatherFeelsLike => 'Feels';
+
+  @override
+  String get weatherCached => 'Cached';
+
+  @override
+  String get settingsWeather => 'Weather alerts';
+
+  @override
+  String get settingsWeatherHint => 'Heavy-rain banner while navigating';
+
+  @override
+  String get settingsAlongRouteAnnounce => 'Announce R&R / fuel';
+
+  @override
+  String get settingsAlongRouteAnnounceHint =>
+      'Voice when a rest area or fuel stop is ahead (chip always shows)';
 }

@@ -7,10 +7,39 @@ abstract interface class AudiusRepository {
   Future<List<Track>> trending();
 }
 
-/// Stesen radio Malaysia daripada Radio Browser.
+/// Kawasan/genre stesen radio yang boleh dilayari tanpa menaip. Hanya penapis yang tepat:
+/// `language=malay` sengaja tidak digunakan kerana ia turut memadankan Malayalam.
+enum RadioRegion {
+  /// Stesen yang ditanda pengguna (disimpan pada peranti); bukan carian Radio Browser.
+  favorites,
+  malaysia,
+  indonesia,
+  japan,
+  jpop,
+  korea,
+  kpop;
+
+  /// Parameter carian Radio Browser untuk kawasan ini.
+  Map<String, Object> get params => switch (this) {
+    RadioRegion.favorites => const {},
+    RadioRegion.malaysia => const {'countrycode': 'MY'},
+    RadioRegion.indonesia => const {'countrycode': 'ID'},
+    RadioRegion.japan => const {'countrycode': 'JP'},
+    RadioRegion.jpop => const {'tag': 'jpop'},
+    RadioRegion.korea => const {'countrycode': 'KR'},
+    RadioRegion.kpop => const {'tag': 'kpop'},
+  };
+}
+
+/// Stesen radio daripada Radio Browser: Malaysia, Indonesia, Japan, J-pop, Korea dan K-pop.
 abstract interface class RadioRepository {
-  /// Stesen Malaysia (HTTPS sahaja), paling popular dahulu. [query] menapis mengikut nama/tag.
-  Future<List<Track>> stations({String query = ''});
+  /// Stesen (HTTPS sahaja), paling popular dahulu, untuk [region]. [query] tidak kosong mencari
+  /// mengikut nama di seluruh dunia (cth. "Prambors", "KBS") dan menggabungkan dengan padanan
+  /// dalam senarai [region].
+  Future<List<Track>> stations({
+    String query = '',
+    RadioRegion region = RadioRegion.malaysia,
+  });
 
   /// Kiraan klik tanpa nama (dasar Radio Browser: hantar untuk setiap main). Tidak melontar.
   Future<void> countClick(String stationUuid);

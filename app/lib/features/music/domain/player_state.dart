@@ -16,6 +16,7 @@ class PlayerState {
     this.volume = 1.0,
     this.ducked = false,
     this.error,
+    this.nowPlaying,
   });
 
   final PlayerStatus status;
@@ -28,6 +29,10 @@ class PlayerState {
   /// Diperlahankan/dijeda kerana suara navigasi sedang bercakap.
   final bool ducked;
   final String? error;
+
+  /// Lagu yang sedang bersiaran di stesen radio (tajuk ICY yang sudah dibersihkan); null jika
+  /// stesen tidak menghantarnya atau bukan siaran langsung.
+  final String? nowPlaying;
 
   Track? get current =>
       queue.isEmpty || index < 0 || index >= queue.length ? null : queue[index];
@@ -47,6 +52,8 @@ class PlayerState {
     bool? ducked,
     String? error,
     bool clearError = false,
+    String? nowPlaying,
+    bool clearNowPlaying = false,
   }) => PlayerState(
     status: status ?? this.status,
     queue: queue ?? this.queue,
@@ -56,6 +63,7 @@ class PlayerState {
     volume: volume ?? this.volume,
     ducked: ducked ?? this.ducked,
     error: clearError ? null : (error ?? this.error),
+    nowPlaying: clearNowPlaying ? null : (nowPlaying ?? this.nowPlaying),
   );
 
   @override
@@ -68,7 +76,8 @@ class PlayerState {
       other.duration == duration &&
       other.volume == volume &&
       other.ducked == ducked &&
-      other.error == error;
+      other.error == error &&
+      other.nowPlaying == nowPlaying;
 
   @override
   int get hashCode => Object.hash(
@@ -80,6 +89,7 @@ class PlayerState {
     volume,
     ducked,
     error,
+    nowPlaying,
   );
 }
 
@@ -92,6 +102,7 @@ class EngineSnapshot {
     this.position = Duration.zero,
     this.duration,
     this.error,
+    this.nowPlaying,
   });
 
   final PlayerStatus status;
@@ -99,4 +110,7 @@ class EngineSnapshot {
   final Duration position;
   final Duration? duration;
   final String? error;
+
+  /// Tajuk ICY mentah daripada strim langsung (belum dibersihkan); null jika tiada.
+  final String? nowPlaying;
 }

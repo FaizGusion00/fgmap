@@ -23,6 +23,9 @@ class MiniPlayer extends ConsumerWidget {
     );
     final status = ref.watch(playerControllerProvider.select((s) => s.status));
     final ducked = ref.watch(playerControllerProvider.select((s) => s.ducked));
+    final nowPlaying = ref.watch(
+      playerControllerProvider.select((s) => s.nowPlaying),
+    );
     final hasNext = ref.watch(
       playerControllerProvider.select((s) => s.hasNext),
     );
@@ -68,8 +71,11 @@ class MiniPlayer extends ConsumerWidget {
                           ? l10n.musicError
                           : ducked
                           ? l10n.musicDucked
-                          : (current.artist ??
+                          // Radio langsung: lagu yang sedang bersiaran jika stesen menghantarnya.
+                          : (nowPlaying ??
+                                current.artist ??
                                 trackSourceName(l10n, current.source)),
+                      key: const ValueKey('mini-subtitle'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodySmall?.copyWith(

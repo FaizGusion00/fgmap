@@ -75,9 +75,10 @@ List<CandidateRequest> planCandidateRequests(
   }
 
   for (final v in _viaPoints(main)) {
+    // Kekalkan via pengguna; titik detour ditambah, bukan diganti.
     out.add(
       CandidateRequest(
-        base.copyWith(alternates: 0, via: [v]),
+        base.copyWith(alternates: 0, via: [...base.via, v]),
         RouteCandidateOrigin.detour,
       ),
     );

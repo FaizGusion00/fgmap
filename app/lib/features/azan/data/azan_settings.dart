@@ -23,6 +23,7 @@ class AzanSettings {
     this.reminderMinutes = 0,
     this.playDuringNavigation = false,
     this.cityName,
+    this.useOfficial = true,
   });
 
   final bool enabled;
@@ -40,6 +41,10 @@ class AzanSettings {
   /// Bandar pilihan manual (lihat `malaysia_cities.dart`); null = ikut lokasi peranti.
   final String? cityName;
 
+  /// Gunakan waktu rasmi JAKIM (e-Solat) apabila ada talian dan kaedah JAKIM + mazhab Syafie dipilih;
+  /// jika tiada data, pengiraan pada telefon digunakan. Mati = tiada permintaan rangkaian langsung.
+  final bool useOfficial;
+
   bool get useCity => cityName != null;
 
   static const reminderChoices = [0, 5, 10, 15];
@@ -54,6 +59,7 @@ class AzanSettings {
     bool? playDuringNavigation,
     String? cityName,
     bool clearCity = false,
+    bool? useOfficial,
   }) => AzanSettings(
     enabled: enabled ?? this.enabled,
     prayers: prayers ?? this.prayers,
@@ -63,6 +69,7 @@ class AzanSettings {
     reminderMinutes: reminderMinutes ?? this.reminderMinutes,
     playDuringNavigation: playDuringNavigation ?? this.playDuringNavigation,
     cityName: clearCity ? null : (cityName ?? this.cityName),
+    useOfficial: useOfficial ?? this.useOfficial,
   );
 
   @override
@@ -75,7 +82,8 @@ class AzanSettings {
       other.madhab == madhab &&
       other.reminderMinutes == reminderMinutes &&
       other.playDuringNavigation == playDuringNavigation &&
-      other.cityName == cityName;
+      other.cityName == cityName &&
+      other.useOfficial == useOfficial;
 
   @override
   int get hashCode => Object.hash(
@@ -87,6 +95,7 @@ class AzanSettings {
     reminderMinutes,
     playDuringNavigation,
     cityName,
+    useOfficial,
   );
 }
 
@@ -98,6 +107,7 @@ const _madhabKey = 'azan.madhab';
 const _reminderKey = 'azan.reminderMin';
 const _duringNavKey = 'azan.playDuringNav';
 const _cityKey = 'azan.city';
+const _officialKey = 'azan.official';
 
 class AzanSettingsController extends Notifier<AzanSettings> {
   @override
@@ -122,6 +132,7 @@ class AzanSettingsController extends Notifier<AzanSettings> {
           : 0,
       playDuringNavigation: prefs.getBool(_duringNavKey) ?? false,
       cityName: prefs.getString(_cityKey),
+      useOfficial: prefs.getBool(_officialKey) ?? true,
     );
   }
 
@@ -164,6 +175,11 @@ class AzanSettingsController extends Notifier<AzanSettings> {
   Future<void> setPlayDuringNavigation(bool value) async {
     state = state.copyWith(playDuringNavigation: value);
     await ref.read(sharedPreferencesProvider).setBool(_duringNavKey, value);
+  }
+
+  Future<void> setUseOfficial(bool value) async {
+    state = state.copyWith(useOfficial: value);
+    await ref.read(sharedPreferencesProvider).setBool(_officialKey, value);
   }
 
   /// [name] null = ikut lokasi peranti.

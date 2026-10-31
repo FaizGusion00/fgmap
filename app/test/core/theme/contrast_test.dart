@@ -160,7 +160,10 @@ void main() {
       final p = FgPalette.light;
       expect(p.routeCasing, isNot(const Color(0xFFFFFFFF)));
       expect(contrastRatio(p.routeCasing, lightRoad), greaterThanOrEqualTo(6));
-      expect(contrastRatio(p.primary, p.routeCasing), greaterThanOrEqualTo(1.8));
+      expect(
+        contrastRatio(p.primary, p.routeCasing),
+        greaterThanOrEqualTo(1.8),
+      );
     });
 
     test('kad manuver gelap: teks putih pada biru tua (>= 7:1)', () {

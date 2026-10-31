@@ -111,11 +111,67 @@ class InstructionText {
     };
   }
 
-  /// Tindakan dengan nama jalan, cth. "Belok kanan ke Jalan Ampang".
-  String actionWithStreet(NavManeuver m) {
+  /// Kod jalan sahaja ("3217", "B1") dibaca sebagai "Laluan 3217": nombor kosong tidak bermakna kepada
+  /// pemandu. Nama sebenar dikembalikan seadanya.
+  String streetLabel(String street) => NavManeuver.isRoadRef(street)
+      ? (_ms ? 'Laluan ${street.trim()}' : 'Route ${street.trim()}')
+      : street;
+
+  /// Manuver yang disebut dengan "menuju ..." (papan tanda) dan bukan nama jalan: cabang, susur,
+  /// keluar dan gabung. Pemandu memandu mengikut papan tanda di situ, bukan nama jalan.
+  static bool prefersToward(ManeuverKind kind) => switch (kind) {
+    ManeuverKind.keepLeft ||
+    ManeuverKind.keepRight ||
+    ManeuverKind.keepStraight ||
+    ManeuverKind.rampStraight ||
+    ManeuverKind.rampLeft ||
+    ManeuverKind.rampRight ||
+    ManeuverKind.exitLeft ||
+    ManeuverKind.exitRight ||
+    ManeuverKind.merge ||
+    ManeuverKind.mergeLeft ||
+    ManeuverKind.mergeRight => true,
+    _ => false,
+  };
+
+  /// "menuju Klang dan I-City" untuk ayat bersuara; null jika tiada papan tanda.
+  String? towardsPhrase(NavManeuver m) {
+    if (m.towards.isEmpty) return null;
+    final names = m.towards.take(2).join(_ms ? ' dan ' : ' and ');
+    return _ms ? 'menuju $names' : 'toward $names';
+  }
+
+  /// Baris butiran pada kad: "Keluar 1306B · Menuju Klang · I-City". Null jika tiada papan tanda.
+  String? cardDetail(NavManeuver m) {
+    if (m.isArrival) return null;
+    final parts = <String>[
+      if (m.exitNumber != null && prefersToward(m.kind))
+        _ms ? 'Keluar ${m.exitNumber}' : 'Exit ${m.exitNumber}',
+      if (m.towards.isNotEmpty)
+        '${_ms ? 'Menuju' : 'Toward'} ${m.towards.take(3).join(' · ')}',
+    ];
+    return parts.isEmpty ? null : parts.join(' · ');
+  }
+
+  /// Nama jalan untuk kad (kod jalan sebagai "Laluan N"); null jika tiada atau jika baris butiran
+  /// sudah menyebut tempat yang sama.
+  String? cardStreet(NavManeuver m) {
+    if (m.isArrival) return null;
     final street = m.street;
+    return street == null ? null : streetLabel(street);
+  }
+
+  /// Tindakan dengan nama jalan atau papan tanda, cth. "Belok kanan ke Jalan Ampang" atau "Kekal di
+  /// sebelah kanan menuju Klang".
+  String actionWithStreet(NavManeuver m) {
     final base = action(m);
-    if (street == null || m.isArrival) return base;
+    if (m.isArrival) return base;
+    if (prefersToward(m.kind)) {
+      final toward = towardsPhrase(m);
+      if (toward != null) return '$base $toward';
+    }
+    final street = m.street == null ? null : streetLabel(m.street!);
+    if (street == null) return base;
     return switch (m.kind) {
       ManeuverKind.depart => _ms ? '$base di $street' : '$base on $street',
       ManeuverKind.roundabout => base,
@@ -166,7 +222,8 @@ class InstructionText {
   String keepGoing(String? street, double distanceM) {
     final d = distance(distanceM);
     if (street == null) return _ms ? 'Teruskan sejauh $d.' : 'Continue for $d.';
-    return _ms ? 'Ikut $street sejauh $d.' : 'Follow $street for $d.';
+    final name = streetLabel(street);
+    return _ms ? 'Ikut $name sejauh $d.' : 'Follow $name for $d.';
   }
 
   String get navigationStarted =>

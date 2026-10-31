@@ -10,9 +10,21 @@ import '../../../core/utils/geo.dart';
 import '../../route_preview/data/route_planner.dart';
 import '../../route_preview/domain/route_option.dart';
 import '../../route_preview/domain/routing_failure.dart';
+import '../../along_route/data/along_route_search.dart';
+import '../../along_route/domain/along_route_ahead.dart';
+import '../../along_route/domain/along_route_category.dart';
+import '../../along_route/domain/along_route_poi.dart';
+import '../../cameras/data/awas_camera_store.dart';
+import '../../cameras/data/osm_camera_search.dart';
+import '../../cameras/domain/camera_alert_logic.dart';
+import '../../cameras/domain/speed_camera.dart';
 import '../../reports/presentation/report_alerts_controller.dart';
 import '../../speed_limits/data/speed_limit_service.dart';
 import '../../speed_limits/domain/speed_limits.dart';
+import '../../trip_history/data/trip_history_store.dart';
+import '../../trip_history/domain/trip_summary.dart';
+import '../../weather/domain/weather_snapshot.dart';
+import '../../weather/presentation/weather_controller.dart';
 import '../data/location_sources.dart';
 import '../data/navigation_settings.dart';
 import '../data/screen_awake.dart';
@@ -45,6 +57,9 @@ class NavigationState {
     this.locationError = false,
     this.speedLimits = SpeedLimits.empty,
     this.overspeed = false,
+    this.cameraAlert,
+    this.weatherSevere = false,
+    this.upcomingAlongPoi,
   });
 
   final NavPhase phase;
@@ -71,6 +86,15 @@ class NavigationState {
   /// Kelajuan semasa melebihi had laju (+ toleransi pengguna).
   final bool overspeed;
 
+  /// Kamera AwAS/OSM paling hampir di hadapan (jika amaran dihidupkan).
+  final CameraAlert? cameraAlert;
+
+  /// Cuaca buruk di destinasi/laluan (Open-Meteo); banner sahaja.
+  final bool weatherSevere;
+
+  /// R&R / minyak paling hampir di hadapan (≤8 km), untuk chip HUD.
+  final AlongRoutePoi? upcomingAlongPoi;
+
   /// Had laju di kedudukan semasa, atau null jika tidak diketahui.
   int? get currentLimitKmh {
     final along = progress?.alongM;
@@ -90,6 +114,11 @@ class NavigationState {
     bool? locationError,
     SpeedLimits? speedLimits,
     bool? overspeed,
+    CameraAlert? cameraAlert,
+    bool clearCameraAlert = false,
+    bool? weatherSevere,
+    AlongRoutePoi? upcomingAlongPoi,
+    bool clearUpcomingAlongPoi = false,
   }) {
     return NavigationState(
       phase: phase ?? this.phase,
@@ -105,6 +134,11 @@ class NavigationState {
       locationError: locationError ?? this.locationError,
       speedLimits: speedLimits ?? this.speedLimits,
       overspeed: overspeed ?? this.overspeed,
+      cameraAlert: clearCameraAlert ? null : (cameraAlert ?? this.cameraAlert),
+      weatherSevere: weatherSevere ?? this.weatherSevere,
+      upcomingAlongPoi: clearUpcomingAlongPoi
+          ? null
+          : (upcomingAlongPoi ?? this.upcomingAlongPoi),
     );
   }
 }
@@ -155,11 +189,89 @@ class NavigationController extends Notifier<NavigationState> {
   ValueListenable<double>? get simSpeedMultiplier =>
       _simReplay?.speedMultiplier;
 
+  List<SpeedCamera> _cameras = const [];
+  String? _announcedCameraId;
+  List<AlongRoutePoi> _alongPois = const [];
+  String? _announcedAlongPoiId;
+  DateTime? _tripStartedAt;
+  double _tripDistanceM = 0;
+
   /// Tukar kelajuan masa simulasi semasa main (1 = biasa, 4 = 4× lebih pantas).
   void setSimSpeedMultiplier(double value) {
     final notifier = _simReplay?.speedMultiplier;
     if (notifier == null) return;
     notifier.value = value.clamp(0.25, 8.0);
+  }
+
+  /// Via seterusnya di hadapan (jika ada), untuk kad perhentian HUD.
+  GeoPoint? get nextStopAhead {
+    final remaining = remainingViasAhead;
+    return remaining.isEmpty ? null : remaining.first;
+  }
+
+  /// Jarak ke perhentian seterusnya (m), atau null.
+  double? get nextStopDistanceM {
+    final stop = nextStopAhead;
+    final progress = state.progress;
+    final route = state.route;
+    if (stop == null || progress == null || route == null) return null;
+    final ahead = RouteTracker(route).match(stop).alongM - progress.alongM;
+    return ahead < 0 ? null : ahead;
+  }
+
+  /// Perhentian yang masih di hadapan (belum dilalui ~40 m).
+  List<GeoPoint> get remainingViasAhead {
+    final query = state.query;
+    final progress = state.progress;
+    final route = state.route;
+    if (query == null ||
+        progress == null ||
+        route == null ||
+        query.via.isEmpty) {
+      return const [];
+    }
+    final tracker = RouteTracker(route);
+    final along = progress.alongM;
+    final ahead = <(double, GeoPoint)>[];
+    for (final v in query.via) {
+      final d = tracker.match(v).alongM - along;
+      if (d >= 40) ahead.add((d, v));
+    }
+    ahead.sort((a, b) => a.$1.compareTo(b.$1));
+    return [for (final e in ahead) e.$2];
+  }
+
+  /// Buang perhentian [stop] dan kira semula laluan ke destinasi dengan via yang tinggal.
+  Future<bool> skipStop(GeoPoint stop) async {
+    final query = state.query;
+    final progress = state.progress;
+    if (query == null ||
+        progress == null ||
+        state.phase != NavPhase.active ||
+        _reroutePending) {
+      return false;
+    }
+    final remaining = [
+      for (final v in remainingViasAhead)
+        if (distanceMeters(v, stop) > 30) v,
+    ];
+    _reroutePending = true;
+    try {
+      final next = query.rerouteFrom(
+        progress.position,
+        headingDegrees: progress.bearing.round(),
+        remainingVia: remaining,
+      );
+      final options = await ref.read(routePlannerProvider).plan(next);
+      if (options.isEmpty || state.phase != NavPhase.active) return false;
+      _adopt(options.first, next, _generation);
+      return true;
+    } on Object catch (e) {
+      logDiag('Langkau perhentian gagal: $e');
+      return false;
+    } finally {
+      _reroutePending = false;
+    }
   }
 
   @override
@@ -170,6 +282,19 @@ class NavigationController extends Notifier<NavigationState> {
       _session?.language = _voiceLanguage(next);
       if (!next.voiceEnabled && prev?.voiceEnabled == true) {
         unawaited(ref.read(voiceGuideProvider).stop());
+      }
+    });
+    ref.listen<WeatherUiState>(weatherControllerProvider, (prev, next) {
+      if (!state.isActive || state.phase == NavPhase.arrived) return;
+      if (!ref.read(navigationSettingsProvider).weatherAlerts) {
+        if (state.weatherSevere) {
+          state = state.copyWith(weatherSevere: false);
+        }
+        return;
+      }
+      final severe = next is WeatherUiReady && next.weather.severe;
+      if (severe != state.weatherSevere) {
+        state = state.copyWith(weatherSevere: severe);
       }
     });
     final saved = ref.read(tripStoreProvider).read();
@@ -215,6 +340,11 @@ class NavigationController extends Notifier<NavigationState> {
       routeVersion: 1,
     );
     if (saved.arrived) return resumed;
+
+    _tripStartedAt = clock().subtract(const Duration(minutes: 1));
+    _tripDistanceM = saved.alongM;
+    unawaited(_loadCameras(saved.route, generation, 1));
+    unawaited(_loadAlongPois(saved.route, generation, 1));
 
     final src = DeviceLocationSource(ref.read(locationServiceProvider));
     _subscription = src.fixes().listen(
@@ -296,6 +426,20 @@ class NavigationController extends Notifier<NavigationState> {
     ref.read(reportAlertsProvider.notifier).reset();
     _speak(session.takeStartAnnouncements());
     unawaited(_loadSpeedLimits(route, query, generation, 1));
+    _tripStartedAt = clock();
+    _tripDistanceM = 0;
+    _announcedCameraId = null;
+    _cameras = const [];
+    _announcedAlongPoiId = null;
+    _alongPois = const [];
+    unawaited(_loadCameras(route, generation, 1));
+    unawaited(_loadAlongPois(route, generation, 1));
+    final weather = ref.read(weatherControllerProvider);
+    if (weather is WeatherUiReady &&
+        weather.weather.severe &&
+        ref.read(navigationSettingsProvider).weatherAlerts) {
+      state = state.copyWith(weatherSevere: true);
+    }
 
     _subscription = src.fixes().listen(
       (fix) {
@@ -334,15 +478,37 @@ class NavigationController extends Notifier<NavigationState> {
   }
 
   Future<void> stop() async {
+    final wasActive = state.phase != NavPhase.idle;
+    final summaryRoute = state.route;
+    final summaryQuery = state.query;
+    final along = state.progress?.alongM ?? _tripDistanceM;
+    final started = _tripStartedAt;
+    final arrived = state.phase == NavPhase.arrived;
+    final simulated = state.simulated;
     _generation++;
     _teardown();
     _session = null;
     _lastFix = null;
     _reroutePending = false;
     _persistedAlong = null;
+    _cameras = const [];
+    _announcedCameraId = null;
+    _alongPois = const [];
+    _announcedAlongPoiId = null;
     await ref.read(tripStoreProvider).clear();
     ref.read(reportAlertsProvider.notifier).reset();
-    if (state.phase != NavPhase.idle) {
+    if (wasActive) {
+      if (summaryRoute != null && started != null && !simulated) {
+        unawaited(
+          _saveTripHistory(
+            route: summaryRoute.option,
+            query: summaryQuery,
+            alongM: along,
+            started: started,
+            completed: arrived,
+          ),
+        );
+      }
       state = const NavigationState();
       try {
         await ref.read(voiceGuideProvider).stop();
@@ -352,6 +518,37 @@ class NavigationController extends Notifier<NavigationState> {
         // Skrin mesti dilepaskan walaupun enjin suara bermasalah.
         await ref.read(screenAwakeProvider).disable();
       }
+    }
+    _tripStartedAt = null;
+    _tripDistanceM = 0;
+  }
+
+  Future<void> _saveTripHistory({
+    required RouteOption route,
+    required RouteQuery? query,
+    required double alongM,
+    required DateTime started,
+    required bool completed,
+  }) async {
+    final now = ref.read(navClockProvider)();
+    final durationS = now.difference(started).inSeconds.toDouble();
+    final distanceM = completed ? route.distanceM.toDouble() : alongM;
+    try {
+      await ref
+          .read(tripHistoryStoreProvider)
+          .add(
+            TripSummary(
+              id: 'trip-${now.millisecondsSinceEpoch}',
+              completedAt: now.toLocal(),
+              distanceM: distanceM,
+              durationS: durationS,
+              originLabel: null,
+              destinationLabel: query?.destinationLabel,
+              vehicle: (query?.vehicle ?? RouteVehicle.car).name,
+            ),
+          );
+    } on Object catch (e) {
+      logDiag('Sejarah perjalanan gagal disimpan: $e');
     }
   }
 
@@ -403,6 +600,9 @@ class NavigationController extends Notifier<NavigationState> {
       ref.read(reportAlertsProvider.notifier).onFix(fix, _voiceLanguage()),
     );
     _updateOverspeed(progress);
+    _updateCameraAlert(progress);
+    _updateAlongPoi(progress);
+    _tripDistanceM = progress.alongM;
 
     if (progress.status == NavStatus.arrived) {
       state = state.copyWith(phase: NavPhase.arrived);
@@ -485,7 +685,13 @@ class NavigationController extends Notifier<NavigationState> {
     try {
       final options = await ref
           .read(routePlannerProvider)
-          .plan(query.rerouteFrom(origin, headingDegrees: heading));
+          .plan(
+            query.rerouteFrom(
+              origin,
+              headingDegrees: heading,
+              remainingVia: remainingViasAhead,
+            ),
+          );
       if (generation != _generation) return;
       final took = clock().difference(startedAt);
       _rerouteRtt = Duration(
@@ -561,12 +767,16 @@ class NavigationController extends Notifier<NavigationState> {
       time: now,
     );
     _session = fresh;
+    final keepSevere = state.weatherSevere;
+    _announcedAlongPoiId = null;
+    _alongPois = const [];
     state = NavigationState(
       phase: NavPhase.active,
       route: route,
       query: query,
       simulated: state.simulated,
       routeVersion: state.routeVersion + 1,
+      weatherSevere: keepSevere,
       progress: previous == null
           ? null
           : restoredProgress(
@@ -580,6 +790,8 @@ class NavigationController extends Notifier<NavigationState> {
     _speak(startAnnouncements);
     unawaited(_persistTrip(force: true));
     unawaited(_loadSpeedLimits(option, query, generation, state.routeVersion));
+    unawaited(_loadCameras(option, generation, state.routeVersion));
+    unawaited(_loadAlongPois(option, generation, state.routeVersion));
 
     // Fix terkini (kedudukan sudah beralih sepanjang pengiraan) disuap terus.
     final fix = _lastFix;
@@ -602,7 +814,11 @@ class NavigationController extends Notifier<NavigationState> {
     final options = await ref
         .read(routeOptionsPlannerProvider)
         .plan(
-          query.alternativesFrom(fix.point, headingDegrees: fix.headingDegrees),
+          query.alternativesFrom(
+            fix.point,
+            headingDegrees: fix.headingDegrees,
+            remainingVia: remainingViasAhead,
+          ),
         );
     if (generation != _generation) {
       throw const RoutingFailure(RoutingFailureKind.generic);
@@ -647,6 +863,156 @@ class NavigationController extends Notifier<NavigationState> {
     } on Object catch (e) {
       logDiag('Had laju tidak dapat dimuat: $e');
     }
+  }
+
+  Future<void> _loadCameras(
+    RouteOption route,
+    int generation,
+    int routeVersion,
+  ) async {
+    final settings = ref.read(navigationSettingsProvider);
+    if (!settings.speedCameraAlerts) {
+      _cameras = const [];
+      return;
+    }
+    try {
+      final awas = await ref.read(awasCameraStoreProvider).load();
+      var cams = List<SpeedCamera>.of(awas);
+      if (settings.speedCameraOsm) {
+        final osm = await ref
+            .read(osmCameraSearchProvider)
+            .searchAlong(route.points);
+        cams = [...cams, ...osm];
+      }
+      if (generation != _generation || state.routeVersion != routeVersion) {
+        return;
+      }
+      _cameras = cams;
+    } on Object catch (e) {
+      logDiag('Kamera AwAS tidak dapat dimuat: $e');
+    }
+  }
+
+  /// Muat R&R + minyak sepanjang laluan (Overpass); soft-fail jika offline.
+  Future<void> _loadAlongPois(
+    RouteOption route,
+    int generation,
+    int routeVersion,
+  ) async {
+    try {
+      final search = ref.read(alongRouteSearchProvider);
+      final results = await Future.wait([
+        search.search(
+          routePoints: route.points,
+          category: AlongRouteCategory.restArea,
+          fallbackName: 'R&R',
+        ),
+        search.search(
+          routePoints: route.points,
+          category: AlongRouteCategory.fuel,
+          fallbackName: 'Fuel',
+        ),
+      ]);
+      if (generation != _generation || state.routeVersion != routeVersion) {
+        return;
+      }
+      final merged = [...results[0], ...results[1]]
+        ..sort((a, b) => a.alongM.compareTo(b.alongM));
+      _alongPois = merged;
+      final progress = state.progress;
+      if (progress != null) _updateAlongPoi(progress);
+    } on Object catch (e) {
+      logDiag('POI sepanjang laluan tidak dapat dimuat: $e');
+    }
+  }
+
+  void _updateAlongPoi(NavProgress progress) {
+    if (_alongPois.isEmpty) {
+      if (state.upcomingAlongPoi != null) {
+        state = state.copyWith(clearUpcomingAlongPoi: true);
+      }
+      return;
+    }
+    final next = nextAlongPoiAhead(
+      pois: _alongPois,
+      alongNow: progress.alongM,
+    );
+    state = next == null
+        ? state.copyWith(clearUpcomingAlongPoi: true)
+        : state.copyWith(upcomingAlongPoi: next);
+    if (next == null) return;
+    if (!ref.read(navigationSettingsProvider).alongRouteAnnounce) return;
+    if (next.id == _announcedAlongPoiId) return;
+    final ahead = next.remainingFrom(progress.alongM);
+    // Sebut sekali dalam ~5 km; jangan spam bila chip baru muncul jauh.
+    if (ahead > 5200) return;
+    _announcedAlongPoiId = next.id;
+    final en = _voiceLanguage() == VoiceLanguage.en;
+    final isRr = next.category == AlongRouteCategory.restArea;
+    final text = isRr
+        ? (en
+              ? 'Rest area ahead in ${_voiceDistance(ahead, en)}'
+              : 'R&R di hadapan dalam ${_voiceDistance(ahead, en)}')
+        : (en
+              ? 'Fuel station ahead in ${_voiceDistance(ahead, en)}'
+              : 'Stesen minyak di hadapan dalam ${_voiceDistance(ahead, en)}');
+    _speak([
+      Announcement(
+        kind: AnnouncementKind.far,
+        text: text,
+        chime: ChimeKind.early,
+      ),
+    ]);
+  }
+
+  static String _voiceDistance(double meters, bool en) {
+    if (meters >= 1000) {
+      final km = (meters / 1000).toStringAsFixed(meters >= 5000 ? 0 : 1);
+      return en ? '$km kilometers' : '$km kilometer';
+    }
+    final m = (meters / 50).round() * 50;
+    return en ? '$m meters' : '$m meter';
+  }
+
+  void _updateCameraAlert(NavProgress progress) {
+    final settings = ref.read(navigationSettingsProvider);
+    if (!settings.speedCameraAlerts || _cameras.isEmpty) {
+      if (state.cameraAlert != null) {
+        state = state.copyWith(clearCameraAlert: true);
+      }
+      return;
+    }
+    final route = state.route;
+    if (route == null) return;
+    final alert = nextCameraAlert(
+      routePoints: route.points,
+      cameras: _cameras,
+      alongNow: progress.alongM,
+      alertWithinM: settings.speedCameraAlertM.toDouble(),
+      travelBearingDegrees: progress.bearing,
+    );
+    final prevId = state.cameraAlert?.camera.id;
+    state = alert == null
+        ? state.copyWith(clearCameraAlert: true)
+        : state.copyWith(cameraAlert: alert);
+    if (alert == null || alert.camera.id == _announcedCameraId) return;
+    if (alert.distanceAheadM > 450 && alert.camera.id == prevId) return;
+    _announcedCameraId = alert.camera.id;
+    final en = _voiceLanguage() == VoiceLanguage.en;
+    final text = alert.camera.source == SpeedCameraSource.jpjAwas
+        ? (en
+              ? 'AwAS camera ahead — observe the speed limit'
+              : 'Kamera AwAS di hadapan — patuhi had laju')
+        : (en
+              ? 'Camera ahead — observe the speed limit'
+              : 'Kamera di hadapan — patuhi had laju');
+    _speak([
+      Announcement(
+        kind: AnnouncementKind.now,
+        text: text,
+        chime: ChimeKind.warning,
+      ),
+    ]);
   }
 
   DateTime? _lastOverspeedChime;

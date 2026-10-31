@@ -33,13 +33,17 @@ class AzanLocationController extends Notifier<GeoPoint?> {
     (p.lng * 100).roundToDouble() / 100,
   );
 
-  void update(GeoPoint point) {
+  /// [force] = fix segar yang diminta secara sengaja (cth. semasa menghidupkan azan atau app kembali
+  /// ke hadapan): abaikan ambang 20 km supaya lokasi sentiasa terkini.
+  void update(GeoPoint point, {bool force = false}) {
     final current = state;
-    if (current != null &&
+    if (!force &&
+        current != null &&
         distanceMeters(current, point) < _updateAfterMeters) {
       return;
     }
     final coarse = coarsen(point);
+    if (coarse == current) return;
     state = coarse;
     _persist(ref.read(sharedPreferencesProvider), coarse);
   }

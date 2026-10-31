@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/widgets/sheet_bottom_inset.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../route_preview/data/route_planner.dart';
 import '../domain/offline_models.dart';
@@ -13,7 +14,7 @@ Future<void> showOfflineMapsSheet(BuildContext context) {
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    builder: (_) => const OfflineMapsSheet(),
+    builder: (_) => const SheetBottomInset(child: OfflineMapsSheet()),
   );
 }
 

@@ -1,4 +1,5 @@
 import 'package:fgmap/features/navigation/domain/nav_route.dart';
+import 'package:fgmap/features/navigation/presentation/maneuver_diagram.dart';
 import 'package:fgmap/features/navigation/presentation/maneuver_glyph.dart';
 import 'package:fgmap/features/navigation/presentation/roundabout_exit_icon.dart';
 import 'package:flutter/material.dart';
@@ -6,7 +7,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   Future<void> pump(WidgetTester tester, Widget child) => tester.pumpWidget(
-    MaterialApp(home: Scaffold(body: Center(child: child))),
+    MaterialApp(
+      home: Scaffold(body: Center(child: child)),
+    ),
   );
 
   group('RoundaboutExitIcon', () {
@@ -103,14 +106,9 @@ void main() {
           color: Colors.white,
         ),
       );
-      expect(find.byIcon(Icons.turn_right_rounded), findsOneWidget);
-      expect(
-        find.descendant(
-          of: find.byType(ManeuverGlyph),
-          matching: find.byType(Transform),
-        ),
-        findsNothing,
-      );
+      // Belok, kekal, susur, gabung dan pusingan U dilukis sebagai gambar rajah simpang.
+      expect(find.byType(ManeuverDiagram), findsOneWidget);
+      expect(find.byIcon(Icons.turn_right_rounded), findsNothing);
 
       await pump(
         tester,
@@ -120,15 +118,49 @@ void main() {
           color: Colors.white,
         ),
       );
-      expect(find.byIcon(Icons.merge_rounded), findsOneWidget);
-      expect(
-        find.descendant(
-          of: find.byType(ManeuverGlyph),
-          matching: find.byType(Transform),
+      expect(find.byType(ManeuverDiagram), findsOneWidget);
+      final painter =
+          (tester
+                  .widget<CustomPaint>(
+                    find.descendant(
+                      of: find.byType(ManeuverDiagram),
+                      matching: find.byType(CustomPaint),
+                    ),
+                  )
+                  .painter!
+              as ManeuverDiagramPainter);
+      expect(painter.kind, ManeuverKind.mergeLeft);
+
+      // Mula, tiba dan feri kekal glif Material.
+      await pump(
+        tester,
+        const ManeuverGlyph(
+          kind: ManeuverKind.arrive,
+          size: 40,
+          color: Colors.white,
         ),
-        findsOneWidget,
       );
+      expect(find.byType(ManeuverDiagram), findsNothing);
+      expect(find.byIcon(Icons.flag_rounded), findsOneWidget);
     });
+
+    test(
+      'setiap jenis dilukis oleh gambar rajah atau glif, tidak kedua-duanya',
+      () {
+        for (final kind in ManeuverKind.values) {
+          final drawn = ManeuverDiagram.draws(kind);
+          final iconKinds = {
+            ManeuverKind.depart,
+            ManeuverKind.arrive,
+            ManeuverKind.arriveLeft,
+            ManeuverKind.arriveRight,
+            ManeuverKind.ferry,
+            ManeuverKind.roundabout,
+          };
+          expect(drawn, !iconKinds.contains(kind), reason: kind.name);
+        }
+      },
+    );
 
     testWidgets('setiap jenis manuver boleh dilukis', (tester) async {
       for (final kind in ManeuverKind.values) {

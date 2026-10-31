@@ -37,7 +37,10 @@ void main() {
     });
 
     test('pautan search Google tanpa koordinat: label untuk carian OSM', () {
-      expect(placeFromDirectQuery('https://www.google.com/maps/search/Alam+Perdana'), isNull);
+      expect(
+        placeFromDirectQuery('https://www.google.com/maps/search/Alam+Perdana'),
+        isNull,
+      );
       expect(
         searchLabelFromMapLink(
           'https://www.google.com/maps/search/Alam+Perdana',

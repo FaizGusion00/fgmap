@@ -146,6 +146,7 @@ class MapViewConfig {
     this.userLocation,
     this.navRoute,
     this.navAlong,
+    this.navStale = false,
     this.finalLeg = const [],
     this.showCompass = true,
     this.vehicleKind = VehicleKind.car,
@@ -182,6 +183,11 @@ class MapViewConfig {
 
   /// Jarak (m) yang telah dilalui sepanjang [navRoute], dikemas kini beberapa kali sesaat.
   final ValueListenable<double?>? navAlong;
+
+  /// Laluan navigasi sudah lapuk (pemandu menyimpang dan laluan baharu sedang dikira): garisan
+  /// dilukis pudar supaya jelas ia bukan lagi arah yang patut diikut, bukannya garisan biru penuh
+  /// yang menuju ke tempat lain.
+  final bool navStale;
 
   /// Sambungan akhir bertitik dari hujung laluan (titik jalan) ke destinasi sebenar bila ia berjauhan;
   /// kosong jika tiada.

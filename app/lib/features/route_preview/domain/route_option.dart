@@ -35,10 +35,19 @@ class Maneuver {
     this.roundaboutExitCount,
     this.toll = false,
     this.lanes = const [],
+    this.towards = const [],
+    this.exitNumber,
   });
 
   final int type;
   final List<String> streetNames;
+
+  /// "Menuju ..." daripada papan tanda (`sign.exit_toward_elements`) pada persimpangan bercabang,
+  /// susur dan keluar, mis. ["Klang", "I-City"]. Kosong jika tiada papan tanda dalam data.
+  final List<String> towards;
+
+  /// Nombor keluar (`sign.exit_number_elements`), mis. "1306B"; null jika tiada.
+  final String? exitNumber;
   final int lengthM;
   final int timeS;
 
@@ -169,6 +178,7 @@ class RouteOption {
     this.hasHighway = false,
     this.hasFerry = false,
     this.hasTimeRestrictions = false,
+    this.roadPenalty = 0,
   });
 
   final int distanceM;
@@ -187,6 +197,12 @@ class RouteOption {
 
   /// Melalui jalan bersekatan masa (cth. dibuka waktu tertentu sahaja).
   final bool hasTimeRestrictions;
+
+  /// Pecahan masa tambahan (0 = semua jalan utama) yang dikenakan pada skor kerana laluan melalui jalan
+  /// kecil (tertiari, tidak dikelaskan, kediaman, servis). Dikira daripada kelas jalan sebenar
+  /// (`trace_attributes`) oleh [RoadQualityService]; 0 jika tidak diketahui. Hanya mempengaruhi
+  /// pemilihan laluan "Disyorkan", bukan masa yang dipaparkan.
+  final double roadPenalty;
 
   /// Jalan bertol mengikut susunan perjalanan, daripada manuver bertanda `toll`. Kosong jika laluan
   /// tiada tol atau arahan tidak membawa nama jalan.
@@ -217,7 +233,7 @@ class RouteOption {
   int get tollLengthM =>
       maneuvers.where((m) => m.toll).fold(0, (sum, m) => sum + m.lengthM);
 
-  RouteOption copyWith({RouteLabel? label}) => RouteOption(
+  RouteOption copyWith({RouteLabel? label, double? roadPenalty}) => RouteOption(
     distanceM: distanceM,
     durationS: durationS,
     hasTolls: hasTolls,
@@ -228,9 +244,12 @@ class RouteOption {
     hasHighway: hasHighway,
     hasFerry: hasFerry,
     hasTimeRestrictions: hasTimeRestrictions,
+    roadPenalty: roadPenalty ?? this.roadPenalty,
   );
 
   RouteOption withLabel(RouteLabel label) => copyWith(label: label);
+
+  RouteOption withRoadPenalty(double penalty) => copyWith(roadPenalty: penalty);
 
   /// Nama jalan utama laluan ("melalui ..."): jalan bernama dengan jarak terkumpul terpanjang.
   /// Null jika tiada manuver bernama (cth. laluan dibina tanpa arahan).
@@ -338,7 +357,11 @@ class RouteQuery {
 
   /// Permintaan untuk memilih laluan lain dari [origin] ke destinasi yang sama semasa dalam perjalanan:
   /// tiada pilihan elak (supaya semua pilihan bermakna ditawarkan) dan alternatif diminta semula.
-  RouteQuery alternativesFrom(GeoPoint origin, {int? headingDegrees}) {
+  RouteQuery alternativesFrom(
+    GeoPoint origin, {
+    int? headingDegrees,
+    List<GeoPoint>? remainingVia,
+  }) {
     return RouteQuery(
       origin: origin,
       destination: destination,
@@ -346,12 +369,18 @@ class RouteQuery {
       vehicle: vehicle,
       destinationLabel: destinationLabel,
       destinationRadiusM: destinationRadiusM,
+      via: remainingVia ?? via,
     );
   }
 
   /// Permintaan baharu ke destinasi yang sama dari [origin] (cth. mengira semula bila menyimpang).
   /// Kenderaan, pilihan elak dan nama destinasi dikekalkan; hanya satu laluan diminta.
-  RouteQuery rerouteFrom(GeoPoint origin, {int? headingDegrees}) {
+  /// [remainingVia] = perhentian yang belum dilalui (jangan hantar via yang sudah dilepasi).
+  RouteQuery rerouteFrom(
+    GeoPoint origin, {
+    int? headingDegrees,
+    List<GeoPoint>? remainingVia,
+  }) {
     return RouteQuery(
       origin: origin,
       destination: destination,
@@ -363,6 +392,7 @@ class RouteQuery {
       alternates: 0,
       destinationRadiusM: destinationRadiusM,
       shortest: shortest,
+      via: remainingVia ?? via,
       urgent: true,
       // Heading GPS semasa selekoh/pecutan boleh lewat; toleransi 45 deg mengelak asal dipadankan ke
       // jalan arah bertentangan tanpa terlalu ketat.

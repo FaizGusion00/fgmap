@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/widgets/sheet_bottom_inset.dart';
 import '../../../core/settings/easy_mode_scope.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../data/music_settings.dart';
+import '../data/radio_favorites.dart';
+import '../data/radio_health.dart';
+import '../domain/music_repository.dart';
 import '../domain/track.dart';
 import 'mini_player.dart';
 import 'music_search_controller.dart';
@@ -15,7 +19,7 @@ Future<void> showMusicSheet(BuildContext context) => showModalBottomSheet<void>(
   isScrollControlled: true,
   useSafeArea: true,
   showDragHandle: true,
-  builder: (_) => const MusicSheet(),
+  builder: (_) => const SheetBottomInset(child: MusicSheet()),
 );
 
 /// Lembaran Muzik: satu medan carian besar, tiga tab (Lagu / Radio / Fail saya) dengan ikon +
@@ -133,7 +137,44 @@ class _MusicSheetState extends ConsumerState<MusicSheet> {
               ),
             ),
           ),
-          const SizedBox(height: 4),
+          if (state.tab == MusicTab.radio)
+            _ChipRow(
+              key: const ValueKey('music-regions'),
+              wrap: true,
+              children: [
+                for (final r in RadioRegion.values)
+                  ChoiceChip(
+                    key: ValueKey('music-region-${r.name}'),
+                    avatar: r == RadioRegion.favorites
+                        ? const Icon(Icons.star_rounded, size: 18)
+                        : null,
+                    label: Text(_regionLabel(l10n, r)),
+                    selected: state.region == r,
+                    onSelected: (_) => search.setRegion(r),
+                  ),
+              ],
+            )
+          else if (state.tab == MusicTab.songs)
+            _ChipRow(
+              key: const ValueKey('music-suggestions'),
+              children: [
+                for (final q in _songSuggestions)
+                  ActionChip(
+                    key: ValueKey('music-suggest-$q'),
+                    label: Text(q),
+                    onPressed: () {
+                      _field.text = q;
+                      _field.selection = TextSelection.collapsed(
+                        offset: q.length,
+                      );
+                      setState(() {});
+                      search.searchFor(q);
+                    },
+                  ),
+              ],
+            )
+          else
+            const SizedBox(height: 4),
           Expanded(
             child: _Results(state: state, scroll: scroll, easy: easy),
           ),
@@ -159,6 +200,62 @@ class _MusicSheetState extends ConsumerState<MusicSheet> {
   }
 }
 
+/// Cadangan carian tab Lagu: genre/bahasa yang diminta pemandu Malaysia. Ia hanyalah pertanyaan
+/// biasa ke katalog Audius.
+const _songSuggestions = [
+  'Malay',
+  'Indonesia',
+  'Japan',
+  'K-pop',
+  'J-pop',
+  'City Pop',
+  'Anime',
+  'Dangdut',
+  'Nasyid',
+  'Lo-fi',
+];
+
+String _regionLabel(AppLocalizations l10n, RadioRegion r) => switch (r) {
+  RadioRegion.favorites => l10n.musicRegionFavorites,
+  RadioRegion.malaysia => l10n.musicRegionMalaysia,
+  RadioRegion.indonesia => l10n.musicRegionIndonesia,
+  RadioRegion.japan => l10n.musicRegionJapan,
+  RadioRegion.jpop => l10n.musicRegionJpop,
+  RadioRegion.korea => l10n.musicRegionKorea,
+  RadioRegion.kpop => l10n.musicRegionKpop,
+};
+
+/// Baris cip yang boleh digulung mendatar.
+class _ChipRow extends StatelessWidget {
+  const _ChipRow({super.key, required this.children, this.wrap = false});
+
+  final List<Widget> children;
+
+  /// Semua cip kelihatan (dua baris di telefon sempit) dan bukannya digulung: Indonesia, Korea dan
+  /// K-pop mesti ternampak tanpa pengguna perlu meneka ada lagi di sebelah kanan.
+  final bool wrap;
+
+  @override
+  Widget build(BuildContext context) => wrap
+      ? Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Wrap(spacing: 8, runSpacing: 4, children: children),
+          ),
+        )
+      : SizedBox(
+          height: 52,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            itemCount: children.length,
+            separatorBuilder: (_, _) => const SizedBox(width: 8),
+            itemBuilder: (_, i) => children[i],
+          ),
+        );
+}
+
 class _Results extends ConsumerWidget {
   const _Results({
     required this.state,
@@ -179,6 +276,11 @@ class _Results extends ConsumerWidget {
     final currentKey = ref.watch(
       playerControllerProvider.select((s) => s.current?.key),
     );
+    final favorites = ref.watch(radioFavoritesProvider);
+    final health = ref.watch(radioHealthProvider.notifier);
+    ref.watch(
+      radioHealthProvider,
+    ); // bina semula apabila stesen ditanda gagal/pulih
 
     Widget message(IconData icon, String text, {Widget? action}) => ListView(
       controller: scroll,
@@ -235,14 +337,29 @@ class _Results extends ConsumerWidget {
             state.status == MusicSearchStatus.empty) {
           return message(
             Icons.search_off_rounded,
-            l10n.musicNoResults(state.query.trim()),
-            action: state.tab == MusicTab.local ? importButton : null,
+            state.tab == MusicTab.songs
+                ? '${l10n.musicNoResults(state.query.trim())}\n\n${l10n.musicNoResultsSongsHint}'
+                : l10n.musicNoResults(state.query.trim()),
+            action: switch (state.tab) {
+              MusicTab.local => importButton,
+              MusicTab.songs => FilledButton.tonalIcon(
+                key: const ValueKey('music-try-radio'),
+                onPressed: () => search.setTab(MusicTab.radio),
+                icon: const Icon(Icons.radio_rounded),
+                label: Text(l10n.musicTryRadio),
+              ),
+              MusicTab.radio => null,
+            },
           );
         }
         return switch (state.tab) {
           MusicTab.songs => message(
             Icons.music_note_rounded,
             l10n.musicEmptySongs,
+          ),
+          MusicTab.radio when state.region == RadioRegion.favorites => message(
+            Icons.star_outline_rounded,
+            l10n.musicEmptyFavorites,
           ),
           MusicTab.radio => message(Icons.radio_rounded, l10n.musicEmptyRadio),
           MusicTab.local => message(
@@ -266,6 +383,15 @@ class _Results extends ConsumerWidget {
             }
             final t = state.results[i];
             final selected = t.key == currentKey;
+            final unreachable =
+                state.tab == MusicTab.radio && health.isFailed(t);
+            final playIcon = Icon(
+              selected
+                  ? Icons.graphic_eq_rounded
+                  : Icons.play_circle_outline_rounded,
+              color: theme.colorScheme.primary,
+              size: easy ? 34 : 28,
+            );
             return ListTile(
               key: ValueKey('music-result-${t.key}'),
               minTileHeight: easy ? 72 : 60,
@@ -280,12 +406,17 @@ class _Results extends ConsumerWidget {
                             : theme.textTheme.titleSmall)
                         ?.copyWith(
                           fontWeight: FontWeight.w700,
-                          color: selected ? theme.colorScheme.primary : null,
+                          color: selected
+                              ? theme.colorScheme.primary
+                              : unreachable
+                              ? theme.colorScheme.onSurfaceVariant
+                              : null,
                         ),
               ),
               subtitle: Text(
                 [
                   if (t.isLive) l10n.musicLive,
+                  if (unreachable) l10n.musicRadioUnreachable,
                   if (t.artist != null) t.artist!,
                   if (t.source == TrackSource.audius) l10n.musicViaAudius,
                   if (t.duration != null) formatTrackTime(t.duration!),
@@ -293,19 +424,37 @@ class _Results extends ConsumerWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              trailing: state.tab == MusicTab.local
-                  ? IconButton(
-                      tooltip: l10n.musicRemove,
-                      icon: const Icon(Icons.delete_outline_rounded),
-                      onPressed: () => search.removeLocal(t),
-                    )
-                  : Icon(
-                      selected
-                          ? Icons.graphic_eq_rounded
-                          : Icons.play_circle_outline_rounded,
-                      color: theme.colorScheme.primary,
-                      size: easy ? 34 : 28,
+              trailing: switch (state.tab) {
+                MusicTab.local => IconButton(
+                  tooltip: l10n.musicRemove,
+                  icon: const Icon(Icons.delete_outline_rounded),
+                  onPressed: () => search.removeLocal(t),
+                ),
+                MusicTab.radio => Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      key: ValueKey('music-fav-${t.key}'),
+                      tooltip: favorites.contains(t)
+                          ? l10n.musicFavoriteRemove
+                          : l10n.musicFavoriteAdd,
+                      iconSize: easy ? 32 : 26,
+                      icon: Icon(
+                        favorites.contains(t)
+                            ? Icons.star_rounded
+                            : Icons.star_outline_rounded,
+                        color: favorites.contains(t)
+                            ? Colors.amber.shade700
+                            : theme.colorScheme.onSurfaceVariant,
+                      ),
+                      onPressed: () =>
+                          ref.read(radioFavoritesProvider.notifier).toggle(t),
                     ),
+                    playIcon,
+                  ],
+                ),
+                MusicTab.songs => playIcon,
+              },
               onTap: () => player.playTrack(t, queue: state.results),
             );
           },

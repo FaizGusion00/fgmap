@@ -25,40 +25,61 @@ void main() {
   group('CruiseVoice', () {
     test('loceng laju berlebihan sekali setiap cooldown', () {
       final voice = CruiseVoice();
-      List<Announcement> say(DateTime now, {required bool over}) => voice.update(
-        voiceEnabled: true,
-        overspeed: over,
-        limitKmh: 80,
-        now: now,
-        language: VoiceLanguage.ms,
-      );
+      List<Announcement> say(DateTime now, {required bool over}) =>
+          voice.update(
+            voiceEnabled: true,
+            overspeed: over,
+            limitKmh: 80,
+            now: now,
+            language: VoiceLanguage.ms,
+          );
 
       final first = say(t0, over: true);
-      expect(first.where((a) => a.kind == AnnouncementKind.speeding), hasLength(1));
+      expect(
+        first.where((a) => a.kind == AnnouncementKind.speeding),
+        hasLength(1),
+      );
       expect(first.where((a) => a.chime == ChimeKind.warning), hasLength(1));
 
       expect(
-        say(t0.add(const Duration(seconds: 5)), over: true)
-            .where((a) => a.kind == AnnouncementKind.speeding),
+        say(
+          t0.add(const Duration(seconds: 5)),
+          over: true,
+        ).where((a) => a.kind == AnnouncementKind.speeding),
         isEmpty,
       );
       expect(
         say(t0.add(const Duration(seconds: 6)), over: false),
-        isNot(contains(isA<Announcement>().having((a) => a.kind, 'kind', AnnouncementKind.speeding))),
+        isNot(
+          contains(
+            isA<Announcement>().having(
+              (a) => a.kind,
+              'kind',
+              AnnouncementKind.speeding,
+            ),
+          ),
+        ),
       );
       expect(
-        say(t0.add(const Duration(seconds: 10)), over: true)
-            .where((a) => a.kind == AnnouncementKind.speeding),
+        say(
+          t0.add(const Duration(seconds: 10)),
+          over: true,
+        ).where((a) => a.kind == AnnouncementKind.speeding),
         isEmpty,
       );
       // Kekal laju berlebihan tidak berbunyi lagi. Masuk semula selepas cooldown baharu berbunyi sekali.
       expect(
-        say(t0.add(const Duration(seconds: 21)), over: false)
-            .where((a) => a.kind == AnnouncementKind.speeding),
+        say(
+          t0.add(const Duration(seconds: 21)),
+          over: false,
+        ).where((a) => a.kind == AnnouncementKind.speeding),
         isEmpty,
       );
       final again = say(t0.add(const Duration(seconds: 26)), over: true);
-      expect(again.where((a) => a.kind == AnnouncementKind.speeding), hasLength(1));
+      expect(
+        again.where((a) => a.kind == AnnouncementKind.speeding),
+        hasLength(1),
+      );
     });
 
     test('had yang bertukar disebut sekali', () {
@@ -74,10 +95,16 @@ void main() {
       final first = say(80);
       expect(first.single.kind, AnnouncementKind.speedLimit);
       expect(first.single.text, 'Had laju 80');
-      expect(say(80).where((a) => a.kind == AnnouncementKind.speedLimit), isEmpty);
+      expect(
+        say(80).where((a) => a.kind == AnnouncementKind.speedLimit),
+        isEmpty,
+      );
       final changed = say(60);
       expect(changed.single.text, 'Had laju 60');
-      expect(say(60).where((a) => a.kind == AnnouncementKind.speedLimit), isEmpty);
+      expect(
+        say(60).where((a) => a.kind == AnnouncementKind.speedLimit),
+        isEmpty,
+      );
 
       final english = CruiseVoice().update(
         voiceEnabled: true,
@@ -117,10 +144,7 @@ void main() {
       expect(trail.due(t0.add(const Duration(seconds: 10)), b), isFalse);
       final far = destinationPoint(b, 90, 250);
       expect(trail.due(t0.add(const Duration(seconds: 10)), far), isTrue);
-      expect(
-        trail.due(t0.add(const Duration(seconds: 20)), b),
-        isTrue,
-      );
+      expect(trail.due(t0.add(const Duration(seconds: 20)), b), isTrue);
     });
   });
 }

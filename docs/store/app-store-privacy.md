@@ -8,6 +8,7 @@ Sepadan dengan `app/ios/Runner/PrivacyInfo.xcprivacy`. Semak semula sebelum meng
 |---|---|---|---|
 | Lokasi tepat | Fungsi app | Tidak | Tidak |
 | Sejarah carian | Fungsi app | Tidak | Tidak |
+| Lokasi kasar (~1 km, waktu solat rasmi, kepada WaktuSolat API) | Fungsi app | Tidak | Tidak |
 | Carian muzik (teks, kepada Audius) | Fungsi app | Tidak | Tidak |
 
 Data tidak dikumpul: maklumat hubungan, pengenal pasti, pembelian, penggunaan, diagnostik, kewangan, kenalan,

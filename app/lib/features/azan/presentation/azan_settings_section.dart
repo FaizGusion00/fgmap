@@ -1,12 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/platform/system_settings.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../data/azan_settings.dart';
 import '../domain/malaysia_cities.dart';
 import '../domain/prayer.dart';
 import 'azan_controller.dart';
+import 'azan_enable_flow.dart';
 import 'azan_l10n.dart';
+
+/// App tidak dikecualikan daripada pengoptimuman bateri (Android): petua supaya azan berbunyi apabila
+/// app ditutup pada telefon yang agresif menghentikan app.
+final azanBatteryRestrictedProvider = FutureProvider.autoDispose<bool>(
+  (ref) async =>
+      !await ref.watch(systemSettingsProvider).isIgnoringBatteryOptimizations(),
+);
 
 /// Tetapan Waktu Azan (dalam halaman Tetapan dan lembaran azan). Suis utama dahulu; pilihan lain
 /// hanya ditunjukkan apabila hidup supaya skrin tidak sesak.
@@ -52,17 +61,29 @@ class AzanSettingsSection extends ConsumerWidget {
             title: Text(l10n.azanEnable),
             subtitle: Text(l10n.azanEnableHint),
             value: settings.enabled,
-            onChanged: (on) =>
-                on ? azanController.enable() : azanController.disable(),
+            onChanged: (on) => setAzanEnabled(context, ref, on),
           ),
-        if (azan.permissionDenied)
+        if (azan.permissionDenied ||
+            (settings.enabled && azan.notificationsBlocked))
+          _NoticeCard(
+            key: const ValueKey('azan-permission-denied'),
+            color: theme.colorScheme.errorContainer,
+            onColor: theme.colorScheme.onErrorContainer,
+            icon: Icons.notifications_off_rounded,
+            title: l10n.azanNotificationsOffTitle,
+            body: l10n.azanNotificationsOffBody,
+            action: l10n.azanOpenAppSettings,
+            onAction: () =>
+                ref.read(systemSettingsProvider).openNotificationSettings(),
+          ),
+        if (settings.enabled && !azan.locationKnown)
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: Text(
-              l10n.azanPermissionDenied,
-              key: const ValueKey('azan-permission-denied'),
+              l10n.azanLocationUnknown,
+              key: const ValueKey('azan-location-unknown'),
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.error,
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
           ),
@@ -98,6 +119,19 @@ class AzanSettingsSection extends ConsumerWidget {
                 ],
               ),
             ),
+          ),
+        if (settings.enabled &&
+            (ref.watch(azanBatteryRestrictedProvider).value ?? false))
+          _NoticeCard(
+            key: const ValueKey('azan-battery-card'),
+            color: theme.colorScheme.surfaceContainerHighest,
+            onColor: theme.colorScheme.onSurface,
+            icon: Icons.battery_alert_rounded,
+            title: l10n.azanBatteryTitle,
+            body: l10n.azanBatteryBody,
+            action: l10n.azanBatteryAction,
+            onAction: () =>
+                ref.read(systemSettingsProvider).openBatterySettings(),
           ),
         if (settings.enabled || !showEnable) ...[
           label(l10n.azanPrayersLabel),
@@ -239,6 +273,14 @@ class AzanSettingsSection extends ConsumerWidget {
               onSelectionChanged: (s) => controller.setMadhab(s.first),
             ),
           ),
+          SwitchListTile(
+            key: const ValueKey('azan-official'),
+            contentPadding: EdgeInsets.zero,
+            title: Text(l10n.azanUseOfficial),
+            subtitle: Text(l10n.azanUseOfficialHint),
+            value: settings.useOfficial,
+            onChanged: controller.setUseOfficial,
+          ),
           const SizedBox(height: 8),
         ],
       ],
@@ -253,4 +295,64 @@ class AzanSettingsSection extends ConsumerWidget {
     Prayer.maghrib => Icons.nights_stay_outlined,
     Prayer.isha => Icons.dark_mode_rounded,
   };
+}
+
+/// Kad amaran/petua dengan satu tindakan.
+class _NoticeCard extends StatelessWidget {
+  const _NoticeCard({
+    super.key,
+    required this.color,
+    required this.onColor,
+    required this.icon,
+    required this.title,
+    required this.body,
+    required this.action,
+    required this.onAction,
+  });
+
+  final Color color;
+  final Color onColor;
+  final IconData icon;
+  final String title;
+  final String body;
+  final String action;
+  final VoidCallback onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      color: color,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: onColor, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: theme.textTheme.titleSmall?.copyWith(color: onColor),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              body,
+              style: theme.textTheme.bodySmall?.copyWith(color: onColor),
+            ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(onPressed: onAction, child: Text(action)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

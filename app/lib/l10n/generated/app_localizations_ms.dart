@@ -40,7 +40,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get locationRationaleBody =>
-      'Lokasi anda digunakan untuk menunjukkan kedudukan anda di peta dan sebagai titik mula laluan. Ia dihantar ke pelayan FGMaps hanya untuk mengira laluan.';
+      'Lokasi anda digunakan untuk menunjukkan kedudukan anda di peta dan sebagai titik mula laluan. Ia dihantar terus ke perkhidmatan laluan awam hanya untuk mengira laluan dan tidak disimpan di mana-mana pelayan kami.';
 
   @override
   String get locationAllow => 'Benarkan';
@@ -835,11 +835,11 @@ class AppLocalizationsMs extends AppLocalizations {
   String get azanTitle => 'Waktu solat';
 
   @override
-  String get azanEnable => 'Notifikasi azan';
+  String get azanEnable => 'Sentiasa ingatkan waktu azan';
 
   @override
   String get azanEnableHint =>
-      'Beritahu saya setiap kali masuk waktu solat di lokasi semasa.';
+      'Notifikasi dan bunyi azan pada setiap waktu solat, walaupun app ditutup.';
 
   @override
   String get azanPrayerFajr => 'Subuh';
@@ -1052,11 +1052,11 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get musicEmptySongs =>
-      'Taip nama lagu atau artis, kemudian ketik untuk main. Lagu daripada Audius (katalog terbuka, percuma).';
+      'Taip nama lagu atau artis, atau ketik cadangan di atas. Katalog percuma Audius ialah muzik bebas; lagu artis label besar tiada di sini. Untuk lagu Malay, Indonesia, Japan dan K-pop, cuba tab Radio.';
 
   @override
   String get musicEmptyRadio =>
-      'Stesen radio Malaysia. Ketik untuk dengar siaran langsung.';
+      'Pilih kawasan di atas, atau taip nama stesen (cth. Hitz, Prambors, KBS). Ketik untuk dengar siaran langsung.';
 
   @override
   String get musicEmptyLocal =>
@@ -1517,7 +1517,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get legalAttribution =>
-      'Data peta © penyumbang OpenStreetMap (ODbL). Gaya dan jubin: OpenFreeMap, OpenMapTiles. Laluan: Valhalla. Carian: Photon (komoot) dan Nominatim. Harga petrol: data.gov.my. Muzik: Audius (Open Music License) dan Radio Browser; strim radio daripada stesen masing-masing. Rakaman azan: Aaqib Azeez / Atcovi, Wikimedia Commons, CC BY-SA 4.0.';
+      'Data peta © penyumbang OpenStreetMap (ODbL). Gaya dan jubin: OpenFreeMap, OpenMapTiles. Laluan: Valhalla. Carian: Photon (komoot) dan Nominatim. Harga petrol: data.gov.my. Waktu solat: JAKIM e-Solat melalui WaktuSolat API (api.waktusolat.app), dan pengiraan Adhan. Muzik: Audius (Open Music License) dan Radio Browser; strim radio daripada stesen masing-masing. Rakaman azan: Aaqib Azeez / Atcovi, Wikimedia Commons, CC BY-SA 4.0.';
 
   @override
   String get aboutAttributionTitle => 'Sumber data';
@@ -1657,4 +1657,306 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get settingsErrorReportEmpty => 'Tiada ralat direkodkan';
+
+  @override
+  String azanEnabledSnack(String source) {
+    return 'Azan dihidupkan. $source';
+  }
+
+  @override
+  String azanSourceOfficial(String zone) {
+    return 'Waktu rasmi JAKIM e-Solat, zon $zone';
+  }
+
+  @override
+  String azanSourceCalculated(String method) {
+    return 'Dikira pada telefon ($method)';
+  }
+
+  @override
+  String get azanDeniedTitle => 'Notifikasi dimatikan';
+
+  @override
+  String get azanDeniedBody =>
+      'Tanpa kebenaran notifikasi, azan tidak boleh berbunyi apabila app ditutup. Buka tetapan dan benarkan notifikasi untuk FGMaps.';
+
+  @override
+  String get azanOpenAppSettings => 'Buka tetapan';
+
+  @override
+  String get azanExactDialogTitle => 'Benarkan penggera tepat';
+
+  @override
+  String get azanExactDialogBody =>
+      'Supaya azan berbunyi tepat pada waktunya dan bukan lewat beberapa minit, benarkan “Penggera & peringatan” untuk FGMaps pada skrin seterusnya.';
+
+  @override
+  String get azanNotificationsOffTitle => 'Notifikasi azan dimatikan';
+
+  @override
+  String get azanNotificationsOffBody =>
+      'Azan tidak akan berbunyi apabila app ditutup sehingga anda membenarkan notifikasi semula.';
+
+  @override
+  String get azanBatteryTitle => 'Pastikan azan berbunyi apabila app ditutup';
+
+  @override
+  String get azanBatteryBody =>
+      'Sesetengah telefon menghentikan app di latar belakang. Jika azan tidak berbunyi, benarkan FGMaps tanpa had bateri.';
+
+  @override
+  String get azanBatteryAction => 'Buka tetapan bateri';
+
+  @override
+  String get azanLocationUnknown =>
+      'Lokasi belum diketahui. Waktu dikira untuk Kuala Lumpur. Benarkan lokasi atau pilih bandar di bawah.';
+
+  @override
+  String get azanUseOfficial => 'Waktu rasmi JAKIM';
+
+  @override
+  String get azanUseOfficialHint =>
+      'Ambil jadual e-Solat rasmi melalui internet (hanya lokasi ~1 km dihantar). Tanpa talian, waktu dikira pada telefon.';
+
+  @override
+  String get onbAzan => 'Ingatkan waktu azan';
+
+  @override
+  String get onbAzanHint =>
+      'Notifikasi dan azan pada setiap waktu solat, walaupun app ditutup. Kami akan minta kebenaran notifikasi.';
+
+  @override
+  String get musicRegionMalaysia => 'Malaysia';
+
+  @override
+  String get musicRegionIndonesia => 'Indonesia';
+
+  @override
+  String get musicRegionFavorites => 'Kegemaran';
+
+  @override
+  String get musicEmptyFavorites =>
+      'Belum ada stesen kegemaran. Ketik bintang pada mana-mana stesen untuk simpan di sini.';
+
+  @override
+  String get musicFavoriteAdd => 'Tambah ke kegemaran';
+
+  @override
+  String get musicFavoriteRemove => 'Buang daripada kegemaran';
+
+  @override
+  String get musicRadioUnreachable => 'Gagal disambung tadi';
+
+  @override
+  String get musicRegionJapan => 'Japan';
+
+  @override
+  String get musicRegionJpop => 'J-pop';
+
+  @override
+  String get musicRegionKorea => 'Korea';
+
+  @override
+  String get musicRegionKpop => 'K-pop';
+
+  @override
+  String get musicNoResultsSongsHint =>
+      'Katalog percuma Audius ialah muzik bebas; lagu artis label besar tiada di sini. Cuba Radio untuk lagu Malay, Indonesia, Japan atau Korea.';
+
+  @override
+  String get musicTryRadio => 'Cari dalam Radio';
+
+  @override
+  String aboutWhatsNewTitle(String version) {
+    return 'Baharu dalam versi $version';
+  }
+
+  @override
+  String get aboutNew1 =>
+      'Waktu azan rasmi JAKIM dengan notifikasi walaupun app ditutup';
+
+  @override
+  String get aboutNew2 =>
+      'Muzik dan radio dalam app: Malaysia, Indonesia, Korea dan K-pop';
+
+  @override
+  String get aboutNew3 => 'Mod mudah: paparan besar untuk pemandu warga emas';
+
+  @override
+  String get aboutNew4 => 'Panduan lorong dan peta malam biru gaya Waze';
+
+  @override
+  String get aboutNew5 =>
+      'Ikon bulatan yang jelas dengan nombor simpang keluar';
+
+  @override
+  String get alongRouteTitle => 'Sepanjang laluan';
+
+  @override
+  String get alongRouteDisclaimer => 'Data OpenStreetMap; mungkin tak lengkap.';
+
+  @override
+  String get alongRouteUnavailable =>
+      'Tidak dapat memuatkan tempat sepanjang laluan. Cuba lagi kemudian.';
+
+  @override
+  String get alongRouteEmpty =>
+      'Tiada tempat dijumpai sepanjang laluan untuk kategori ini.';
+
+  @override
+  String alongRouteIn(String distance) {
+    return 'Dalam $distance';
+  }
+
+  @override
+  String get alongRouteRr => 'R&R';
+
+  @override
+  String get alongRouteFuel => 'Minyak';
+
+  @override
+  String get alongRouteMosque => 'Surau';
+
+  @override
+  String get alongRouteToilets => 'Tandas';
+
+  @override
+  String get alongRouteAddStop => 'Tambah sebagai perhentian';
+
+  @override
+  String get alongRouteAddedStop =>
+      'Ditambah sebagai perhentian — mengira semula laluan';
+
+  @override
+  String get tripHistoryExport => 'Eksport JSON';
+
+  @override
+  String get tripHistoryExported => 'Sejarah perjalanan disalin';
+
+  @override
+  String tripHistoryRetentionDays(int days) {
+    return '$days hari';
+  }
+
+  @override
+  String get tripHistoryRetentionForever => 'Selamanya';
+
+  @override
+  String get tripHistoryRetentionOff => 'Mati';
+
+  @override
+  String get pickingStopHint => 'Pilih perhentian, kemudian pilih destinasi';
+
+  @override
+  String get cameraAwasAhead => 'Kamera AwAS di hadapan — patuhi had laju';
+
+  @override
+  String get cameraOsmAhead => 'Kamera (OSM) di hadapan — patuhi had laju';
+
+  @override
+  String get settingsCameras => 'Amaran kamera';
+
+  @override
+  String get settingsCamerasHint =>
+      'Amaran AwAS rasmi (JPJ). Bukan semua kamera Malaysia.';
+
+  @override
+  String get settingsCamerasOsm => 'Termasuk kamera OSM';
+
+  @override
+  String get settingsCamerasOsmHint =>
+      'Data komuniti; mungkin tak lengkap atau usang.';
+
+  @override
+  String get settingsCamerasDistance => 'Jarak amaran';
+
+  @override
+  String get addStop => 'Tambah perhentian';
+
+  @override
+  String get stopsTitle => 'Perhentian';
+
+  @override
+  String get removeStop => 'Buang perhentian';
+
+  @override
+  String get nextStop => 'Perhentian seterusnya';
+
+  @override
+  String get skipStop => 'Langkau perhentian';
+
+  @override
+  String get tripHistoryTitle => 'Perjalanan';
+
+  @override
+  String get tripHistoryEmpty => 'Belum ada perjalanan tersimpan.';
+
+  @override
+  String get tripHistoryMonth => 'Bulan ini';
+
+  @override
+  String tripHistoryKm(String km) {
+    return '$km km';
+  }
+
+  @override
+  String tripHistoryDuration(int hours, int mins) {
+    return '$hours j $mins min';
+  }
+
+  @override
+  String tripHistoryToll(String amount) {
+    return 'Tol ~RM $amount';
+  }
+
+  @override
+  String tripHistoryTrips(int count) {
+    return '$count perjalanan';
+  }
+
+  @override
+  String get tripHistoryRetention => 'Simpan sejarah';
+
+  @override
+  String get tripHistoryDeleteAll => 'Padam semua perjalanan';
+
+  @override
+  String get weatherTitle => 'Cuaca';
+
+  @override
+  String get weatherAttribution => 'Cuaca: Open-Meteo · lokasi GPS';
+
+  @override
+  String get weatherUnavailable => 'Cuaca tidak tersedia';
+
+  @override
+  String get weatherRainAlong => 'Hujan dijangka sepanjang laluan';
+
+  @override
+  String get weatherSevere => 'Cuaca buruk dijangka — pandu berhati-hati';
+
+  @override
+  String get weatherHere => 'Di sini';
+
+  @override
+  String get weatherAtDestination => 'Destinasi';
+
+  @override
+  String get weatherFeelsLike => 'Rasa';
+
+  @override
+  String get weatherCached => 'Cache';
+
+  @override
+  String get settingsWeather => 'Amaran cuaca';
+
+  @override
+  String get settingsWeatherHint => 'Banner hujan lebat semasa navigasi';
+
+  @override
+  String get settingsAlongRouteAnnounce => 'Umumkan R&R / minyak';
+
+  @override
+  String get settingsAlongRouteAnnounceHint =>
+      'Suara bila R&R atau stesen minyak di hadapan (chip tetap dipaparkan)';
 }

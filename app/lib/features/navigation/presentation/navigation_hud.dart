@@ -116,7 +116,7 @@ class NavHudMetrics {
     }
     return NavHudMetrics._(
       landscape: false,
-      bannerIcon: narrow ? 44 : 52,
+      bannerIcon: narrow ? 50 : 62,
       thenIcon: 26,
       distanceSize: narrow ? 26 : 30,
       padH: narrow ? 12 : 14,
@@ -347,8 +347,11 @@ class _BannerContent extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final onPrimary = colors.foreground;
-    final street = maneuver.isArrival ? null : maneuver.street;
-    final followingStreet = following?.street;
+    final detail = text.cardDetail(maneuver);
+    final street = text.cardStreet(maneuver);
+    final followingStreet = following == null
+        ? null
+        : (text.cardDetail(following!) ?? text.cardStreet(following!));
     final ready = distanceM <= readyWithinM && !maneuver.isArrival;
     final getReady = distanceM <= getReadyWithinM && !maneuver.isArrival;
 
@@ -406,22 +409,47 @@ class _BannerContent extends StatelessWidget {
                         text.cardAction(maneuver),
                         maxLines: metrics.landscape ? 1 : 2,
                         overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.titleSmall?.copyWith(
+                        style: theme.textTheme.titleMedium?.copyWith(
                           color: onPrimary,
-                          fontWeight: FontWeight.w700,
-                          height: 1.25,
+                          fontWeight: FontWeight.w800,
+                          height: 1.2,
                         ),
                       ),
                     ),
-                    if (street != null)
+                    // Papan tanda dahulu ("Menuju Klang"): itulah yang pemandu nampak di jalan.
+                    if (detail != null)
+                      Text(
+                        detail,
+                        key: const ValueKey('nav-card-detail'),
+                        maxLines: metrics.landscape ? 1 : 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: onPrimary,
+                          fontWeight: FontWeight.w600,
+                          height: 1.25,
+                        ),
+                      ),
+                    // Nama jalan yang dimasuki menjawab "jalan mana?": menonjol apabila tiada papan
+                    // tanda; jika ada, ia menjadi baris kedua yang lebih kecil.
+                    if (street != null && street != detail)
                       Text(
                         street,
+                        key: const ValueKey('nav-card-street'),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: onPrimary.withValues(alpha: 0.85),
-                          height: 1.3,
-                        ),
+                        style:
+                            (detail == null
+                                    ? theme.textTheme.bodyMedium
+                                    : theme.textTheme.bodySmall)
+                                ?.copyWith(
+                                  color: onPrimary.withValues(
+                                    alpha: detail == null ? 1 : 0.85,
+                                  ),
+                                  fontWeight: detail == null
+                                      ? FontWeight.w600
+                                      : null,
+                                  height: 1.3,
+                                ),
                       ),
                     // Panduan lorong: lorong sebenar jika ada data, jika tidak "Guna lorong kanan".
                     LaneGuidance(

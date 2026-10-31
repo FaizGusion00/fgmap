@@ -24,11 +24,13 @@ menghantar borang; jawapan mesti sepadan dengan apa yang app lakukan pada versi 
 | Kewangan, kenalan, foto, fail | Tidak | Tidak | | | |
 | Log ranap / diagnostik | Tidak (tidak dihantar) | Tidak | | | Log ralat tempatan, pengguna menyalin sendiri jika mahu |
 | Fail audio (Muzik: import) | Tidak (kekal pada peranti) | Tidak | | | Disalin ke storan app melalui pemilih sistem; tidak dihantar |
+| Lokasi kasar (waktu solat rasmi, WaktuSolat API) | Ya | Ya (WaktuSolat API) | Fungsi app | Ya (hanya jika Waktu Azan dihidupkan / lembaran dibuka; boleh dimatikan) | Koordinat dibundarkan ~1 km + tahun/bulan; tiada pengenal pasti |
+| Lokasi kasar (cuaca destinasi/laluan, Open-Meteo) | Ya | Ya (Open-Meteo) | Fungsi app | Ya (hanya semasa pratonton/navigasi laluan; gagal senyap jika tiada talian) | Koordinat destinasi dan sehingga 4 titik sampel laluan dibundarkan ~100 m (3 perpuluhan); tiada akaun/kunci/pengenal pasti |
 | Carian muzik (Audius) | Ya | Ya (Audius) | Fungsi app | Ya (hanya jika Muzik dibuka) | Teks carian dan ID lagu; tiada lokasi |
 
 "Dikongsi" bermaksud dihantar kepada pihak ketiga yang bukan pemproses bagi pihak kita (OpenStreetMap
 Foundation, komoot, FOSSGIS, OpenFreeMap, GitHub, Google untuk pautan pendek, Audius dan Radio Browser untuk
-Muzik). Waktu Azan dikira pada peranti: tiada data dihantar. Tiada data dijual atau digunakan untuk iklan.
+Muzik, WaktuSolat API untuk jadual rasmi JAKIM, Open-Meteo untuk cuaca). Pengiraan waktu solat pada peranti (kaedah sandaran) tidak menghantar data. Tiada data dijual atau digunakan untuk iklan.
 
 ## Kebenaran dan pengisytiharan lain
 

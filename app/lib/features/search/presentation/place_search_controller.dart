@@ -264,12 +264,17 @@ class PlaceSearchController extends Notifier<PlaceSearchState> {
     }
   }
 
-  Future<Place?> _placeFromShortMapLink(String query, CancelToken cancel) async {
+  Future<Place?> _placeFromShortMapLink(
+    String query,
+    CancelToken cancel,
+  ) async {
     final uri = Uri.tryParse(query.trim());
     if (uri == null || !isShortMapLink(uri)) {
       // Allow bare host/path without scheme.
       final withScheme = Uri.tryParse(
-        query.trim().startsWith('http') ? query.trim() : 'https://${query.trim()}',
+        query.trim().startsWith('http')
+            ? query.trim()
+            : 'https://${query.trim()}',
       );
       if (withScheme == null || !isShortMapLink(withScheme)) return null;
       return _resolveShortLink(withScheme, cancel);

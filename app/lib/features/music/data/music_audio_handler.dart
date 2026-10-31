@@ -4,6 +4,7 @@ import 'package:audio_service/audio_service.dart';
 import 'package:just_audio/just_audio.dart' as ja;
 
 import '../../../core/utils/log.dart';
+import '../domain/stream_title.dart';
 
 /// Pengendali `audio_service`: kawalan skrin kunci / notifikasi media dan butang fon telinga,
 /// dipetakan terus kepada pemain just_audio. Dimulakan malas pada main pertama (kos permulaan sifar).
@@ -18,6 +19,15 @@ class FgMusicAudioHandler extends BaseAudioHandler
         for (final s in state.sequence)
           if (s.tag is MediaItem) s.tag as MediaItem,
       ]);
+    });
+    // Radio langsung: skrin kunci memaparkan lagu yang sedang bersiaran (stesen sebagai artis).
+    _player.icyMetadataStream.listen((m) {
+      final tag = _player.sequenceState.currentSource?.tag;
+      if (tag is! MediaItem || tag.isLive != true) return;
+      final song = cleanStreamTitle(m?.info?.title, station: tag.title);
+      mediaItem.add(
+        song == null ? tag : tag.copyWith(title: song, artist: tag.title),
+      );
     });
   }
 

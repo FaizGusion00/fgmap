@@ -45,6 +45,7 @@ class JustAudioEngine implements MusicEngine {
   Duration _position = Duration.zero;
   Duration? _duration;
   String? _error;
+  String? _nowPlaying;
 
   void _wire() {
     _subs.add(
@@ -63,6 +64,14 @@ class JustAudioEngine implements MusicEngine {
     _subs.add(
       _player.currentIndexStream.listen((i) {
         _index = i;
+        _nowPlaying =
+            null; // tajuk stesen sebelumnya tidak boleh bocor ke stesen baharu
+        _emit();
+      }),
+    );
+    _subs.add(
+      _player.icyMetadataStream.listen((m) {
+        _nowPlaying = m?.info?.title;
         _emit();
       }),
     );
@@ -98,6 +107,7 @@ class JustAudioEngine implements MusicEngine {
       position: _position,
       duration: _duration,
       error: _error,
+      nowPlaying: _nowPlaying,
     ),
   );
 
@@ -139,6 +149,7 @@ class JustAudioEngine implements MusicEngine {
   Future<void> setQueue(List<Track> tracks, int startIndex) async {
     await _ensureSession();
     _error = null;
+    _nowPlaying = null;
     await _player.setAudioSources(
       [
         for (final t in tracks)

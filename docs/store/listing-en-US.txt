@@ -15,7 +15,10 @@ KEY FEATURES
 • Search places, addresses, coordinates or Maps links
 • Home & Work shortcuts plus nearby search (fuel, food, mosque, hospital and more)
 • Light, Dark, AMOLED black and Sun (automatic) themes
-• Emergency 999 / 112 button always close by
+• Emergency 999 / 112 button always close
+• Official JAKIM prayer times with a full azan notification, even when the app is closed
+• Music and radio in the app (Malaysia, Indonesia, Korea, K-pop) — navigation voice always stays clear
+• Easy mode: large display for older drivers, plus lane guidance by
 
 FREE & PRIVACY
 FGMaps is free. No account, no ads, no tracking and no subscription. Trip data and search history stay on your device. You can delete all local data in Settings.

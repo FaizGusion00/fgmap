@@ -3,6 +3,7 @@ import 'package:fgmap/features/navigation/domain/camera_planner.dart';
 import 'package:fgmap/features/navigation/domain/nav_route.dart';
 import 'package:fgmap/features/navigation/domain/navigation_session.dart';
 import 'package:fgmap/features/navigation/presentation/navigation_controller.dart';
+import 'package:fgmap/features/navigation/presentation/maneuver_diagram.dart';
 import 'package:fgmap/features/navigation/presentation/navigation_hud.dart';
 import 'package:fgmap/features/navigation/presentation/roundabout_exit_icon.dart';
 import 'package:fgmap/features/route_preview/domain/routing_failure.dart';
@@ -84,21 +85,50 @@ void main() {
       expect(find.text('480 m'), findsOneWidget);
       expect(find.text('Belok kanan'), findsOneWidget);
       expect(find.text('Jalan Ampang'), findsOneWidget);
-      expect(find.byIcon(Icons.turn_right_rounded), findsOneWidget);
+      expect(find.byType(ManeuverDiagram), findsOneWidget);
       expect(find.text('Kemudian'), findsNothing);
     });
 
-    testWidgets('bulatan: nombor simpang keluar ditunjuk besar', (tester) async {
+    testWidgets(
+      'cabang: papan tanda "Menuju Klang" ditunjuk dan nama jalan kod jadi Laluan',
+      (tester) async {
+        await pump(
+          tester,
+          ManeuverBanner(
+            progress: progress(
+              next: const NavManeuver(
+                index: 1,
+                kind: ManeuverKind.keepRight,
+                startM: 300,
+                lengthM: 500,
+                timeS: 40,
+                streetNames: const ['3217'],
+                towards: const ['Klang', 'I-City'],
+                exitNumber: '1306B',
+              ),
+              distance: 480,
+            ),
+          ),
+        );
+        expect(find.text('Kekal di sebelah kanan'), findsOneWidget);
+        expect(
+          find.text('Keluar 1306B · Menuju Klang · I-City'),
+          findsOneWidget,
+        );
+        // Nombor sahaja tidak lagi dipaparkan seperti nama jalan.
+        expect(find.text('3217'), findsNothing);
+        expect(find.text('Laluan 3217'), findsOneWidget);
+      },
+    );
+
+    testWidgets('bulatan: nombor simpang keluar ditunjuk besar', (
+      tester,
+    ) async {
       await pump(
         tester,
         ManeuverBanner(
           progress: progress(
-            next: m(
-              1,
-              ManeuverKind.roundabout,
-              200,
-              roundaboutExit: 3,
-            ),
+            next: m(1, ManeuverKind.roundabout, 200, roundaboutExit: 3),
             distance: 120,
           ),
         ),

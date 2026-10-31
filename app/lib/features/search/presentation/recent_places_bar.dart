@@ -171,14 +171,15 @@ class _ShortcutChip extends StatelessWidget {
                     label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: (easy
-                            ? theme.textTheme.titleMedium
-                            : theme.textTheme.labelLarge)
-                        ?.copyWith(
-                      color: set
-                          ? theme.colorScheme.onSurface
-                          : theme.colorScheme.onSurfaceVariant,
-                    ),
+                    style:
+                        (easy
+                                ? theme.textTheme.titleMedium
+                                : theme.textTheme.labelLarge)
+                            ?.copyWith(
+                              color: set
+                                  ? theme.colorScheme.onSurface
+                                  : theme.colorScheme.onSurfaceVariant,
+                            ),
                   ),
                 ),
                 if (!set) ...[

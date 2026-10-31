@@ -5,6 +5,8 @@ import '../../../core/utils/geo.dart';
 import '../domain/prayer.dart';
 import '../domain/prayer_calculator.dart';
 import '../domain/prayer_times.dart';
+import 'azan_settings.dart';
+import 'official_prayer_times.dart';
 
 /// Pengiraan astronomi pada peranti melalui `adhan_dart` (port Adhan; MIT; tiada rangkaian).
 ///
@@ -55,6 +57,15 @@ class AdhanPrayerCalculator implements PrayerCalculator {
       };
 }
 
-final prayerCalculatorProvider = Provider<PrayerCalculator>(
-  (ref) => const AdhanPrayerCalculator(),
-);
+/// Waktu rasmi JAKIM jika dibenarkan dan ada dalam cache; jika tidak, pengiraan pada telefon.
+/// Cache baharu membina semula penyedia ini (pengawal azan memerhatikannya).
+final prayerCalculatorProvider = Provider<PrayerCalculator>((ref) {
+  const calculated = AdhanPrayerCalculator();
+  if (!ref.watch(azanSettingsProvider.select((s) => s.useOfficial))) {
+    return calculated;
+  }
+  return OfficialFirstCalculator(
+    months: ref.watch(officialTimesProvider),
+    fallback: calculated,
+  );
+});

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/widgets/sheet_bottom_inset.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../data/navigation_settings.dart';
 
@@ -10,7 +11,8 @@ Future<int?> showSimulateSpeedSheet(BuildContext context, WidgetRef ref) {
   return showModalBottomSheet<int>(
     context: context,
     showDragHandle: true,
-    builder: (context) => _SimulateSpeedSheet(initialKmh: current),
+    builder: (context) =>
+        SheetBottomInset(child: _SimulateSpeedSheet(initialKmh: current)),
   );
 }
 

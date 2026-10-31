@@ -19,6 +19,8 @@ import 'package:fgmap/features/map/data/map_style_loader.dart';
 import 'package:fgmap/core/theme/theme_controller.dart';
 import 'package:fgmap/features/map/presentation/idle_follow.dart';
 import 'package:fgmap/features/map/presentation/map_screen.dart';
+import 'package:fgmap/features/music/presentation/player_controller.dart';
+import 'package:fgmap/core/audio/audio_coordinator.dart';
 import 'package:fgmap/features/navigation/presentation/navigation_controller.dart';
 import 'package:fgmap/features/navigation/domain/camera_planner.dart'
     show CameraPose;
@@ -27,11 +29,13 @@ import 'package:fgmap/features/route_preview/presentation/route_preview_controll
 import 'package:fgmap/features/route_preview/domain/route_option.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/fakes.dart';
 import '../../helpers/pump_app.dart';
+import '../music/music_test_support.dart';
 
 /// Gaya segera (tiada rangkaian): gelap = URL gelap. Ujian yang mahu JSON malam guna [_NightLoader].
 class _UrlLoader extends MapStyleLoader {
@@ -100,6 +104,8 @@ void main() {
   Future<ProviderContainer> pumpScreen(
     WidgetTester tester, {
     Duration recenterAfter = const Duration(hours: 1),
+    List<Override> extra = const [],
+    bool settle = true,
   }) async {
     usePhoneSurface(tester);
     reduceMotion(tester);
@@ -116,9 +122,16 @@ void main() {
         reverseGeocoderProvider.overrideWithValue(reverse),
         shareServiceProvider.overrideWithValue(share),
         phoneDialerProvider.overrideWithValue(dialer),
+        ...extra,
       ],
     );
-    await tester.pumpAndSettle();
+    if (settle) {
+      await tester.pumpAndSettle();
+    } else {
+      // Navigasi menganimasikan tanpa henti: pam terhad.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+    }
     return ProviderScope.containerOf(tester.element(find.byType(MapScreen)));
   }
 
@@ -145,6 +158,65 @@ void main() {
     expect(find.text('Mengira laluan…'), findsNothing);
     expect(map.config!.routes, isEmpty);
     expect(map.config!.destination, isNull);
+  });
+
+  testWidgets(
+    'pemain muzik kecil mengelak bar navigasi sistem (Android 3-butang) dan boleh diketik',
+    (tester) async {
+      // Bar navigasi 48 dp di bawah skrin: butang di bawahnya tidak boleh diketik.
+      tester.view.viewPadding = const FakeViewPadding(bottom: 48 * 3);
+      tester.view.padding = const FakeViewPadding(bottom: 48 * 3);
+      addTearDown(tester.view.resetPadding);
+      addTearDown(tester.view.resetViewPadding);
+      final engine = FakeMusicEngine();
+      final c = await pumpScreen(
+        tester,
+        extra: [
+          musicEngineProvider.overrideWithValue(engine),
+          audioCoordinatorProvider.overrideWithValue(AudioCoordinator()),
+          audioServiceStarterProvider.overrideWithValue(null),
+        ],
+      );
+      await c
+          .read(playerControllerProvider.notifier)
+          .playTrack(track('r1', title: 'Sinar FM'));
+      // Pemutar memuat (gelendong berputar): pam terhad, bukan pumpAndSettle.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      final mini = find.byKey(const ValueKey('mini-player'));
+      expect(mini, findsOneWidget);
+      final screenHeight =
+          tester.view.physicalSize.height / tester.view.devicePixelRatio;
+      expect(
+        tester.getBottomLeft(mini).dy,
+        lessThanOrEqualTo(screenHeight - 48),
+        reason: 'pemain muzik tidak boleh berada di bawah bar navigasi sistem',
+      );
+      // Butang tutup berada dalam kawasan yang boleh diketik.
+      final toggle = find.byKey(const ValueKey('mini-close'));
+      expect(
+        tester.getBottomLeft(toggle).dy,
+        lessThanOrEqualTo(screenHeight - 48),
+      );
+    },
+  );
+
+  testWidgets(
+    'laluan navigasi dipudarkan hanya semasa re-route (garisan lama bukan arah yang patut diikut)',
+    (tester) async {
+      await pumpScreen(
+        tester,
+        settle: false,
+        extra: [navigationControllerProvider.overrideWith(_ReroutingNav.new)],
+      );
+      expect(map.config!.navStale, isTrue);
+    },
+  );
+
+  testWidgets('tanpa navigasi laluan tidak dipudarkan', (tester) async {
+    await pumpScreen(tester);
+    expect(map.config!.navStale, isFalse);
   });
 
   testWidgets('butang zum mengubah aras zum kamera', (tester) async {
@@ -1345,4 +1417,11 @@ void main() {
       expect(find.text('58 min'), findsWidgets);
     },
   );
+}
+
+/// Navigasi aktif yang sedang mengira semula laluan.
+class _ReroutingNav extends NavigationController {
+  @override
+  NavigationState build() =>
+      const NavigationState(phase: NavPhase.active, rerouting: true);
 }

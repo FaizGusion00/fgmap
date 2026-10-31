@@ -46,12 +46,42 @@ class ScheduledAzan {
 }
 
 /// ID notifikasi yang tetap bagi (hari, waktu, peringatan): jadual semula pada hari yang sama menulis
-/// ganti entri yang sama, dan tetingkap 2 hari tidak pernah berlanggar. Julat 100000-136651.
+/// ganti entri yang sama, dan tetingkap 7 hari tidak pernah berlanggar. Julat 100000-136651.
 int azanNotificationId(DateTime day, Prayer prayer, {bool reminder = false}) {
   final start = DateTime(day.year);
   final dayOfYear =
       DateTime(day.year, day.month, day.day).difference(start).inDays + 1;
   return 100000 + dayOfYear * 100 + prayer.index * 10 + (reminder ? 1 : 0);
+}
+
+/// Bilangan hari yang dijadualkan ke hadapan. Seminggu supaya azan terus berbunyi walaupun app tidak
+/// dibuka beberapa hari (OS menjalankan jadual sendiri apabila app ditutup).
+const azanScheduleDays = 7;
+
+/// Had notifikasi tertunda: iOS membenarkan 64 sahaja. Android tiada had praktikal, tetapi had yang
+/// sama memastikan tingkah laku seragam; yang terdekat dahulu.
+const azanMaxPending = 60;
+
+/// Tandatangan jadual (tetapan + sumber waktu + bahasa). Jadual semula dilangkau hanya apabila
+/// tandatangan sama; tanpa ini menukar bunyi atau waktu yang dipilih tidak mengemas kini OS.
+String azanScheduleSignature(
+  AzanSettings s, {
+  required String source,
+  required String locale,
+  bool exact = true,
+}) {
+  final prayers = [for (final p in s.prayers) p.name]..sort();
+  return [
+    s.sound.name,
+    s.method.name,
+    s.madhab.name,
+    s.reminderMinutes,
+    prayers.join(','),
+    source,
+    locale,
+    // Penggera tepat dibenarkan kemudian: jadual perlu dibuat semula dengan mod tepat.
+    exact ? 'exact' : 'inexact',
+  ].join('|');
 }
 
 /// Merancang notifikasi untuk [days] hari bermula hari ini: hanya waktu yang dipilih, hanya masa
@@ -61,7 +91,8 @@ List<ScheduledAzan> planAzanSchedule({
   required GeoPoint at,
   required AzanSettings settings,
   required PrayerCalculator calculator,
-  int days = 2,
+  int days = azanScheduleDays,
+  int maxPending = azanMaxPending,
 }) {
   if (!settings.enabled) return const [];
   final out = <ScheduledAzan>[];
@@ -106,5 +137,5 @@ List<ScheduledAzan> planAzanSchedule({
     }
   }
   out.sort((a, b) => a.at.compareTo(b.at));
-  return out;
+  return out.length <= maxPending ? out : out.sublist(0, maxPending);
 }

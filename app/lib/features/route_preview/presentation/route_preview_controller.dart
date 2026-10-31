@@ -134,6 +134,7 @@ class RoutePreviewController extends Notifier<RoutePreviewState> {
     GeoPoint destination, {
     String? destinationLabel,
     double? radiusM,
+    List<GeoPoint> via = const [],
   }) async {
     final seq = ++_seq;
     _radiusM = radiusM;
@@ -161,6 +162,7 @@ class RoutePreviewController extends Notifier<RoutePreviewState> {
       vehicle: ref.read(routeVehicleProvider),
       destinationLabel: destinationLabel,
       destinationRadiusM: radiusM,
+      via: via.take(5).toList(),
     );
     await _fetch(query, seq);
   }

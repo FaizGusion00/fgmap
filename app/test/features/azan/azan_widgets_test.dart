@@ -4,6 +4,7 @@ import 'package:fgmap/features/azan/data/adhan_prayer_calculator.dart';
 import 'package:fgmap/features/azan/data/azan_player.dart';
 import 'package:fgmap/features/azan/data/azan_scheduler.dart';
 import 'package:fgmap/features/azan/data/azan_settings.dart';
+import 'package:fgmap/features/azan/data/official_prayer_times.dart';
 import 'package:fgmap/features/azan/domain/prayer.dart';
 import 'package:fgmap/features/azan/presentation/azan_controller.dart';
 import 'package:fgmap/features/azan/presentation/azan_now_banner.dart';
@@ -52,9 +53,12 @@ void main() {
         azanSchedulerProvider.overrideWithValue(scheduler),
         azanPlayerProvider.overrideWithValue(player),
         prayerCalculatorProvider.overrideWithValue(FakePrayerCalculator()),
+        officialTimesClientProvider.overrideWithValue(FakeOfficialClient()),
         azanClockProvider.overrideWithValue(() => now),
         locationServiceProvider.overrideWithValue(FakeLocationService()),
-        routePlannerProvider.overrideWithValue(FakeRoutePlanner((_) async => [])),
+        routePlannerProvider.overrideWithValue(
+          FakeRoutePlanner((_) async => []),
+        ),
         voiceGuideProvider.overrideWithValue(FakeVoice()),
       ],
     );
@@ -63,23 +67,27 @@ void main() {
   }
 
   group('AzanSheet', () {
-    testWidgets('enam baris, seterusnya ditonjolkan, nota anggaran, lalai azan penuh', (
-      tester,
-    ) async {
-      await pump(tester, const SizedBox(height: 1400, child: AzanSheet()));
-      for (final p in Prayer.values) {
-        expect(find.byKey(ValueKey('azan-row-${p.name}')), findsOneWidget);
-      }
-      expect(find.text('Subuh'), findsWidgets);
-      expect(find.text('Asar'), findsWidgets);
-      expect(find.byKey(const ValueKey('azan-next-line')), findsOneWidget);
-      expect(find.textContaining('Seterusnya: Asar'), findsOneWidget);
-      expect(find.byKey(const ValueKey('azan-estimate-note')), findsOneWidget);
-      expect(find.textContaining('JAKIM'), findsWidgets);
-      expect(find.byKey(const ValueKey('azan-enable')), findsOneWidget);
-      // Mati: pilihan lanjut tersembunyi.
-      expect(find.byKey(const ValueKey('azan-sound')), findsNothing);
-    });
+    testWidgets(
+      'enam baris, seterusnya ditonjolkan, nota anggaran, lalai azan penuh',
+      (tester) async {
+        await pump(tester, const SizedBox(height: 1400, child: AzanSheet()));
+        for (final p in Prayer.values) {
+          expect(find.byKey(ValueKey('azan-row-${p.name}')), findsOneWidget);
+        }
+        expect(find.text('Subuh'), findsWidgets);
+        expect(find.text('Asar'), findsWidgets);
+        expect(find.byKey(const ValueKey('azan-next-line')), findsOneWidget);
+        expect(find.textContaining('Seterusnya: Asar'), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('azan-estimate-note')),
+          findsOneWidget,
+        );
+        expect(find.textContaining('JAKIM'), findsWidgets);
+        expect(find.byKey(const ValueKey('azan-enable')), findsOneWidget);
+        // Mati: pilihan lanjut tersembunyi.
+        expect(find.byKey(const ValueKey('azan-sound')), findsNothing);
+      },
+    );
 
     testWidgets('English', (tester) async {
       await pump(
@@ -94,27 +102,28 @@ void main() {
   });
 
   group('AzanSettingsSection', () {
-    testWidgets('suis hidup -> kebenaran diminta, jadual dibuat, pilihan muncul', (
-      tester,
-    ) async {
-      final c = await pump(tester, const AzanSettingsSection());
-      c.read(azanControllerProvider.notifier).setTexts(testTexts());
-      await tester.tap(find.byKey(const ValueKey('azan-enable')));
-      await tester.pumpAndSettle();
-      expect(scheduler.permissionRequests, 1);
-      expect(c.read(azanSettingsProvider).enabled, isTrue);
-      expect(scheduler.pending, isNotEmpty);
-      // Lalai bunyi: azan penuh dipilih.
-      final seg = tester.widget<SegmentedButton<AzanSound>>(
-        find.byKey(const ValueKey('azan-sound')),
-      );
-      expect(seg.selected, {AzanSound.full});
-      expect(find.text('Azan penuh'), findsOneWidget);
-      // Lima cip waktu dengan ikon + teks.
-      for (final p in Prayer.fardu) {
-        expect(find.byKey(ValueKey('azan-prayer-${p.name}')), findsOneWidget);
-      }
-    });
+    testWidgets(
+      'suis hidup -> kebenaran diminta, jadual dibuat, pilihan muncul',
+      (tester) async {
+        final c = await pump(tester, const AzanSettingsSection());
+        c.read(azanControllerProvider.notifier).setTexts(testTexts());
+        await tester.tap(find.byKey(const ValueKey('azan-enable')));
+        await tester.pumpAndSettle();
+        expect(scheduler.permissionRequests, 1);
+        expect(c.read(azanSettingsProvider).enabled, isTrue);
+        expect(scheduler.pending, isNotEmpty);
+        // Lalai bunyi: azan penuh dipilih.
+        final seg = tester.widget<SegmentedButton<AzanSound>>(
+          find.byKey(const ValueKey('azan-sound')),
+        );
+        expect(seg.selected, {AzanSound.full});
+        expect(find.text('Azan penuh'), findsOneWidget);
+        // Lima cip waktu dengan ikon + teks.
+        for (final p in Prayer.fardu) {
+          expect(find.byKey(ValueKey('azan-prayer-${p.name}')), findsOneWidget);
+        }
+      },
+    );
 
     testWidgets('pilihan disimpan: bunyi, peringatan, waktu, semasa navigasi', (
       tester,
@@ -129,37 +138,43 @@ void main() {
       expect(c.read(azanSettingsProvider).reminderMinutes, 10);
       await tester.tap(find.byKey(const ValueKey('azan-prayer-fajr')));
       await tester.pumpAndSettle();
-      expect(c.read(azanSettingsProvider).prayers, isNot(contains(Prayer.fajr)));
+      expect(
+        c.read(azanSettingsProvider).prayers,
+        isNot(contains(Prayer.fajr)),
+      );
       await tester.ensureVisible(find.byKey(const ValueKey('azan-during-nav')));
       await tester.tap(find.byKey(const ValueKey('azan-during-nav')));
       await tester.pumpAndSettle();
       expect(c.read(azanSettingsProvider).playDuringNavigation, isTrue);
     });
 
-    testWidgets('kad penggera tepat muncul jika tidak dibenarkan', (tester) async {
+    testWidgets('kad penggera tepat muncul jika tidak dibenarkan', (
+      tester,
+    ) async {
       await prefs.setBool('azan.enabled', true);
       scheduler.exact = false;
       final c = await pump(tester, const AzanSettingsSection());
-      await c.read(azanControllerProvider.notifier).refreshExactAllowed();
+      await c.read(azanControllerProvider.notifier).refreshPermissionState();
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('azan-exact-card')), findsOneWidget);
       await tester.tap(find.text('Buka tetapan'));
       expect(scheduler.openExactCalls, 1);
     });
 
-    testWidgets('Dengar azan memainkan azan penuh dan bertukar kepada Berhenti', (
-      tester,
-    ) async {
-      await prefs.setBool('azan.enabled', true);
-      await pump(tester, const AzanSettingsSection());
-      await tester.tap(find.byKey(const ValueKey('azan-listen')));
-      await tester.pumpAndSettle();
-      expect(player.played, [AzanSound.full]);
-      expect(find.text('Berhenti'), findsOneWidget);
-      await tester.tap(find.byKey(const ValueKey('azan-listen')));
-      await tester.pumpAndSettle();
-      expect(player.stops, 1);
-    });
+    testWidgets(
+      'Dengar azan memainkan azan penuh dan bertukar kepada Berhenti',
+      (tester) async {
+        await prefs.setBool('azan.enabled', true);
+        await pump(tester, const AzanSettingsSection());
+        await tester.tap(find.byKey(const ValueKey('azan-listen')));
+        await tester.pumpAndSettle();
+        expect(player.played, [AzanSound.full]);
+        expect(find.text('Berhenti'), findsOneWidget);
+        await tester.tap(find.byKey(const ValueKey('azan-listen')));
+        await tester.pumpAndSettle();
+        expect(player.stops, 1);
+      },
+    );
   });
 
   group('AzanTodayPill dan sepanduk', () {

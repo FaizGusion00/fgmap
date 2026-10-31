@@ -17,6 +17,7 @@ import '../../azan/presentation/azan_now_banner.dart';
 import '../../azan/presentation/azan_sheet.dart';
 import '../../azan/presentation/azan_today_pill.dart';
 import '../../music/presentation/mini_player.dart';
+import '../../widgets/eta_widget_updater.dart';
 import '../../music/presentation/music_sheet.dart';
 import '../../music/presentation/player_controller.dart';
 import '../../../core/location/location_service.dart';
@@ -38,6 +39,12 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../route_preview/data/route_planner.dart' show routeVehicleProvider;
 import '../../route_preview/domain/route_option.dart' show RouteVehicle;
 import '../../route_preview/domain/route_options_merge.dart';
+import '../../along_route/domain/along_route_category.dart';
+import '../../along_route/domain/along_route_poi.dart';
+import '../../along_route/domain/along_route_projector.dart';
+import '../../along_route/presentation/along_route_controller.dart';
+import '../../along_route/presentation/along_route_section.dart';
+import '../../cameras/domain/speed_camera.dart';
 import '../../route_preview/presentation/route_preview_controller.dart';
 import '../../route_preview/presentation/route_summary_sheet.dart';
 import '../../offline_maps/presentation/offline_maps_sheet.dart';
@@ -45,6 +52,9 @@ import '../../search/domain/location_link.dart';
 import '../../search/presentation/recent_places_bar.dart';
 import '../../search/presentation/trip_planner_page.dart';
 import '../../settings/presentation/settings_page.dart';
+import '../../weather/presentation/weather_animated_icon.dart';
+import '../../weather/presentation/weather_controller.dart';
+import '../../weather/presentation/weather_strip.dart';
 import '../../navigation/data/location_sources.dart';
 import '../../navigation/data/navigation_settings.dart';
 import '../../navigation/domain/camera_planner.dart';
@@ -140,6 +150,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _restoreTripCamera();
       unawaited(_handleStartupLocation());
+      unawaited(ref.read(etaWidgetUpdaterProvider).refresh());
     });
   }
 
@@ -191,6 +202,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
     final trip = _tripOwnsCamera;
     if (state == AppLifecycleState.paused) {
       _backgroundedAt = DateTime.now();
+      ref.read(azanControllerProvider.notifier).onAppBackgrounded();
       ref.read(navigationControllerProvider.notifier).noteBackground(true);
       ref.read(cruiseControllerProvider.notifier).noteBackground(true);
       // Peta tidak dilukis pada kadar bingkai di latar. Perjalanan kekal pada satu strim GPS.
@@ -212,6 +224,8 @@ class _MapScreenState extends ConsumerState<MapScreen>
       _driver?.reviveAfterForeground();
       _cruiseDriver?.reviveAfterForeground();
       ref.read(carSessionHubProvider).flush();
+      // Widget skrin utama: ETA Rumah/Kerja dikemas kini ketika app diteruskan sahaja (had 15 minit).
+      unawaited(ref.read(etaWidgetUpdaterProvider).refresh());
       if (!trip) {
         _tracker.resume(_Suspend.background);
         unawaited(_recenterAfterBackground());
@@ -475,6 +489,34 @@ class _MapScreenState extends ConsumerState<MapScreen>
           selection.destination.point,
           destinationLabel: selection.destination.name,
           radiusM: selection.destination.routingRadiusM,
+          via: [for (final s in selection.stops) s.point],
+        );
+  }
+
+  Future<void> _addAlongRouteVia(AlongRoutePoi poi) async {
+    final state = ref.read(routePreviewControllerProvider);
+    if (state is! RouteReady) return;
+    final existing = state.query.via;
+    if (existing.length >= 5) return;
+    // Sisip mengikut jarak sepanjang laluan supaya susunan perhentian masuk akal.
+    final withNew = [...existing, poi.point];
+    withNew.sort((a, b) {
+      final pa = projectOntoPolyline(state.selected.points, a)?.alongM ?? 0;
+      final pb = projectOntoPolyline(state.selected.points, b)?.alongM ?? 0;
+      return pa.compareTo(pb);
+    });
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l10n.alongRouteAddedStop)),
+    );
+    await ref
+        .read(routePreviewControllerProvider.notifier)
+        .planTo(
+          state.query.destination,
+          destinationLabel: state.query.destinationLabel,
+          radiusM: state.query.destinationRadiusM,
+          via: withNew.take(5).toList(),
         );
   }
 
@@ -1227,11 +1269,40 @@ class _MapScreenState extends ConsumerState<MapScreen>
           _fittedRouteCount = next.options.length;
           unawaited(_fitRoutes(next));
         }
+        final selectedChanged =
+            prev is! RouteReady ||
+            prev.selectedIndex != next.selectedIndex ||
+            prev.selected.distanceM != next.selected.distanceM;
+        if (first || selectedChanged) {
+          unawaited(
+            ref
+                .read(alongRouteControllerProvider.notifier)
+                .loadForRoute(next.selected),
+          );
+          unawaited(
+            ref
+                .read(weatherControllerProvider.notifier)
+                .loadForRoute(
+                  next.selected,
+                  next.query.destination,
+                  destinationLabel: next.query.destinationLabel,
+                ),
+          );
+        }
+      } else {
+        ref.read(alongRouteControllerProvider.notifier).clear();
+        ref.read(weatherControllerProvider.notifier).clear();
       }
     });
 
     final sheetVisible = state is! RouteIdle;
     final bottomSafe = MediaQuery.paddingOf(context).bottom;
+    // Pemain muzik kecil duduk paling bawah apabila tiada lembaran laluan: ia mesti mengelak bar
+    // navigasi sistem (butang Android 3-butang / garis gerak isyarat) supaya boleh diketik.
+    final miniPlayerVisible =
+        !navigating &&
+        ref.watch(playerControllerProvider.select((p) => p.current != null));
+    final miniAtScreenBottom = miniPlayerVisible && !sheetVisible;
 
     // Gaya peta (gaya malam diwarnakan semula; lihat NightStyle). Gaya sebelumnya dikekalkan semasa
     // gaya baharu dimuat supaya peta tidak berkelip; peta pertama menunggu paling lama beberapa saat.
@@ -1270,6 +1341,8 @@ class _MapScreenState extends ConsumerState<MapScreen>
           : _routeLines(state),
       navRoute: navigating ? _navLineFor(nav) : null,
       navAlong: navigating ? _driver?.routeAlong : null,
+      // Pemandu menyimpang dan laluan baharu sedang dikira: garisan lama dipudarkan.
+      navStale: navigating && nav.rerouting,
       finalLeg: _finalLeg(
         end: navigating
             ? nav.route?.points.last
@@ -1405,7 +1478,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
                         12,
                         0,
                         12,
-                        sheetVisible ? 8 : 8 + bottomSafe,
+                        sheetVisible || miniAtScreenBottom ? 8 : 8 + bottomSafe,
                       ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.end,
@@ -1453,13 +1526,17 @@ class _MapScreenState extends ConsumerState<MapScreen>
                         onDone: () => unawaited(_finishAutoStart()),
                         onCancel: _cancelAutoStart,
                       ),
-                    // Pemain muzik kecil di atas lembaran laluan (bukan semasa navigasi).
-                    if (ref.watch(
-                      playerControllerProvider.select((p) => p.current != null),
-                    ))
-                      const Padding(
-                        padding: EdgeInsets.fromLTRB(12, 0, 12, 8),
-                        child: MiniPlayer(),
+                    // Pemain muzik kecil di atas lembaran laluan (bukan semasa navigasi). Tanpa lembaran
+                    // ia di tepi bawah skrin: tambah ruang selamat bawah.
+                    if (miniPlayerVisible)
+                      Padding(
+                        padding: EdgeInsets.fromLTRB(
+                          12,
+                          0,
+                          12,
+                          8 + (miniAtScreenBottom ? bottomSafe : 0),
+                        ),
+                        child: const MiniPlayer(),
                       ),
                     Flexible(
                       child: AnimatedSwitcher(
@@ -1520,6 +1597,18 @@ class _MapScreenState extends ConsumerState<MapScreen>
                                         simulate: true,
                                       )
                                     : null,
+                                weather: state is RouteReady
+                                    ? WeatherStrip(
+                                        destinationHint:
+                                            state.query.destinationLabel,
+                                      )
+                                    : null,
+                                alongRoute: state is RouteReady
+                                    ? AlongRouteSection(
+                                        onSelectPoi: (p) =>
+                                            unawaited(_addAlongRouteVia(p)),
+                                      )
+                                    : null,
                               )
                             : const SizedBox.shrink(key: ValueKey('no-sheet')),
                       ),
@@ -1527,7 +1616,16 @@ class _MapScreenState extends ConsumerState<MapScreen>
                   ],
                 ),
               ),
-            if (cruising) ..._cruiseOverlay(),
+            if (cruising)
+              ..._cruiseOverlay(
+                lift: miniAtScreenBottom
+                    ? (ref.watch(
+                            appPreferencesProvider.select((p) => p.easyMode),
+                          )
+                          ? 88
+                          : 76)
+                    : 0,
+              ),
             if (navigating) ..._navigationOverlay(nav, navSettings, azanNow),
             if (!navigating && azanNow != null)
               SafeArea(
@@ -1549,14 +1647,14 @@ class _MapScreenState extends ConsumerState<MapScreen>
   }
 
   /// HUD memandu bebas: kelajuan + butang pusatkan apabila pengguna menggerakkan peta.
-  List<Widget> _cruiseOverlay() {
+  List<Widget> _cruiseOverlay({double lift = 0}) {
     final follow = _cruiseDriver?.follow.value ?? NavFollow.following;
     return [
       SafeArea(
         child: Align(
           alignment: Alignment.bottomLeft,
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + lift),
             child: SpeedBubble(
               speedMps: ref.watch(cruiseControllerProvider).speedMps,
               limitKmh: ref.watch(cruiseControllerProvider).limitKmh,
@@ -1570,7 +1668,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
           child: Align(
             alignment: Alignment.bottomRight,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(0, 0, 12, 120),
+              padding: EdgeInsets.fromLTRB(0, 0, 12, 120 + lift),
               child: RecenterButton(onPressed: _recenterTripCamera),
             ),
           ),
@@ -1597,15 +1695,146 @@ class _MapScreenState extends ConsumerState<MapScreen>
     final arrived = nav.phase == NavPhase.arrived;
     final stop = ref.read(navigationControllerProvider.notifier).stop;
 
+    final l10n = AppLocalizations.of(context);
+    final camera = nav.cameraAlert;
+    final navCtl = ref.read(navigationControllerProvider.notifier);
+    final nextStop = arrived ? null : navCtl.nextStopAhead;
+    final nextStopM = arrived ? null : navCtl.nextStopDistanceM;
+    final bannerChildren = <Widget>[
+      if (progress != null && !arrived)
+        ManeuverBanner(progress: progress, liveAlongM: _driver?.alongM),
+      if (camera != null && !arrived)
+        Material(
+          key: const ValueKey('camera-alert-banner'),
+          color: Theme.of(context).colorScheme.errorContainer,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: easy ? 10 : 8,
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.speed_rounded,
+                  size: easy ? 26 : 22,
+                  color: Theme.of(context).colorScheme.onErrorContainer,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    camera.camera.source == SpeedCameraSource.jpjAwas
+                        ? l10n.cameraAwasAhead
+                        : l10n.cameraOsmAhead,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onErrorContainer,
+                      fontSize: easy ? 16 : null,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                Text(
+                  formatDistance(l10n, camera.distanceAheadM.round()),
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: Theme.of(context).colorScheme.onErrorContainer,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      if (nav.weatherSevere && settings.weatherAlerts && !arrived)
+        WeatherSevereBanner(message: l10n.weatherSevere),
+      if (!arrived && nav.upcomingAlongPoi != null)
+        Material(
+          key: const ValueKey('along-route-chip'),
+          color: Theme.of(context).colorScheme.tertiaryContainer,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: easy ? 10 : 8,
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  nav.upcomingAlongPoi!.category == AlongRouteCategory.restArea
+                      ? Icons.local_parking_rounded
+                      : Icons.local_gas_station_rounded,
+                  size: easy ? 26 : 22,
+                  color: Theme.of(context).colorScheme.onTertiaryContainer,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    nav.upcomingAlongPoi!.category ==
+                            AlongRouteCategory.restArea
+                        ? l10n.alongRouteRr
+                        : l10n.alongRouteFuel,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onTertiaryContainer,
+                      fontSize: easy ? 16 : null,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                Text(
+                  formatDistance(
+                    l10n,
+                    nav.upcomingAlongPoi!
+                        .remainingFrom(progress?.alongM ?? 0)
+                        .round(),
+                  ),
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: Theme.of(context).colorScheme.onTertiaryContainer,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      if (nextStop != null)
+        Material(
+          key: const ValueKey('next-stop-chip'),
+          color: Theme.of(context).colorScheme.secondaryContainer,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(10, easy ? 6 : 4, 4, easy ? 6 : 4),
+            child: Row(
+              children: [
+                Icon(Icons.flag_rounded, size: easy ? 22 : 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    nextStopM == null
+                        ? l10n.nextStop
+                        : '${l10n.nextStop} · ${formatDistance(l10n, nextStopM.round())}',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontSize: easy ? 16 : null,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  key: const ValueKey('skip-stop'),
+                  onPressed: () => unawaited(navCtl.skipStop(nextStop)),
+                  child: Text(l10n.skipStop),
+                ),
+              ],
+            ),
+          ),
+        ),
+      NavStatusChip(state: nav),
+      if (azanNow != null) AzanNavChip(prayer: azanNow),
+    ];
     final banner = Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (progress != null && !arrived)
-          ManeuverBanner(progress: progress, liveAlongM: _driver?.alongM),
-        NavStatusChip(state: nav),
-        // Azan semasa navigasi: cip kecil + bunyi pendek sahaja (lihat AzanController).
-        if (azanNow != null) AzanNavChip(prayer: azanNow),
+        for (var i = 0; i < bannerChildren.length; i++) ...[
+          if (i > 0) const SizedBox(height: 6),
+          bannerChildren[i],
+        ],
       ],
     );
 

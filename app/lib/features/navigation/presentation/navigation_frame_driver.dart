@@ -181,14 +181,44 @@ class NavigationFrameDriver {
     _zoomBias = (_zoomBias + amount).clamp(_minZoomBias, _maxZoomBias);
   }
 
+  /// Zum yang kita hantar tepat sebelum pengguna menyentuh peta; dibandingkan dengan zum peta apabila
+  /// kamera kembali mengikut, untuk mengetahui sama ada pengguna mencubit untuk zum.
+  double? _zoomBeforeInteraction;
+
   /// Pengguna menggerakkan peta.
   void userInteracted() {
     _lastInteraction = clock();
-    if (follow.value == NavFollow.following) follow.value = NavFollow.free;
+    if (follow.value == NavFollow.following) {
+      _zoomBeforeInteraction = _sentCamera?.zoom ?? camera.pose?.zoom;
+      follow.value = NavFollow.free;
+    }
   }
+
+  /// Pengguna mencubit untuk zum semasa kamera dilepaskan: jadikan pilihannya bias zum supaya kamera
+  /// yang kembali mengikut kenderaan KEKAL pada tahap zum yang dipilih (dahulu ia melompat balik ke
+  /// zum automatik, jadi pengguna terpaksa zum semula pada setiap selekoh). Zum automatik (kelajuan,
+  /// menghampiri simpang) terus berfungsi di atas bias itu. Menggerakkan peta sahaja (zum tidak
+  /// berubah) tidak mengubah bias.
+  void _adoptUserZoom() {
+    final before = _zoomBeforeInteraction;
+    _zoomBeforeInteraction = null;
+    final held = camera.pose;
+    if (before == null || held == null) return;
+    final delta = held.zoom - before;
+    // Terlalu kecil = hingar; terlalu besar = pengguna meninjau peta (jauh ke luar/dalam), bukan
+    // memilih tahap zum untuk memandu: kamera kembali ke zum automatik.
+    if (delta.abs() < _userZoomThreshold || delta.abs() > _userZoomMax) return;
+    _zoomBias = (_zoomBias + delta).clamp(_minZoomBias, _maxZoomBias);
+  }
+
+  /// Perubahan zum (tahap) minimum yang dikira sebagai pengguna mencubit, dan maksimum yang masih
+  /// dikira pilihan zum memandu (selebihnya ialah meninjau peta).
+  static const _userZoomThreshold = 0.3;
+  static const _userZoomMax = 2.5;
 
   /// Kembali mengikut kenderaan dengan peralihan lembut dari pandangan semasa.
   void recenter() {
+    _adoptUserZoom();
     _rig = null; // dibina semula daripada pose peta semasa => terbang masuk
     _yaw = null;
     _prevBearing = null;
@@ -230,6 +260,8 @@ class NavigationFrameDriver {
 
   /// Tunjukkan keseluruhan laluan baki.
   void showOverview(List<GeoPoint> shape, {required EdgeInsets padding}) {
+    // Zum ikhtisar bukan pilihan zum pengguna.
+    _zoomBeforeInteraction = null;
     follow.value = NavFollow.overview;
     _lastInteraction = null;
     camera.fitTo(shape, padding: padding);

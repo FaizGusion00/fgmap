@@ -8,6 +8,9 @@ final appPackageInfoProvider = FutureProvider<PackageInfo>(
   (ref) => PackageInfo.fromPlatform(),
 );
 
+/// Versi yang diterangkan oleh kad "Baharu dalam versi" (bukan versi binaan yang sedang berjalan).
+const aboutWhatsNewVersion = '1.1.0';
+
 class AboutPage extends ConsumerWidget {
   const AboutPage({super.key});
 
@@ -110,6 +113,51 @@ class AboutPage extends ConsumerWidget {
                         value: l10n.aboutOwnerName,
                       ),
                     ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Card(
+                  margin: EdgeInsets.zero,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      key: const ValueKey('about-whats-new'),
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.aboutWhatsNewTitle(aboutWhatsNewVersion),
+                          style: theme.textTheme.titleSmall,
+                        ),
+                        const SizedBox(height: 8),
+                        for (final item in [
+                          l10n.aboutNew1,
+                          l10n.aboutNew2,
+                          l10n.aboutNew3,
+                          l10n.aboutNew4,
+                          l10n.aboutNew5,
+                        ])
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(
+                                  Icons.check_circle_rounded,
+                                  size: 18,
+                                  color: theme.colorScheme.primary,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    item,
+                                    style: theme.textTheme.bodyMedium,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),

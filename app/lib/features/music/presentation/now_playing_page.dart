@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/widgets/sheet_bottom_inset.dart';
 import '../../../core/settings/easy_mode_scope.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../data/radio_favorites.dart';
 import '../domain/player_state.dart';
 import '../domain/track.dart';
 import 'equalizer_sheet.dart';
@@ -15,7 +17,7 @@ Future<void> showNowPlaying(BuildContext context) => showModalBottomSheet<void>(
   isScrollControlled: true,
   useSafeArea: true,
   showDragHandle: true,
-  builder: (_) => const NowPlayingSheet(),
+  builder: (_) => const SheetBottomInset(child: NowPlayingSheet()),
 );
 
 /// Pemain penuh: karya seni besar, tajuk, sumber, peluncur (bukan untuk siaran langsung), kawalan
@@ -63,7 +65,10 @@ class NowPlayingSheet extends ConsumerWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            current.artist ?? trackSourceName(l10n, current.source),
+            state.nowPlaying ??
+                current.artist ??
+                trackSourceName(l10n, current.source),
+            key: const ValueKey('now-subtitle'),
             textAlign: TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -82,6 +87,27 @@ class NowPlayingSheet extends ConsumerWidget {
                     label: Text(l10n.musicLive),
                     visualDensity: VisualDensity.compact,
                   ),
+                ),
+              if (current.isLive)
+                Consumer(
+                  builder: (context, ref, _) {
+                    final fav = ref.watch(
+                      radioFavoritesProvider.select((l) => l.contains(current)),
+                    );
+                    return IconButton(
+                      key: const ValueKey('now-fav'),
+                      tooltip: fav
+                          ? l10n.musicFavoriteRemove
+                          : l10n.musicFavoriteAdd,
+                      icon: Icon(
+                        fav ? Icons.star_rounded : Icons.star_outline_rounded,
+                        color: fav ? Colors.amber.shade700 : null,
+                      ),
+                      onPressed: () => ref
+                          .read(radioFavoritesProvider.notifier)
+                          .toggle(current),
+                    );
+                  },
                 ),
               if (current.permalink != null)
                 TextButton.icon(

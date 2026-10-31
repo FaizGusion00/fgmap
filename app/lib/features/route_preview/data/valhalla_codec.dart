@@ -170,12 +170,35 @@ RouteOption _parseTrip(Map<String, dynamic> trip, RouteSource source) {
             for (final l in (m['lanes'] as List<dynamic>? ?? const []))
               ?Lane.fromJson(l),
           ],
+          towards: _signTexts(m['sign'], 'exit_toward_elements', max: 3),
+          exitNumber: _signTexts(
+            m['sign'],
+            'exit_number_elements',
+            max: 1,
+          ).firstOrNull,
         ),
     ],
   );
 }
 
 int _kmToMeters(num km) => (km * 1000).round();
+
+/// Teks unik daripada satu senarai elemen papan tanda Valhalla (`[{text: 'Klang'}, ...]`), mengikut
+/// tertib, sehingga [max] item.
+List<String> _signTexts(Object? sign, String key, {required int max}) {
+  if (sign is! Map) return const [];
+  final elements = sign[key];
+  if (elements is! List) return const [];
+  final out = <String>[];
+  for (final e in elements) {
+    final text = e is Map ? (e['text'] as String?)?.trim() : null;
+    if (text != null && text.isNotEmpty && !out.contains(text)) {
+      out.add(text);
+      if (out.length == max) break;
+    }
+  }
+  return out;
+}
 
 /// Memetakan kod ralat Valhalla kepada kegagalan yang difahami UI.
 RoutingFailure failureForValhallaError(int code, [String? message]) {

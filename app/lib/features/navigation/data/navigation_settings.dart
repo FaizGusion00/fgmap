@@ -16,6 +16,11 @@ class NavigationSettings {
     this.voiceVolume = 1.0,
     this.speechRate = 0.5,
     this.simSpeedKmh = 80,
+    this.speedCameraAlerts = true,
+    this.speedCameraOsm = false,
+    this.speedCameraAlertM = 800,
+    this.weatherAlerts = true,
+    this.alongRouteAnnounce = true,
   });
 
   final bool voiceEnabled;
@@ -37,11 +42,28 @@ class NavigationSettings {
   /// Kelajuan jelajah simulasi (km/j). `0` = ikut anggaran laluan (boleh ~18 km/j di bandar).
   final int simSpeedKmh;
 
+  /// Amaran kamera AwAS (JPJ) sepanjang laluan.
+  final bool speedCameraAlerts;
+
+  /// Termasuk kamera `highway=speed_camera` OSM (dilabel komuniti).
+  final bool speedCameraOsm;
+
+  /// Jarak amaran kamera di hadapan (meter).
+  final int speedCameraAlertM;
+
+  /// Banner cuaca buruk semasa navigasi.
+  final bool weatherAlerts;
+
+  /// Suara untuk R&R / stesen minyak di hadapan (chip HUD kekal).
+  final bool alongRouteAnnounce;
+
   static const volumes = [0.5, 0.75, 1.0];
   static const speechRates = [0.42, 0.5, 0.58];
 
   /// Pilihan kelajuan simulasi; 0 = auto.
   static const simSpeedChoices = [0, 40, 60, 80, 100, 120];
+
+  static const cameraAlertDistances = [400, 800, 1200];
 
   NavigationSettings copyWith({
     bool? voiceEnabled,
@@ -53,6 +75,11 @@ class NavigationSettings {
     double? voiceVolume,
     double? speechRate,
     int? simSpeedKmh,
+    bool? speedCameraAlerts,
+    bool? speedCameraOsm,
+    int? speedCameraAlertM,
+    bool? weatherAlerts,
+    bool? alongRouteAnnounce,
   }) {
     return NavigationSettings(
       voiceEnabled: voiceEnabled ?? this.voiceEnabled,
@@ -66,6 +93,11 @@ class NavigationSettings {
       voiceVolume: voiceVolume ?? this.voiceVolume,
       speechRate: speechRate ?? this.speechRate,
       simSpeedKmh: simSpeedKmh ?? this.simSpeedKmh,
+      speedCameraAlerts: speedCameraAlerts ?? this.speedCameraAlerts,
+      speedCameraOsm: speedCameraOsm ?? this.speedCameraOsm,
+      speedCameraAlertM: speedCameraAlertM ?? this.speedCameraAlertM,
+      weatherAlerts: weatherAlerts ?? this.weatherAlerts,
+      alongRouteAnnounce: alongRouteAnnounce ?? this.alongRouteAnnounce,
     );
   }
 
@@ -79,7 +111,12 @@ class NavigationSettings {
       other.reportAlerts == reportAlerts &&
       other.voiceVolume == voiceVolume &&
       other.speechRate == speechRate &&
-      other.simSpeedKmh == simSpeedKmh;
+      other.simSpeedKmh == simSpeedKmh &&
+      other.speedCameraAlerts == speedCameraAlerts &&
+      other.speedCameraOsm == speedCameraOsm &&
+      other.speedCameraAlertM == speedCameraAlertM &&
+      other.weatherAlerts == weatherAlerts &&
+      other.alongRouteAnnounce == alongRouteAnnounce;
 
   @override
   int get hashCode => Object.hash(
@@ -91,6 +128,11 @@ class NavigationSettings {
     voiceVolume,
     speechRate,
     simSpeedKmh,
+    speedCameraAlerts,
+    speedCameraOsm,
+    speedCameraAlertM,
+    weatherAlerts,
+    alongRouteAnnounce,
   );
 }
 
@@ -102,6 +144,11 @@ const _reportAlertsKey = 'nav.reportAlerts';
 const _volumeKey = 'nav.voiceVolume';
 const _rateKey = 'nav.speechRate';
 const _simSpeedKey = 'nav.simSpeedKmh';
+const _speedCamKey = 'nav.speedCameraAlerts';
+const _speedCamOsmKey = 'nav.speedCameraOsm';
+const _speedCamDistKey = 'nav.speedCameraAlertM';
+const _weatherAlertsKey = 'nav.weatherAlerts';
+const _alongRouteAnnounceKey = 'nav.alongRouteAnnounce';
 
 class NavigationSettingsController extends Notifier<NavigationSettings> {
   @override
@@ -109,6 +156,7 @@ class NavigationSettingsController extends Notifier<NavigationSettings> {
     final prefs = ref.watch(sharedPreferencesProvider);
     final lang = prefs.getString(_languageKey);
     final sim = prefs.getInt(_simSpeedKey) ?? 80;
+    final camDist = prefs.getInt(_speedCamDistKey) ?? 800;
     return NavigationSettings(
       voiceEnabled: prefs.getBool(_voiceKey) ?? true,
       voiceLanguage: lang == null ? null : VoiceLanguage.fromCode(lang),
@@ -126,6 +174,14 @@ class NavigationSettingsController extends Notifier<NavigationSettings> {
         0.5,
       ),
       simSpeedKmh: NavigationSettings.simSpeedChoices.contains(sim) ? sim : 80,
+      speedCameraAlerts: prefs.getBool(_speedCamKey) ?? true,
+      speedCameraOsm: prefs.getBool(_speedCamOsmKey) ?? false,
+      speedCameraAlertM:
+          NavigationSettings.cameraAlertDistances.contains(camDist)
+          ? camDist
+          : 800,
+      weatherAlerts: prefs.getBool(_weatherAlertsKey) ?? true,
+      alongRouteAnnounce: prefs.getBool(_alongRouteAnnounceKey) ?? true,
     );
   }
 
@@ -181,6 +237,34 @@ class NavigationSettingsController extends Notifier<NavigationSettings> {
     if (!NavigationSettings.simSpeedChoices.contains(kmh)) return;
     state = state.copyWith(simSpeedKmh: kmh);
     await ref.read(sharedPreferencesProvider).setInt(_simSpeedKey, kmh);
+  }
+
+  Future<void> setSpeedCameraAlerts(bool value) async {
+    state = state.copyWith(speedCameraAlerts: value);
+    await ref.read(sharedPreferencesProvider).setBool(_speedCamKey, value);
+  }
+
+  Future<void> setSpeedCameraOsm(bool value) async {
+    state = state.copyWith(speedCameraOsm: value);
+    await ref.read(sharedPreferencesProvider).setBool(_speedCamOsmKey, value);
+  }
+
+  Future<void> setSpeedCameraAlertM(int meters) async {
+    if (!NavigationSettings.cameraAlertDistances.contains(meters)) return;
+    state = state.copyWith(speedCameraAlertM: meters);
+    await ref.read(sharedPreferencesProvider).setInt(_speedCamDistKey, meters);
+  }
+
+  Future<void> setWeatherAlerts(bool value) async {
+    state = state.copyWith(weatherAlerts: value);
+    await ref.read(sharedPreferencesProvider).setBool(_weatherAlertsKey, value);
+  }
+
+  Future<void> setAlongRouteAnnounce(bool value) async {
+    state = state.copyWith(alongRouteAnnounce: value);
+    await ref
+        .read(sharedPreferencesProvider)
+        .setBool(_alongRouteAnnounceKey, value);
   }
 }
 

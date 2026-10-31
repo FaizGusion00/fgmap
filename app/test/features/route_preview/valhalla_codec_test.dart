@@ -24,34 +24,31 @@ void main() {
   routingOptionsTests();
 
   group('buildRouteRequest', () {
-    test(
-      'lalai: auto, 2 alternatif, manuver tanpa teks, costing selamat',
-      () {
-        final json = buildRouteRequest(
-          const RouteQuery(origin: klcc, destination: klia),
-        );
+    test('lalai: auto, 2 alternatif, manuver tanpa teks, costing selamat', () {
+      final json = buildRouteRequest(
+        const RouteQuery(origin: klcc, destination: klia),
+      );
 
-        expect(json['costing'], 'auto');
-        expect(json['alternates'], 2);
-        // Mesti di peringkat atas (di dalam directions_options Valhalla mengabaikannya).
-        expect(json['directions_type'], 'maneuvers');
-        expect(json['directions_options'], {
-          'units': 'kilometers',
-          'language': 'en-US',
-        });
-        expect(json['costing_options'], {
-          'auto': {
-            'use_highways': 0.65,
-            'use_tracks': 0,
-            'use_living_streets': 0.15,
-          },
-        });
+      expect(json['costing'], 'auto');
+      expect(json['alternates'], 2);
+      // Mesti di peringkat atas (di dalam directions_options Valhalla mengabaikannya).
+      expect(json['directions_type'], 'maneuvers');
+      expect(json['directions_options'], {
+        'units': 'kilometers',
+        'language': 'en-US',
+      });
+      expect(json['costing_options'], {
+        'auto': {
+          'use_highways': 0.65,
+          'use_tracks': 0,
+          'use_living_streets': 0.15,
+        },
+      });
 
-        final locations = json['locations']! as List<Object?>;
-        expect(locations[0], {'lat': 3.1579, 'lon': 101.7116});
-        expect(locations[1], {'lat': 2.7456, 'lon': 101.7072});
-      },
-    );
+      final locations = json['locations']! as List<Object?>;
+      expect(locations[0], {'lat': 3.1579, 'lon': 101.7116});
+      expect(locations[1], {'lat': 2.7456, 'lon': 101.7072});
+    });
 
     test('heading dihantar hanya untuk asal, dan hanya jika diketahui', () {
       final withHeading = buildRouteRequest(
@@ -384,8 +381,8 @@ void routingOptionsTests() {
     test('lalai kereta: bias trek/cut-through dan prefer arteri', () {
       final opts =
           (buildRouteRequest(
-                const RouteQuery(origin: klcc, destination: klia),
-              )['costing_options']!
+                    const RouteQuery(origin: klcc, destination: klia),
+                  )['costing_options']!
                   as Map)['auto']!
               as Map<String, Object?>;
       expect(opts['use_tracks'], 0);
@@ -530,5 +527,30 @@ void routingOptionsTests() {
       expect(route.hasHighway, isTrue);
       expect(route.hasFerry, isFalse);
     });
+  });
+
+  group('papan tanda (sign)', () {
+    test(
+      'respons sebenar Shah Alam-Klang: "menuju" dan nombor keluar dihuraikan',
+      () {
+        final route = parseRouteResponse(
+          _fixture('valhalla_public_shahalam_klang_signs.json'),
+          source: RouteSource.online,
+        ).first;
+        // Susur keluar (jenis 21): keluar 1306 menuju I-City, Padang Jawa, Klang Bandar DiRaja.
+        final exit = route.maneuvers.firstWhere((m) => m.type == 21);
+        expect(exit.exitNumber, '1306');
+        expect(exit.towards, ['I-City', 'Padang Jawa', 'Klang Bandar DiRaja']);
+        // Cabang (jenis 23) dengan nombor keluar berhuruf.
+        final fork = route.maneuvers.firstWhere(
+          (m) => m.type == 23 && m.exitNumber != null,
+        );
+        expect(fork.exitNumber, '1306B');
+        expect(fork.towards.first, 'I-City');
+        // Manuver tanpa papan tanda: kosong.
+        expect(route.maneuvers.first.towards, isEmpty);
+        expect(route.maneuvers.first.exitNumber, isNull);
+      },
+    );
   });
 }

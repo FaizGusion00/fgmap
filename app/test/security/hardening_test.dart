@@ -116,13 +116,13 @@ void main() {
     test('Android: Azan dan Muzik: kebenaran dan sumber yang betul', () {
       // Penggera tepat yang diminta pengguna, bukan USE_EXACT_ALARM (polisi Play: app jam sahaja).
       expect(manifest, contains('android.permission.SCHEDULE_EXACT_ALARM'));
-      expect(
-        manifest,
-        isNot(contains('android.permission.USE_EXACT_ALARM')),
-      );
+      expect(manifest, isNot(contains('android.permission.USE_EXACT_ALARM')));
       expect(manifest, contains('android.permission.RECEIVE_BOOT_COMPLETED'));
       expect(manifest, contains('FOREGROUND_SERVICE_MEDIA_PLAYBACK'));
-      expect(manifest, contains('android:foregroundServiceType="mediaPlayback"'));
+      expect(
+        manifest,
+        contains('android:foregroundServiceType="mediaPlayback"'),
+      );
       // Tiada lokasi latar belakang.
       expect(manifest, isNot(contains('ACCESS_BACKGROUND_LOCATION')));
       // Bunyi azan dirujuk melalui nama sahaja: mesti dilindungi daripada pengecilan sumber.
@@ -143,7 +143,10 @@ void main() {
         ),
         contains('AudioServiceActivity'),
       );
-      expect(_read('android/app/build.gradle.kts'), contains('isCoreLibraryDesugaringEnabled = true'));
+      expect(
+        _read('android/app/build.gradle.kts'),
+        contains('isCoreLibraryDesugaringEnabled = true'),
+      );
     });
 
     test(

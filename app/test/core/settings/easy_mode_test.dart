@@ -40,7 +40,11 @@ void main() {
 
   group('NavHudMetrics Mod mudah', () {
     test('ikon dan butang 25% lebih besar, nombor 15%, padding sama', () {
-      for (final size in const [Size(390, 844), Size(844, 390), Size(320, 568)]) {
+      for (final size in const [
+        Size(390, 844),
+        Size(844, 390),
+        Size(320, 568),
+      ]) {
         final base = NavHudMetrics.forSize(size);
         final easy = NavHudMetrics.forSize(size, easy: true);
         expect(easy.bannerIcon, closeTo(base.bannerIcon * 1.25, 0.01));

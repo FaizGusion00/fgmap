@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/widgets/sheet_bottom_inset.dart';
 import '../../../core/theme/theme_controller.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../data/navigation_settings.dart';
@@ -17,10 +18,12 @@ Future<void> showNavigationSettingsSheet(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    builder: (_) => NavigationSettingsSheet(
-      onShareEta: onShareEta,
-      onEmergency: onEmergency,
-      onMusic: onMusic,
+    builder: (_) => SheetBottomInset(
+      child: NavigationSettingsSheet(
+        onShareEta: onShareEta,
+        onEmergency: onEmergency,
+        onMusic: onMusic,
+      ),
     ),
   );
 }
@@ -253,6 +256,59 @@ class NavigationSettingsSection extends ConsumerWidget {
         ),
         const SizedBox(height: 8),
         Text(l10n.navOverspeedHint, style: theme.textTheme.bodySmall),
+        const SizedBox(height: 20),
+        SwitchListTile(
+          key: const ValueKey('speed-camera-alerts'),
+          contentPadding: EdgeInsets.zero,
+          title: Text(l10n.settingsCameras),
+          subtitle: Text(l10n.settingsCamerasHint),
+          value: settings.speedCameraAlerts,
+          onChanged: controller.setSpeedCameraAlerts,
+        ),
+        if (settings.speedCameraAlerts) ...[
+          SwitchListTile(
+            key: const ValueKey('speed-camera-osm'),
+            contentPadding: EdgeInsets.zero,
+            title: Text(l10n.settingsCamerasOsm),
+            subtitle: Text(l10n.settingsCamerasOsmHint),
+            value: settings.speedCameraOsm,
+            onChanged: controller.setSpeedCameraOsm,
+          ),
+          Text(l10n.settingsCamerasDistance, style: theme.textTheme.titleSmall),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<int>(
+              key: const ValueKey('camera-alert-distance'),
+              showSelectedIcon: false,
+              segments: const [
+                ButtonSegment(value: 400, label: Text('400 m')),
+                ButtonSegment(value: 800, label: Text('800 m')),
+                ButtonSegment(value: 1200, label: Text('1.2 km')),
+              ],
+              selected: {settings.speedCameraAlertM},
+              onSelectionChanged: (s) =>
+                  controller.setSpeedCameraAlertM(s.first),
+            ),
+          ),
+        ],
+        const SizedBox(height: 12),
+        SwitchListTile(
+          key: const ValueKey('weather-alerts'),
+          contentPadding: EdgeInsets.zero,
+          title: Text(l10n.settingsWeather),
+          subtitle: Text(l10n.settingsWeatherHint),
+          value: settings.weatherAlerts,
+          onChanged: controller.setWeatherAlerts,
+        ),
+        SwitchListTile(
+          key: const ValueKey('along-route-announce'),
+          contentPadding: EdgeInsets.zero,
+          title: Text(l10n.settingsAlongRouteAnnounce),
+          subtitle: Text(l10n.settingsAlongRouteAnnounceHint),
+          value: settings.alongRouteAnnounce,
+          onChanged: controller.setAlongRouteAnnounce,
+        ),
       ],
     );
   }

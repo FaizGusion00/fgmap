@@ -79,6 +79,8 @@ class NavManeuver {
     required this.streetNames,
     this.roundaboutExit,
     this.lanes = const [],
+    this.towards = const [],
+    this.exitNumber,
   });
 
   /// Indeks dalam [NavRoute.maneuvers].
@@ -97,6 +99,12 @@ class NavManeuver {
   /// Lorong sebelum manuver (kiri ke kanan); kosong jika Valhalla tiada data `turn:lanes`.
   final List<Lane> lanes;
 
+  /// "Menuju ..." daripada papan tanda (kosong jika tiada); paling berguna pada cabang dan susur.
+  final List<String> towards;
+
+  /// Nombor keluar daripada papan tanda, atau null.
+  final String? exitNumber;
+
   bool get isArrival =>
       kind == ManeuverKind.arrive ||
       kind == ManeuverKind.arriveRight ||
@@ -114,7 +122,12 @@ class NavManeuver {
     return streetNames.isEmpty ? null : streetNames.first;
   }
 
-  static final _roadRef = RegExp(r'^[A-Z]{1,3}\s?\d+[A-Z]?$');
+  /// Kod jalan: "E12", "B48", "J3" dan nombor Laluan Persekutuan/Negeri sahaja ("3217", "2",
+  /// "1306A"). Nombor sahaja tidak bermakna kepada pemandu, jadi ia tidak diutamakan sebagai nama.
+  static final _roadRef = RegExp(r'^[A-Z]{0,3}\s?\d+[A-Z]?$');
+
+  /// Adakah [name] hanya kod jalan (bukan nama sebenar)?
+  static bool isRoadRef(String name) => _roadRef.hasMatch(name.trim());
 }
 
 /// Laluan yang disediakan untuk navigasi: jarak kumulatif, lokasi manuver dan masa baki.
@@ -149,6 +162,8 @@ class NavRoute {
           streetNames: m.streetNames,
           roundaboutExit: m.roundaboutExitCount,
           lanes: m.lanes,
+          towards: m.towards,
+          exitNumber: m.exitNumber,
         ),
       );
     }

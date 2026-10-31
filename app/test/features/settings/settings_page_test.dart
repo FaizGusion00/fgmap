@@ -204,7 +204,7 @@ void main() {
     'Rumah dan Kerja: belum ditetapkan -> pilihan; ditetapkan -> urus',
     (tester) async {
       // Kumpulan ini kini di bawah Navigasi: permukaan tinggi supaya ia dibina dan boleh diketik.
-      final c = await pumpPage(tester, size: const Size(390, 2600));
+      final c = await pumpPage(tester, size: const Size(390, 3400));
       expect(find.text('Rumah dan Kerja'), findsOneWidget);
       expect(find.text('Belum ditetapkan'), findsNWidgets(2));
 

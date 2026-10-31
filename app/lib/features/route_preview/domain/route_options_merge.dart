@@ -263,13 +263,16 @@ List<RouteOption> mergeRouteCandidates({
   // Laluan yang LEBIH JAUH DAN LEBIH LAMA daripada laluan lain tidak patut dipilih sebagai
   // "Disyorkan"/"Terpantas"/"Terpendek" (ia hanya alternatif).
   final keptList = kept;
+  // Masa berkesan menimbang kualiti jalan: laluan yang sedikit lebih laju tetapi melalui banyak jalan
+  // kampung tidak "mengalahkan" laluan jalan utama yang lebih lama beberapa minit.
+  double effectiveS(_Candidate c) =>
+      c.route.durationS * (1 + c.route.roadPenalty);
   bool dominated(_Candidate c) => keptList.any(
     (o) =>
         o != c &&
         c.route.distanceM - o.route.distanceM >=
             o.route.distanceM * _dominanceMinRelative &&
-        c.route.durationS - o.route.durationS >=
-            o.route.durationS * _dominanceMinRelative,
+        effectiveS(c) - effectiveS(o) >= effectiveS(o) * _dominanceMinRelative,
   );
 
   // Laluan utama: skor terbaik (masa + belokan + kos jarak) dalam tetingkap masa daripada yang terpantas.

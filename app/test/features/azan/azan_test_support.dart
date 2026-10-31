@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:fgmap/core/utils/geo.dart';
 import 'package:fgmap/features/azan/data/azan_player.dart';
 import 'package:fgmap/features/azan/data/azan_scheduler.dart';
+import 'package:fgmap/features/azan/data/azan_settings.dart';
+import 'package:fgmap/features/azan/data/official_prayer_times.dart';
 import 'package:fgmap/features/azan/domain/azan_plan.dart';
 import 'package:fgmap/features/azan/domain/prayer.dart';
 import 'package:fgmap/features/azan/domain/prayer_calculator.dart';
@@ -43,7 +45,9 @@ class FakePrayerCalculator implements PrayerCalculator {
 
 class FakeAzanScheduler implements AzanScheduler {
   bool permissionGranted = true;
+  bool notifications = true;
   bool exact = true;
+  final cancelled = <int>[];
   int initCalls = 0;
   int permissionRequests = 0;
   int openExactCalls = 0;
@@ -52,7 +56,8 @@ class FakeAzanScheduler implements AzanScheduler {
   AzanNotificationTexts? lastTexts;
   final tapController = StreamController<String>.broadcast();
 
-  List<ScheduledAzan> get pending => replaced.isEmpty ? const [] : replaced.last;
+  List<ScheduledAzan> get pending =>
+      replaced.isEmpty ? const [] : replaced.last;
 
   @override
   Future<void> ensureInitialized() async => initCalls++;
@@ -62,6 +67,12 @@ class FakeAzanScheduler implements AzanScheduler {
     permissionRequests++;
     return permissionGranted;
   }
+
+  @override
+  Future<bool> notificationsEnabled() async => notifications;
+
+  @override
+  Future<void> cancel(int id) async => cancelled.add(id);
 
   @override
   Future<bool> canScheduleExact() async => exact;
@@ -124,3 +135,40 @@ AzanNotificationTexts testTexts() => AzanNotificationTexts(
   channelSilent: 'Senyap',
   channelReminder: 'Peringatan',
 );
+
+/// Pelanggan waktu rasmi palsu: tiada rangkaian. [months] menjawab (tahun, bulan); tiada = null.
+class FakeOfficialClient implements OfficialTimesClient {
+  FakeOfficialClient({this.zone = 'WLY01', this.offsetMinutes = 7});
+
+  final String zone;
+
+  /// Waktu rasmi = waktu palsu ditambah ofset ini (supaya mudah dibezakan daripada pengiraan).
+  final int offsetMinutes;
+  bool available = false;
+  final calls = <(GeoPoint, int, int)>[];
+
+  @override
+  Future<OfficialMonth?> fetchMonth(GeoPoint at, int year, int month) async {
+    calls.add((at, year, month));
+    if (!available) return null;
+    final fake = FakePrayerCalculator(minuteOffset: offsetMinutes);
+    final last = DateTime(year, month + 1, 0).day;
+    return OfficialMonth(
+      zone: zone,
+      at: at,
+      year: year,
+      month: month,
+      days: {
+        for (var d = 1; d <= last; d++)
+          d: fake
+              .compute(
+                at: at,
+                day: DateTime(year, month, d),
+                method: AzanMethod.jakim,
+                madhab: AzanMadhab.shafi,
+              )
+              .times,
+      },
+    );
+  }
+}

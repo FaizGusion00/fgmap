@@ -7,6 +7,9 @@ import '../../../core/utils/log.dart';
 import '../data/audius_repository.dart';
 import '../data/local_library.dart';
 import '../data/radio_browser_repository.dart';
+import '../data/radio_favorites.dart';
+import '../data/radio_health.dart';
+import '../domain/music_repository.dart';
 import '../domain/track.dart';
 
 enum MusicTab {
@@ -30,28 +33,33 @@ class MusicSearchState {
     this.query = '',
     this.status = MusicSearchStatus.idle,
     this.results = const [],
+    this.region = RadioRegion.malaysia,
   });
 
   final MusicTab tab;
   final String query;
   final MusicSearchStatus status;
   final List<Track> results;
+  final RadioRegion region;
 
   MusicSearchState copyWith({
     MusicTab? tab,
     String? query,
     MusicSearchStatus? status,
     List<Track>? results,
+    RadioRegion? region,
   }) => MusicSearchState(
     tab: tab ?? this.tab,
     query: query ?? this.query,
     status: status ?? this.status,
     results: results ?? this.results,
+    region: region ?? this.region,
   );
 }
 
 /// Satu carian untuk tiga sumber: Lagu (Audius) mencari pada pelayan selepas nyahlantun; Radio dan
-/// Fail saya menapis senarai tempatan serta-merta. Setiap sumber gagal secara berasingan.
+/// Fail saya menapis senarai tempatan serta-merta. Radio juga dinyahlantun (carian nama sedunia).
+/// Setiap sumber gagal secara berasingan.
 class MusicSearchController extends Notifier<MusicSearchState> {
   Timer? _debounce;
   int _generation = 0;
@@ -60,6 +68,21 @@ class MusicSearchController extends Notifier<MusicSearchState> {
   @override
   MusicSearchState build() {
     ref.onDispose(() => _debounce?.cancel());
+    // Senarai Kegemaran dibaca terus dari peranti: segarkan serta-merta (tanpa pemuat) bila bintang
+    // diketik semasa melihatnya.
+    ref.listen(radioFavoritesProvider, (_, favorites) {
+      if (state.tab != MusicTab.radio ||
+          state.region != RadioRegion.favorites) {
+        return;
+      }
+      final results = _filter(favorites, state.query.trim());
+      state = state.copyWith(
+        status: results.isEmpty
+            ? MusicSearchStatus.empty
+            : MusicSearchStatus.ready,
+        results: results,
+      );
+    });
     return const MusicSearchState();
   }
 
@@ -72,11 +95,25 @@ class MusicSearchController extends Notifier<MusicSearchState> {
   void setQuery(String query) {
     state = state.copyWith(query: query);
     _debounce?.cancel();
-    if (state.tab == MusicTab.songs) {
+    if (state.tab != MusicTab.local) {
+      // Lagu dan Radio mencari di pelayan: nyahlantun supaya tidak satu permintaan setiap huruf.
       _debounce = Timer(debounce, () => unawaited(_run()));
     } else {
       unawaited(_run(immediate: true));
     }
+  }
+
+  Future<void> setRegion(RadioRegion region) async {
+    _debounce?.cancel();
+    state = state.copyWith(region: region);
+    await _run(immediate: true);
+  }
+
+  /// Cadangan carian (cth. "K-pop") pada tab Lagu: isi pertanyaan dan cari serta-merta.
+  Future<void> searchFor(String query) async {
+    _debounce?.cancel();
+    state = state.copyWith(query: query);
+    await _run(immediate: true);
   }
 
   Future<void> refresh() => _run(immediate: true);
@@ -100,8 +137,15 @@ class MusicSearchController extends Notifier<MusicSearchState> {
           query.isEmpty
               ? await ref.read(audiusRepositoryProvider).trending()
               : await ref.read(audiusRepositoryProvider).search(query),
-        MusicTab.radio =>
-          await ref.read(radioRepositoryProvider).stations(query: query),
+        MusicTab.radio when state.region == RadioRegion.favorites => _filter(
+          ref.read(radioFavoritesProvider),
+          query,
+        ),
+        MusicTab.radio => _sinkFailed(
+          await ref
+              .read(radioRepositoryProvider)
+              .stations(query: query, region: state.region),
+        ),
         MusicTab.local => _filter(
           await ref.read(localLibraryProvider).list(),
           query,
@@ -122,6 +166,18 @@ class MusicSearchController extends Notifier<MusicSearchState> {
         results: const [],
       );
     }
+  }
+
+  /// Stesen yang gagal disambung pada peranti ini dalam 24 jam lalu dibenam ke bawah (susunan lain
+  /// kekal): mengikut ukuran, separuh senarai Korea tidak boleh disambung dari luar Korea.
+  List<Track> _sinkFailed(List<Track> stations) {
+    final health = ref.read(radioHealthProvider.notifier);
+    final ok = <Track>[];
+    final failed = <Track>[];
+    for (final t in stations) {
+      (health.isFailed(t) ? failed : ok).add(t);
+    }
+    return failed.isEmpty ? stations : [...ok, ...failed];
   }
 
   static List<Track> _filter(List<Track> tracks, String query) {

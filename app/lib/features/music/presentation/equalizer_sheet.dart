@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/widgets/sheet_bottom_inset.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../data/music_settings.dart';
 import '../domain/eq.dart';
@@ -12,9 +13,11 @@ Future<void> showEqualizerSheet(BuildContext context) =>
       useSafeArea: true,
       showDragHandle: true,
       isScrollControlled: true,
-      builder: (_) => const SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(20, 0, 20, 24),
-        child: EqualizerPanel(),
+      builder: (_) => const SheetBottomInset(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(20, 0, 20, 24),
+          child: EqualizerPanel(),
+        ),
       ),
     );
 

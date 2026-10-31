@@ -32,9 +32,20 @@ void main() {
     expect(find.text('1.2.3+42'), findsOneWidget);
     expect(find.text('Faiz Nasir'), findsOneWidget);
     expect(find.text('FG Universal Empire Company'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('about-whats-new')),
+      300,
+    );
+    expect(find.text('Baharu dalam versi 1.1.0'), findsOneWidget);
+    expect(find.textContaining('Waktu azan rasmi JAKIM'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('about-attribution')),
+      300,
+    );
     expect(find.byKey(const ValueKey('about-attribution')), findsOneWidget);
     expect(find.textContaining('OpenStreetMap'), findsOneWidget);
     expect(find.textContaining('data.gov.my'), findsOneWidget);
+    expect(find.textContaining('WaktuSolat'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

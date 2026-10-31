@@ -15,14 +15,20 @@ void main() {
   test('EqSettings.gainsDb: pratetap atau tersuai', () {
     const s = EqSettings(preset: EqPreset.bass);
     expect(s.gainsDb, eqPresetGainsDb[EqPreset.bass]);
-    const c = EqSettings(preset: EqPreset.custom, customGainsDb: [1, 2, 3, 4, 5]);
+    const c = EqSettings(
+      preset: EqPreset.custom,
+      customGainsDb: [1, 2, 3, 4, 5],
+    );
     expect(c.gainsDb, [1, 2, 3, 4, 5]);
     expect(c.copyWith(preset: EqPreset.normal).gainsDb, everyElement(0));
   });
 
   test('pemetaan ke jalur peranti: sama bilangan, lebih, kurang, dipotong', () {
     const gains = [6.0, 4.0, 0.0, 4.0, 6.0];
-    expect(mapGainsToBands(gains, deviceBands: 5, minDb: -15, maxDb: 15), gains);
+    expect(
+      mapGainsToBands(gains, deviceBands: 5, minDb: -15, maxDb: 15),
+      gains,
+    );
     final ten = mapGainsToBands(gains, deviceBands: 10, minDb: -15, maxDb: 15);
     expect(ten, hasLength(10));
     expect(ten.first, 6);
@@ -31,8 +37,20 @@ void main() {
     final three = mapGainsToBands(gains, deviceBands: 3, minDb: -15, maxDb: 15);
     expect(three, [6, 0, 6]);
     // Julat peranti lebih sempit: dipotong.
-    expect(mapGainsToBands(gains, deviceBands: 5, minDb: -3, maxDb: 3), [3, 3, 0, 3, 3]);
-    expect(mapGainsToBands(gains, deviceBands: 0, minDb: -3, maxDb: 3), isEmpty);
-    expect(mapGainsToBands(const [], deviceBands: 2, minDb: -3, maxDb: 3), [0, 0]);
+    expect(mapGainsToBands(gains, deviceBands: 5, minDb: -3, maxDb: 3), [
+      3,
+      3,
+      0,
+      3,
+      3,
+    ]);
+    expect(
+      mapGainsToBands(gains, deviceBands: 0, minDb: -3, maxDb: 3),
+      isEmpty,
+    );
+    expect(mapGainsToBands(const [], deviceBands: 2, minDb: -3, maxDb: 3), [
+      0,
+      0,
+    ]);
   });
 }
