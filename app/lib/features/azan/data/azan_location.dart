@@ -34,7 +34,8 @@ class AzanLocationController extends Notifier<GeoPoint?> {
   );
 
   /// [force] = fix segar yang diminta secara sengaja (cth. semasa menghidupkan azan atau app kembali
-  /// ke hadapan): abaikan ambang 20 km supaya lokasi sentiasa terkini.
+  /// ke hadapan): abaikan ambang 20 km dan semakan "coarse sama" supaya persist + pemberitahuan
+  /// sentiasa berlaku untuk kemas kini yang diminta.
   void update(GeoPoint point, {bool force = false}) {
     final current = state;
     if (!force &&
@@ -43,7 +44,7 @@ class AzanLocationController extends Notifier<GeoPoint?> {
       return;
     }
     final coarse = coarsen(point);
-    if (coarse == current) return;
+    if (!force && coarse == current) return;
     state = coarse;
     _persist(ref.read(sharedPreferencesProvider), coarse);
   }

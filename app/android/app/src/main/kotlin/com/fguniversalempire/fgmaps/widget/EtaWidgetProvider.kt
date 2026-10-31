@@ -46,7 +46,8 @@ class EtaWidgetProvider : HomeWidgetProvider() {
                 defaultLabel = "Work",
             )
             // Ketik di mana-mana sahaja membuka app (untuk tetapkan tempat atau lihat laluan).
-            views.setOnClickPendingIntent(R.id.eta_widget_root, launchIntent(context))
+            // requestCode = widget id supaya setiap tika mempunyai PendingIntent tersendiri.
+            views.setOnClickPendingIntent(R.id.eta_widget_root, launchIntent(context, id))
             appWidgetManager.updateAppWidget(id, views)
         }
     }
@@ -71,12 +72,12 @@ class EtaWidgetProvider : HomeWidgetProvider() {
         views.setViewVisibility(valueId, View.VISIBLE)
     }
 
-    private fun launchIntent(context: Context): PendingIntent {
+    private fun launchIntent(context: Context, appWidgetId: Int): PendingIntent {
         val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)
             ?: Intent()
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
         var flags = PendingIntent.FLAG_UPDATE_CURRENT
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) flags = flags or PendingIntent.FLAG_IMMUTABLE
-        return PendingIntent.getActivity(context, 0, intent, flags)
+        return PendingIntent.getActivity(context, appWidgetId, intent, flags)
     }
 }

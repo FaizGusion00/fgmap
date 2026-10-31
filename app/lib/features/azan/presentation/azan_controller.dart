@@ -157,14 +157,20 @@ class AzanController extends Notifier<AzanState> {
       method: settings.method,
       madhab: settings.madhab,
     );
-    // Dibina semula berkali-kali (tetapan, lokasi, hari baharu): pendengar dibuat semula setiap kali.
+    // build() dijalankan semula bila deps berubah: batalkan langganan lama dulu supaya
+    // pendengar tidak terkumpul (onDispose juga membersihkan, tetapi cancel-before-assign
+    // melindungi jika susunan hayat berbeza).
     ref.onDispose(() {
       _preemptTimer?.cancel();
       _nextTimer?.cancel();
       _midnightTimer?.cancel();
       unawaited(_completedSub?.cancel());
       unawaited(_tapSub?.cancel());
+      _completedSub = null;
+      _tapSub = null;
     });
+    unawaited(_completedSub?.cancel());
+    unawaited(_tapSub?.cancel());
     _completedSub = ref.read(azanPlayerProvider).completed.listen((_) {
       if (ref.mounted) state = state.copyWith(clearNowPlaying: true);
     });

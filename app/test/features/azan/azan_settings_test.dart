@@ -122,6 +122,20 @@ void main() {
       },
     );
 
+    test('force=true menulis semula walaupun coarse tidak berubah', () async {
+      final c = container.read(azanLocationProvider.notifier);
+      c.update(const GeoPoint(3.14, 101.69));
+      await prefs.remove('azan.lat');
+      await prefs.remove('azan.lng');
+      // Tanpa force: <20 km → tiada persist.
+      c.update(const GeoPoint(3.141, 101.691));
+      expect(prefs.getDouble('azan.lat'), isNull);
+      // force: persist walaupun sel 0.01° sama.
+      c.update(const GeoPoint(3.141, 101.691), force: true);
+      expect(prefs.getDouble('azan.lat'), 3.14);
+      expect(prefs.getDouble('azan.lng'), 101.69);
+    });
+
     test(
       'lokasi berkesan: bandar > tersimpan > lokasi matahari (KL)',
       () async {
