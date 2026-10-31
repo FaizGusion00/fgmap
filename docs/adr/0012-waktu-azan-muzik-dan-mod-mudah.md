@@ -303,3 +303,44 @@ percuma "Personal Team" tidak boleh mengaktifkan MusicKit, dan token pembangun A
 sama). Penulis app tidak mempunyai akaun itu dan tidak mahu membayar, jadi ciri ini kekal dalam kod tetapi tidak aktif
 dan tidak boleh digunakan sehingga keahlian ada. Semakan 1.4 ditulis sebelum ini disahkan; akaun sepatutnya ditanya
 dahulu sebelum dibina.
+
+## Semakan 1.5 (lebih banyak lagu tanpa akaun berbayar: app muzik pengguna, dan muzik pada telefon)
+
+**Konteks:** penulis app tidak mempunyai (dan tidak mahu membayar untuk) akaun Apple Developer, jadi 1.4 tidak boleh
+digunakan. Audius, Radio dan fail diimport **kekal tanpa perubahan**. Dua tambahan percuma dan sah untuk pengguna yang mahu
+lebih banyak lagu:
+
+**1. Buka carian dalam Spotify / YouTube Music pengguna.** Butang di tab Lagu membuka pautan HTTPS biasa
+(`open.spotify.com/search/<teks>`, `music.youtube.com/search?q=<teks>`) melalui `url_launcher` (`LaunchMode.externalApplication`):
+telefon membukanya dalam app jika dipasang, jika tidak dalam pelayar. Lagu penuh dimain oleh app itu dengan akaun pengguna
+sendiri; FGMaps tidak menstrim, mengekstrak atau menyimpan apa-apa daripada mereka dan tiada kunci API. Satu-satunya data yang
+keluar ialah teks carian dalam pautan itu, atas ketikan pengguna (dinyatakan dalam dasar privasi BM/EN). Jika tiada app atau
+pelayar, SnackBar memaklumkan (tidak senyap).
+- `domain/external_music.dart` (pembina URI), `data/external_music_launcher.dart` (penyedia boleh ditimpa dalam ujian).
+
+**3. Muzik pada telefon.** Plugin natif `packages/fg_device_music`: Android `MediaStore.Audio` (IS_MUSIC, sekurang-kurangnya
+30 saat, URI `content://`), iOS `MPMediaLibrary` (`assetURL`). Hanya metadata (tajuk, artis, tempoh) dibaca; fail tidak
+disalin dan tiada apa-apa dihantar. Kebenaran **tidak pernah diminta sendiri**: dialog sistem hanya muncul apabila pengguna
+mengetik "Benarkan akses muzik" pada kad di tab Fail saya. Android: `READ_MEDIA_AUDIO` (API 33+) dan `READ_EXTERNAL_STORAGE`
+(`maxSdkVersion=32`), dalam manifest plugin (manifest app tidak disentuh). iOS: `NSAppleMusicUsageDescription` (kunci sama
+digunakan oleh MPMediaLibrary).
+- Lagu telefon (`TrackSource.device`) digabung selepas fail diimport dalam tab Fail saya, boleh ditapis; app tidak
+  memadamnya (tiada butang padam). Senarai disimpan 60 saat dalam ingatan sahaja; tiada storan kekal, jadi `DataEraser`
+  tidak berubah.
+- Pustaka telefon boleh beribu lagu: `PlayerController` memuatkan paling banyak 300 lagu sebagai baris gilir, bermula 20
+  lagu sebelum yang diketik (berlaku untuk semua sumber).
+
+**Had yang diketahui (jujur):**
+- Lagu yang diputar ialah lagu yang **sudah ada pada telefon**; ini bukan katalog. Orang tanpa fail lagu tidak mendapat apa-apa
+  daripada ciri ini (mereka ada butang 1).
+- iOS: lagu Apple Music yang dimuat turun atau di awan tiada `assetURL` (DRM) lalu **tidak dipaparkan**; hanya fail yang disalin
+  atau dibeli tanpa DRM boleh dimain.
+- Butang 1 memainkan muzik dalam app lain: kawalan skrin kunci dan Android Auto/CarPlay ialah milik app itu, bukan FGMaps.
+  Pautan hanya dibuka dalam app jika OS memintas pautan HTTPS (app links); jika tidak ia dibuka dalam pelayar. Tidak dijamin
+  pada setiap peranti.
+- **Pengesahan:** Swift lulus `swiftc -typecheck` (peranti dan simulator) dan dikompil oleh Xcode melalui SwiftPM
+  (`FgDeviceMusicPlugin.o`); Kotlin lulus `gradlew :fg_device_music:compileDebugKotlin`; manifest Android yang digabung
+  mengandungi kedua-dua kebenaran; 19 ujian Dart baharu. **Belum diuji pada peranti sebenar**: dialog kebenaran, senarai lagu
+  sebenar, main `content://` dan `ipod-library://` dengan just_audio, dan pembukaan pautan Spotify/YouTube Music.
+- Binaan iOS penuh di mesin ini gagal hanya pada `CarPlaySceneDelegate.swift` (`CPTimeRemainingColor.normal` tiada dalam
+  SDK Xcode 27.1); ralat yang sama berlaku tanpa plugin ini.
