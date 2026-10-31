@@ -47,11 +47,11 @@ class AzanNotificationTexts {
 /// Alias zon masa Malaysia/Brunei yang tiada dalam pangkalan data `latest_10y` (pakej `timezone`
 /// membuang pautan IANA). `Asia/Kuala_Lumpur` ialah ID yang dilaporkan semua telefon Semenanjung;
 /// tanpa alias ini permulaan notifikasi gagal senyap-senyap dan azan tidak pernah dijadualkan.
+/// `Asia/Kuching` wujud dalam `latest_10y` — jangan alias kepada dirinya sendiri (sia-sia / mengelirukan).
 const _timezoneAliases = {
   'Asia/Kuala_Lumpur': 'Asia/Singapore',
   'Asia/Brunei': 'Asia/Singapore',
   'Singapore': 'Asia/Singapore',
-  'Asia/Kuching': 'Asia/Kuching',
 };
 
 /// Zon masa untuk menjadualkan notifikasi. Tidak pernah melempar: ID dikenali -> alias -> zon

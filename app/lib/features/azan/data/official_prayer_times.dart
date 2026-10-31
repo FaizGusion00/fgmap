@@ -232,9 +232,10 @@ class OfficialTimesStore extends Notifier<List<OfficialMonth>> {
     int days = azanScheduleDays + 1,
   }) async {
     // Satu permintaan pada satu masa; panggilan serentak menunggu yang sedang berjalan.
-    final running = _running;
-    if (running != null) {
-      await running;
+    // Ulang sehingga kita memegang slot — dua waiter boleh bangun sekali gus.
+    while (_running != null) {
+      await _running;
+      if (!ref.mounted) return false;
     }
     final completer = Completer<void>();
     _running = completer.future;
@@ -250,6 +251,8 @@ class OfficialTimesStore extends Notifier<List<OfficialMonth>> {
         final fetched = await ref
             .read(officialTimesClientProvider)
             .fetchMonth(at, year, month);
+        // Keluar awal OK: `finally` di bawah mesti menyelesaikan completer supaya
+        // waiter serentak tidak tergantung selama-lamanya selepas dispose.
         if (!ref.mounted) return changed;
         if (fetched == null) continue;
         // Gantikan bulan yang sama untuk zon berdekatan; simpan hanya 6 bulan terkini.
@@ -278,8 +281,8 @@ class OfficialTimesStore extends Notifier<List<OfficialMonth>> {
       }
       return changed;
     } finally {
-      completer.complete();
-      _running = null;
+      if (!completer.isCompleted) completer.complete();
+      if (identical(_running, completer.future)) _running = null;
     }
   }
 

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -10,6 +11,22 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'azan_test_support.dart';
+
+/// Menahan [fetchMonth] sehingga [gate] selesai — untuk ujian dispose semasa fetch.
+class _GatedOfficialClient implements OfficialTimesClient {
+  _GatedOfficialClient(this._inner, this.gate);
+
+  final OfficialTimesClient _inner;
+  final Completer<void> gate;
+  final entered = Completer<void>();
+
+  @override
+  Future<OfficialMonth?> fetchMonth(GeoPoint at, int year, int month) async {
+    if (!entered.isCompleted) entered.complete();
+    await gate.future;
+    return _inner.fetchMonth(at, year, month);
+  }
+}
 
 void main() {
   const kl = GeoPoint(3.139, 101.687);
@@ -177,6 +194,39 @@ void main() {
       expect(c.read(officialTimesProvider), isEmpty);
       expect(prefs.getString(azanOfficialCacheKey), isNull);
     });
+
+    test(
+      'dispose semasa fetch: completer selesai; ensure baharu tidak tergantung',
+      () async {
+        final gate = Completer<void>();
+        final slow = _GatedOfficialClient(client, gate);
+        final c = ProviderContainer(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            officialTimesClientProvider.overrideWithValue(slow),
+          ],
+        );
+        final pending = c.read(officialTimesProvider.notifier).ensure(
+          at: kl,
+          now: DateTime(2026, 10, 31),
+          days: 1,
+        );
+        await slow.entered.future.timeout(const Duration(seconds: 2));
+        c.dispose();
+        gate.complete();
+        await pending.timeout(const Duration(seconds: 2));
+
+        final c2 = make();
+        client.available = true;
+        expect(
+          await c2
+              .read(officialTimesProvider.notifier)
+              .ensure(at: kl, now: DateTime(2026, 10, 31), days: 1)
+              .timeout(const Duration(seconds: 2)),
+          isTrue,
+        );
+      },
+    );
 
     test('cache rosak diabaikan', () async {
       await prefs.setString(azanOfficialCacheKey, '{bukan json');

@@ -8,11 +8,12 @@ void main() {
 
   // Regresi: pangkalan data latest_10y tiada `Asia/Kuala_Lumpur` (pautan IANA). Semua telefon
   // Semenanjung melaporkan ID itu, jadi permulaan notifikasi gagal senyap dan suis azan tidak
-  // berbuat apa-apa.
+  // berbuat apa-apa. `Asia/Kuching` pula wujud — jangan alias kepada dirinya sendiri.
   test(
-    'pangkalan data tidak mempunyai Asia/Kuala_Lumpur (sebab alias wujud)',
+    'pangkalan data: KL tiada (perlu alias), Kuching ada (jangan self-alias)',
     () {
       expect(() => tz.getLocation('Asia/Kuala_Lumpur'), throwsA(anything));
+      expect(tz.getLocation('Asia/Kuching').name, 'Asia/Kuching');
     },
   );
 
