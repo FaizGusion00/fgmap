@@ -66,7 +66,7 @@ class CarSessionSnapshot {
   /// R&R / minyak di hadapan (≤5 km). Hos menyembunyikan jika [cameraAlert] ada.
   final String? alongCue;
 
-  /// AQI ringkas dalam mod browse sahaja, cth. "AQI 42 · Baik".
+  /// IPU ringkas dalam mod browse sahaja, cth. "IPU 42 · Baik".
   final String? airAqi;
 
   bool get hasRoute => mode == CarDriveMode.navigating && route.length >= 2;

@@ -1,0 +1,23 @@
+name: fg_device_music
+description: >-
+  Jambatan natif FGMaps untuk membaca senarai lagu pada peranti (Android MediaStore, iOS
+  MPMediaLibrary) selepas pengguna memberi kebenaran. Hanya metadata dibaca; tiada apa-apa dihantar.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.12.0
+  flutter: ">=3.35.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.fguniversalempire.fg_device_music
+        pluginClass: FgDeviceMusicPlugin
+      ios:
+        pluginClass: FgDeviceMusicPlugin

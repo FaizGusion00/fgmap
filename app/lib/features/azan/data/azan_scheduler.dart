@@ -58,20 +58,18 @@ const _timezoneAliases = {
 /// tetap mengikut ofset peranti (Malaysia tiada DST, jadi ofset tetap tepat).
 /// Pangkalan data zon masa mesti sudah dimulakan.
 tz.Location resolveTimezone(String? id, {Duration? deviceOffset}) {
-  for (final name in [?id, ?_timezoneAliases[id]]) {
-    try {
-      return tz.getLocation(name);
-    } on Object {
-      // cuba seterusnya
-    }
+  final names = <String>[];
+  if (id != null && id.isNotEmpty) names.add(id);
+  final alias = id == null ? null : _timezoneAliases[id];
+  if (alias != null && alias.isNotEmpty && alias != id) names.add(alias);
+  for (final name in names) {
+    final known = tz.timeZoneDatabase.locations[name];
+    if (known != null) return known;
   }
   final offset = deviceOffset ?? DateTime.now().timeZoneOffset;
   if (offset == const Duration(hours: 8)) {
-    try {
-      return tz.getLocation('Asia/Singapore');
-    } on Object {
-      // jatuh ke zon tetap di bawah
-    }
+    final singapore = tz.timeZoneDatabase.locations['Asia/Singapore'];
+    if (singapore != null) return singapore;
   }
   return tz.Location('Device', [tz.minTime], [0], [
     tz.TimeZone(offset, isDst: false, abbreviation: 'LOCAL'),
@@ -240,12 +238,13 @@ class LocalNotificationsAzanScheduler implements AzanScheduler {
 
   @override
   Future<bool> canScheduleExact() async {
-    await ensureInitialized();
-    final android = _android;
-    if (android == null) return true;
     try {
+      await ensureInitialized();
+      final android = _android;
+      if (android == null) return true;
       return await android.canScheduleExactNotifications() ?? false;
-    } on Object {
+    } on Object catch (e) {
+      logDiag('Semakan penggera tepat gagal: $e');
       return false;
     }
   }

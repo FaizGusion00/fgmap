@@ -131,8 +131,6 @@ class AzanController extends Notifier<AzanState> {
   Timer? _preemptTimer;
   Timer? _nextTimer;
   Timer? _midnightTimer;
-  StreamSubscription<void>? _completedSub;
-  StreamSubscription<String>? _tapSub;
   Future<void>? _rescheduling;
   bool _foreground = true;
 
@@ -157,24 +155,20 @@ class AzanController extends Notifier<AzanState> {
       method: settings.method,
       madhab: settings.madhab,
     );
-    // build() dijalankan semula bila deps berubah: batalkan langganan lama dulu supaya
-    // pendengar tidak terkumpul (onDispose juga membersihkan, tetapi cancel-before-assign
-    // melindungi jika susunan hayat berbeza).
+    // Setiap langganan ditutup oleh onDispose yang menangkap instance itu sendiri.
+    // Riverpod menjalankan onDispose binaan sebelumnya sebelum build() seterusnya,
+    // jadi tiada medan kongsi yang dibatalkan kemudian ditimpa.
+    final completedSub = ref.read(azanPlayerProvider).completed.listen((_) {
+      if (ref.mounted) state = state.copyWith(clearNowPlaying: true);
+    });
+    ref.onDispose(completedSub.cancel);
+    final tapSub = ref.read(azanSchedulerProvider).taps.listen(tapped.add);
+    ref.onDispose(tapSub.cancel);
     ref.onDispose(() {
       _preemptTimer?.cancel();
       _nextTimer?.cancel();
       _midnightTimer?.cancel();
-      unawaited(_completedSub?.cancel());
-      unawaited(_tapSub?.cancel());
-      _completedSub = null;
-      _tapSub = null;
     });
-    unawaited(_completedSub?.cancel());
-    unawaited(_tapSub?.cancel());
-    _completedSub = ref.read(azanPlayerProvider).completed.listen((_) {
-      if (ref.mounted) state = state.copyWith(clearNowPlaying: true);
-    });
-    _tapSub = ref.read(azanSchedulerProvider).taps.listen(tapped.add);
 
     final next = today.nextAfter(now);
     final hasRealLocation =
@@ -441,9 +435,10 @@ class AzanController extends Notifier<AzanState> {
   }
 
   Future<void> _reschedule(bool force) async {
+    if (!ref.mounted) return;
     final settings = ref.read(azanSettingsProvider);
     final texts = _texts;
-    if (!ref.mounted || !settings.enabled || texts == null) return;
+    if (!settings.enabled || texts == null) return;
     final prefs = ref.read(sharedPreferencesProvider);
     final now = ref.read(azanClockProvider)();
     final at = ref.read(effectiveAzanLocationProvider);

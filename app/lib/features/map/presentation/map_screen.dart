@@ -53,6 +53,8 @@ import '../../search/presentation/recent_places_bar.dart';
 import '../../search/presentation/trip_planner_page.dart';
 import '../../settings/presentation/settings_page.dart';
 import '../../air_quality/presentation/air_quality_sheet.dart';
+import '../../air_quality/presentation/route_haze_banner.dart';
+import '../../qibla/presentation/qibla_sheet.dart';
 import '../../weather/presentation/weather_animated_icon.dart';
 import '../../weather/presentation/weather_controller.dart';
 import '../../weather/presentation/weather_strip.dart';
@@ -860,12 +862,15 @@ class _MapScreenState extends ConsumerState<MapScreen>
     }
     final route = ready.selected;
     final simKmh = ref.read(navigationSettingsProvider).simSpeedKmh;
+    final toll = ready.tollOf(route);
+    final tollRm = toll != null && toll.knownRm > 0 ? toll.knownRm : null;
     await ref
         .read(navigationControllerProvider.notifier)
         .start(
           route,
           ready.selectedQuery,
           uiLanguage: uiLanguage,
+          tollRm: tollRm,
           source: simulate
               ? routeSimulation(
                   NavRoute(route),
@@ -1435,6 +1440,12 @@ class _MapScreenState extends ConsumerState<MapScreen>
                                 unawaited(showAirQualitySheet(context)),
                           ),
                           _GlassIconButton(
+                            icon: Icons.explore_rounded,
+                            tooltip: l10n.qiblaOpen,
+                            onPressed: () =>
+                                unawaited(showQiblaSheet(context)),
+                          ),
+                          _GlassIconButton(
                             icon: Icons.music_note_rounded,
                             tooltip: l10n.musicOpen,
                             onPressed: () => unawaited(showMusicSheet(context)),
@@ -1605,9 +1616,23 @@ class _MapScreenState extends ConsumerState<MapScreen>
                                       )
                                     : null,
                                 weather: state is RouteReady
-                                    ? WeatherStrip(
-                                        destinationHint:
-                                            state.query.destinationLabel,
+                                    ? Column(
+                                        key: ValueKey(
+                                          'preview-weather-${state.selected.distanceM}',
+                                        ),
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.stretch,
+                                        children: [
+                                          WeatherStrip(
+                                            destinationHint:
+                                                state.query.destinationLabel,
+                                          ),
+                                          const SizedBox(height: 8),
+                                          RouteHazeBanner(
+                                            route: state.selected,
+                                          ),
+                                        ],
                                       )
                                     : null,
                                 alongRoute: state is RouteReady
@@ -1744,6 +1769,41 @@ class _MapScreenState extends ConsumerState<MapScreen>
                   formatDistance(l10n, camera.distanceAheadM.round()),
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
                     color: Theme.of(context).colorScheme.onErrorContainer,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      if (nav.hazeAlert != null && !arrived)
+        Material(
+          key: ValueKey('haze-nav-${nav.hazeAlert!.id}'),
+          color: Theme.of(context).colorScheme.errorContainer,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: easy ? 10 : 8,
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.masks_outlined,
+                  size: easy ? 26 : 22,
+                  color: Theme.of(context).colorScheme.onErrorContainer,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    l10n.airQualityRouteAlert(
+                      nav.hazeAlert!.name,
+                      nav.hazeAlert!.ipu,
+                    ),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onErrorContainer,
+                      fontSize: easy ? 16 : null,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],

@@ -295,6 +295,11 @@ percuma dan boleh diterbitkan di Play Store dan App Store. Keputusan diserahkan 
 **Untuk menghidupkan dalam release (langkah penulis app, tidak boleh dibuat dalam kod):**
 1. developer.apple.com > Certificates, Identifiers & Profiles > Identifiers > `com.fguniversal.fgmap` > App Services >
    hidupkan **MusicKit**; jana semula profil provisioning.
-2. Bina dengan `--dart-define=APPLE_MUSIC=true` (lalai: hidup dalam debug/profile, **mati dalam release** supaya pengguna
-   tidak melihat kad yang belum berfungsi).
+2. Bina dengan `--dart-define=APPLE_MUSIC=true` (lalai: **mati di semua build**).
 3. Uji pada iPhone dengan langganan Apple Music aktif sebelum menghantar ke semakan.
+
+**Status: dimatikan.** Langkah 1 memerlukan keahlian berbayar Apple Developer Program (sekitar USD 99 setahun; akaun
+percuma "Personal Team" tidak boleh mengaktifkan MusicKit, dan token pembangun Android pun datang daripada keahlian yang
+sama). Penulis app tidak mempunyai akaun itu dan tidak mahu membayar, jadi ciri ini kekal dalam kod tetapi tidak aktif
+dan tidak boleh digunakan sehingga keahlian ada. Semakan 1.4 ditulis sebelum ini disahkan; akaun sepatutnya ditanya
+dahulu sebelum dibina.

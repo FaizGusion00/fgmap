@@ -117,7 +117,7 @@ class _AirQualitySheetState extends ConsumerState<AirQualitySheet> {
                 ),
               ),
               AirUiReady(:final reading) => _AirHero(
-                key: ValueKey('aq-${reading.usAqi}-${reading.placeLabel}'),
+                key: ValueKey('aq-${reading.ipu}-${reading.stationName}'),
                 reading: reading,
                 onHere: () => unawaited(
                   ref.read(airQualityControllerProvider.notifier).loadHere(),
@@ -291,7 +291,7 @@ class _AirHero extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 4),
-              _Gauge(aqi: reading.usAqi, progress: reading.gauge, color: fg),
+              _Gauge(ipu: reading.ipu, progress: reading.gauge, color: fg),
               const SizedBox(height: 6),
               Text(
                 label,
@@ -300,17 +300,16 @@ class _AirHero extends StatelessWidget {
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              const SizedBox(height: 14),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                alignment: WrapAlignment.center,
-                children: [
-                  if (reading.pm25 != null) _Chip('PM2.5', reading.pm25!, fg),
-                  if (reading.pm10 != null) _Chip('PM10', reading.pm10!, fg),
-                  if (reading.no2 != null) _Chip('NO₂', reading.no2!, fg),
-                  if (reading.ozone != null) _Chip('O₃', reading.ozone!, fg),
-                ],
+              const SizedBox(height: 10),
+              Text(
+                l10n.airQualityStation(
+                  reading.stationName,
+                  _stationDistance(reading.stationDistanceM),
+                ),
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: fg.withValues(alpha: 0.92),
+                ),
               ),
             ],
           ),
@@ -318,45 +317,22 @@ class _AirHero extends StatelessWidget {
       ),
     );
   }
-}
 
-class _Chip extends StatelessWidget {
-  const _Chip(this.name, this.value, this.fg);
-
-  final String name;
-  final double value;
-  final Color fg;
-
-  @override
-  Widget build(BuildContext context) {
-    final text = value >= 10
-        ? value.round().toString()
-        : value.toStringAsFixed(1);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: fg.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        '$name  $text',
-        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-          color: fg,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
+  static String _stationDistance(double meters) {
+    if (meters < 995) return '${((meters / 10).round() * 10)} m';
+    final km = meters / 1000;
+    return km < 10 ? '${km.toStringAsFixed(1)} km' : '${km.round()} km';
   }
 }
 
 class _Gauge extends StatelessWidget {
   const _Gauge({
-    required this.aqi,
+    required this.ipu,
     required this.progress,
     required this.color,
   });
 
-  final int aqi;
+  final int ipu;
   final double progress;
   final Color color;
 
@@ -372,13 +348,25 @@ class _Gauge extends StatelessWidget {
         builder: (context, t, _) => CustomPaint(
           painter: _ArcPainter(progress: t, color: color),
           child: Center(
-            child: Text(
-              '$aqi',
-              style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                color: color,
-                fontWeight: FontWeight.w800,
-                height: 1,
-              ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '$ipu',
+                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w800,
+                    height: 1,
+                  ),
+                ),
+                Text(
+                  'IPU',
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: color.withValues(alpha: 0.9),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -425,7 +413,6 @@ class _ArcPainter extends CustomPainter {
 (Color, Color) _palette(AirBand band) => switch (band) {
   AirBand.good => (const Color(0xFF1B7F4E), Colors.white),
   AirBand.moderate => (const Color(0xFFC9A227), const Color(0xFF1C1400)),
-  AirBand.sensitive => (const Color(0xFFE07A1F), Colors.white),
   AirBand.unhealthy => (const Color(0xFFC62828), Colors.white),
   AirBand.veryUnhealthy => (const Color(0xFF6A1B9A), Colors.white),
   AirBand.hazardous => (const Color(0xFF4A1014), Colors.white),
@@ -434,7 +421,6 @@ class _ArcPainter extends CustomPainter {
 String _bandLabel(AppLocalizations l10n, AirBand band) => switch (band) {
   AirBand.good => l10n.airBandGood,
   AirBand.moderate => l10n.airBandModerate,
-  AirBand.sensitive => l10n.airBandSensitive,
   AirBand.unhealthy => l10n.airBandUnhealthy,
   AirBand.veryUnhealthy => l10n.airBandVeryUnhealthy,
   AirBand.hazardous => l10n.airBandHazardous,

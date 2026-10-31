@@ -130,10 +130,11 @@ class PlayerController extends Notifier<PlayerState> implements DuckTarget {
               if (_isApple(t) == _isApple(track)) t,
           ]
         : [track];
-    final index = list.indexOf(track);
+    final window = _window(list, list.indexOf(track));
+    final index = window.indexOf(track);
     state = state.copyWith(
       status: PlayerStatus.loading,
-      queue: list,
+      queue: window,
       index: index,
       position: Duration.zero,
       clearDuration: true,
@@ -141,7 +142,7 @@ class PlayerController extends Notifier<PlayerState> implements DuckTarget {
     );
     try {
       await _ensureService(track);
-      await _engine.setQueue(list, index);
+      await _engine.setQueue(window, index);
       if (!_isApple(track)) {
         await _engine.setVolume(state.ducked ? duckVolume : state.volume);
       }
@@ -152,6 +153,15 @@ class PlayerController extends Notifier<PlayerState> implements DuckTarget {
       state = state.copyWith(status: PlayerStatus.error, error: e.toString());
       _recordHealth(track, PlayerStatus.error);
     }
+  }
+
+  /// Pustaka telefon boleh beribu lagu; enjin tidak patut memuatkan semuanya sebagai satu baris gilir.
+  /// Ambil sehingga [maxQueue] lagu, bermula sedikit sebelum lagu yang diketik.
+  static const maxQueue = 300;
+  static List<Track> _window(List<Track> list, int index) {
+    if (list.length <= maxQueue) return list;
+    final start = (index - 20).clamp(0, list.length - maxQueue);
+    return list.sublist(start, start + maxQueue);
   }
 
   void _countRadioClick(Track t) {

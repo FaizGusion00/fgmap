@@ -7,6 +7,11 @@ enum AlongRouteCategory {
     sampleEveryM: 1000,
   ),
   fuel(selectors: ['["amenity"="fuel"]'], corridorM: 500, sampleEveryM: 700),
+  evCharging(
+    selectors: ['["amenity"="charging_station"]'],
+    corridorM: 600,
+    sampleEveryM: 800,
+  ),
   mosque(
     selectors: [
       '["amenity"="place_of_worship"]["religion"="muslim"]',

@@ -4,13 +4,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/widgets/sheet_bottom_inset.dart';
 import '../../../core/settings/easy_mode_scope.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../data/external_music_launcher.dart';
 import '../data/music_settings.dart';
 import '../data/radio_favorites.dart';
 import '../data/radio_health.dart';
 import '../domain/apple_music.dart';
+import '../domain/device_music.dart';
+import '../domain/external_music.dart';
 import '../domain/music_repository.dart';
 import '../domain/track.dart';
 import 'apple_music_controller.dart';
+import 'device_music_controller.dart';
 import 'mini_player.dart';
 import 'music_search_controller.dart';
 import 'music_widgets.dart';
@@ -178,6 +182,8 @@ class _MusicSheetState extends ConsumerState<MusicSheet> {
           else
             const SizedBox(height: 4),
           if (state.tab == MusicTab.songs) const _AppleMusicCard(),
+          if (state.tab == MusicTab.songs) const _ExternalMusicRow(),
+          if (state.tab == MusicTab.local) const _DeviceMusicCard(),
           Expanded(
             child: _Results(state: state, scroll: scroll, easy: easy),
           ),
@@ -257,6 +263,117 @@ class _AppleMusicCard extends ConsumerWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Ajakan membenarkan akses muzik pada telefon (tab Fail saya). Tidak dipaparkan apabila platform
+/// tiada jambatan atau akses sudah dibenarkan (lagu telefon terus masuk senarai).
+class _DeviceMusicCard extends ConsumerWidget {
+  const _DeviceMusicCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final access = ref.watch(deviceMusicAccessProvider);
+    if (access == DeviceMusicAccess.unsupported ||
+        access == DeviceMusicAccess.authorized) {
+      return const SizedBox.shrink();
+    }
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final denied = access == DeviceMusicAccess.denied;
+    return Padding(
+      key: const ValueKey('device-music-card'),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+      child: Card.filled(
+        margin: EdgeInsets.zero,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                l10n.musicDeviceTitle,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                denied ? l10n.musicDeviceDenied : l10n.musicDeviceBody,
+                style: theme.textTheme.bodySmall,
+              ),
+              if (!denied)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: FilledButton.tonalIcon(
+                    key: const ValueKey('device-music-allow'),
+                    onPressed: () =>
+                        ref.read(deviceMusicAccessProvider.notifier).connect(),
+                    icon: const Icon(Icons.phone_android_rounded),
+                    label: Text(l10n.musicDeviceAllow),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Buka carian yang sama dalam Spotify atau YouTube Music milik pengguna: jalan ke katalog label
+/// besar tanpa FGMaps menstrim apa-apa (lagu dimain oleh app itu dengan akaun pengguna sendiri).
+class _ExternalMusicRow extends ConsumerWidget {
+  const _ExternalMusicRow();
+
+  Future<void> _open(BuildContext context, WidgetRef ref, Uri uri) async {
+    final failed = AppLocalizations.of(context).musicExternalFailed;
+    final messenger = ScaffoldMessenger.of(context);
+    if (!await ref.read(externalMusicLauncherProvider)(uri)) {
+      messenger.showSnackBar(SnackBar(content: Text(failed)));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final query = ref.watch(musicSearchProvider.select((s) => s.query));
+    return Padding(
+      key: const ValueKey('music-external'),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.musicExternalHint,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              OutlinedButton.icon(
+                key: const ValueKey('music-open-spotify'),
+                onPressed: () => _open(context, ref, spotifySearchUri(query)),
+                icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                label: Text(l10n.musicOpenSpotify),
+              ),
+              OutlinedButton.icon(
+                key: const ValueKey('music-open-ytmusic'),
+                onPressed: () =>
+                    _open(context, ref, youtubeMusicSearchUri(query)),
+                icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                label: Text(l10n.musicOpenYoutubeMusic),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -483,12 +600,14 @@ class _Results extends ConsumerWidget {
                   if (t.source == TrackSource.audius) l10n.musicViaAudius,
                   if (t.source == TrackSource.appleMusic)
                     l10n.musicViaAppleMusic,
+                  if (t.source == TrackSource.device) l10n.musicViaDevice,
                   if (t.duration != null) formatTrackTime(t.duration!),
                 ].join(' · '),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
               trailing: switch (state.tab) {
+                MusicTab.local when t.source == TrackSource.device => playIcon,
                 MusicTab.local => IconButton(
                   tooltip: l10n.musicRemove,
                   icon: const Icon(Icons.delete_outline_rounded),

@@ -23,6 +23,9 @@ import '../../speed_limits/data/speed_limit_service.dart';
 import '../../speed_limits/domain/speed_limits.dart';
 import '../../trip_history/data/trip_history_store.dart';
 import '../../trip_history/domain/trip_summary.dart';
+import '../../air_quality/data/jas_ipu_client.dart';
+import '../../air_quality/domain/air_quality.dart';
+import '../../along_route/domain/along_route_projector.dart';
 import '../../weather/domain/weather_snapshot.dart';
 import '../../weather/presentation/weather_controller.dart';
 import '../data/location_sources.dart';
@@ -59,6 +62,7 @@ class NavigationState {
     this.overspeed = false,
     this.cameraAlert,
     this.weatherSevere = false,
+    this.hazeAlert,
     this.upcomingAlongPoi,
   });
 
@@ -89,8 +93,11 @@ class NavigationState {
   /// Kamera AwAS/OSM paling hampir di hadapan (jika amaran dihidupkan).
   final CameraAlert? cameraAlert;
 
-  /// Cuaca buruk di destinasi/laluan (Open-Meteo); banner sahaja.
+  /// Cuaca buruk di destinasi/laluan (Open-Meteo); banner + suara ringkas sekali.
   final bool weatherSevere;
+
+  /// Stesen JAS dengan IPU tinggi berhampiran koridor laluan (jerebu), jika ada.
+  final AirStation? hazeAlert;
 
   /// R&R / minyak paling hampir di hadapan (≤8 km), untuk chip HUD.
   final AlongRoutePoi? upcomingAlongPoi;
@@ -117,6 +124,8 @@ class NavigationState {
     CameraAlert? cameraAlert,
     bool clearCameraAlert = false,
     bool? weatherSevere,
+    AirStation? hazeAlert,
+    bool clearHazeAlert = false,
     AlongRoutePoi? upcomingAlongPoi,
     bool clearUpcomingAlongPoi = false,
   }) {
@@ -136,6 +145,7 @@ class NavigationState {
       overspeed: overspeed ?? this.overspeed,
       cameraAlert: clearCameraAlert ? null : (cameraAlert ?? this.cameraAlert),
       weatherSevere: weatherSevere ?? this.weatherSevere,
+      hazeAlert: clearHazeAlert ? null : (hazeAlert ?? this.hazeAlert),
       upcomingAlongPoi: clearUpcomingAlongPoi
           ? null
           : (upcomingAlongPoi ?? this.upcomingAlongPoi),
@@ -195,6 +205,9 @@ class NavigationController extends Notifier<NavigationState> {
   String? _announcedAlongPoiId;
   DateTime? _tripStartedAt;
   double _tripDistanceM = 0;
+  double? _tripTollRm;
+  var _announcedWeather = false;
+  var _announcedHaze = false;
 
   /// Tukar kelajuan masa simulasi semasa main (1 = biasa, 4 = 4× lebih pantas).
   void setSimSpeedMultiplier(double value) {
@@ -295,6 +308,7 @@ class NavigationController extends Notifier<NavigationState> {
       final severe = next is WeatherUiReady && next.weather.severe;
       if (severe != state.weatherSevere) {
         state = state.copyWith(weatherSevere: severe);
+        if (severe) _announceWeatherOnce();
       }
     });
     final saved = ref.read(tripStoreProvider).read();
@@ -345,6 +359,7 @@ class NavigationController extends Notifier<NavigationState> {
     _tripDistanceM = saved.alongM;
     unawaited(_loadCameras(saved.route, generation, 1));
     unawaited(_loadAlongPois(saved.route, generation, 1));
+    unawaited(_loadHazeAlert(saved.route, generation, 1));
 
     final src = DeviceLocationSource(ref.read(locationServiceProvider));
     _subscription = src.fixes().listen(
@@ -393,6 +408,7 @@ class NavigationController extends Notifier<NavigationState> {
     RouteQuery query, {
     required VoiceLanguage uiLanguage,
     NavLocationSource? source,
+    double? tollRm,
   }) async {
     releaseActiveCruise?.call();
     await stop();
@@ -428,17 +444,22 @@ class NavigationController extends Notifier<NavigationState> {
     unawaited(_loadSpeedLimits(route, query, generation, 1));
     _tripStartedAt = clock();
     _tripDistanceM = 0;
+    _tripTollRm = tollRm != null && tollRm > 0 ? tollRm : null;
     _announcedCameraId = null;
     _cameras = const [];
     _announcedAlongPoiId = null;
     _alongPois = const [];
+    _announcedWeather = false;
+    _announcedHaze = false;
     unawaited(_loadCameras(route, generation, 1));
     unawaited(_loadAlongPois(route, generation, 1));
+    unawaited(_loadHazeAlert(route, generation, 1));
     final weather = ref.read(weatherControllerProvider);
     if (weather is WeatherUiReady &&
         weather.weather.severe &&
         ref.read(navigationSettingsProvider).weatherAlerts) {
       state = state.copyWith(weatherSevere: true);
+      _announceWeatherOnce();
     }
 
     _subscription = src.fixes().listen(
@@ -495,6 +516,8 @@ class NavigationController extends Notifier<NavigationState> {
     _announcedCameraId = null;
     _alongPois = const [];
     _announcedAlongPoiId = null;
+    _announcedWeather = false;
+    _announcedHaze = false;
     await ref.read(tripStoreProvider).clear();
     ref.read(reportAlertsProvider.notifier).reset();
     if (wasActive) {
@@ -545,10 +568,13 @@ class NavigationController extends Notifier<NavigationState> {
               originLabel: null,
               destinationLabel: query?.destinationLabel,
               vehicle: (query?.vehicle ?? RouteVehicle.car).name,
+              tollRm: _tripTollRm,
             ),
           );
     } on Object catch (e) {
       logDiag('Sejarah perjalanan gagal disimpan: $e');
+    } finally {
+      _tripTollRm = null;
     }
   }
 
@@ -768,6 +794,7 @@ class NavigationController extends Notifier<NavigationState> {
     );
     _session = fresh;
     final keepSevere = state.weatherSevere;
+    final keepHaze = state.hazeAlert;
     _announcedAlongPoiId = null;
     _alongPois = const [];
     state = NavigationState(
@@ -777,6 +804,7 @@ class NavigationController extends Notifier<NavigationState> {
       simulated: state.simulated,
       routeVersion: state.routeVersion + 1,
       weatherSevere: keepSevere,
+      hazeAlert: keepHaze,
       progress: previous == null
           ? null
           : restoredProgress(
@@ -792,6 +820,7 @@ class NavigationController extends Notifier<NavigationState> {
     unawaited(_loadSpeedLimits(option, query, generation, state.routeVersion));
     unawaited(_loadCameras(option, generation, state.routeVersion));
     unawaited(_loadAlongPois(option, generation, state.routeVersion));
+    unawaited(_loadHazeAlert(option, generation, state.routeVersion));
 
     // Fix terkini (kedudukan sudah beralih sepanjang pengiraan) disuap terus.
     final fix = _lastFix;
@@ -1078,6 +1107,69 @@ class NavigationController extends Notifier<NavigationState> {
             arrived: state.phase == NavPhase.arrived,
           ),
         );
+  }
+
+  Future<void> _loadHazeAlert(
+    RouteOption route,
+    int generation,
+    int routeVersion,
+  ) async {
+    try {
+      final samples = samplePolyline(route.points, everyM: 25000);
+      final capped = samples.length <= 8
+          ? samples
+          : [
+              for (var i = 0; i < 8; i++)
+                samples[(i * (samples.length - 1) / 7).round()],
+            ];
+      final alert = await ref
+          .read(jasIpuClientProvider)
+          .alertAlong(samples: capped);
+      if (generation != _generation || state.routeVersion != routeVersion) {
+        return;
+      }
+      if (alert == null) {
+        if (state.hazeAlert != null) {
+          state = state.copyWith(clearHazeAlert: true);
+        }
+        return;
+      }
+      state = state.copyWith(hazeAlert: alert);
+      _announceHazeOnce(alert);
+    } on Object catch (e) {
+      logDiag('Amaran IPU sepanjang laluan gagal: $e');
+    }
+  }
+
+  void _announceWeatherOnce() {
+    if (_announcedWeather) return;
+    if (!ref.read(navigationSettingsProvider).weatherAlerts) return;
+    _announcedWeather = true;
+    final en = _voiceLanguage() == VoiceLanguage.en;
+    _speak([
+      Announcement(
+        kind: AnnouncementKind.far,
+        text: en
+            ? 'Severe weather ahead — drive carefully'
+            : 'Cuaca buruk dijangka — pandu berhati-hati',
+        chime: ChimeKind.warning,
+      ),
+    ]);
+  }
+
+  void _announceHazeOnce(AirStation alert) {
+    if (_announcedHaze) return;
+    _announcedHaze = true;
+    final en = _voiceLanguage() == VoiceLanguage.en;
+    _speak([
+      Announcement(
+        kind: AnnouncementKind.far,
+        text: en
+            ? 'Elevated air pollution along the route — IPU ${alert.ipu}'
+            : 'IPU tinggi sepanjang laluan — IPU ${alert.ipu}',
+        chime: ChimeKind.warning,
+      ),
+    ]);
   }
 
   void _speak(List<Announcement> announcements) {

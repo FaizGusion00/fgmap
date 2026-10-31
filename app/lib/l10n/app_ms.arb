@@ -515,7 +515,7 @@
   "musicTabSongs": "Lagu",
   "musicTabRadio": "Radio",
   "musicTabLocal": "Fail saya",
-  "musicEmptySongs": "Taip nama lagu atau artis, atau ketik cadangan di atas. Katalog percuma Audius ialah muzik bebas; lagu artis label besar tiada di sini. Untuk lagu Malay, Indonesia, Japan dan K-pop, cuba tab Radio.",
+  "musicEmptySongs": "Taip nama lagu atau artis, atau ketik cadangan di atas. Katalog percuma Audius ialah muzik bebas; lagu artis label besar tiada di sini. Untuk lagu penuh artis label besar, ketik Spotify atau YouTube Music di atas untuk cari dalam app anda sendiri, atau cuba tab Radio.",
   "musicEmptyRadio": "Pilih kawasan di atas, atau taip nama stesen (cth. Hitz, Prambors, KBS). Ketik untuk dengar siaran langsung.",
   "musicEmptyLocal": "Import lagu dari telefon anda. Ia disimpan dalam app dan sentiasa boleh dimainkan tanpa internet.",
   "musicNoResults": "Tiada hasil untuk “{query}”.",
@@ -562,6 +562,16 @@
   "musicAppleDenied": "Akses Apple Music ditolak. Hidupkan di Tetapan iPhone > FGMaps > Media & Apple Music.",
   "musicAppleNeedsSubscription": "Lagu penuh perlukan langganan Apple Music yang aktif. Langgan dalam app Apple Music, kemudian buka semula tab ini.",
   "musicAppleUnavailable": "Apple Music tidak boleh dimain dengan akaun ini.",
+  "musicOpenSpotify": "Spotify",
+  "musicOpenYoutubeMusic": "YouTube Music",
+  "musicExternalHint": "Cari lagu penuh dalam app anda sendiri (FGMaps hanya membuka carian):",
+  "musicExternalFailed": "Tidak dapat membuka app atau pelayar itu.",
+  "musicSourceDevice": "Muzik telefon",
+  "musicViaDevice": "pada telefon ini",
+  "musicDeviceTitle": "Muzik pada telefon",
+  "musicDeviceBody": "Mainkan lagu yang sudah ada pada telefon anda. FGMaps hanya membaca tajuk dan artis pada peranti; tiada apa-apa dihantar ke mana-mana.",
+  "musicDeviceAllow": "Benarkan akses muzik",
+  "musicDeviceDenied": "Akses muzik ditolak. Hidupkan untuk FGMaps dalam Tetapan telefon anda.",
   "musicSourceRadio": "Radio Browser",
   "musicSourceLocal": "Fail saya",
   "musicLoading": "Memuatkan…",
@@ -903,7 +913,7 @@
   "musicRegionJpop": "J-pop",
   "musicRegionKorea": "Korea",
   "musicRegionKpop": "K-pop",
-  "musicNoResultsSongsHint": "Katalog percuma Audius ialah muzik bebas; lagu artis label besar tiada di sini. Cuba Radio untuk lagu Malay, Indonesia, Japan atau Korea.",
+  "musicNoResultsSongsHint": "Katalog percuma Audius ialah muzik bebas; lagu artis label besar tiada di sini. Ketik Spotify atau YouTube Music di atas untuk cari dalam app anda sendiri, atau cuba Radio.",
   "musicTryRadio": "Cari dalam Radio",
   "aboutWhatsNewTitle": "Baharu dalam versi {version}",
   "@aboutWhatsNewTitle": {"placeholders": {"version": {"type": "String"}}},
@@ -969,19 +979,39 @@
   "settingsWeatherHint": "Banner hujan lebat semasa navigasi",
   "settingsAlongRouteAnnounce": "Umumkan R&R / minyak",
   "settingsAlongRouteAnnounceHint": "Suara bila R&R atau stesen minyak di hadapan (chip tetap dipaparkan)",
-  "airQualityTitle": "Kualiti udara",
+  "airQualityTitle": "Kualiti udara (IPU)",
   "airQualityOpen": "Kualiti udara",
-  "airQualityDisclaimer": "Anggaran AQI (Open-Meteo). Bukan IPU rasmi Jabatan Alam Sekitar.",
+  "airQualityDisclaimer": "Indeks Pencemar Udara rasmi daripada stesen pemantauan JAS yang terdekat.",
   "airQualityHere": "Di sini",
   "airQualitySearchHint": "Cari tempat lain",
-  "airQualityUnavailable": "Kualiti udara tidak tersedia. Semak lokasi dan sambungan.",
+  "airQualityUnavailable": "IPU tidak tersedia. Semak sambungan, kemudian cuba lagi.",
   "airQualityCached": "Cache",
-  "airQualityAttribution": "Kualiti udara: Open-Meteo · lokasi dibundarkan ~100 m",
+  "airQualityAttribution": "Sumber: Jabatan Alam Sekitar (APIMS/EQMS)",
+  "airQualityStation": "Stesen: {name} · {distance}",
+  "@airQualityStation": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "distance": {"type": "String"}
+    }
+  },
+  "airQualityRouteAlert": "IPU tinggi sepanjang laluan — {name} · {ipu}",
+  "@airQualityRouteAlert": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "ipu": {"type": "int"}
+    }
+  },
   "airBandGood": "Baik",
   "airBandModerate": "Sederhana",
-  "airBandSensitive": "Tidak sihat untuk kumpulan sensitif",
   "airBandUnhealthy": "Tidak sihat",
   "airBandVeryUnhealthy": "Sangat tidak sihat",
-  "airBandHazardous": "Berbahaya"
+  "airBandHazardous": "Berbahaya",
+  "alongRouteEv": "Pengecas EV",
+  "qiblaTitle": "Kiblat",
+  "qiblaOpen": "Kiblat",
+  "qiblaDegrees": "{degrees}° dari utara",
+  "@qiblaDegrees": {"placeholders": {"degrees": {"type": "String"}}},
+  "qiblaHint": "Halakan bahagian atas telefon ke anak panah menuju Makkah.",
+  "qiblaUnavailable": "Perlukan GPS untuk arah kiblat."
 
 }

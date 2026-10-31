@@ -52,6 +52,8 @@ void main() {
             'Audius',
             'Radio Browser',
             'Apple Music',
+            'Spotify',
+            'YouTube Music',
             'WaktuSolat',
           ]) {
             expect(text, contains(party), reason: '$doc tidak menyebut $party');

@@ -11,7 +11,9 @@ import '../data/radio_favorites.dart';
 import '../data/radio_health.dart';
 import '../domain/music_repository.dart';
 import '../domain/track.dart';
+import '../domain/device_music.dart';
 import 'apple_music_controller.dart';
+import 'device_music_controller.dart';
 
 enum MusicTab {
   songs,
@@ -84,6 +86,14 @@ class MusicSearchController extends Notifier<MusicSearchState> {
         results: results,
       );
     });
+    // Kebenaran muzik telefon baru diberi semasa tab Fail saya terbuka: muatkan senarai terus.
+    ref.listen(deviceMusicAccessProvider, (previous, access) {
+      if (access == DeviceMusicAccess.authorized &&
+          previous != access &&
+          state.tab == MusicTab.local) {
+        unawaited(_run(immediate: true));
+      }
+    });
     return const MusicSearchState();
   }
 
@@ -147,10 +157,10 @@ class MusicSearchController extends Notifier<MusicSearchState> {
               .read(radioRepositoryProvider)
               .stations(query: query, region: state.region),
         ),
-        MusicTab.local => _filter(
-          await ref.read(localLibraryProvider).list(),
-          query,
-        ),
+        MusicTab.local => _filter([
+          ...await ref.read(localLibraryProvider).list(),
+          ...await _deviceSongs(refresh: immediate && query.isEmpty),
+        ], query),
       };
       if (generation != _generation) return;
       state = state.copyWith(
@@ -166,6 +176,22 @@ class MusicSearchController extends Notifier<MusicSearchState> {
         status: MusicSearchStatus.failed,
         results: const [],
       );
+    }
+  }
+
+  /// Lagu pada telefon, hanya selepas pengguna membenarkan akses. Ralat bacaan tidak menjejaskan fail
+  /// yang diimport.
+  Future<List<Track>> _deviceSongs({required bool refresh}) async {
+    if (ref.read(deviceMusicAccessProvider) != DeviceMusicAccess.authorized) {
+      return const [];
+    }
+    try {
+      return await ref
+          .read(deviceMusicRepositoryProvider)
+          .songs(refresh: refresh);
+    } on Object catch (e) {
+      logDiag('Muzik telefon gagal dibaca: $e');
+      return const [];
     }
   }
 

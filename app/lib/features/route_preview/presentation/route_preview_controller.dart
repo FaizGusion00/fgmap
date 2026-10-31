@@ -202,11 +202,12 @@ class RoutePreviewController extends Notifier<RoutePreviewState> {
     }
   }
 
-  /// Papar semua pilihan (sehingga 10).
+  /// Papar semua pilihan (sehingga 10) dan anggar tol untuk yang baru kelihatan.
   void showMore() {
     final current = state;
     if (current is RouteReady && !current.expanded) {
       state = current.copyWith(expanded: true);
+      unawaited(_loadTolls(_seq));
     }
   }
 
@@ -260,15 +261,17 @@ class RoutePreviewController extends Notifier<RoutePreviewState> {
     }
   }
 
-  /// Mengesan plaza tol dan menganggar harga untuk laluan bertol yang dipaparkan (terpilih dahulu).
+  /// Mengesan plaza tol dan menganggar harga untuk semua laluan bertol (terpilih dahulu).
   /// Berjalan di latar dan senyap: kegagalan hanya bermakna anggaran tidak dipaparkan.
   Future<void> _loadTolls(int seq) async {
     if (!ref.read(tollLookupEnabledProvider)) return;
     final first = state;
     if (first is! RouteReady) return;
+    // Semua pilihan bertol (bukan hanya yang kelihatan) supaya "Lagi" dan penukaran
+    // kad terus menunjukkan RM tanpa menunggu muat semula.
     final order = [
       first.selected,
-      for (final o in first.visibleOptions)
+      for (final o in first.options)
         if (!identical(o, first.selected)) o,
     ].where((o) => o.hasTolls).toList();
     if (order.isEmpty) return;

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:fgmap/features/music/data/apple_music_channel.dart';
 import 'package:fgmap/features/music/domain/apple_music.dart';
+import 'package:fgmap/features/music/domain/device_music.dart';
 import 'package:fgmap/features/music/domain/music_repository.dart';
 import 'package:fgmap/features/music/domain/player_state.dart';
 import 'package:fgmap/features/music/domain/track.dart';
@@ -219,5 +220,50 @@ class FakeAppleMusicRepository implements AppleMusicRepository {
     queries.add(query);
     if (error != null) throw error!;
     return results;
+  }
+}
+
+Track deviceTrack(String id, {String? title}) => Track(
+  id: id,
+  source: TrackSource.device,
+  title: title ?? 'Telefon $id',
+  artist: 'Penyanyi',
+  streamUri: Uri.parse('content://media/external/audio/media/$id'),
+  duration: const Duration(minutes: 3),
+);
+
+class FakeDeviceMusicRepository implements DeviceMusicRepository {
+  FakeDeviceMusicRepository({
+    this.current = DeviceMusicAccess.notDetermined,
+    this.afterRequest = DeviceMusicAccess.authorized,
+    this.tracks = const [],
+    this.error,
+    this.isSupported = true,
+  });
+  DeviceMusicAccess current;
+  DeviceMusicAccess afterRequest;
+  List<Track> tracks;
+  Object? error;
+  bool isSupported;
+  int requestCalls = 0;
+  final refreshFlags = <bool>[];
+
+  @override
+  bool get supported => isSupported;
+
+  @override
+  Future<DeviceMusicAccess> access() async => current;
+
+  @override
+  Future<DeviceMusicAccess> request() async {
+    requestCalls++;
+    return current = afterRequest;
+  }
+
+  @override
+  Future<List<Track>> songs({bool refresh = false}) async {
+    refreshFlags.add(refresh);
+    if (error != null) throw error!;
+    return tracks;
   }
 }

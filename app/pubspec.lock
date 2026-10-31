@@ -360,6 +360,13 @@ packages:
       relative: true
     source: path
     version: "0.1.0"
+  fg_device_music:
+    dependency: "direct main"
+    description:
+      path: "../packages/fg_device_music"
+      relative: true
+    source: path
+    version: "0.1.0"
   fgmap_valhalla:
     dependency: "direct main"
     description:

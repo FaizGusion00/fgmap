@@ -213,6 +213,12 @@ class CarSessionHub {
     NavigationSettings settings,
     bool en,
   ) {
+    final haze = nav.hazeAlert;
+    if (haze != null) {
+      return en
+          ? 'Elevated IPU · ${haze.ipu}'
+          : 'IPU tinggi · ${haze.ipu}';
+    }
     if (!nav.weatherSevere || !settings.weatherAlerts) return null;
     return en ? 'Severe weather' : 'Cuaca buruk';
   }
@@ -232,16 +238,15 @@ class CarSessionHub {
   String? _airLine(bool en) {
     final air = ref.read(airQualityControllerProvider);
     if (air is! AirUiReady) return null;
-    final aqi = air.reading.usAqi;
+    final ipu = air.reading.ipu;
     final band = switch (air.reading.band) {
       AirBand.good => en ? 'Good' : 'Baik',
       AirBand.moderate => en ? 'Moderate' : 'Sederhana',
-      AirBand.sensitive => en ? 'Sensitive' : 'Sensitif',
       AirBand.unhealthy => en ? 'Unhealthy' : 'Tidak sihat',
       AirBand.veryUnhealthy => en ? 'Very unhealthy' : 'Sangat tidak sihat',
       AirBand.hazardous => en ? 'Hazardous' : 'Berbahaya',
     };
-    return 'AQI $aqi · $band';
+    return 'IPU $ipu · $band';
   }
 
   bool _dark() {

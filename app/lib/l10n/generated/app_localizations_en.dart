@@ -1052,7 +1052,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get musicEmptySongs =>
-      'Type a song or artist, or tap a suggestion above. The free Audius catalogue is independent music; major-label songs are not here. For Malay, Indonesian, Japanese and K-pop songs, try the Radio tab.';
+      'Type a song or artist, or tap a suggestion above. The free Audius catalogue is independent music; major-label songs are not here. For those, tap Spotify or YouTube Music above to search in your own app, or try the Radio tab.';
 
   @override
   String get musicEmptyRadio =>
@@ -1198,6 +1198,39 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get musicAppleUnavailable =>
       'Apple Music can\'t play on this account.';
+
+  @override
+  String get musicOpenSpotify => 'Spotify';
+
+  @override
+  String get musicOpenYoutubeMusic => 'YouTube Music';
+
+  @override
+  String get musicExternalHint =>
+      'Search full songs in your own app (FGMaps only opens the search):';
+
+  @override
+  String get musicExternalFailed => 'Couldn\'t open that app or a browser.';
+
+  @override
+  String get musicSourceDevice => 'Phone music';
+
+  @override
+  String get musicViaDevice => 'on this phone';
+
+  @override
+  String get musicDeviceTitle => 'Music on your phone';
+
+  @override
+  String get musicDeviceBody =>
+      'Play the songs already on your phone. FGMaps only reads titles and artists on the device; nothing is sent anywhere.';
+
+  @override
+  String get musicDeviceAllow => 'Allow music access';
+
+  @override
+  String get musicDeviceDenied =>
+      'Music access was declined. Turn it on for FGMaps in your phone\'s Settings.';
 
   @override
   String get musicSourceRadio => 'Radio Browser';
@@ -1790,7 +1823,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get musicNoResultsSongsHint =>
-      'The free Audius catalogue is independent music; major-label songs are not here. Try Radio for Malay, Indonesian, Japanese or Korean songs.';
+      'The free Audius catalogue is independent music; major-label songs are not here. Tap Spotify or YouTube Music above to search in your own app, or try Radio.';
 
   @override
   String get musicTryRadio => 'Search in Radio';
@@ -1988,14 +2021,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Voice when a rest area or fuel stop is ahead (chip always shows)';
 
   @override
-  String get airQualityTitle => 'Air quality';
+  String get airQualityTitle => 'Air quality (IPU)';
 
   @override
   String get airQualityOpen => 'Air quality';
 
   @override
   String get airQualityDisclaimer =>
-      'Estimated US AQI from Open-Meteo. Not the official DOE air pollutant index (IPU).';
+      'Official Air Pollutant Index from the nearest DOE (JAS) monitoring station.';
 
   @override
   String get airQualityHere => 'Here';
@@ -2005,23 +2038,30 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get airQualityUnavailable =>
-      'Air quality unavailable. Check location and connection.';
+      'IPU unavailable. Check connection, then try again.';
 
   @override
   String get airQualityCached => 'Cached';
 
   @override
   String get airQualityAttribution =>
-      'Air quality: Open-Meteo · location rounded ~100 m';
+      'Source: Jabatan Alam Sekitar (APIMS/EQMS)';
+
+  @override
+  String airQualityStation(String name, String distance) {
+    return 'Station: $name · $distance';
+  }
+
+  @override
+  String airQualityRouteAlert(String name, int ipu) {
+    return 'Elevated IPU along the route — $name · $ipu';
+  }
 
   @override
   String get airBandGood => 'Good';
 
   @override
   String get airBandModerate => 'Moderate';
-
-  @override
-  String get airBandSensitive => 'Unhealthy for sensitive groups';
 
   @override
   String get airBandUnhealthy => 'Unhealthy';
@@ -2031,4 +2071,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get airBandHazardous => 'Hazardous';
+
+  @override
+  String get alongRouteEv => 'EV charging';
+
+  @override
+  String get qiblaTitle => 'Qibla';
+
+  @override
+  String get qiblaOpen => 'Qibla';
+
+  @override
+  String qiblaDegrees(String degrees) {
+    return '$degrees° from north';
+  }
+
+  @override
+  String get qiblaHint =>
+      'Point the top of the phone toward the arrow for Makkah.';
+
+  @override
+  String get qiblaUnavailable => 'Need a GPS fix for qibla direction.';
 }

@@ -22,7 +22,11 @@ class AlongRouteSection extends ConsumerWidget {
     final easy = EasyModeScope.of(context);
     final state = ref.watch(alongRouteControllerProvider);
     final cats = easy
-        ? const [AlongRouteCategory.restArea, AlongRouteCategory.fuel]
+        ? const [
+            AlongRouteCategory.restArea,
+            AlongRouteCategory.fuel,
+            AlongRouteCategory.evCharging,
+          ]
         : AlongRouteCategory.values;
 
     return Column(
@@ -164,6 +168,7 @@ class AlongRouteSection extends ConsumerWidget {
   String _label(AppLocalizations l10n, AlongRouteCategory c) => switch (c) {
     AlongRouteCategory.restArea => l10n.alongRouteRr,
     AlongRouteCategory.fuel => l10n.alongRouteFuel,
+    AlongRouteCategory.evCharging => l10n.alongRouteEv,
     AlongRouteCategory.mosque => l10n.alongRouteMosque,
     AlongRouteCategory.toilets => l10n.alongRouteToilets,
   };
@@ -171,6 +176,7 @@ class AlongRouteSection extends ConsumerWidget {
   IconData _icon(AlongRouteCategory c) => switch (c) {
     AlongRouteCategory.restArea => Icons.local_parking_rounded,
     AlongRouteCategory.fuel => Icons.local_gas_station_rounded,
+    AlongRouteCategory.evCharging => Icons.ev_station_rounded,
     AlongRouteCategory.mosque => Icons.mosque_rounded,
     AlongRouteCategory.toilets => Icons.wc_rounded,
   };

@@ -1943,7 +1943,7 @@ abstract class AppLocalizations {
   /// No description provided for @musicEmptySongs.
   ///
   /// In ms, this message translates to:
-  /// **'Taip nama lagu atau artis, atau ketik cadangan di atas. Katalog percuma Audius ialah muzik bebas; lagu artis label besar tiada di sini. Untuk lagu Malay, Indonesia, Japan dan K-pop, cuba tab Radio.'**
+  /// **'Taip nama lagu atau artis, atau ketik cadangan di atas. Katalog percuma Audius ialah muzik bebas; lagu artis label besar tiada di sini. Untuk lagu penuh artis label besar, ketik Spotify atau YouTube Music di atas untuk cari dalam app anda sendiri, atau cuba tab Radio.'**
   String get musicEmptySongs;
 
   /// No description provided for @musicEmptyRadio.
@@ -2203,6 +2203,66 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'Apple Music tidak boleh dimain dengan akaun ini.'**
   String get musicAppleUnavailable;
+
+  /// No description provided for @musicOpenSpotify.
+  ///
+  /// In ms, this message translates to:
+  /// **'Spotify'**
+  String get musicOpenSpotify;
+
+  /// No description provided for @musicOpenYoutubeMusic.
+  ///
+  /// In ms, this message translates to:
+  /// **'YouTube Music'**
+  String get musicOpenYoutubeMusic;
+
+  /// No description provided for @musicExternalHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Cari lagu penuh dalam app anda sendiri (FGMaps hanya membuka carian):'**
+  String get musicExternalHint;
+
+  /// No description provided for @musicExternalFailed.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tidak dapat membuka app atau pelayar itu.'**
+  String get musicExternalFailed;
+
+  /// No description provided for @musicSourceDevice.
+  ///
+  /// In ms, this message translates to:
+  /// **'Muzik telefon'**
+  String get musicSourceDevice;
+
+  /// No description provided for @musicViaDevice.
+  ///
+  /// In ms, this message translates to:
+  /// **'pada telefon ini'**
+  String get musicViaDevice;
+
+  /// No description provided for @musicDeviceTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Muzik pada telefon'**
+  String get musicDeviceTitle;
+
+  /// No description provided for @musicDeviceBody.
+  ///
+  /// In ms, this message translates to:
+  /// **'Mainkan lagu yang sudah ada pada telefon anda. FGMaps hanya membaca tajuk dan artis pada peranti; tiada apa-apa dihantar ke mana-mana.'**
+  String get musicDeviceBody;
+
+  /// No description provided for @musicDeviceAllow.
+  ///
+  /// In ms, this message translates to:
+  /// **'Benarkan akses muzik'**
+  String get musicDeviceAllow;
+
+  /// No description provided for @musicDeviceDenied.
+  ///
+  /// In ms, this message translates to:
+  /// **'Akses muzik ditolak. Hidupkan untuk FGMaps dalam Tetapan telefon anda.'**
+  String get musicDeviceDenied;
 
   /// No description provided for @musicSourceRadio.
   ///
@@ -3203,7 +3263,7 @@ abstract class AppLocalizations {
   /// No description provided for @musicNoResultsSongsHint.
   ///
   /// In ms, this message translates to:
-  /// **'Katalog percuma Audius ialah muzik bebas; lagu artis label besar tiada di sini. Cuba Radio untuk lagu Malay, Indonesia, Japan atau Korea.'**
+  /// **'Katalog percuma Audius ialah muzik bebas; lagu artis label besar tiada di sini. Ketik Spotify atau YouTube Music di atas untuk cari dalam app anda sendiri, atau cuba Radio.'**
   String get musicNoResultsSongsHint;
 
   /// No description provided for @musicTryRadio.
@@ -3557,7 +3617,7 @@ abstract class AppLocalizations {
   /// No description provided for @airQualityTitle.
   ///
   /// In ms, this message translates to:
-  /// **'Kualiti udara'**
+  /// **'Kualiti udara (IPU)'**
   String get airQualityTitle;
 
   /// No description provided for @airQualityOpen.
@@ -3569,7 +3629,7 @@ abstract class AppLocalizations {
   /// No description provided for @airQualityDisclaimer.
   ///
   /// In ms, this message translates to:
-  /// **'Anggaran AQI (Open-Meteo). Bukan IPU rasmi Jabatan Alam Sekitar.'**
+  /// **'Indeks Pencemar Udara rasmi daripada stesen pemantauan JAS yang terdekat.'**
   String get airQualityDisclaimer;
 
   /// No description provided for @airQualityHere.
@@ -3587,7 +3647,7 @@ abstract class AppLocalizations {
   /// No description provided for @airQualityUnavailable.
   ///
   /// In ms, this message translates to:
-  /// **'Kualiti udara tidak tersedia. Semak lokasi dan sambungan.'**
+  /// **'IPU tidak tersedia. Semak sambungan, kemudian cuba lagi.'**
   String get airQualityUnavailable;
 
   /// No description provided for @airQualityCached.
@@ -3599,8 +3659,20 @@ abstract class AppLocalizations {
   /// No description provided for @airQualityAttribution.
   ///
   /// In ms, this message translates to:
-  /// **'Kualiti udara: Open-Meteo · lokasi dibundarkan ~100 m'**
+  /// **'Sumber: Jabatan Alam Sekitar (APIMS/EQMS)'**
   String get airQualityAttribution;
+
+  /// No description provided for @airQualityStation.
+  ///
+  /// In ms, this message translates to:
+  /// **'Stesen: {name} · {distance}'**
+  String airQualityStation(String name, String distance);
+
+  /// No description provided for @airQualityRouteAlert.
+  ///
+  /// In ms, this message translates to:
+  /// **'IPU tinggi sepanjang laluan — {name} · {ipu}'**
+  String airQualityRouteAlert(String name, int ipu);
 
   /// No description provided for @airBandGood.
   ///
@@ -3613,12 +3685,6 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'Sederhana'**
   String get airBandModerate;
-
-  /// No description provided for @airBandSensitive.
-  ///
-  /// In ms, this message translates to:
-  /// **'Tidak sihat untuk kumpulan sensitif'**
-  String get airBandSensitive;
 
   /// No description provided for @airBandUnhealthy.
   ///
@@ -3637,6 +3703,42 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'Berbahaya'**
   String get airBandHazardous;
+
+  /// No description provided for @alongRouteEv.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pengecas EV'**
+  String get alongRouteEv;
+
+  /// No description provided for @qiblaTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kiblat'**
+  String get qiblaTitle;
+
+  /// No description provided for @qiblaOpen.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kiblat'**
+  String get qiblaOpen;
+
+  /// No description provided for @qiblaDegrees.
+  ///
+  /// In ms, this message translates to:
+  /// **'{degrees}° dari utara'**
+  String qiblaDegrees(String degrees);
+
+  /// No description provided for @qiblaHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Halakan bahagian atas telefon ke anak panah menuju Makkah.'**
+  String get qiblaHint;
+
+  /// No description provided for @qiblaUnavailable.
+  ///
+  /// In ms, this message translates to:
+  /// **'Perlukan GPS untuk arah kiblat.'**
+  String get qiblaUnavailable;
 }
 
 class _AppLocalizationsDelegate

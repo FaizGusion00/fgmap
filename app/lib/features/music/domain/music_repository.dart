@@ -1,3 +1,4 @@
+import 'device_music.dart';
 import 'player_state.dart';
 import 'track.dart';
 
@@ -53,6 +54,22 @@ abstract interface class LocalLibrary {
   Future<List<Track>> import();
   Future<void> remove(Track track);
   Future<void> clear();
+}
+
+/// Lagu pada telefon pengguna. Hanya metadata dibaca (tajuk, artis, tempoh) selepas pengguna memberi
+/// kebenaran; tiada apa-apa disalin atau dihantar.
+abstract interface class DeviceMusicRepository {
+  /// Platform ini ada jambatan muzik peranti.
+  bool get supported;
+
+  Future<DeviceMusicAccess> access();
+
+  /// Minta kebenaran (dialog sistem) dan pulangkan status terkini.
+  Future<DeviceMusicAccess> request();
+
+  /// Semua lagu pada peranti, tertib tajuk. Disimpan seketika dalam ingatan; [refresh] membacanya
+  /// semula.
+  Future<List<Track>> songs({bool refresh = false});
 }
 
 /// Enjin audio (just_audio di belakang antara muka supaya pengawal boleh diuji dengan palsu).

@@ -13,7 +13,11 @@ enum TrackSource {
 
   /// Apple Music (iOS, MusicKit): lagu penuh untuk pelanggan. Tiada URL strim yang boleh dimain
   /// oleh app; MusicKit memainkannya sendiri (DRM), jadi [Track.streamUri] hanya penanda.
-  appleMusic;
+  appleMusic,
+
+  /// Lagu yang sudah ada pada telefon (MediaStore Android, pustaka muzik iOS). Dibaca di tempat,
+  /// tidak disalin; [Track.streamUri] ialah `content://` atau `ipod-library://`.
+  device;
 
   static TrackSource? fromName(String? name) {
     for (final s in values) {

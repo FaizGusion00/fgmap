@@ -109,6 +109,7 @@ class AlongRouteController extends Notifier<AlongRouteState> {
   String _fallback(AlongRouteCategory c) => switch (c) {
     AlongRouteCategory.restArea => 'R&R',
     AlongRouteCategory.fuel => 'Stesen minyak',
+    AlongRouteCategory.evCharging => 'Pengecas EV',
     AlongRouteCategory.mosque => 'Surau',
     AlongRouteCategory.toilets => 'Tandas',
   };
