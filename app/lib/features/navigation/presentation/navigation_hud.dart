@@ -2,7 +2,6 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show ValueListenable, ValueNotifier;
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/settings/easy_mode_scope.dart';
 import '../../../core/theme/fgmap_theme_extension.dart';
@@ -12,9 +11,9 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../route_preview/presentation/route_format.dart';
 import '../domain/camera_planner.dart';
 import '../domain/instruction_text.dart';
+import '../domain/junction.dart';
 import '../domain/nav_route.dart';
 import '../domain/navigation_session.dart';
-import 'junction_provider.dart';
 import 'lane_strip.dart';
 import 'lane_view.dart';
 import 'maneuver_glyph.dart';
@@ -217,9 +216,13 @@ class ManeuverBanner extends StatelessWidget {
     required this.progress,
     this.liveAlongM,
     this.motorcycle = false,
+    this.junction,
   });
 
   final NavProgress progress;
+
+  /// Bentuk sebenar simpang untuk manuver seterusnya (null = belum dimuat / tiada data).
+  final Junction? junction;
 
   /// Penunggang motosikal diberi kotak lorong lebih awal (lihat `laneViewWithinM`).
   final bool motorcycle;
@@ -261,6 +264,7 @@ class ManeuverBanner extends StatelessWidget {
                 text: text,
                 metrics: metrics,
                 colors: colors,
+                junction: junction,
               );
             },
           );
@@ -338,12 +342,14 @@ class _BannerContent extends StatelessWidget {
     required this.text,
     required this.metrics,
     required this.colors,
+    this.junction,
   });
 
   final double speedMps;
   final bool motorcycle;
 
   final BannerColors colors;
+  final Junction? junction;
 
   /// Dalam jarak ini bar "bersedia" muncul dan memenuh sehingga manuver.
   static const readyWithinM = 300.0;
@@ -516,13 +522,11 @@ class _BannerContent extends StatelessWidget {
             backgroundColor: onPrimary.withValues(alpha: 0.2),
           ),
         if (lanePanel)
-          Consumer(
-            builder: (context, ref, _) => LanePanel(
-              maneuver: maneuver,
-              background: colors.background,
-              foreground: colors.foreground,
-              junction: ref.watch(junctionForProvider(maneuver)),
-            ),
+          LanePanel(
+            maneuver: maneuver,
+            background: colors.background,
+            foreground: colors.foreground,
+            junction: junction,
           ),
         if (following != null && thenGapM != null)
           ColoredBox(

@@ -1906,6 +1906,9 @@ class _MapScreenState extends ConsumerState<MapScreen>
           progress: progress,
           liveAlongM: _driver?.alongM,
           motorcycle: nav.query?.vehicle == RouteVehicle.motorcycle,
+          junction: progress.next == null
+              ? null
+              : liveRef.watch(junctionForProvider(progress.next!)),
         ),
       if (camera != null && !arrived)
         Material(
