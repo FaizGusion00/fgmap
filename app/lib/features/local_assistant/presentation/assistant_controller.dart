@@ -217,6 +217,42 @@ class AssistantController extends AiChatController {
     await persist(all);
   }
 
+  /// Carian spekulatif ("bagus", "resepi nasi lemak") hanya dipercayai jika nama hasil mengandungi SEMUA perkataan
+  /// pertanyaan; pencari kabur sering memulangkan tempat yang tidak berkaitan untuk sebarang teks.
+  Map<String, Object?> _onlyNameMatches(Map<String, Object?> r, String query) {
+    if (r['ok'] != true) return r;
+    final tokens = query
+        .toLowerCase()
+        .split(' ')
+        .where((w) => w.length >= 2)
+        .toList();
+    final kept = [
+      for (final p in (r['places'] as List).whereType<Map<String, Object?>>())
+        if (tokens.every(
+          (w) =>
+              '${p['name']} ${p['subtitle']}'.toLowerCase().contains(w) ||
+              _fold('${p['name']}').contains(_fold(w)) ||
+              _initials('${p['name']}').contains(_fold(w)),
+        ))
+          p,
+    ];
+    if (kept.isEmpty) {
+      return {'ok': false, 'error': 'not_found', 'query': query};
+    }
+    return {...r, 'places': kept};
+  }
+
+  /// "Kuala Lumpur City Centre" -> "klcc" (orang menaip singkatan).
+  static String _initials(String s) => s
+      .toLowerCase()
+      .split(RegExp(r'[^a-z0-9]+'))
+      .where((w) => w.isNotEmpty)
+      .map((w) => w[0])
+      .join();
+
+  static String _fold(String s) =>
+      s.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+
   /// Ingat tempat daripada hasil carian/dekat untuk rujukan "yang pertama".
   void _rememberPlaces(Map<String, Object?> r) {
     if (r['ok'] != true) return;
@@ -266,12 +302,23 @@ class AssistantController extends AiChatController {
     required Future<AssistantMessage> Function() askModel,
   }) async {
     switch (intent) {
-      case RouteIntent(:final destination, :final preference, :final autoStart):
+      case RouteIntent(
+        :final destination,
+        :final preference,
+        :final autoStart,
+        :final soft,
+      ):
         final r = await _tools.planRoute(
           destination,
           preference: preference,
           start: autoStart,
         );
+        if (soft &&
+            (r['error'] == 'not_found' || r['error'] == 'offline_not_found') &&
+            state.modelReady) {
+          // "how do i go to sleep faster": bukan tempat sebenar, biar model menjawab.
+          return askModel();
+        }
         if (r['ok'] == true) _lastDestination = r['destination'] as String?;
         return replies.route(r, query: destination);
       case RouteFollowUpIntent(:final autoStart):
@@ -335,7 +382,8 @@ class AssistantController extends AiChatController {
         }
         return replies.places(r, title: l10n.aiNearbyTitle(name));
       case SearchIntent(:final query, :final speculative):
-        final r = await _tools.searchPlace(query);
+        var r = await _tools.searchPlace(query);
+        if (speculative) r = _onlyNameMatches(r, query);
         _rememberPlaces(r);
         if (speculative && r['ok'] != true && state.modelReady) {
           // Bukan nama tempat yang dikenali: mungkin soalan pendek, serahkan kepada model.

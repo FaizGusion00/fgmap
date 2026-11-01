@@ -362,7 +362,7 @@ final _routeVerbs = <({RegExp re, bool autoStart})>[
 ];
 
 final _nearbyWords = RegExp(
-  r'\b(?:nearest|nearby|near\s+me|closest|around\s+me|terdekat|berdekatan|dekat\s+(?:sini|saya|aku)|sekitar\s+sini|paling\s+dekat)\b',
+  r'\b(?:where\s+(?:can|could|do|should)\s+(?:i|we)\s+(?:find|get|eat|park|pray|refuel|fill|charge|buy)|nak\s+(?:makan|isi\s+minyak|letak\s+kereta|buang\s+air)|lapar|hungry|terkucil|nearest|nearby|near\s+me|closest|around\s+me|terdekat|berdekatan|dekat\s+(?:sini|saya|aku)|sekitar\s+sini|paling\s+dekat)\b',
 );
 
 final _alongWords = RegExp(
@@ -407,12 +407,18 @@ AssistantIntent? parseIntent(
 
 /// Buang penanda pelindung (`\u0001`) daripada nama destinasi/carian.
 AssistantIntent? _restore(AssistantIntent? i) => switch (i) {
-  RouteIntent(:final destination, :final preference, :final autoStart)
+  RouteIntent(
+    :final destination,
+    :final preference,
+    :final autoStart,
+    :final soft,
+  )
       when destination.contains('\u0001') =>
     RouteIntent(
       destination.replaceAll('\u0001', ' '),
       preference: preference,
       autoStart: autoStart,
+      soft: soft,
     ),
   SearchIntent(:final query, :final speculative)
       when query.contains('\u0001') =>
@@ -536,6 +542,26 @@ const _notPlaceWords = {
   'thanks',
   'terima',
   'kasih',
+  'berapa',
+  'jauh',
+  'lama',
+  'harga',
+  'resepi',
+  'cerita',
+  'kata',
+  'tentang',
+  'cara',
+  'lawak',
+  'bagus',
+  'baik',
+  'best',
+  'good',
+  'tips',
+  'joke',
+  'story',
+  'recipe',
+  'price',
+  'news',
 };
 
 /// Nama tempat sahaja ("klcc", "masjid negara", "pavilion kl"): anggap carian tempat. Ketat supaya soalan umum
@@ -634,7 +660,7 @@ AssistantIntent? _parseCore(String raw, ConversationContext ctx) {
   final distTo = _distanceToPlace.firstMatch(t);
   if (distTo != null) {
     final dest = _cleanDestination(distTo.group(1)!);
-    if (dest != null) return RouteIntent(dest);
+    if (dest != null) return RouteIntent(dest, soft: true);
   }
 
   for (final verb in _routeVerbs) {
@@ -652,6 +678,7 @@ AssistantIntent? _parseCore(String raw, ConversationContext ctx) {
       dest,
       preference: pref ?? RoutePreference.recommended,
       autoStart: auto,
+      soft: RegExp(r'^(?:how|berapa|macam|bagaimana)\b').hasMatch(t),
     );
   }
 
@@ -741,7 +768,7 @@ AssistantIntent? _parseCore(String raw, ConversationContext ctx) {
 /// Cuaca, IPU, waktu solat.
 AssistantIntent? _infoIntent(String t) {
   if (RegExp(
-    r'\b(?:waktu\s+(?:solat|sembahyang|azan)|prayer\s+times?|next\s+prayer|solat\s+(?:seterusnya|berikutnya)|azan\s+(?:bila|pukul)|bila\s+(?:subuh|zohor|zuhur|asar|maghrib|isyak|isya|azan)|(?:subuh|zohor|zuhur|asar|maghrib|isyak|isya|fajr|dhuhr|asr|isha)\s+(?:pukul|bila|time|at\s+what))',
+    r'\b(?:waktu\s+(?:solat|sembahyang|azan)|prayer\s+times?|next\s+prayer|solat\s+(?:seterusnya|berikutnya)|azan\s+(?:bila|pukul)|bila\s+(?:masuk\s+)?(?:waktu\s+)?(?:subuh|zohor|zuhur|asar|maghrib|isyak|isya|azan)|(?:dah\s+)?masuk\s+(?:waktu\s+)?(?:subuh|zohor|zuhur|asar|maghrib|isyak|isya)|what\s+time\s+is\s+(?:the\s+)?(?:subuh|zohor|zuhur|asar|maghrib|isyak|isya|fajr|dhuhr|asr|isha)|(?:subuh|zohor|zuhur|asar|maghrib|isyak|isya|fajr|dhuhr|asr|isha)\s+(?:pukul|bila|time|at\s+what))',
   ).hasMatch(t)) {
     return const PrayerTimesIntent();
   }
@@ -773,7 +800,7 @@ final _distanceToPlace = RegExp(
 
 /// Kategori sahaja ("stesen minyak terdekat", "the nearest toilet") tanpa nama tempat.
 final _categoryNoise = RegExp(
-  r'\b(?:the|a|an|any|some|nearest|nearby|closest|near|me|my|here|around|sini|saya|aku|terdekat|berdekatan|paling|dekat|sekitar|satu|sebuah|yang|station|stesen|pump|pam|kedai|shop|place|tempat|lot|area|di|kat|in|at|for|to|ke)\b',
+  r'\b(?:the|a|an|any|some|nearest|nearby|closest|near|me|my|here|around|sini|saya|aku|terdekat|berdekatan|paling|dekat|sekitar|satu|sebuah|yang|station|stesen|pump|pam|kedai|shop|place|tempat|lot|area|di|kat|in|at|for|to|ke|ada|tak|ya|ni|ini)\b',
 );
 
 bool _isOnlyCategory(String q) {
@@ -1237,7 +1264,7 @@ String? _placeAfter(String t, RegExp keyword) {
     r'^(?:in|at|for|near|around|di|kat|dekat|untuk|sekitar|kawasan)\s+(.+)',
   ).firstMatch(after);
   final bare = RegExp(
-    r'^(?:today|now|hari\s+ini|sekarang|esok|tomorrow|tonight|malam\s+ini)?\s*$',
+    r'^(?:today|now|hari\s+(?:ini|ni)|sekarang|esok|tomorrow|tonight|malam\s+(?:ini|ni))?\s*$',
   );
   String? place;
   if (connector != null) {
@@ -1255,12 +1282,16 @@ String? _placeAfter(String t, RegExp keyword) {
   place = place
       .replaceAll(
         RegExp(
-          r'\b(?:today|now|right\s+now|hari\s+ini|sekarang|esok|tomorrow|tonight|malam\s+ini|macam\s+mana|how\s+is\s+it|like|camne|bagaimana|ke|tak|tidak|please|tolong)\b',
+          r'\b(?:today|now|right\s+now|hari\s+ini|hari\s+ni|sekarang|esok|tomorrow|tonight|malam\s+ini|malam\s+ni|macam\s+mana|how\s+is\s+it|like|camne|bagaimana|ke|tak|tidak|please|tolong)\b',
         ),
         ' ',
       )
       .replaceAll(RegExp(r'\s+'), ' ')
       .trim();
+  place = place.replaceFirst(
+    RegExp(r'^(?:in|at|for|near|around|di|kat|dekat|untuk|sekitar)\s+'),
+    '',
+  );
   if (place.length < 2 ||
       const {
         'sini',
@@ -1312,14 +1343,14 @@ final _categoryPatterns = <NearbyCategory, RegExp>{
     r'\b(?:mosque|mosques|masjid|surau|musolla|prayer\s+room)\b',
   ),
   NearbyCategory.toilets: RegExp(
-    r'\b(?:toilet|toilets|tandas|restroom|washroom|bathroom)\b',
+    r'\b(?:toilet|toilets|tandas|restroom|washroom|bathroom|buang\s+air|terkucil)\b',
   ),
   NearbyCategory.parking: RegExp(
     r'\b(?:parking|parkir|letak\s+kereta|tempat\s+letak)\b',
   ),
   NearbyCategory.hospital: RegExp(r'\b(?:hospital|klinik|clinic)\b'),
   NearbyCategory.food: RegExp(
-    r'\b(?:food|makan|makanan|restaurant|restoran|kedai\s+makan|cafe|kafe|mamak|eat)\b',
+    r'\b(?:food|makan|makanan|restaurant|restoran|kedai\s+makan|cafe|kafe|mamak|eat|lapar|hungry)\b',
   ),
 };
 

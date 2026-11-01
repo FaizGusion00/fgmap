@@ -15,27 +15,35 @@ class CorpusRow {
   final ConversationContext? ctx;
 }
 
-Check route(String dest, {RoutePreference? pref, bool? auto}) => (i) =>
-    i is RouteIntent &&
-    i.destination == dest &&
-    (pref == null || i.preference == pref) &&
-    (auto == null || i.autoStart == auto);
+Check route(String dest, {RoutePreference? pref, bool? auto}) =>
+    (i) =>
+        i is RouteIntent &&
+        i.destination == dest &&
+        (pref == null || i.preference == pref) &&
+        (auto == null || i.autoStart == auto);
 
-Check nearby(NearbyCategory c, {bool? navigate}) => (i) =>
-    i is NearbyIntent &&
-    i.category == c &&
-    (navigate == null || i.navigate == navigate);
+Check nearby(NearbyCategory c, {bool? navigate}) =>
+    (i) =>
+        i is NearbyIntent &&
+        i.category == c &&
+        (navigate == null || i.navigate == navigate);
 
-Check search(String q, {bool? speculative}) => (i) =>
-    i is SearchIntent &&
-    i.query == q &&
-    (speculative == null || i.speculative == speculative);
+Check search(String q, {bool? speculative}) =>
+    (i) =>
+        i is SearchIntent &&
+        i.query == q &&
+        (speculative == null || i.speculative == speculative);
 
-Check isType<T>() => (i) => i is T;
-Check isNull() => (i) => i == null;
-Check chat(ChatKind k) => (i) => i is ChatIntent && i.kind == k;
-Check trip(TripInfoKind k) => (i) => i is TripInfoIntent && i.kind == k;
-Check saved(SavedSlot s) => (i) => i is GoSavedPlaceIntent && i.slot == s;
+Check isType<T>() =>
+    (i) => i is T;
+Check isNull() =>
+    (i) => i == null;
+Check chat(ChatKind k) =>
+    (i) => i is ChatIntent && i.kind == k;
+Check trip(TripInfoKind k) =>
+    (i) => i is TripInfoIntent && i.kind == k;
+Check saved(SavedSlot s) =>
+    (i) => i is GoSavedPlaceIntent && i.slot == s;
 
 const _withRoute = ConversationContext(hasRoute: true, offeredStart: true);
 const _routeNoOffer = ConversationContext(hasRoute: true);
@@ -58,25 +66,49 @@ void main() {
     CorpusRow('how do i get to klcc', route('klcc')),
     CorpusRow('how far is klcc', route('klcc')),
     CorpusRow('berapa jauh ke ipoh', route('ipoh')),
-    CorpusRow('xnak tol, bawa saya ke penang', route('penang', pref: RoutePreference.noTolls, auto: true)),
-    CorpusRow('route to penang x nak tol', route('penang', pref: RoutePreference.noTolls)),
-    CorpusRow('navigate to penang no toll', route('penang', pref: RoutePreference.noTolls)),
+    CorpusRow(
+      'xnak tol, bawa saya ke penang',
+      route('penang', pref: RoutePreference.noTolls, auto: true),
+    ),
+    CorpusRow(
+      'route to penang x nak tol',
+      route('penang', pref: RoutePreference.noTolls),
+    ),
+    CorpusRow(
+      'navigate to penang no toll',
+      route('penang', pref: RoutePreference.noTolls),
+    ),
     CorpusRow('navigte to klcc', route('klcc', auto: true)),
     CorpusRow('navigatw to klcc', route('klcc', auto: true)),
-    CorpusRow('route to jalan kampung baru', route('jalan kampung baru', pref: null)),
+    CorpusRow(
+      'route to jalan kampung baru',
+      route('jalan kampung baru', pref: null),
+    ),
     CorpusRow('i wanna go to klcc', route('klcc')),
     CorpusRow('im on my way to ipoh', route('ipoh')),
     CorpusRow('take me to klcc please', route('klcc', auto: true)),
     CorpusRow('pergi ke masjid negara', route('masjid negara')),
     CorpusRow('jom ke sunway pyramid', route('sunway pyramid')),
     // --- kategori vs nama ---
-    CorpusRow('bawa saya ke stesen minyak terdekat', nearby(NearbyCategory.fuel, navigate: true)),
-    CorpusRow('take me to the nearest petrol station', nearby(NearbyCategory.fuel, navigate: true)),
+    CorpusRow(
+      'bawa saya ke stesen minyak terdekat',
+      nearby(NearbyCategory.fuel, navigate: true),
+    ),
+    CorpusRow(
+      'take me to the nearest petrol station',
+      nearby(NearbyCategory.fuel, navigate: true),
+    ),
     CorpusRow('nak ke tandas', nearby(NearbyCategory.toilets, navigate: true)),
     CorpusRow('surau terdekat', nearby(NearbyCategory.mosque, navigate: false)),
-    CorpusRow('nearest petrol station', nearby(NearbyCategory.fuel, navigate: false)),
+    CorpusRow(
+      'nearest petrol station',
+      nearby(NearbyCategory.fuel, navigate: false),
+    ),
     CorpusRow('cari masjid negara', search('masjid negara')),
-    CorpusRow('where is hospital kuala lumpur', search('hospital kuala lumpur')),
+    CorpusRow(
+      'where is hospital kuala lumpur',
+      search('hospital kuala lumpur'),
+    ),
     CorpusRow('cari parking klcc', search('parking klcc')),
     CorpusRow('cari tandas', nearby(NearbyCategory.toilets)),
     CorpusRow('find petrol', nearby(NearbyCategory.fuel)),
@@ -84,7 +116,10 @@ void main() {
     CorpusRow('klcc', search('klcc', speculative: true)),
     CorpusRow('masjid negara', search('masjid negara', speculative: true)),
     CorpusRow('pavilion kl', search('pavilion kl', speculative: true)),
-    CorpusRow('Menara Kuala Lumpur', search('menara kuala lumpur', speculative: true)),
+    CorpusRow(
+      'Menara Kuala Lumpur',
+      search('menara kuala lumpur', speculative: true),
+    ),
     // --- cuaca/solat tidak tersalah jadi laluan ---
     CorpusRow('is it going to rain in klcc', isType<WeatherIntent>()),
     CorpusRow('akan hujan ke di ipoh', isType<WeatherIntent>()),
@@ -123,17 +158,35 @@ void main() {
     CorpusRow('speed limit', trip(TripInfoKind.speedLimit)),
     CorpusRow('had laju berapa', trip(TripInfoKind.speedLimit)),
     // --- kawalan ---
-    CorpusRow('tukar ke motosikal', (i) => i is ChangeVehicleIntent && i.vehicle == AssistVehicle.motorcycle),
-    CorpusRow('switch to car', (i) => i is ChangeVehicleIntent && i.vehicle == AssistVehicle.car),
-    CorpusRow('naik motor', (i) => i is ChangeVehicleIntent && i.vehicle == AssistVehicle.motorcycle),
+    CorpusRow(
+      'tukar ke motosikal',
+      (i) => i is ChangeVehicleIntent && i.vehicle == AssistVehicle.motorcycle,
+    ),
+    CorpusRow(
+      'switch to car',
+      (i) => i is ChangeVehicleIntent && i.vehicle == AssistVehicle.car,
+    ),
+    CorpusRow(
+      'naik motor',
+      (i) => i is ChangeVehicleIntent && i.vehicle == AssistVehicle.motorcycle,
+    ),
     CorpusRow('mute', (i) => i is VoiceIntent && !i.enabled),
     CorpusRow('senyap', (i) => i is VoiceIntent && !i.enabled),
     CorpusRow('matikan suara', (i) => i is VoiceIntent && !i.enabled),
     CorpusRow('unmute', (i) => i is VoiceIntent && i.enabled),
     CorpusRow('buka suara', (i) => i is VoiceIntent && i.enabled),
-    CorpusRow('dark mode', (i) => i is ThemeIntent && i.theme == AssistTheme.dark),
-    CorpusRow('mod gelap', (i) => i is ThemeIntent && i.theme == AssistTheme.dark),
-    CorpusRow('light mode', (i) => i is ThemeIntent && i.theme == AssistTheme.light),
+    CorpusRow(
+      'dark mode',
+      (i) => i is ThemeIntent && i.theme == AssistTheme.dark,
+    ),
+    CorpusRow(
+      'mod gelap',
+      (i) => i is ThemeIntent && i.theme == AssistTheme.dark,
+    ),
+    CorpusRow(
+      'light mode',
+      (i) => i is ThemeIntent && i.theme == AssistTheme.light,
+    ),
     // --- tanya butiran ---
     CorpusRow('navigate', isType<AskSlotIntent>()),
     CorpusRow('nak pergi', isType<AskSlotIntent>()),
@@ -156,6 +209,68 @@ void main() {
     CorpusRow('what is the capital of france', isNull()),
     CorpusRow('kenapa langit biru', isNull()),
     CorpusRow('hello world program in python', isNull()),
+    // --- tambahan: ayat lapangan ---
+    CorpusRow('nak pergi ke klia', route('klia')),
+    CorpusRow('bawa aku ke ipoh', route('ipoh', auto: true)),
+    CorpusRow('hantar saya ke kl sentral', route('kl sentral', auto: true)),
+    CorpusRow('pergi mid valley', route('mid valley')),
+    CorpusRow(
+      'navigate me to genting highlands',
+      route('genting highlands', auto: true),
+    ),
+    CorpusRow('directions to klia2', route('klia2')),
+    CorpusRow(
+      'drive to penang no highway',
+      route('penang', pref: RoutePreference.noHighways),
+    ),
+    CorpusRow(
+      'route to johor bahru, avoid tolls',
+      route('johor bahru', pref: RoutePreference.noTolls),
+    ),
+    CorpusRow('take me to the airport', route('airport', auto: true)),
+    CorpusRow(
+      'i need to go to hospital kuala lumpur',
+      route('hospital kuala lumpur'),
+    ),
+    CorpusRow(
+      'nak ke hospital',
+      nearby(NearbyCategory.hospital, navigate: true),
+    ),
+    CorpusRow('ke klcc', route('klcc')),
+    CorpusRow('cara nak ke ipoh', route('ipoh')),
+    CorpusRow('take me to mcdonalds', route('mcdonalds', auto: true)),
+    CorpusRow('drive me home', saved(SavedSlot.home)),
+    CorpusRow('nak balik', saved(SavedSlot.home)),
+    CorpusRow('balik la', saved(SavedSlot.home)),
+    CorpusRow('hujan tak kat ipoh', isType<WeatherIntent>()),
+    CorpusRow('cuaca hari ni', (i) => i is WeatherIntent && i.place == null),
+    CorpusRow(
+      'weather tomorrow in penang',
+      (i) => i is WeatherIntent && i.place == 'penang',
+    ),
+    CorpusRow('bila masuk zohor', isType<PrayerTimesIntent>()),
+    CorpusRow('dah masuk zohor ke', isType<PrayerTimesIntent>()),
+    CorpusRow('what time is maghrib', isType<PrayerTimesIntent>()),
+    CorpusRow('any petrol station near me', nearby(NearbyCategory.fuel)),
+    CorpusRow('mana ada masjid', nearby(NearbyCategory.mosque)),
+    CorpusRow('ada stesen minyak tak dekat sini', nearby(NearbyCategory.fuel)),
+    CorpusRow('where can i eat', nearby(NearbyCategory.food)),
+    CorpusRow('im hungry', nearby(NearbyCategory.food)),
+    CorpusRow('nak makan', nearby(NearbyCategory.food)),
+    CorpusRow('tolong senyap', (i) => i is VoiceIntent && !i.enabled),
+    CorpusRow('boleh tak tutup suara', (i) => i is VoiceIntent && !i.enabled),
+    CorpusRow('berapa jam lagi', trip(TripInfoKind.timeLeft)),
+    CorpusRow('how many km left', trip(TripInfoKind.distance)),
+    CorpusRow('where do i turn', trip(TripInfoKind.nextTurn)),
+    CorpusRow('naviagte to klcc', route('klcc', auto: true)),
+    CorpusRow(
+      'wheather in ipoh',
+      (i) => i is WeatherIntent && i.place == 'ipoh',
+    ),
+    CorpusRow('petrl station terdekat', nearby(NearbyCategory.fuel)),
+    CorpusRow('masjd terdekat', nearby(NearbyCategory.mosque)),
+    CorpusRow('neearest toilet', nearby(NearbyCategory.toilets)),
+    CorpusRow('navgate to klcc', route('klcc', auto: true)),
 
     // --- dengan konteks ---
     CorpusRow('ok', isType<StartNavigationIntent>(), _withRoute),
@@ -167,11 +282,31 @@ void main() {
     CorpusRow('stop navigation', isType<StopNavigationIntent>(), _navigating),
     CorpusRow('tamatkan navigasi', isType<StopNavigationIntent>(), _navigating),
     CorpusRow('stop', isType<CancelRouteIntent>(), _routeNoOffer),
-    CorpusRow('yang pertama', (i) => i is PickResultIntent && i.index == 0, _afterResults),
-    CorpusRow('the second one', (i) => i is PickResultIntent && i.index == 1, _afterResults),
-    CorpusRow('yang ketiga', (i) => i is PickResultIntent && i.index == 2, _afterResults),
-    CorpusRow('bawa saya ke yang pertama', (i) => i is PickResultIntent && i.index == 0 && i.autoStart, _afterResults),
-    CorpusRow('satu lagi', (i) => i is PickResultIntent && i.other, _afterResults),
+    CorpusRow(
+      'yang pertama',
+      (i) => i is PickResultIntent && i.index == 0,
+      _afterResults,
+    ),
+    CorpusRow(
+      'the second one',
+      (i) => i is PickResultIntent && i.index == 1,
+      _afterResults,
+    ),
+    CorpusRow(
+      'yang ketiga',
+      (i) => i is PickResultIntent && i.index == 2,
+      _afterResults,
+    ),
+    CorpusRow(
+      'bawa saya ke yang pertama',
+      (i) => i is PickResultIntent && i.index == 0 && i.autoStart,
+      _afterResults,
+    ),
+    CorpusRow(
+      'satu lagi',
+      (i) => i is PickResultIntent && i.other,
+      _afterResults,
+    ),
     CorpusRow('klcc', route('klcc'), _asked),
     CorpusRow('masjid putra', route('masjid putra'), _asked),
   ];
@@ -191,7 +326,9 @@ void main() {
 String _describe(AssistantIntent i) => switch (i) {
   RouteIntent(:final destination, :final preference, :final autoStart) =>
     'Route($destination, $preference, auto=$autoStart)',
-  NearbyIntent(:final category, :final navigate) => 'Nearby($category, nav=$navigate)',
-  SearchIntent(:final query, :final speculative) => 'Search($query, spec=$speculative)',
+  NearbyIntent(:final category, :final navigate) =>
+    'Nearby($category, nav=$navigate)',
+  SearchIntent(:final query, :final speculative) =>
+    'Search($query, spec=$speculative)',
   _ => i.runtimeType.toString(),
 };

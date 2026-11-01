@@ -16,9 +16,14 @@ class RouteIntent extends AssistantIntent {
     this.destination, {
     this.preference = RoutePreference.recommended,
     this.autoStart = false,
+    this.soft = false,
   });
 
   final String destination;
+
+  /// Dipadankan daripada soalan ("how do i go to sleep", "how far is the moon"): jika tempat itu tidak wujud,
+  /// pengawal menyerahkannya kepada model dan bukan melapor "tempat tidak dijumpai".
+  final bool soft;
   final RoutePreference preference;
 
   /// Pengguna mahu terus bergerak ("navigate to", "bawa saya ke", "... start now").

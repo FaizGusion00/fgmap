@@ -8,7 +8,8 @@ import 'package:fgmap/core/location/location_service.dart';
 import 'package:fgmap/core/network/connectivity_probe.dart';
 import 'package:fgmap/core/storage/preferences.dart';
 import 'package:fgmap/core/utils/geo.dart';
-import 'package:fgmap/features/local_assistant/data/chat_history_store.dart' show AiMode;
+import 'package:fgmap/features/local_assistant/data/chat_history_store.dart'
+    show AiMode;
 import 'package:fgmap/features/local_assistant/presentation/ai_chat_page.dart';
 import 'package:fgmap/features/local_assistant/presentation/assistant_controller.dart';
 import 'package:fgmap/features/route_preview/domain/route_option.dart';
