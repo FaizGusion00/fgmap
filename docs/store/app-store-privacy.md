@@ -7,7 +7,7 @@ Sepadan dengan `app/ios/Runner/PrivacyInfo.xcprivacy`. Semak semula sebelum meng
 | Jenis | Tujuan | Dikaitkan dengan pengguna | Penjejakan |
 |---|---|---|---|
 | Lokasi tepat | Fungsi app | Tidak | Tidak |
-| Sejarah carian | Fungsi app | Tidak | Tidak |
+| Sejarah carian (termasuk soalan carian web FG AI dan carian dari CarPlay) | Fungsi app | Tidak | Tidak |
 | Lokasi kasar (~1 km, waktu solat rasmi, kepada WaktuSolat API) | Fungsi app | Tidak | Tidak |
 | Carian muzik (teks, kepada Audius) | Fungsi app | Tidak | Tidak |
 

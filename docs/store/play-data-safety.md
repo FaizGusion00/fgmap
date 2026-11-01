@@ -28,10 +28,11 @@ menghantar borang; jawapan mesti sepadan dengan apa yang app lakukan pada versi 
 | Lokasi kasar (cuaca destinasi/laluan, Open-Meteo) | Ya | Ya (Open-Meteo) | Fungsi app | Ya (hanya semasa pratonton/navigasi laluan; gagal senyap jika tiada talian) | Koordinat destinasi dan sehingga 4 titik sampel laluan dibundarkan ~100 m (3 perpuluhan); tiada akaun/kunci/pengenal pasti |
 | Lokasi kasar (kualiti udara / IPU, JAS APIMS) | Ya | Ya (eqms.doe.gov.my) | Fungsi app | Ya (lembaran kualiti udara, atau semakan IPU sepanjang laluan) | Jadual sejam awam stesen; stesen terdekat kepada GPS/carian atau sampel koridor; tiada akaun/pengenal pasti |
 | Carian muzik (Audius) | Ya | Ya (Audius) | Fungsi app | Ya (hanya jika Muzik dibuka) | Teks carian dan ID lagu; tiada lokasi |
+| Carian web FG AI (DuckDuckGo, Google News, Wikipedia, Bank Negara Malaysia, data.gov.my) | Ya | Ya | Fungsi app | Ya (hanya apabila pengguna bertanya maklumat terkini atau menampal pautan; boleh dimatikan dalam Tetapan > FG AI) | Hanya perkataan soalan atau pautan itu; tiada lokasi dan tiada sejarah sembang |
 
 "Dikongsi" bermaksud dihantar kepada pihak ketiga yang bukan pemproses bagi pihak kita (OpenStreetMap
 Foundation, komoot, FOSSGIS, OpenFreeMap, GitHub, Google untuk pautan pendek, Audius dan Radio Browser untuk
-Muzik, WaktuSolat API untuk jadual rasmi JAKIM, Open-Meteo untuk cuaca, Jabatan Alam Sekitar/EQMS untuk IPU). Pengiraan waktu solat pada peranti (kaedah sandaran) tidak menghantar data. Tiada data dijual atau digunakan untuk iklan.
+Muzik, WaktuSolat API untuk jadual rasmi JAKIM, Open-Meteo untuk cuaca, Jabatan Alam Sekitar/EQMS untuk IPU, DuckDuckGo, Google News, Wikipedia, Bank Negara Malaysia dan data.gov.my untuk carian web FG AI, Hugging Face untuk muat turun model FG AI sekali sahaja; sembang tidak dihantar ke mana-mana pelayan AI). Pengiraan waktu solat pada peranti (kaedah sandaran) tidak menghantar data. Tiada data dijual atau digunakan untuk iklan.
 
 ## Kebenaran dan pengisytiharan lain
 
@@ -51,4 +52,5 @@ Muzik, WaktuSolat API untuk jadual rasmi JAKIM, Open-Meteo untuk cuaca, Jabatan 
 - Sensor kompas (kiblat): tiada kebenaran; bacaan di peranti sahaja, tidak disimpan atau dihantar.
 - `FOREGROUND_SERVICE_MEDIA_PLAYBACK` (perkhidmatan `audio_service`, jenis mediaPlayback): Muzik terus
   dimainkan dengan skrin dikunci; kawalan media pada notifikasi.
+- `androidx.car.app.NAVIGATION_TEMPLATES` dan `androidx.car.app.ACCESS_SURFACE`: Android Auto (kategori Navigasi). Carian suara dan Berdekatan dari kereta melalui jalan data yang sama seperti dalam app; tiada data tambahan dihantar.
 - Kategori aplikasi: Peta & Navigasi. Iklan: tiada. Pembelian dalam app: tiada.

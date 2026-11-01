@@ -16,14 +16,26 @@ ROOT = os.path.join(os.path.dirname(__file__), "..", "..")
 SRC = os.path.join(ROOT, "app", "assets", "legal")
 OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "docs", "legal", "site")
 
+CONFIG = os.path.join(ROOT, "app", "lib", "core", "config", "legal_config.dart")
+
+
+def config_const(name: str) -> str:
+    """Versi dan tarikh dibaca daripada legal_config.dart supaya laman web tidak pernah berbeza daripada app."""
+    with open(CONFIG, encoding="utf-8") as f:
+        m = re.search(r"static const " + name + r" = '([^']+)';", f.read())
+    if not m:
+        sys.exit(f"legal_config.dart: {name} tidak ditemui")
+    return m.group(1)
+
+
 VALUES = {
     "entity": os.environ.get("LEGAL_ENTITY", "FG Universal Empire Company"),
     "developer": os.environ.get("LEGAL_DEVELOPER", "Faiz Nasir"),
     "regNo": os.environ.get("LEGAL_REG_NO", "[DIISI]"),
     "address": os.environ.get("LEGAL_ADDRESS", "[DIISI]"),
     "email": os.environ.get("LEGAL_EMAIL", "[DIISI]"),
-    "effective": "2026-10-26",
-    "version": "1.0",
+    "effective": config_const("effectiveDate"),
+    "version": config_const("version"),
 }
 
 

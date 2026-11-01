@@ -28,8 +28,8 @@ abstract final class LegalConfig {
   );
 
   /// Tarikh berkuat kuasa dan versi dokumen. Naikkan kedua-duanya apabila teks berubah.
-  static const effectiveDate = '2026-10-26';
-  static const version = '1.0';
+  static const effectiveDate = '2026-11-01';
+  static const version = '1.1';
 
   /// Benar HANYA selepas peguam menyemak dokumen. Selagi false, halaman memaparkan notis draf.
   static const reviewedByLawyer = bool.fromEnvironment('LEGAL_REVIEWED');
