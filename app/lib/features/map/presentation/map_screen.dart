@@ -2268,6 +2268,7 @@ class _AiDockButton extends StatelessWidget {
               constraints: BoxConstraints(minHeight: easy ? 48 : 44),
               child: Padding(
                 padding: EdgeInsets.fromLTRB(6, 4, easy ? 14 : 12, 4),
+                // Teks sistem besar (cth. 2x): label mesti mengecut, bukan melimpah Row.
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -2281,13 +2282,16 @@ class _AiDockButton extends StatelessWidget {
                       child: Icon(icon, size: easy ? 20 : 16, color: color),
                     ),
                     const SizedBox(width: 8),
-                    Text(
-                      label,
-                      maxLines: 1,
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.2,
-                        height: 1,
+                    Flexible(
+                      child: Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.2,
+                          height: 1,
+                        ),
                       ),
                     ),
                   ],
