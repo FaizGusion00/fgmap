@@ -239,7 +239,7 @@ class OfflineMapStore {
       if (meta is Map<String, dynamic> &&
           meta['version'] == version &&
           meta['sha256'] == sha256) {
-        return partFile.length();
+        return await partFile.length();
       }
     } on Object {
       // jatuh ke pembuangan di bawah

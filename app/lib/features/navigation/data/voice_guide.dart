@@ -41,12 +41,11 @@ abstract interface class ChimePlayer {
 /// kereta (arahan lama yang sudah tidak relevan dibuang).
 class QueuedVoiceGuide implements VoiceGuide {
   QueuedVoiceGuide({
-    required TtsEngine tts,
-    required ChimePlayer chimes,
+    required this._tts,
+    required this._chimes,
     this.maxQueued = 2,
     this.coordinator,
-  }) : _tts = tts,
-       _chimes = chimes;
+  });
 
   final TtsEngine _tts;
   final ChimePlayer _chimes;
