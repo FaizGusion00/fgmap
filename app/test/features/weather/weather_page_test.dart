@@ -112,7 +112,7 @@ void main() {
       find.byType(WeatherPage),
       matchesGoldenFile('goldens/weather_page_day.png'),
     );
-  });
+  }, tags: const ['golden']);
 
   testWidgets('golden: malam ribut (English)', (tester) async {
     await pump(
@@ -125,5 +125,5 @@ void main() {
       find.byType(WeatherPage),
       matchesGoldenFile('goldens/weather_page_storm_en.png'),
     );
-  });
+  }, tags: const ['golden']);
 }
