@@ -14,6 +14,10 @@ import '../domain/offline_models.dart';
 ///     valhalla_tiles.tar.tmp hasil ekstrak sementara sebelum dipasang
 ///     places.sqlite          indeks carian offline (FTS4) + places.json (versi, saiz)
 ///     places.part / .tmp     muat turun dan ekstrak sementara indeks
+///     basemap-<versi>.pmtiles  tile paparan peta offline + basemap.json (versi, saiz); nama fail
+///                              membawa versi supaya MapLibre tidak menggunakan direktori cache lama
+///     basemap.part + basemap.part.json  muat turun separa (boleh disambung)
+///     map_style/             aset gaya peta yang disalin keluar daripada app (lihat LocalBasemap)
 class OfflineMapStore {
   OfflineMapStore(this.dir);
 
@@ -28,6 +32,15 @@ class OfflineMapStore {
   File get _placesMeta => File(p.join(dir.path, 'places.json'));
   File get placesPart => File(p.join(dir.path, 'places.part'));
   File get placesTmp => File(p.join(dir.path, 'places.sqlite.tmp'));
+  File get basemapPart => File(p.join(dir.path, 'basemap.part'));
+  File get _basemapPartMeta => File(p.join(dir.path, 'basemap.part.json'));
+  File get _basemapMeta => File(p.join(dir.path, 'basemap.json'));
+
+  /// Folder aset gaya peta tempatan (fon, sprite). Boleh dijana semula daripada app.
+  Directory get styleAssetsDir => Directory(p.join(dir.path, 'map_style'));
+
+  File _basemapFile(String version) =>
+      File(p.join(dir.path, 'basemap-$version.pmtiles'));
 
   Future<void> ensureDir() async {
     if (!await dir.exists()) await dir.create(recursive: true);
@@ -51,9 +64,15 @@ class OfflineMapStore {
         tarPath: _tar.path,
       );
       final places = await _readPlaces();
-      return places == null
-          ? map
-          : map.withPlaces(places.$1, _places.path, places.$2);
+      final basemap = await _readBasemap();
+      var full = map;
+      if (places != null) {
+        full = full.withPlaces(places.$1, _places.path, places.$2);
+      }
+      if (basemap != null) {
+        full = full.withBasemap(basemap.$1, basemap.$3, basemap.$2);
+      }
+      return full;
     } on Object {
       return null;
     }
@@ -72,6 +91,79 @@ class OfflineMapStore {
       return (version, size);
     } on Object {
       return null;
+    }
+  }
+
+  /// (versi, saiz, laluan) tile paparan peta yang dipasang, atau null jika tiada/rosak.
+  Future<(String, int, String)?> _readBasemap() async {
+    try {
+      if (!await _basemapMeta.exists()) return null;
+      final meta = jsonDecode(await _basemapMeta.readAsString());
+      if (meta is! Map<String, dynamic>) return null;
+      final version = meta['version'];
+      final size = meta['sizeBytes'];
+      if (version is! String || size is! int) return null;
+      final file = _basemapFile(version);
+      if (!await file.exists() || await file.length() != size) return null;
+      return (version, size, file.path);
+    } on Object {
+      return null;
+    }
+  }
+
+  /// Pasang tile paparan peta yang sudah disahkan ([verifiedPart] dipindahkan menjadi
+  /// `basemap-<versi>.pmtiles`) dan buang versi lama.
+  Future<void> installBasemap(
+    File verifiedPart, {
+    required String version,
+    required int sizeBytes,
+  }) async {
+    if (await _basemapMeta.exists()) await _basemapMeta.delete();
+    await _deleteBasemapFiles();
+    await verifiedPart.rename(_basemapFile(version).path);
+    await _basemapMeta.writeAsString(
+      jsonEncode({'version': version, 'sizeBytes': sizeBytes}),
+      flush: true,
+    );
+  }
+
+  Future<void> _deleteBasemapFiles() async {
+    if (!await dir.exists()) return;
+    await for (final e in dir.list()) {
+      if (e is File && RegExp(r'basemap-.*\.pmtiles$').hasMatch(e.path)) {
+        await e.delete();
+      }
+    }
+  }
+
+  /// Bait muat turun separa tile paparan peta yang sah untuk [version]/[sha256], atau 0 (dan fail
+  /// separa dibuang jika milik versi lain).
+  Future<int> basemapPartialBytesFor(String version, String sha256) async {
+    try {
+      if (await basemapPart.exists() && await _basemapPartMeta.exists()) {
+        final meta = jsonDecode(await _basemapPartMeta.readAsString());
+        if (meta is Map<String, dynamic> &&
+            meta['version'] == version &&
+            meta['sha256'] == sha256) {
+          return await basemapPart.length();
+        }
+      }
+    } on Object {
+      // jatuh ke pembuangan di bawah
+    }
+    await discardBasemapPartial();
+    return 0;
+  }
+
+  Future<void> markBasemapPartial(String version, String sha256) =>
+      _basemapPartMeta.writeAsString(
+        jsonEncode({'version': version, 'sha256': sha256}),
+        flush: true,
+      );
+
+  Future<void> discardBasemapPartial() async {
+    for (final f in [basemapPart, _basemapPartMeta]) {
+      if (await f.exists()) await f.delete();
     }
   }
 
@@ -120,8 +212,18 @@ class OfflineMapStore {
   }
 
   Future<void> deleteInstalled() async {
-    for (final f in [_installedMeta, _tar, _placesMeta, _places]) {
+    for (final f in [
+      _installedMeta,
+      _tar,
+      _placesMeta,
+      _places,
+      _basemapMeta,
+    ]) {
       if (await f.exists()) await f.delete();
+    }
+    await _deleteBasemapFiles();
+    if (await styleAssetsDir.exists()) {
+      await styleAssetsDir.delete(recursive: true);
     }
   }
 

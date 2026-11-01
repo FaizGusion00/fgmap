@@ -29,4 +29,41 @@ void main() {
     expect(back?.role, AssistantRole.user);
     expect(back?.text, contains('KLCC'));
   });
+
+  test(
+    'teks kosong ditolak kecuali jawapan pembantu bernota atau bersumber',
+    () {
+      expect(
+        AssistantMessage.fromJson({
+          'role': 'user',
+          'text': '   ',
+          'notice': 'rateLimited',
+        }),
+        isNull,
+      );
+      expect(
+        AssistantMessage.fromJson({'role': 'assistant', 'text': ''}),
+        isNull,
+      );
+      final noticeOnly = AssistantMessage.fromJson({
+        'role': 'assistant',
+        'text': '',
+        'notice': 'rateLimited',
+      });
+      expect(noticeOnly?.notice, AnswerNotice.rateLimited);
+      expect(noticeOnly?.text, isEmpty);
+      final sourcesOnly = AssistantMessage.fromJson({
+        'role': 'assistant',
+        'text': '',
+        'sources': [
+          {
+            'kind': 'fatwa',
+            'title': 'Ruling',
+            'url': 'https://example.org/fatwa/1',
+          },
+        ],
+      });
+      expect(sourcesOnly?.sources.single.title, 'Ruling');
+    },
+  );
 }

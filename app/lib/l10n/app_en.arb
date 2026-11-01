@@ -14,7 +14,7 @@
       }
     }
   },
-  "mapAttribution": "© OpenStreetMap contributors · OpenFreeMap",
+  "mapAttribution": "© OpenStreetMap contributors · © OpenMapTiles · OpenFreeMap",
   "locationRationaleTitle": "Allow location access?",
   "locationRationaleBody": "Your location is used to show where you are on the map and as the starting point of a route. It is sent directly to the public routing service only to calculate the route, and is not stored on any server of ours.",
   "locationAllow": "Allow",
@@ -68,7 +68,7 @@
   "routeSourceOffline": "Offline",
   "offlineMapsOpen": "Offline map",
   "offlineMapsTitle": "Offline map",
-  "offlineMapsIntro": "Download the Malaysia map once to plan routes and search for places without internet. With internet, routes and search use online services (more up to date) and the offline map is the fallback.",
+  "offlineMapsIntro": "Download the Malaysia map once to view the map, plan routes and search for places without internet. With internet, routes and search use online services (more up to date) and the offline map is the fallback.",
   "offlineMapsNotConfigured": "Offline map download isn't configured in this build.",
   "offlineMapsNotInstalled": "Not downloaded",
   "offlineMapsInstalled": "Installed: {date}",
@@ -87,7 +87,7 @@
   "offlineMapsMobileDataTitle": "Use mobile data?",
   "offlineMapsMobileDataBody": "This download is about {size}. You're not connected to Wi-Fi.",
   "offlineMapsDeleteTitle": "Delete offline map?",
-  "offlineMapsDeleteBody": "You'll need to download it again to use offline routing.",
+  "offlineMapsDeleteBody": "You'll need to download it again to use the offline map, routing and search.",
   "offlineMapsErrorNetwork": "Couldn't connect to the offline map server. Check your internet and try again.",
   "offlineMapsErrorStorage": "Not enough storage. Free some space and try again.",
   "offlineMapsErrorChecksum": "The downloaded file is corrupted. Try again.",
@@ -1158,6 +1158,9 @@
   "weatherCodeHeavyShowers": "Heavy showers",
   "weatherCodeThunderstorm": "Thunderstorm",
   "weatherCodeSnow": "Snow",
+  "mapToolsMore": "More tools",
   "weatherOpen": "Weather",
-  "offlineMapsSearchAvailable": "Offline search available (+{size})"
+  "offlineMapsSearchAvailable": "Offline search available (+{size})",
+  "offlineMapsMapAvailable": "Offline map display available (+{size})",
+  "offlineMapsMapSearchAvailable": "Offline map display and search available (+{size})"
 }

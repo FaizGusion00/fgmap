@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'smooth_reveal.dart';
+
 /// Teks jawapan dengan format ringan: perenggan, senarai "- ", **tebal**, dan penanda petikan "[2]"
 /// sebagai lencana kecil. Tahan teks separuh (semasa animasi menaip): "**" tanpa penutup ditebalkan
 /// hingga hujung.
@@ -26,15 +28,15 @@ class AnswerText extends StatelessWidget {
         style ??
         theme.textTheme.bodyLarge?.copyWith(height: 1.5, fontSize: 15.5);
     final cite = citationColor ?? theme.colorScheme.primary;
-    final blocks = text.trim().split(RegExp(r'\n\s*\n'));
+    final blocks = text.trim().split(_blockBreak);
     final children = <Widget>[];
     for (var b = 0; b < blocks.length; b++) {
       final lines = blocks[b].split('\n');
       for (var i = 0; i < lines.length; i++) {
         final line = lines[i];
         final isLast = b == blocks.length - 1 && i == lines.length - 1;
-        final bullet = RegExp(r'^\s*(?:[-*•])\s+').firstMatch(line);
-        final numbered = RegExp(r'^\s*(\d+)[.)]\s+').firstMatch(line);
+        final bullet = _bulletRe.firstMatch(line);
+        final numbered = _numberedRe.firstMatch(line);
         final content = bullet != null
             ? line.substring(bullet.end)
             : numbered != null
@@ -89,11 +91,15 @@ class AnswerText extends StatelessWidget {
     );
   }
 
+  static final _blockBreak = RegExp(r'\n\s*\n');
+  static final _bulletRe = RegExp(r'^\s*(?:[-*•])\s+');
+  static final _numberedRe = RegExp(r'^\s*(\d+)[.)]\s+');
+  static final _inlineRe = RegExp(r'\*\*(.+?)(?:\*\*|$)|\[(\d{1,2})\]');
+
   static List<InlineSpan> _inline(String s, TextStyle? base, Color cite) {
     final spans = <InlineSpan>[];
-    final re = RegExp(r'\*\*(.+?)(?:\*\*|$)|\[(\d{1,2})\]');
     var last = 0;
-    for (final m in re.allMatches(s)) {
+    for (final m in _inlineRe.allMatches(s)) {
       if (m.start > last) spans.add(TextSpan(text: s.substring(last, m.start)));
       if (m.group(1) != null) {
         spans.add(
@@ -133,21 +139,22 @@ class AnswerText extends StatelessWidget {
   }
 }
 
-/// Kursor berkelip di hujung teks yang sedang ditaip.
-class BlinkingCaret extends StatefulWidget {
-  const BlinkingCaret({super.key, required this.color});
+/// Kursor di hujung teks yang sedang ditaip: bar kecil bergradien yang "bernafas" (denyut lembut),
+/// bukan berkelip kasar yang kelihatan tersentak ketika teks bergerak.
+class TypingCaret extends StatefulWidget {
+  const TypingCaret({super.key, required this.color});
 
   final Color color;
 
   @override
-  State<BlinkingCaret> createState() => _BlinkingCaretState();
+  State<TypingCaret> createState() => _TypingCaretState();
 }
 
-class _BlinkingCaretState extends State<BlinkingCaret>
+class _TypingCaretState extends State<TypingCaret>
     with SingleTickerProviderStateMixin {
   late final AnimationController _c = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 900),
+    duration: const Duration(milliseconds: 720),
   );
 
   @override
@@ -169,92 +176,63 @@ class _BlinkingCaretState extends State<BlinkingCaret>
   @override
   Widget build(BuildContext context) {
     final bar = Container(
-      width: 8,
-      height: 16,
+      width: 3,
+      height: 17,
       margin: const EdgeInsets.only(left: 3),
       decoration: BoxDecoration(
-        color: widget.color,
         borderRadius: BorderRadius.circular(2),
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [widget.color, widget.color.withValues(alpha: 0.55)],
+        ),
+        boxShadow: [
+          BoxShadow(color: widget.color.withValues(alpha: 0.35), blurRadius: 6),
+        ],
       ),
     );
     if (MediaQuery.disableAnimationsOf(context)) return bar;
     return FadeTransition(
-      opacity: CurvedAnimation(parent: _c, curve: Curves.easeInOut),
+      opacity: Tween<double>(
+        begin: 0.35,
+        end: 1,
+      ).animate(CurvedAnimation(parent: _c, curve: Curves.easeInOut)),
       child: bar,
     );
   }
 }
 
-/// Animasi menaip perkataan demi perkataan untuk jawapan yang tiba sekaligus. Ketik untuk langkau.
-class TypewriterAnswer extends StatefulWidget {
+/// Animasi menaip untuk jawapan yang tiba sekaligus: aksara demi aksara pada kadar licin (lihat
+/// [SmoothReveal]). Ketik untuk langkau. [initialChars] menyambung daripada jawapan yang sudah
+/// dialirkan supaya peralihan daripada paparan langsung tidak melompat.
+class TypewriterAnswer extends StatelessWidget {
   const TypewriterAnswer({
     super.key,
     required this.text,
     required this.builder,
-    this.wordDelay = const Duration(milliseconds: 22),
+    this.charsPerSecond = 90,
+    this.initialChars = 0,
+    this.onProgress,
     this.onDone,
   });
 
   final String text;
   final Widget Function(BuildContext context, String visible, bool done)
   builder;
-  final Duration wordDelay;
+  final double charsPerSecond;
+  final int initialChars;
+  final VoidCallback? onProgress;
   final VoidCallback? onDone;
 
   @override
-  State<TypewriterAnswer> createState() => _TypewriterAnswerState();
-}
-
-class _TypewriterAnswerState extends State<TypewriterAnswer>
-    with SingleTickerProviderStateMixin {
-  late final List<int> _wordEnds = [
-    for (final m in RegExp(r'\S+\s*').allMatches(widget.text)) m.end,
-  ];
-  late final AnimationController _c;
-  int _shown = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    final words = _wordEnds.length;
-    // Jawapan panjang dihadkan ~2.2 s supaya tidak membosankan.
-    final total = Duration(
-      milliseconds: (widget.wordDelay.inMilliseconds * words).clamp(0, 2200),
-    );
-    _c = AnimationController(vsync: this, duration: total)
-      ..addListener(() {
-        final n = (_c.value * words).ceil();
-        if (n != _shown) setState(() => _shown = n);
-      })
-      ..addStatusListener((s) {
-        if (s == AnimationStatus.completed) widget.onDone?.call();
-      });
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      if (MediaQuery.disableAnimationsOf(context) || words == 0) {
-        _c.value = 1;
-      } else {
-        _c.forward();
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final done = _c.isCompleted || _shown >= _wordEnds.length;
-    final visible = done || _shown == 0
-        ? (done ? widget.text : '')
-        : widget.text.substring(0, _wordEnds[_shown - 1]);
-    return GestureDetector(
-      behavior: HitTestBehavior.translucent,
-      onTap: done ? null : () => _c.value = 1,
-      child: widget.builder(context, visible, done),
+    return SmoothReveal(
+      text: text,
+      charsPerSecond: charsPerSecond,
+      initialChars: initialChars,
+      onProgress: onProgress,
+      onDone: onDone,
+      builder: builder,
     );
   }
 }

@@ -33,7 +33,8 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
-  String get mapAttribution => '© penyumbang OpenStreetMap · OpenFreeMap';
+  String get mapAttribution =>
+      '© penyumbang OpenStreetMap · © OpenMapTiles · OpenFreeMap';
 
   @override
   String get locationRationaleTitle => 'Benarkan akses lokasi?';
@@ -197,7 +198,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get offlineMapsIntro =>
-      'Muat turun peta Malaysia sekali untuk merancang laluan dan mencari tempat tanpa internet. Dengan internet, laluan dan carian menggunakan perkhidmatan dalam talian (lebih terkini) dan peta offline menjadi sandaran.';
+      'Muat turun peta Malaysia sekali untuk melihat peta, merancang laluan dan mencari tempat tanpa internet. Dengan internet, laluan dan carian menggunakan perkhidmatan dalam talian (lebih terkini) dan peta offline menjadi sandaran.';
 
   @override
   String get offlineMapsNotConfigured =>
@@ -266,7 +267,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get offlineMapsDeleteBody =>
-      'Anda perlu memuat turunnya semula untuk menggunakan laluan offline.';
+      'Anda perlu memuat turunnya semula untuk menggunakan paparan peta, laluan dan carian offline.';
 
   @override
   String get offlineMapsErrorNetwork =>
@@ -2866,10 +2867,23 @@ class AppLocalizationsMs extends AppLocalizations {
   String get weatherCodeSnow => 'Salji';
 
   @override
+  String get mapToolsMore => 'Alat lain';
+
+  @override
   String get weatherOpen => 'Cuaca';
 
   @override
   String offlineMapsSearchAvailable(String size) {
     return 'Carian offline tersedia (+$size)';
+  }
+
+  @override
+  String offlineMapsMapAvailable(String size) {
+    return 'Paparan peta offline tersedia (+$size)';
+  }
+
+  @override
+  String offlineMapsMapSearchAvailable(String size) {
+    return 'Paparan peta dan carian offline tersedia (+$size)';
   }
 }

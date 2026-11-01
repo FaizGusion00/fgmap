@@ -78,9 +78,10 @@ class OfflineMapInstaller {
   Uri packUrl(String manifestUrl, OfflineManifest manifest) =>
       Uri.parse(manifestUrl).resolve(manifest.file);
 
-  /// Pasang pek laluan (jika belum versi ini) dan indeks carian offline (jika manifest ada). Kegagalan
-  /// indeks carian TIDAK menggagalkan pek laluan yang sudah dipasang: carian kekal dalam talian dan
-  /// "kemas kini" ditawarkan semula.
+  /// Pasang pek laluan (jika belum versi ini), indeks carian offline dan tile paparan peta (jika
+  /// manifest ada). Kegagalan indeks carian atau paparan peta TIDAK menggagalkan pek laluan yang sudah
+  /// dipasang: ia kekal dalam talian dan "kemas kini" ditawarkan semula (paparan peta disambung dari
+  /// bait yang sudah diterima).
   Future<InstalledMap> install({
     required String manifestUrl,
     required OfflineManifest manifest,
@@ -89,28 +90,111 @@ class OfflineMapInstaller {
   }) async {
     await _store.ensureDir();
     final current = await _store.readInstalled();
-    final map = current != null && current.version == manifest.version
+    var map = current != null && current.version == manifest.version
         ? current
         : await _installTiles(manifestUrl, manifest, cancel, onProgress);
+
     final places = manifest.places;
-    if (places == null || map.placesVersion == manifest.version) return map;
+    if (places != null && map.placesVersion != manifest.version) {
+      try {
+        await _installPlaces(
+          Uri.parse(manifestUrl).resolve(places.file),
+          manifest.version,
+          places,
+          cancel,
+          onProgress,
+        );
+        map = await _store.readInstalled() ?? map;
+      } on OfflineMapException catch (e) {
+        if (e.kind == OfflineMapFailure.cancelled) rethrow;
+        logDiag('Indeks carian offline gagal dipasang: $e');
+      } on Object catch (e) {
+        logDiag('Indeks carian offline gagal dipasang: $e');
+        await _store.discardPlacesPartial();
+      }
+    }
+
+    final basemap = manifest.basemap;
+    if (basemap != null && map.basemapVersion != manifest.version) {
+      try {
+        await _installBasemap(
+          Uri.parse(manifestUrl).resolve(basemap.file),
+          manifest.version,
+          basemap,
+          cancel,
+          onProgress,
+        );
+        map = await _store.readInstalled() ?? map;
+      } on OfflineMapException catch (e) {
+        if (e.kind == OfflineMapFailure.cancelled) rethrow;
+        logDiag('Paparan peta offline gagal dipasang: $e');
+      } on Object catch (e) {
+        // Sambungan terputus atau ruang penuh: fail separa dikekalkan jika boleh disambung.
+        logDiag('Paparan peta offline gagal dipasang: $e');
+      }
+    }
+    return map;
+  }
+
+  /// Tile paparan peta: muat turun boleh disambung (fail 100 MB+ pada data mudah alih), sahkan
+  /// sha256, kemudian pasang. Tiada ekstrak: PMTiles dibaca terus oleh MapLibre.
+  Future<void> _installBasemap(
+    Uri url,
+    String version,
+    OfflineBasemapInfo info,
+    CancelToken cancel,
+    InstallProgress onProgress,
+  ) async {
     try {
-      await _installPlaces(
-        Uri.parse(manifestUrl).resolve(places.file),
-        manifest.version,
-        places,
-        cancel,
-        onProgress,
+      var existing = await _store.basemapPartialBytesFor(version, info.sha256);
+      if (existing > info.sizeBytes) {
+        await _store.discardBasemapPartial();
+        existing = 0;
+      }
+      await _store.markBasemapPartial(version, info.sha256);
+      if (existing == info.sizeBytes) {
+        onProgress(InstallPhase.downloading, existing, info.sizeBytes);
+      } else {
+        final received = await _fetchTo(
+          url,
+          _store.basemapPart,
+          existing,
+          info.sizeBytes,
+          cancel,
+          onProgress,
+        );
+        if (received != info.sizeBytes) {
+          if (received > info.sizeBytes) await _store.discardBasemapPartial();
+          throw OfflineMapException(
+            received > info.sizeBytes
+                ? OfflineMapFailure.checksum
+                : OfflineMapFailure.network,
+            'paparan peta: diterima $received daripada ${info.sizeBytes}',
+          );
+        }
+      }
+      onProgress(InstallPhase.verifying, info.sizeBytes, info.sizeBytes);
+      if (await _sha256Of(_store.basemapPart.path) != info.sha256) {
+        await _store.discardBasemapPartial();
+        throw const OfflineMapException(
+          OfflineMapFailure.checksum,
+          'paparan peta',
+        );
+      }
+      await _store.installBasemap(
+        _store.basemapPart,
+        version: version,
+        sizeBytes: info.sizeBytes,
       );
-      return await _store.readInstalled() ?? map;
-    } on OfflineMapException catch (e) {
-      if (e.kind == OfflineMapFailure.cancelled) rethrow;
-      logDiag('Indeks carian offline gagal dipasang: $e');
-      return map;
-    } on Object catch (e) {
-      logDiag('Indeks carian offline gagal dipasang: $e');
-      await _store.discardPlacesPartial();
-      return map;
+      await _store.discardBasemapPartial();
+    } on DioException catch (e) {
+      throw _fromDio(e);
+    } on FileSystemException catch (e) {
+      await _store.discardBasemapPartial();
+      throw OfflineMapException(
+        OfflineMapFailure.storage,
+        '${e.message} ${e.osError?.message ?? ''}',
+      );
     }
   }
 
@@ -266,6 +350,38 @@ class OfflineMapInstaller {
       return; // sudah lengkap; disahkan oleh pemanggil
     }
 
+    final received = await _fetchTo(
+      url,
+      _store.partFile,
+      existing,
+      manifest.sizeBytes,
+      cancel,
+      onProgress,
+    );
+
+    if (received != manifest.sizeBytes) {
+      // Sambungan terputus senyap atau pelayan menghantar saiz lain. Fail separa dikekalkan jika
+      // lebih kecil (boleh disambung); jika lebih besar, ia rosak.
+      if (received > manifest.sizeBytes) await _store.discardPartial();
+      throw OfflineMapException(
+        received > manifest.sizeBytes
+            ? OfflineMapFailure.checksum
+            : OfflineMapFailure.network,
+        'diterima $received daripada ${manifest.sizeBytes}',
+      );
+    }
+  }
+
+  /// Muat turun [url] ke [part], menyambung dari [existing] bait jika pelayan menyokong Range. Mengembalikan
+  /// jumlah bait dalam fail; pemanggil menilai sama ada ia lengkap.
+  Future<int> _fetchTo(
+    Uri url,
+    File part,
+    int existing,
+    int expected,
+    CancelToken cancel,
+    InstallProgress onProgress,
+  ) async {
     final response = await _dio.getUri<ResponseBody>(
       url,
       cancelToken: cancel,
@@ -281,31 +397,20 @@ class OfflineMapInstaller {
     // 206: pelayan menyambung. 200: pelayan mengabaikan Range dan menghantar semula dari awal.
     final resumed = response.statusCode == 206 && existing > 0;
     var received = resumed ? existing : 0;
-    final sink = _store.partFile.openWrite(
+    final sink = part.openWrite(
       mode: resumed ? FileMode.append : FileMode.write,
     );
     try {
       await for (final chunk in response.data!.stream) {
         sink.add(chunk);
         received += chunk.length;
-        onProgress(InstallPhase.downloading, received, manifest.sizeBytes);
+        onProgress(InstallPhase.downloading, received, expected);
       }
       await sink.flush();
     } finally {
       await sink.close();
     }
-
-    if (received != manifest.sizeBytes) {
-      // Sambungan terputus senyap atau pelayan menghantar saiz lain. Fail separa dikekalkan jika
-      // lebih kecil (boleh disambung); jika lebih besar, ia rosak.
-      if (received > manifest.sizeBytes) await _store.discardPartial();
-      throw OfflineMapException(
-        received > manifest.sizeBytes
-            ? OfflineMapFailure.checksum
-            : OfflineMapFailure.network,
-        'diterima $received daripada ${manifest.sizeBytes}',
-      );
-    }
+    return received;
   }
 
   OfflineMapException _fromDio(DioException e) {

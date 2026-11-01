@@ -75,6 +75,19 @@ class PackServer {
 
   String get placesFile => 'places-${pack.version}.sqlite.gz';
 
+  /// Tile paparan peta palsu (fail `basemap-<versi>.pmtiles`, mentah); null = manifest tanpa `basemap`.
+  FakePack? basemap;
+
+  /// Badan paparan peta yang ditulis ganti (cth. rosak).
+  Uint8List? basemapOverrideBody;
+  int basemapRequests = 0;
+  final List<String?> basemapRangeHeaders = [];
+
+  /// Putuskan sambungan paparan peta selepas sekian bait (sekali sahaja).
+  int? basemapDropAfterBytes;
+
+  String get basemapFile => 'basemap-${pack.version}.pmtiles';
+
   Map<String, Object?> _manifest() {
     final m = pack.manifestJson();
     final pl = places;
@@ -86,6 +99,16 @@ class PackServer {
         'extractedSizeBytes': pl.raw.length,
         'extractedSha256': sha256.convert(pl.raw).toString(),
         'count': 1000,
+        'schema': 1,
+      };
+    }
+    final bm = basemap;
+    if (bm != null) {
+      m['basemap'] = {
+        'file': basemapFile,
+        'sizeBytes': bm.raw.length,
+        'sha256': sha256.convert(bm.raw).toString(),
+        'maxZoom': 14,
         'schema': 1,
       };
     }
@@ -129,9 +152,7 @@ class PackServer {
           return;
         }
         res.headers.contentType = ContentType.json;
-        res.write(
-          manifestRaw ?? jsonEncode(manifestOverride ?? _manifest()),
-        );
+        res.write(manifestRaw ?? jsonEncode(manifestOverride ?? _manifest()));
         await res.close();
         return;
       }
@@ -141,6 +162,50 @@ class PackServer {
         final body = placesOverrideBody ?? pl.gz;
         res.contentLength = body.length;
         res.add(body);
+        await res.close();
+        return;
+      }
+      final bm = basemap;
+      if (bm != null && req.uri.path == '/$basemapFile') {
+        basemapRequests++;
+        final range = req.headers.value(HttpHeaders.rangeHeader);
+        basemapRangeHeaders.add(range);
+        final body = basemapOverrideBody ?? bm.raw;
+        var start = 0;
+        if (range != null) {
+          final m = RegExp(r'bytes=(\d+)-').firstMatch(range);
+          if (m != null) start = int.parse(m.group(1)!);
+        }
+        if (start > 0) {
+          res.statusCode = HttpStatus.partialContent;
+          res.headers.set(
+            HttpHeaders.contentRangeHeader,
+            'bytes $start-${body.length - 1}/${body.length}',
+          );
+        }
+        final slice = body.sublist(start);
+        res.contentLength = slice.length;
+        final drop = basemapDropAfterBytes;
+        basemapDropAfterBytes = null;
+        const chunk = 16 * 1024;
+        var sent = 0;
+        for (var i = 0; i < slice.length; i += chunk) {
+          final end = (i + chunk).clamp(0, slice.length);
+          if (drop != null && sent >= drop) {
+            try {
+              await res.close();
+            } on Object {
+              // dijangka: kandungan kurang daripada Content-Length
+            }
+            return;
+          }
+          res.add(slice.sublist(i, end));
+          sent += end - i;
+          await res.flush();
+          if (chunkDelay > Duration.zero) {
+            await Future<void>.delayed(chunkDelay);
+          }
+        }
         await res.close();
         return;
       }

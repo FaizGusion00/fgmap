@@ -103,13 +103,21 @@ class _StatusCard extends ConsumerWidget {
     final String? subline;
     if (!state.configured || state.busy) {
       subline = null;
-    } else if (state.updateAvailable &&
-        installed!.version == latest!.version &&
-        latest.places != null) {
-      // Pek laluan terkini sudah ada; hanya indeks carian offline belum dipasang.
-      subline = l10n.offlineMapsSearchAvailable(
-        formatBytes(latest.places!.sizeBytes),
-      );
+    } else if (state.updateAvailable && installed!.version == latest!.version) {
+      // Pek laluan terkini sudah ada; hanya indeks carian dan/atau paparan peta offline belum dipasang.
+      final needPlaces =
+          latest.places != null && installed.placesVersion != latest.version;
+      final needMap =
+          latest.basemap != null && installed.basemapVersion != latest.version;
+      final placesSize = needPlaces ? latest.places!.sizeBytes : 0;
+      final mapSize = needMap ? latest.basemap!.sizeBytes : 0;
+      subline = !needMap
+          ? l10n.offlineMapsSearchAvailable(formatBytes(placesSize))
+          : needPlaces
+          ? l10n.offlineMapsMapSearchAvailable(
+              formatBytes(placesSize + mapSize),
+            )
+          : l10n.offlineMapsMapAvailable(formatBytes(mapSize));
     } else if (state.updateAvailable) {
       subline = l10n.offlineMapsUpdateAvailable(
         formatPackDate(latest!.version, l10n.localeName),

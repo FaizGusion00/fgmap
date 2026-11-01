@@ -69,6 +69,12 @@ flutter:
     - assets/fonts/OFL-PlusJakartaSans.txt
     - assets/tolls/my_tolls.json
     - assets/cameras/
+    - assets/map/liberty.json
+    - assets/map/LICENSE-map.txt
+    - assets/map/sprite/
+    - assets/map/fonts/Noto_Sans_Regular/
+    - assets/map/fonts/Noto_Sans_Bold/
+    - assets/map/fonts/Noto_Sans_Italic/
     - assets/legal/
     - assets/audio/
 

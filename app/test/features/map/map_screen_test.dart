@@ -63,7 +63,6 @@ class _NightLoader extends MapStyleLoader {
       : light();
 }
 
-
 class _Reverse implements ReverseGeocoder {
   Place? result;
   bool fail = false;
@@ -170,7 +169,9 @@ void main() {
   ) async {
     await pumpScreen(
       tester,
-      extra: [localLlmRuntimeProvider.overrideWithValue(FakeLlm(installed: true))],
+      extra: [
+        localLlmRuntimeProvider.overrideWithValue(FakeLlm(installed: true)),
+      ],
     );
 
     final fgmaps = find.byKey(const ValueKey('ai-dock-fgmaps'));

@@ -8,6 +8,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/app_config.dart';
 import '../../../core/network/dio_provider.dart';
+import '../../offline_maps/data/local_basemap.dart';
+import '../domain/local_basemap_style.dart';
 import '../domain/night_style.dart';
 import '../../../core/network/retry_interceptor.dart';
 import '../../../core/utils/log.dart';
@@ -34,6 +36,10 @@ class ResolvedMapStyle {
 }
 
 /// Mengambil gaya peta dan menghasilkan gaya malam kontras tinggi.
+///
+/// Jika paparan peta offline dipasang ([LocalBasemap]), kedua-dua gaya dibina daripada Liberty yang
+/// dibundel dan membaca tile, fon dan sprite daripada fail pada peranti: tiada rangkaian, dan tidak
+/// bergantung pada OpenFreeMap. Jika gagal dibina, jatuh ke gaya dalam talian di bawah.
 ///
 /// Gaya cerah dihantar sebagai URL (tiada kerja tambahan). Gaya malam: ambil JSON gaya asas
 /// (cache fail 7 hari; gaya lama dipakai jika rangkaian gagal), warnakan semula ([NightStyle]) dan
@@ -65,6 +71,21 @@ class MapStyleLoader {
     AppConfig.mapStyleDark,
     'url:${AppConfig.mapStyleDark}',
   );
+
+  /// Gaya daripada paparan peta offline, atau null jika tidak dapat dibina.
+  ResolvedMapStyle? local(LocalBasemap basemap, {required bool dark}) {
+    final built = LocalBasemapStyle.build(
+      basemap.styleTemplate,
+      pmtilesPath: basemap.pmtilesPath,
+      assetsDir: basemap.assetsDir,
+    );
+    if (built == null) return null;
+    final style = dark ? (NightStyle.apply(built) ?? built) : built;
+    return ResolvedMapStyle(
+      style,
+      'local:${basemap.version}:${dark ? 'night' : 'light'}',
+    );
+  }
 
   Future<ResolvedMapStyle> resolve({required bool dark}) async {
     if (!dark) return light();
@@ -158,6 +179,16 @@ final mapStyleLoaderProvider = Provider<MapStyleLoader>(
 );
 
 /// Gaya peta untuk mod semasa. Sentiasa selesai dalam masa [MapStyleLoader.timeout].
-final mapStyleProvider = FutureProvider.family<ResolvedMapStyle, bool>(
-  (ref, dark) => ref.watch(mapStyleLoaderProvider).resolve(dark: dark),
-);
+final mapStyleProvider = FutureProvider.family<ResolvedMapStyle, bool>((
+  ref,
+  dark,
+) async {
+  // Dipasang/dipadam paparan peta offline membatalkan localBasemapProvider, lalu gaya dibina semula.
+  final basemap = await ref.watch(localBasemapProvider.future);
+  final loader = ref.watch(mapStyleLoaderProvider);
+  if (basemap != null) {
+    final offline = loader.local(basemap, dark: dark);
+    if (offline != null) return offline;
+  }
+  return loader.resolve(dark: dark);
+});

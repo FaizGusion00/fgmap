@@ -17,6 +17,7 @@ import '../../azan/presentation/azan_now_banner.dart';
 import '../../azan/presentation/azan_sheet.dart';
 import '../../azan/presentation/azan_today_pill.dart';
 import '../../music/presentation/mini_player.dart';
+import 'map_tool_rail.dart';
 import '../../widgets/eta_widget_updater.dart';
 import '../../music/presentation/music_sheet.dart';
 import '../../music/presentation/player_controller.dart';
@@ -50,6 +51,7 @@ import '../../route_preview/presentation/route_summary_sheet.dart';
 import '../../offline_maps/presentation/offline_maps_sheet.dart';
 import '../../search/domain/location_link.dart';
 import '../../search/presentation/recent_places_bar.dart';
+import '../../search/presentation/search_pill.dart';
 import '../../search/presentation/trip_planner_page.dart';
 import '../../settings/presentation/settings_page.dart';
 import '../../air_quality/presentation/air_quality_sheet.dart';
@@ -1435,7 +1437,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
                           ),
                           const SizedBox(width: 8),
                           Expanded(
-                            child: _SearchPill(
+                            child: SearchPill(
                               label: l10n.searchPillHint,
                               hint: !_hintDismissed && state is RouteIdle
                                   ? l10n.mapHintLongPress
@@ -1448,7 +1450,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
                       // Pintasan (Rumah, Kerja, terkini) terus di bawah carian, seragam setinggi satu
                       // baris. Di bawahnya: waktu solat seterusnya (kiri) dan alat (kanan, satu kapsul).
                       if (state is RouteIdle) ...[
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 8),
                         RecentPlacesBar(
                           onPick: (place) => unawaited(
                             _planSelection(TripSelection(destination: place)),
@@ -1465,55 +1467,43 @@ class _MapScreenState extends ConsumerState<MapScreen>
                           ),
                         ),
                       ],
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          if (state is RouteIdle)
-                            const Expanded(
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: AzanTodayPill(),
-                              ),
-                            )
-                          else
-                            const Spacer(),
-                          const SizedBox(width: 8),
-                          _ToolRail(
-                            tools: [
-                              _ToolSpec(
-                                icon: Icons.wb_cloudy_rounded,
-                                tooltip: l10n.weatherOpen,
-                                color: const Color(0xFF0284C7),
-                                onPressed: () =>
-                                    unawaited(showWeatherPage(context)),
-                              ),
-                              _ToolSpec(
-                                icon: Icons.air_rounded,
-                                tooltip: l10n.airQualityOpen,
-                                color: const Color(0xFF0D9488),
-                                onPressed: () =>
-                                    unawaited(showAirQualitySheet(context)),
-                              ),
-                              _ToolSpec(
-                                icon: Icons.explore_rounded,
-                                tooltip: l10n.qiblaOpen,
-                                color: const Color(0xFFD97706),
-                                onPressed: () => unawaited(showQibla(context)),
-                              ),
-                              _ToolSpec(
-                                icon: Icons.music_note_rounded,
-                                tooltip: l10n.musicOpen,
-                                color: const Color(0xFFDB2777),
-                                onPressed: () =>
-                                    unawaited(showMusicSheet(context)),
-                              ),
-                              _ToolSpec(
-                                icon: Icons.cloud_download_rounded,
-                                tooltip: l10n.offlineMapsOpen,
-                                color: const Color(0xFF2563EB),
-                                onPressed: () => showOfflineMapsSheet(context),
-                              ),
-                            ],
+                      const SizedBox(height: 8),
+                      MapToolsRow(
+                        leading: state is RouteIdle
+                            ? const AzanTodayPill()
+                            : null,
+                        tools: [
+                          MapToolSpec(
+                            icon: Icons.wb_cloudy_rounded,
+                            label: l10n.weatherOpen,
+                            color: const Color(0xFF0284C7),
+                            onPressed: () =>
+                                unawaited(showWeatherPage(context)),
+                          ),
+                          MapToolSpec(
+                            icon: Icons.air_rounded,
+                            label: l10n.airQualityOpen,
+                            color: const Color(0xFF0D9488),
+                            onPressed: () =>
+                                unawaited(showAirQualitySheet(context)),
+                          ),
+                          MapToolSpec(
+                            icon: Icons.explore_rounded,
+                            label: l10n.qiblaOpen,
+                            color: const Color(0xFFD97706),
+                            onPressed: () => unawaited(showQibla(context)),
+                          ),
+                          MapToolSpec(
+                            icon: Icons.music_note_rounded,
+                            label: l10n.musicOpen,
+                            color: const Color(0xFFDB2777),
+                            onPressed: () => unawaited(showMusicSheet(context)),
+                          ),
+                          MapToolSpec(
+                            icon: Icons.cloud_download_rounded,
+                            label: l10n.offlineMapsOpen,
+                            color: const Color(0xFF2563EB),
+                            onPressed: () => showOfflineMapsSheet(context),
                           ),
                         ],
                       ),
@@ -2311,70 +2301,6 @@ class _AiDockButton extends StatelessWidget {
   }
 }
 
-class _ToolSpec {
-  const _ToolSpec({
-    required this.icon,
-    required this.tooltip,
-    required this.color,
-    required this.onPressed,
-  });
-
-  final IconData icon;
-  final String tooltip;
-  final Color color;
-  final VoidCallback onPressed;
-}
-
-/// Alat peta (kualiti udara, kiblat, muzik, peta luar talian) dalam SATU kapsul kaca, bukan empat
-/// bulatan berwarna-warni yang bersaing dengan peta. Warna kekal sebagai bintik halus pada ikon.
-class _ToolRail extends StatelessWidget {
-  const _ToolRail({required this.tools});
-
-  final List<_ToolSpec> tools;
-
-  @override
-  Widget build(BuildContext context) {
-    final fg = context.fg;
-    final easy = EasyModeScope.of(context);
-    final size = easy ? 52.0 : 40.0;
-    return Material(
-      key: const ValueKey('tool-rail'),
-      color: fg.glassSurface,
-      elevation: 2,
-      shape: StadiumBorder(side: BorderSide(color: fg.glassBorder)),
-      child: Padding(
-        padding: const EdgeInsets.all(4),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (var i = 0; i < tools.length; i++) ...[
-              if (i > 0) const SizedBox(width: 4),
-              PressScale(
-                child: IconButton(
-                  tooltip: tools[i].tooltip,
-                  onPressed: tools[i].onPressed,
-                  iconSize: easy ? 26 : 20,
-                  padding: EdgeInsets.zero,
-                  constraints: BoxConstraints.tightFor(
-                    width: size,
-                    height: size,
-                  ),
-                  style: IconButton.styleFrom(
-                    backgroundColor: tools[i].color.withValues(alpha: 0.14),
-                    foregroundColor: tools[i].color,
-                    shape: const CircleBorder(),
-                  ),
-                  icon: Icon(tools[i].icon),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _GlassIconButton extends StatelessWidget {
   const _GlassIconButton({
     required this.icon,
@@ -2458,102 +2384,6 @@ class _MapZoomControls extends StatelessWidget {
               visualDensity: VisualDensity.compact,
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Pil carian terapung. Mengetuknya membuka perancang perjalanan; [hint] (cara tekan-lama) dipaparkan
-/// sebagai teks sekunder sehingga pengguna mencuba, kerana tekan-lama kekal cara pantas memilih titik.
-class _SearchPill extends StatelessWidget {
-  const _SearchPill({required this.label, required this.onTap, this.hint});
-
-  final String label;
-  final String? hint;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final fg = context.fg;
-    final theme = Theme.of(context);
-    return Semantics(
-      button: true,
-      label: label,
-      hint: hint,
-      child: PressScale(
-        scale: 0.985,
-        child: Material(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(28),
-          elevation: 3,
-          shadowColor: Colors.black.withValues(alpha: 0.16),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(28),
-            // Tanpa BackdropFilter: kabur di atas pandangan peta asli dirender semula setiap kali peta
-            // bergerak dan menjejaskan telefon lemah; permukaan kaca sudah separa lutsinar.
-            child: Material(
-              color: fg.glassSurface,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(28),
-                side: BorderSide(color: fg.glassBorder),
-              ),
-              child: InkWell(
-                key: const ValueKey('search-pill'),
-                customBorder: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(28),
-                ),
-                onTap: onTap,
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight: EasyModeScope.of(context) ? 64 : 56,
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 6,
-                    ),
-                    child: Row(
-                      children: [
-                        DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primary.withValues(
-                              alpha: 0.12,
-                            ),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: SizedBox(
-                            width: 34,
-                            height: 34,
-                            child: Icon(
-                              Icons.search_rounded,
-                              color: theme.colorScheme.primary,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            label,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              color: theme.colorScheme.onSurface,
-                            ),
-                          ),
-                        ),
-                        Icon(
-                          Icons.arrow_forward_rounded,
-                          size: 20,
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
         ),
       ),
     );

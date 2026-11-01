@@ -60,7 +60,7 @@ Ukuran 2026-11-01, laluan KL→Ipoh (203 km):
 
 - Data offline sama umur dengan pek (dibina setiap minggu). Pengecas EV baharu mungkin belum ada sehingga
   pek seterusnya; dalam talian, carian biasa tetap menggunakan Photon/Overpass yang lebih terkini.
-- Tile **paparan** peta (OpenFreeMap) masih dalam talian sahaja (ADR 0001). Tanpa internet, latar peta
-  bergantung pada cache MapLibre. Ini langkah berasingan (PMTiles), belum dibuat.
+- Tile **paparan** peta (OpenFreeMap) dalam talian sahaja pada masa ADR ini ditulis (ADR 0001); ia
+  diselesaikan oleh [ADR 0016](0016-paparan-peta-offline-pmtiles.md) (PMTiles tempatan dalam pek yang sama).
 - Kunci cache sepanjang laluan mengandungi koordinat titik laluan yang dibundarkan; disimpan pada
   peranti sahaja dan dipadam oleh "padam data" (ADR 0010).

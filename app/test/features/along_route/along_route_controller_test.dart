@@ -1,10 +1,14 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
+import 'package:fgmap/core/storage/preferences.dart';
 import 'package:fgmap/core/utils/geo.dart';
 import 'package:fgmap/features/along_route/data/along_route_search.dart';
 import 'package:fgmap/features/along_route/domain/along_route_category.dart';
 import 'package:fgmap/features/along_route/presentation/along_route_controller.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/fakes.dart';
 
@@ -161,6 +165,45 @@ void main() {
     expect(st().loading, isFalse);
     await pumpEventQueue();
   });
+
+  test(
+    'cache cakera buang entri tertua, bukan tarikh yang regex gagal baca',
+    () async {
+      String body(String at) =>
+          jsonEncode({'at': at, 'cats': <String, Object>{}});
+      SharedPreferences.setMockInitialValues({
+        '${alongRouteCachePrefix}old': body('2020-01-01T00:00:00.000'),
+        '${alongRouteCachePrefix}a': body('2022-01-01T00:00:00.000'),
+        '${alongRouteCachePrefix}b': body('2023-01-01T00:00:00.000'),
+        '${alongRouteCachePrefix}c': body('2024-01-01T00:00:00.000'),
+        '${alongRouteCachePrefix}d': body('2025-01-01T00:00:00.000'),
+        // Jarak selepas titik bertindih: regex `"at":"` gagal, JSON tidak.
+        '${alongRouteCachePrefix}spaced':
+            '{"at": "2026-11-01T00:00:00.000", "cats": {}}',
+      });
+      final prefs = await SharedPreferences.getInstance();
+      final dio = Dio()..httpClientAdapter = StubAdapter(net.respond);
+      final c = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          alongRouteSearchProvider.overrideWithValue(
+            AlongRouteSearch(dio, const ['https://o.test/api']),
+          ),
+        ],
+      );
+      addTearDown(c.dispose);
+      await c
+          .read(alongRouteControllerProvider.notifier)
+          .loadForRoute(
+            sampleOption(points: _line(50)),
+            category: AlongRouteCategory.restArea,
+          );
+      await pumpEventQueue();
+
+      expect(prefs.getString('${alongRouteCachePrefix}old'), isNull);
+      expect(prefs.getString('${alongRouteCachePrefix}spaced'), isNotNull);
+    },
+  );
 
   test('ralat rangkaian: keadaan ralat, boleh cuba semula', () async {
     var fail = true;

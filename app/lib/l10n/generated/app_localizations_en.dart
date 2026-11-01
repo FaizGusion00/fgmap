@@ -33,7 +33,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get mapAttribution => '© OpenStreetMap contributors · OpenFreeMap';
+  String get mapAttribution =>
+      '© OpenStreetMap contributors · © OpenMapTiles · OpenFreeMap';
 
   @override
   String get locationRationaleTitle => 'Allow location access?';
@@ -197,7 +198,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get offlineMapsIntro =>
-      'Download the Malaysia map once to plan routes and search for places without internet. With internet, routes and search use online services (more up to date) and the offline map is the fallback.';
+      'Download the Malaysia map once to view the map, plan routes and search for places without internet. With internet, routes and search use online services (more up to date) and the offline map is the fallback.';
 
   @override
   String get offlineMapsNotConfigured =>
@@ -266,7 +267,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get offlineMapsDeleteBody =>
-      'You\'ll need to download it again to use offline routing.';
+      'You\'ll need to download it again to use the offline map, routing and search.';
 
   @override
   String get offlineMapsErrorNetwork =>
@@ -2863,10 +2864,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get weatherCodeSnow => 'Snow';
 
   @override
+  String get mapToolsMore => 'More tools';
+
+  @override
   String get weatherOpen => 'Weather';
 
   @override
   String offlineMapsSearchAvailable(String size) {
     return 'Offline search available (+$size)';
+  }
+
+  @override
+  String offlineMapsMapAvailable(String size) {
+    return 'Offline map display available (+$size)';
+  }
+
+  @override
+  String offlineMapsMapSearchAvailable(String size) {
+    return 'Offline map display and search available (+$size)';
   }
 }

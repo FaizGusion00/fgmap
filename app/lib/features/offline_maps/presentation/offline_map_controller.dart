@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/app_config.dart';
 import '../../../core/network/dio_provider.dart';
+import '../data/local_basemap.dart';
 import '../data/offline_engine_host.dart';
 import '../../search/data/offline_places_db.dart';
 import '../data/offline_map_installer.dart';
@@ -46,8 +47,9 @@ class OfflineMapState {
     final l = latest;
     if (i == null || l == null) return false;
     if (l.version.compareTo(i.version) > 0) return true;
-    // Pek laluan sama, tetapi indeks carian offline belum ada (atau lebih lama).
-    return l.places != null && i.placesVersion != l.version;
+    // Pek laluan sama, tetapi indeks carian atau paparan peta offline belum ada (atau lebih lama).
+    return (l.places != null && i.placesVersion != l.version) ||
+        (l.basemap != null && i.basemapVersion != l.version);
   }
 
   bool get canDownload =>
@@ -189,6 +191,8 @@ class OfflineMapController extends Notifier<OfflineMapState> {
         },
       );
       if (!ref.mounted) return;
+      // Paparan peta baharu: bina semula gaya supaya peta membaca fail offline.
+      ref.invalidate(localBasemapProvider);
       state = state.copyWith(
         op: OfflineOp.idle,
         installed: () => installed,
@@ -223,8 +227,11 @@ class OfflineMapController extends Notifier<OfflineMapState> {
     await ref.read(offlineEngineHostProvider).withEngineClosed(() async {
       await store.deleteInstalled();
       await store.discardPartial();
+      await store.discardBasemapPartial();
     });
     if (!ref.mounted) return;
+    // Tiada lagi fail paparan peta: kembali ke gaya dalam talian.
+    ref.invalidate(localBasemapProvider);
     state = state.copyWith(installed: () => null, error: () => null);
   }
 }

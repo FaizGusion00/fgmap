@@ -110,12 +110,13 @@ class RecentPlacesBar extends ConsumerWidget {
 
     // Mod mudah: cip Rumah/Kerja setinggi 56 dp (sasaran sentuhan besar) dengan teks lebih besar.
     return SizedBox(
-      height: EasyModeScope.of(context) ? 56 : 40,
+      height: EasyModeScope.of(context) ? 56 : 34,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         clipBehavior: Clip.none,
         itemCount: entries.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        separatorBuilder: (_, _) =>
+            SizedBox(width: EasyModeScope.of(context) ? 8 : 6),
         itemBuilder: (context, i) => entries[i],
       ),
     );
@@ -149,10 +150,11 @@ class _ShortcutChip extends StatelessWidget {
     final fg = context.fg;
     final theme = Theme.of(context);
     final easy = EasyModeScope.of(context);
-    final badge = easy ? 40.0 : 28.0;
+    final badge = easy ? 40.0 : 24.0;
     return Material(
       color: fg.glassSurface,
-      elevation: 2,
+      elevation: 1.5,
+      shadowColor: Colors.black.withValues(alpha: 0.16),
       shape: StadiumBorder(side: BorderSide(color: fg.glassBorder)),
       child: InkWell(
         customBorder: const StadiumBorder(),
@@ -160,11 +162,11 @@ class _ShortcutChip extends StatelessWidget {
         onLongPress: onLongPress,
         child: ConstrainedBox(
           constraints: BoxConstraints(
-            maxWidth: easy ? 240 : 190,
-            minHeight: easy ? 56 : 40,
+            maxWidth: easy ? 240 : 156,
+            minHeight: easy ? 56 : 34,
           ),
           child: Padding(
-            padding: EdgeInsets.fromLTRB(6, 0, easy ? 18 : 14, 0),
+            padding: EdgeInsets.fromLTRB(easy ? 6 : 5, 0, easy ? 18 : 11, 0),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -179,11 +181,11 @@ class _ShortcutChip extends StatelessWidget {
                   ),
                   child: Icon(
                     icon,
-                    size: easy ? 24 : 16,
+                    size: easy ? 24 : 14,
                     color: set ? tint : tint.withValues(alpha: 0.6),
                   ),
                 ),
-                SizedBox(width: easy ? 10 : 8),
+                SizedBox(width: easy ? 10 : 6),
                 Flexible(
                   child: Text(
                     label,
@@ -194,6 +196,8 @@ class _ShortcutChip extends StatelessWidget {
                                 ? theme.textTheme.titleMedium
                                 : theme.textTheme.labelLarge)
                             ?.copyWith(
+                              fontSize: easy ? null : 13,
+                              height: 1.1,
                               fontWeight: FontWeight.w600,
                               color: set
                                   ? theme.colorScheme.onSurface
@@ -202,10 +206,10 @@ class _ShortcutChip extends StatelessWidget {
                   ),
                 ),
                 if (!set) ...[
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 5),
                   Icon(
                     Icons.add_circle_outline_rounded,
-                    size: easy ? 22 : 16,
+                    size: easy ? 22 : 14,
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ],

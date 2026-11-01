@@ -19,6 +19,7 @@ import 'assistant_controller.dart';
 import 'muslim_ai_controller.dart';
 import 'muslim_terms_sheet.dart';
 import 'widgets/answer_text.dart';
+import 'widgets/smooth_reveal.dart';
 import 'widgets/sources_section.dart';
 import 'widgets/typing_indicator.dart';
 
@@ -33,6 +34,26 @@ Color aiAccent(BuildContext context, AiMode mode) {
     AiMode.fg => dark ? const Color(0xFFA78BFA) : const Color(0xFF6D28D9),
     AiMode.muslim => dark ? const Color(0xFF34D399) : const Color(0xFF047857),
   };
+}
+
+/// Berapa aksara jawapan akhir yang SUDAH kelihatan semasa dialirkan: bilangan yang dipaparkan
+/// ([shown]) tetapi hanya sepanjang awalan yang sama antara teks aliran dan teks akhir (jawapan
+/// akhir boleh dibersihkan/ditulis semula selepas aliran).
+@visibleForTesting
+int streamCarry({
+  required String streamed,
+  required String finalText,
+  required int shown,
+}) {
+  final max = streamed.length < finalText.length
+      ? streamed.length
+      : finalText.length;
+  var common = 0;
+  while (common < max &&
+      streamed.codeUnitAt(common) == finalText.codeUnitAt(common)) {
+    common++;
+  }
+  return common < shown ? common : shown;
 }
 
 List<Color> _aiGradient(AiMode mode) => switch (mode) {
@@ -55,9 +76,17 @@ class _AiChatPageState extends ConsumerState<AiChatPage> {
   final _focus = FocusNode();
   final _scaffold = GlobalKey<ScaffoldState>();
 
-  /// Jawapan yang sudah dipaparkan secara langsung (dialirkan) tidak perlu dianimasi semula.
-  final _skipTypewriter = <DateTime>{};
+  /// Jawapan yang sudah dialirkan: bilangan aksara yang SUDAH kelihatan, supaya animasi menaip
+  /// jawapan akhir menyambung (bukan bermula semula atau melompat).
+  final _carry = <DateTime, int>{};
   final _typed = <DateTime>{};
+
+  /// Mesej/penunjuk yang sudah masuk dengan animasi, supaya tidak memutar semula bila ListView
+  /// membina semula item yang tadi keluar skrin.
+  final _entered = <Object>{};
+  int _streamShown = 0;
+  bool _pinned = true;
+  bool _followQueued = false;
   Timer? _keyboardScroll;
 
   bool get _isMuslim => widget.mode == AiMode.muslim;
@@ -91,7 +120,33 @@ class _AiChatPageState extends ConsumerState<AiChatPage> {
 
   bool get _uiMalay => Localizations.localeOf(context).languageCode == 'ms';
 
+  /// Ikut hujung senarai semasa kandungan bertambah (menaip, aliran), hanya jika pengguna belum
+  /// menggulung ke atas untuk membaca. Satu lompatan setiap bingkai, tanpa animasi bertindih.
+  void _follow() {
+    if (!_pinned || _followQueued || !mounted) return;
+    _followQueued = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _followQueued = false;
+      if (!mounted || !_pinned || !_scroll.hasClients) return;
+      final target = _scroll.position.maxScrollExtent;
+      if ((target - _scroll.position.pixels).abs() > 0.5) {
+        _scroll.jumpTo(target);
+      }
+    });
+  }
+
+  bool _onScroll(ScrollNotification n) {
+    if (n.depth != 0) return false;
+    if ((n is ScrollUpdateNotification && n.dragDetails != null) ||
+        n is UserScrollNotification ||
+        n is ScrollEndNotification) {
+      _pinned = n.metrics.extentAfter < 72;
+    }
+    return false;
+  }
+
   void _scrollToEnd({bool delayed = false, bool jump = false}) {
+    _pinned = true;
     void go() {
       if (!mounted || !_scroll.hasClients) return;
       final target = _scroll.position.maxScrollExtent;
@@ -168,18 +223,32 @@ class _AiChatPageState extends ConsumerState<AiChatPage> {
     final accent = aiAccent(context, widget.mode);
 
     ref.listen(_provider, (prev, next) {
-      if (prev?.messages.length != next.messages.length ||
-          (next.streamingText != null &&
-              prev?.streamingText != next.streamingText)) {
-        _scrollToEnd(jump: next.streamingText != null);
+      if (prev?.messages.length != next.messages.length) {
+        if (next.messages.lastOrNull?.role == AssistantRole.user) {
+          _pinned = true;
+        }
+        // Pengguna yang sedang membaca di atas tidak ditarik ke bawah oleh jawapan baharu.
+        if (_pinned) _scrollToEnd();
+      } else if (prev?.streamingText != next.streamingText ||
+          prev?.busy != next.busy ||
+          prev?.phase != next.phase) {
+        _follow();
       }
-      // Jawapan yang sudah dialirkan tidak ditaip semula.
-      if (prev?.streamingText != null &&
+      // Jawapan yang sudah dialirkan: sambung menaip daripada aksara yang sudah kelihatan, bukan
+      // bermula semula atau melompat ke teks penuh.
+      final streamed = prev?.streamingText;
+      final fresh = next.freshAt;
+      if (streamed != null &&
           next.streamingText == null &&
-          next.freshAt != null &&
-          next.freshAt != prev?.freshAt) {
-        _skipTypewriter.add(next.freshAt!);
+          fresh != null &&
+          fresh != prev?.freshAt) {
+        _carry[fresh] = streamCarry(
+          streamed: streamed,
+          finalText: next.messages.lastOrNull?.text ?? '',
+          shown: _streamShown,
+        );
       }
+      if (next.streamingText == null) _streamShown = 0;
     });
 
     final gated = _isMuslim && !muslimActive;
@@ -213,14 +282,20 @@ class _AiChatPageState extends ConsumerState<AiChatPage> {
             : null,
       );
     } else {
-      body = _MessageList(
-        state: state,
-        mode: widget.mode,
-        accent: accent,
-        scroll: _scroll,
-        skipTypewriter: _skipTypewriter,
-        typed: _typed,
-        onAction: _onAction,
+      body = NotificationListener<ScrollNotification>(
+        onNotification: _onScroll,
+        child: _MessageList(
+          state: state,
+          mode: widget.mode,
+          accent: accent,
+          scroll: _scroll,
+          carry: _carry,
+          typed: _typed,
+          entered: _entered,
+          onAction: _onAction,
+          onGrow: _follow,
+          onStreamShown: (n) => _streamShown = n,
+        ),
       );
     }
 
@@ -344,14 +419,17 @@ class _AiChatPageState extends ConsumerState<AiChatPage> {
 }
 
 class _AiAvatar extends StatelessWidget {
-  const _AiAvatar({required this.mode, this.size = 30});
+  const _AiAvatar({required this.mode, this.size = 30, this.active = false});
 
   final AiMode mode;
   final double size;
 
+  /// Sedang menjawab: halo berdenyut dan percikan berkelip-kelip lembut.
+  final bool active;
+
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final orb = Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
@@ -362,15 +440,149 @@ class _AiAvatar extends StatelessWidget {
           colors: _aiGradient(mode),
         ),
       ),
-      child: Icon(
-        mode == AiMode.muslim
-            ? Icons.menu_book_rounded
-            : Icons.auto_awesome_rounded,
-        size: size * 0.52,
-        color: Colors.white,
+      child: _AvatarGlyph(mode: mode, size: size, active: active),
+    );
+    if (!active || MediaQuery.disableAnimationsOf(context)) return orb;
+    return _AvatarHalo(size: size, color: _aiGradient(mode).last, child: orb);
+  }
+}
+
+class _AvatarGlyph extends StatefulWidget {
+  const _AvatarGlyph({
+    required this.mode,
+    required this.size,
+    required this.active,
+  });
+
+  final AiMode mode;
+  final double size;
+  final bool active;
+
+  @override
+  State<_AvatarGlyph> createState() => _AvatarGlyphState();
+}
+
+class _AvatarGlyphState extends State<_AvatarGlyph>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1100),
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final animate = widget.active && !MediaQuery.disableAnimationsOf(context);
+    if (animate && !_c.isAnimating) {
+      _c.repeat(reverse: true);
+    } else if (!animate) {
+      _c.stop();
+    }
+  }
+
+  @override
+  void didUpdateWidget(_AvatarGlyph old) {
+    super.didUpdateWidget(old);
+    if (old.active != widget.active) didChangeDependencies();
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final icon = Icon(
+      widget.mode == AiMode.muslim
+          ? Icons.menu_book_rounded
+          : Icons.auto_awesome_rounded,
+      size: widget.size * 0.52,
+      color: Colors.white,
+    );
+    if (!widget.active) return icon;
+    return ScaleTransition(
+      scale: Tween<double>(
+        begin: 0.86,
+        end: 1.12,
+      ).animate(CurvedAnimation(parent: _c, curve: Curves.easeInOut)),
+      child: icon,
+    );
+  }
+}
+
+/// Cincin halo yang merebak keluar dari avatar semasa AI menjawab.
+class _AvatarHalo extends StatefulWidget {
+  const _AvatarHalo({
+    required this.size,
+    required this.color,
+    required this.child,
+  });
+
+  final double size;
+  final Color color;
+  final Widget child;
+
+  @override
+  State<_AvatarHalo> createState() => _AvatarHaloState();
+}
+
+class _AvatarHaloState extends State<_AvatarHalo>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1700),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RepaintBoundary(
+      child: SizedBox.square(
+        dimension: widget.size,
+        child: CustomPaint(
+          painter: _HaloPainter(progress: _c, color: widget.color),
+          child: widget.child,
+        ),
       ),
     );
   }
+}
+
+class _HaloPainter extends CustomPainter {
+  _HaloPainter({required this.progress, required this.color})
+    : super(repaint: progress);
+
+  final Animation<double> progress;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = size.center(Offset.zero);
+    final base = size.shortestSide / 2;
+    for (var i = 0; i < 2; i++) {
+      final p = (progress.value + i * 0.5) % 1.0;
+      final r = base + size.shortestSide * 0.42 * Curves.easeOut.transform(p);
+      canvas.drawCircle(
+        center,
+        r,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.6
+          ..color = color.withValues(alpha: 0.38 * (1 - p)),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_HaloPainter old) =>
+      old.color != color || old.progress != progress;
 }
 
 class _MessageList extends StatelessWidget {
@@ -379,18 +591,24 @@ class _MessageList extends StatelessWidget {
     required this.mode,
     required this.accent,
     required this.scroll,
-    required this.skipTypewriter,
+    required this.carry,
     required this.typed,
+    required this.entered,
     required this.onAction,
+    required this.onGrow,
+    required this.onStreamShown,
   });
 
   final AssistantUiState state;
   final AiMode mode;
   final Color accent;
   final ScrollController scroll;
-  final Set<DateTime> skipTypewriter;
+  final Map<DateTime, int> carry;
   final Set<DateTime> typed;
+  final Set<Object> entered;
   final ValueChanged<AssistantAction> onAction;
+  final VoidCallback onGrow;
+  final ValueChanged<int> onStreamShown;
 
   @override
   Widget build(BuildContext context) {
@@ -405,17 +623,7 @@ class _MessageList extends StatelessWidget {
       itemCount: messages.length + (pending ? 1 : 0),
       itemBuilder: (context, i) {
         if (i >= messages.length) {
-          if (streaming != null && streaming.isNotEmpty) {
-            return _AssistantBlock(
-              mode: mode,
-              accent: accent,
-              child: AnswerText(
-                streaming,
-                citationColor: accent,
-                trailing: BlinkingCaret(color: accent),
-              ),
-            );
-          }
+          final streamingNow = streaming != null && streaming.isNotEmpty;
           final label = switch (state.phase) {
             AiPhase.preparing => l10n.aiPreparing,
             AiPhase.working => l10n.aiWorking,
@@ -423,32 +631,59 @@ class _MessageList extends StatelessWidget {
             _ => l10n.aiThinking,
           };
           return _AssistantBlock(
+            id: 'pending',
+            entered: entered,
             mode: mode,
             accent: accent,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: TypingIndicator(color: accent, label: label),
+            active: true,
+            // Penunjuk berfikir bertukar lembut kepada teks yang mengalir (bukan terus ganti).
+            child: AnimatedSwitcher(
+              duration: Motion.of(context, Motion.normal),
+              layoutBuilder: (current, previous) => Stack(
+                alignment: Alignment.topLeft,
+                children: [...previous, ?current],
+              ),
+              child: streamingNow
+                  ? SmoothReveal(
+                      key: const ValueKey('ai-stream'),
+                      live: true,
+                      text: streaming,
+                      onShown: onStreamShown,
+                      onProgress: onGrow,
+                      builder: (context, visible, _) => AnswerText(
+                        visible,
+                        citationColor: accent,
+                        trailing: TypingCaret(color: accent),
+                      ),
+                    )
+                  : Padding(
+                      key: ValueKey('ai-thinking-${state.phase.name}'),
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: TypingIndicator(color: accent, label: label),
+                    ),
             ),
           );
         }
         final m = messages[i];
         if (m.role == AssistantRole.user) {
-          return _UserBubble(message: m, accent: accent);
+          return _UserBubble(message: m, accent: accent, entered: entered);
         }
         final at = m.at;
         final animate =
             at != null &&
             at == state.freshAt &&
             i == messages.length - 1 &&
-            !skipTypewriter.contains(at) &&
             !typed.contains(at);
         return _AssistantMessageView(
           key: ValueKey('ai-msg-$i-${at?.microsecondsSinceEpoch}'),
           message: m,
           mode: mode,
           accent: accent,
+          entered: entered,
           animate: animate,
+          initialChars: at == null ? 0 : carry[at] ?? 0,
           onTyped: at == null ? null : () => typed.add(at),
+          onGrow: onGrow,
           onAction: onAction,
         );
       },
@@ -457,16 +692,24 @@ class _MessageList extends StatelessWidget {
 }
 
 class _UserBubble extends StatelessWidget {
-  const _UserBubble({required this.message, required this.accent});
+  const _UserBubble({
+    required this.message,
+    required this.accent,
+    required this.entered,
+  });
 
   final AssistantMessage message;
   final Color accent;
+  final Set<Object> entered;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final maxW = (MediaQuery.sizeOf(context).width * 0.8).clamp(220.0, 560.0);
     return _EnterAnimation(
+      id: 'u-${message.at?.microsecondsSinceEpoch ?? message.text.hashCode}',
+      entered: entered,
+      slideFrom: 14,
       child: Align(
         alignment: Alignment.centerRight,
         child: Container(
@@ -500,18 +743,28 @@ class _UserBubble extends StatelessWidget {
 /// Jawapan AI: avatar kecil + kandungan penuh lebar (gaya ChatGPT), bukan gelembung sempit.
 class _AssistantBlock extends StatelessWidget {
   const _AssistantBlock({
+    required this.id,
+    required this.entered,
     required this.mode,
     required this.accent,
     required this.child,
+    this.active = false,
   });
 
+  final Object id;
+  final Set<Object> entered;
   final AiMode mode;
   final Color accent;
   final Widget child;
 
+  /// AI sedang menjawab: avatar berdenyut dengan halo.
+  final bool active;
+
   @override
   Widget build(BuildContext context) {
     return _EnterAnimation(
+      id: id,
+      entered: entered,
       child: Padding(
         padding: const EdgeInsets.only(bottom: 18),
         child: Row(
@@ -519,7 +772,7 @@ class _AssistantBlock extends StatelessWidget {
           children: [
             Padding(
               padding: const EdgeInsets.only(top: 1),
-              child: _AiAvatar(mode: mode, size: 26),
+              child: _AiAvatar(mode: mode, size: 26, active: active),
             ),
             const SizedBox(width: 10),
             Expanded(child: child),
@@ -536,16 +789,22 @@ class _AssistantMessageView extends StatelessWidget {
     required this.message,
     required this.mode,
     required this.accent,
+    required this.entered,
     required this.animate,
     required this.onAction,
+    required this.onGrow,
+    this.initialChars = 0,
     this.onTyped,
   });
 
   final AssistantMessage message;
   final AiMode mode;
   final Color accent;
+  final Set<Object> entered;
   final bool animate;
+  final int initialChars;
   final ValueChanged<AssistantAction> onAction;
+  final VoidCallback onGrow;
   final VoidCallback? onTyped;
 
   @override
@@ -561,7 +820,7 @@ class _AssistantMessageView extends StatelessWidget {
           AnswerText(
             visible,
             citationColor: accent,
-            trailing: done ? null : BlinkingCaret(color: accent),
+            trailing: done ? null : TypingCaret(color: accent),
           ),
         AnimatedSwitcher(
           duration: Motion.of(context, Motion.normal),
@@ -590,19 +849,35 @@ class _AssistantMessageView extends StatelessWidget {
       ],
     );
 
-    return _AssistantBlock(
+    final blockId =
+        'a-${message.at?.microsecondsSinceEpoch ?? message.text.hashCode}';
+    // Sudah kelihatan sebagai teks yang dialirkan: jangan pudarkan semula dari kosong.
+    if (initialChars > 0) entered.add(blockId);
+    Widget block(Widget child, {bool active = false}) => _AssistantBlock(
+      id: blockId,
+      entered: entered,
       mode: mode,
       accent: accent,
-      child: animate && message.text.isNotEmpty
-          ? TypewriterAnswer(
-              text: message.text,
-              wordDelay: Duration(
-                milliseconds: mode == AiMode.muslim ? 26 : 14,
-              ),
-              onDone: onTyped,
-              builder: (context, visible, done) => content(visible, done),
-            )
-          : content(message.text, true),
+      active: active,
+      child: child,
+    );
+
+    if (!animate || message.text.isEmpty) {
+      return block(content(message.text, true));
+    }
+    // Avatar berdenyut selagi jawapan ditaip, kemudian tenang apabila selesai.
+    return TypewriterAnswer(
+      text: message.text,
+      // FGMuslim sedikit lebih perlahan: jawapan dibaca, bukan disapu.
+      charsPerSecond: mode == AiMode.muslim ? 70 : 100,
+      initialChars: initialChars,
+      onProgress: onGrow,
+      onDone: () {
+        onTyped?.call();
+        onGrow();
+      },
+      builder: (context, visible, done) =>
+          block(content(visible, done), active: !done),
     );
   }
 }
@@ -700,25 +975,45 @@ class _ActionsRow extends StatelessWidget {
   }
 }
 
-class _EnterAnimation extends StatelessWidget {
-  const _EnterAnimation({required this.child});
+/// Masuk dengan fade + gelongsor kecil, SEKALI sahaja untuk setiap [id]. ListView membina semula
+/// item yang kembali ke skrin; tanpa [entered], mesej lama memutar animasi masuk setiap kali
+/// digulung dan kelihatan berkelip.
+class _EnterAnimation extends StatefulWidget {
+  const _EnterAnimation({
+    required this.id,
+    required this.entered,
+    required this.child,
+    this.slideFrom = 12,
+  });
 
+  final Object id;
+  final Set<Object> entered;
+  final double slideFrom;
   final Widget child;
 
   @override
+  State<_EnterAnimation> createState() => _EnterAnimationState();
+}
+
+class _EnterAnimationState extends State<_EnterAnimation> {
+  late final bool _animate = widget.entered.add(widget.id);
+
+  @override
   Widget build(BuildContext context) {
+    final duration = Motion.of(context, Motion.emphasized);
+    if (!_animate || duration == Duration.zero) return widget.child;
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
-      duration: Motion.of(context, Motion.normal),
+      duration: duration,
       curve: Motion.enter,
       builder: (context, t, child) => Opacity(
         opacity: t,
         child: Transform.translate(
-          offset: Offset(0, (1 - t) * 12),
+          offset: Offset(0, (1 - t) * widget.slideFrom),
           child: child,
         ),
       ),
-      child: child,
+      child: widget.child,
     );
   }
 }

@@ -43,7 +43,7 @@ class AzanTodayPill extends ConsumerWidget {
       full = l10n.azanTitle;
     }
     final primary = theme.colorScheme.primary;
-    final badge = easy ? 40.0 : 32.0;
+    final badge = easy ? 40.0 : 28.0;
 
     return Semantics(
       button: true,
@@ -53,6 +53,7 @@ class AzanTodayPill extends ConsumerWidget {
           key: const ValueKey('azan-pill'),
           color: fg.glassSurface,
           elevation: 2,
+          shadowColor: Colors.black.withValues(alpha: 0.16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
             side: BorderSide(color: fg.glassBorder),
@@ -63,9 +64,9 @@ class AzanTodayPill extends ConsumerWidget {
             ),
             onTap: () => showAzanSheet(context),
             child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: easy ? 60 : 48),
+              constraints: BoxConstraints(minHeight: easy ? 60 : 44),
               child: Padding(
-                padding: EdgeInsets.fromLTRB(8, 6, easy ? 18 : 14, 6),
+                padding: EdgeInsets.fromLTRB(7, 5, easy ? 18 : 12, 5),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -81,46 +82,53 @@ class AzanTodayPill extends ConsumerWidget {
                         enabled
                             ? Icons.notifications_active_rounded
                             : Icons.mosque_rounded,
-                        size: easy ? 24 : 18,
+                        size: easy ? 24 : 16,
                         color: primary,
                       ),
                     ),
-                    SizedBox(width: easy ? 12 : 8),
+                    SizedBox(width: easy ? 12 : 7),
+                    // FittedBox: jika ruang sempit, teks mengecil (bukan dipotong) supaya waktu solat
+                    // sentiasa terbaca penuh.
                     Flexible(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style:
-                                (easy
-                                        ? theme.textTheme.titleMedium
-                                        : theme.textTheme.labelLarge)
-                                    ?.copyWith(
-                                      color: theme.colorScheme.onSurface,
-                                      fontWeight: FontWeight.w700,
-                                      height: 1.15,
-                                    ),
-                          ),
-                          if (sub != null)
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             Text(
-                              sub,
+                              title,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style:
                                   (easy
-                                          ? theme.textTheme.bodyMedium
-                                          : theme.textTheme.labelSmall)
+                                          ? theme.textTheme.titleMedium
+                                          : theme.textTheme.labelLarge)
                                       ?.copyWith(
-                                        color:
-                                            theme.colorScheme.onSurfaceVariant,
+                                        color: theme.colorScheme.onSurface,
+                                        fontWeight: FontWeight.w700,
                                         height: 1.15,
                                       ),
                             ),
-                        ],
+                            if (sub != null)
+                              Text(
+                                sub,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style:
+                                    (easy
+                                            ? theme.textTheme.bodyMedium
+                                            : theme.textTheme.labelSmall)
+                                        ?.copyWith(
+                                          color: theme
+                                              .colorScheme
+                                              .onSurfaceVariant,
+                                          height: 1.15,
+                                        ),
+                              ),
+                          ],
+                        ),
                       ),
                     ),
                   ],

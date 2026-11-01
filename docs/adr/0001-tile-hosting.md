@@ -38,7 +38,14 @@ Gaya tersuai FGMap (cerah, gelap, "navigasi malam", Bahagian 8.1 dan 14.6) ditan
 Mana-mana satu: gangguan OpenFreeMap yang menjejas beta; permintaan pengguna melepasi penggunaan wajar
 (hubungi pengendali mereka sebelum itu berlaku); ketidakpadanan paparan/routing mengganggu pengguna.
 
-## Pelan sandaran (BELUM disahkan; spike Fasa 0 tidak dilakukan)
+## Pelan sandaran (PMTiles)
+
+> **Dikemas kini 2026-11-01:** langkah PMTiles dilaksanakan untuk **paparan peta offline** (bukan sebagai
+> hos sendiri ganti OpenFreeMap); lihat [ADR 0016](0016-paparan-peta-offline-pmtiles.md). Gaya, fon dan sprite
+> dibundel dalam app, dan `maplibre_gl` 0.27.1 disahkan memuatkan `pmtiles://file://` pada Android.
+> Sebagai hos dalam talian ganti OpenFreeMap, pelan di bawah masih belum dibuat.
+
+Pelan asal (spike Fasa 0 tidak dilakukan):
 
 Spike PMTiles dalam pelan Fasa 0 ialah item stretch dan **tidak dibuat**. Skopnya lebih besar daripada tile sahaja:
 

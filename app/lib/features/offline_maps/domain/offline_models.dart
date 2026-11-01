@@ -29,6 +29,7 @@ class OfflineManifest {
     required this.extractedSizeBytes,
     required this.extractedSha256,
     this.places,
+    this.basemap,
   });
 
   final String region;
@@ -48,8 +49,13 @@ class OfflineManifest {
   /// (tidak menggagalkan pek laluan).
   final OfflinePlacesInfo? places;
 
-  /// Jumlah muat turun penuh (pek laluan + indeks carian).
-  int get totalDownloadBytes => sizeBytes + (places?.sizeBytes ?? 0);
+  /// Tile paparan peta (PMTiles, pilihan). Manifest lama tanpanya kekal sah: paparan peta kekal dalam
+  /// talian. Entri rosak diabaikan (tidak menggagalkan pek laluan).
+  final OfflineBasemapInfo? basemap;
+
+  /// Jumlah muat turun penuh (pek laluan + indeks carian + paparan peta).
+  int get totalDownloadBytes =>
+      sizeBytes + (places?.sizeBytes ?? 0) + (basemap?.sizeBytes ?? 0);
 
   static final _hex64 = RegExp(r'^[0-9a-f]{64}$');
   static final _version = RegExp(r'^\d{8}$');
@@ -104,6 +110,7 @@ class OfflineManifest {
 
     return OfflineManifest(
       places: OfflinePlacesInfo.tryParse(json['places']),
+      basemap: OfflineBasemapInfo.tryParse(json['basemap']),
       region: field<String>('region'),
       version: version,
       valhalla: valhalla,
@@ -167,6 +174,56 @@ class OfflinePlacesInfo {
   }
 }
 
+/// Fail tile paparan peta dalam manifest (`tools/basemap/build.sh`): satu fail PMTiles skema
+/// OpenMapTiles. Dimuat turun mentah (tile PMTiles sudah dimampatkan), jadi tiada langkah ekstrak.
+@immutable
+class OfflineBasemapInfo {
+  const OfflineBasemapInfo({
+    required this.file,
+    required this.sizeBytes,
+    required this.sha256,
+    required this.maxZoom,
+  });
+
+  /// Skema tile yang app tahu paparkan (lapisan OpenMapTiles + gaya Liberty yang dibundel).
+  static const supportedSchema = 1;
+
+  final String file;
+  final int sizeBytes;
+  final String sha256;
+
+  /// Zum tertinggi dalam fail; di atasnya MapLibre memperbesar tile zum ini.
+  final int maxZoom;
+
+  static OfflineBasemapInfo? tryParse(Object? json) {
+    if (json is! Map<String, dynamic>) return null;
+    final file = json['file'];
+    final size = json['sizeBytes'];
+    final sha = json['sha256'];
+    final maxZoom = json['maxZoom'];
+    if (json['schema'] != supportedSchema ||
+        file is! String ||
+        !OfflineManifest._safeName.hasMatch(file) ||
+        file.contains('..') ||
+        !file.endsWith('.pmtiles') ||
+        size is! int ||
+        size <= 0 ||
+        sha is! String ||
+        !OfflineManifest._hex64.hasMatch(sha) ||
+        maxZoom is! int ||
+        maxZoom < 1 ||
+        maxZoom > 22) {
+      return null;
+    }
+    return OfflineBasemapInfo(
+      file: file,
+      sizeBytes: size,
+      sha256: sha,
+      maxZoom: maxZoom,
+    );
+  }
+}
+
 /// Pek yang sedang dipasang pada peranti.
 @immutable
 class InstalledMap {
@@ -177,6 +234,9 @@ class InstalledMap {
     this.placesVersion,
     this.placesPath,
     this.placesSizeBytes = 0,
+    this.basemapVersion,
+    this.basemapPath,
+    this.basemapSizeBytes = 0,
   });
 
   final String version;
@@ -188,6 +248,11 @@ class InstalledMap {
   final String? placesPath;
   final int placesSizeBytes;
 
+  /// Tile paparan peta offline yang dipasang (null = tiada; paparan peta dalam talian).
+  final String? basemapVersion;
+  final String? basemapPath;
+  final int basemapSizeBytes;
+
   InstalledMap withPlaces(String? version, String? path, int size) =>
       InstalledMap(
         version: this.version,
@@ -196,6 +261,22 @@ class InstalledMap {
         placesVersion: version,
         placesPath: path,
         placesSizeBytes: size,
+        basemapVersion: basemapVersion,
+        basemapPath: basemapPath,
+        basemapSizeBytes: basemapSizeBytes,
+      );
+
+  InstalledMap withBasemap(String? version, String? path, int size) =>
+      InstalledMap(
+        version: this.version,
+        sizeBytes: sizeBytes,
+        tarPath: tarPath,
+        placesVersion: placesVersion,
+        placesPath: placesPath,
+        placesSizeBytes: placesSizeBytes,
+        basemapVersion: version,
+        basemapPath: path,
+        basemapSizeBytes: size,
       );
 }
 

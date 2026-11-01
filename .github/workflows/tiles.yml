@@ -1,7 +1,8 @@
 name: tiles
 
 # Membina dan menerbitkan pek peta offline tanpa server: pekerjaan berjadual ini ialah "server" data.
-# Hasil: satu Release bertanda `tiles` (dikemas kini di tempat) dengan manifest.json + pek .tar.gz.
+# Hasil: satu Release bertanda `tiles` (dikemas kini di tempat) dengan manifest.json + pek .tar.gz,
+# indeks carian offline dan tile paparan peta (PMTiles).
 # App menggunakan URL lalai:
 #   https://github.com/FaizGusion00/fgmap/releases/download/tiles/manifest.json
 # Repo MESTI awam supaya app boleh memuat turun tanpa pengesahan.
@@ -13,6 +14,7 @@ on:
       - ".github/workflows/tiles.yml"
       - "tools/tiles/VERSIONS"
       - "tools/places/build_places.py"
+      - "tools/basemap/**"
   schedule:
     - cron: "0 19 * * 0" # Ahad 19:00 UTC = Isnin 03:00 MYT
   workflow_dispatch:
@@ -30,7 +32,7 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 150
     steps:
       - uses: actions/checkout@v7
 
@@ -48,6 +50,20 @@ jobs:
           python3 -m pip install --quiet "osmium>=4,<5"
           VERSION=$(python3 -c "import json;print(json.load(open('tools/tiles/out/manifest.json'))['version'])")
           python3 tools/places/build_places.py tools/tiles/data/extract.osm.pbf tools/tiles/out "$VERSION"
+
+      # Paparan peta offline. Langkah ini sengaja `continue-on-error`: jika Planetiler gagal, pek laluan dan
+      # indeks carian tetap diterbitkan (manifest tanpa `basemap`, yang app anggap sah) dan amaran
+      # dipaparkan. Manifest hanya menyebut `basemap` selepas fail disahkan (tools/basemap/build.sh).
+      - name: Bina tile paparan peta (Planetiler, PMTiles)
+        id: basemap
+        continue-on-error: true
+        run: |
+          VERSION=$(python3 -c "import json;print(json.load(open('tools/tiles/out/manifest.json'))['version'])")
+          tools/basemap/build.sh tools/tiles/data/extract.osm.pbf tools/tiles/out "$VERSION"
+
+      - name: Amaran jika paparan peta gagal dibina
+        if: steps.basemap.outcome == 'failure'
+        run: echo "::warning title=Paparan peta offline::Planetiler gagal; pek dan carian diterbitkan tanpa paparan peta."
 
       - name: Sahkan pek sebelum terbit
         run: |
@@ -78,6 +94,22 @@ jobs:
           # Malaysia ~320k tempat; jauh lebih kecil bermaksud pembinaan gagal senyap.
           assert p["count"] > 150_000, f"indeks mencurigakan kecil: {p['count']}"
           print("OK", m["version"], m["sizeBytes"], "places", p["count"], p["sizeBytes"])
+          b = m.get("basemap")
+          if b:
+              assert re.fullmatch(r"basemap-\d{8}\.pmtiles", b["file"]), b["file"]
+              assert b["schema"] == 1 and 1 <= b["maxZoom"] <= 22, b
+              bp = f"{out}/{b['file']}"
+              assert os.path.getsize(bp) == b["sizeBytes"], "saiz paparan peta tidak sepadan"
+              h = hashlib.sha256()
+              with open(bp, "rb") as f:
+                  for chunk in iter(lambda: f.read(1 << 20), b""):
+                      h.update(chunk)
+              assert h.hexdigest() == b["sha256"], "sha256 paparan peta tidak sepadan"
+              # Had satu aset Release GitHub ialah 2 GiB; Malaysia sebenar jauh lebih kecil.
+              assert 50_000_000 < b["sizeBytes"] < 1_900_000_000, f"saiz paparan peta ganjil: {b['sizeBytes']}"
+              print("basemap", b["file"], b["sizeBytes"], "maxZoom", b["maxZoom"])
+          else:
+              print("::warning::manifest tanpa paparan peta offline")
           PY
 
       - name: Terbit ke Release `tiles`
@@ -94,10 +126,19 @@ jobs:
           # Dengan itu app tidak pernah melihat manifest yang menunjuk kepada fail yang belum wujud.
           gh release upload tiles "tools/tiles/out/malaysia-${VERSION}.tar.gz" --clobber
           gh release upload tiles "tools/tiles/out/places-${VERSION}.sqlite.gz" --clobber
+          BASEMAP=$(python3 -c "import json;print((json.load(open('tools/tiles/out/manifest.json')).get('basemap') or {}).get('file',''))")
+          if [ -n "$BASEMAP" ]; then
+            gh release upload tiles "tools/tiles/out/$BASEMAP" --clobber
+          fi
           gh release upload tiles tools/tiles/out/manifest.json --clobber
           gh release view tiles --json assets --jq '.assets[].name' \
             | grep -E '^malaysia-[0-9]{8}\.tar\.gz$' | grep -v "^malaysia-${VERSION}\.tar\.gz$" \
-            | while read -r old; do gh release delete-asset tiles "$old" --yes; done
+            | while read -r old; do gh release delete-asset tiles "$old" --yes; done || true
           gh release view tiles --json assets --jq '.assets[].name' \
             | grep -E '^places-[0-9]{8}\.sqlite\.gz$' | grep -v "^places-${VERSION}\.sqlite\.gz$" \
-            | while read -r old; do gh release delete-asset tiles "$old" --yes; done
+            | while read -r old; do gh release delete-asset tiles "$old" --yes; done || true
+          # Paparan peta lama dibuang hanya jika yang baharu sudah diterbitkan; jika Planetiler gagal,
+          # manifest tidak menyebutnya dan fail lama dibuang kerana tiada lagi yang merujuknya.
+          gh release view tiles --json assets --jq '.assets[].name' \
+            | grep -E '^basemap-[0-9]{8}\.pmtiles$' | grep -v -x "${BASEMAP:-none}" \
+            | while read -r old; do gh release delete-asset tiles "$old" --yes; done || true

@@ -14,7 +14,7 @@
       }
     }
   },
-  "mapAttribution": "© penyumbang OpenStreetMap · OpenFreeMap",
+  "mapAttribution": "© penyumbang OpenStreetMap · © OpenMapTiles · OpenFreeMap",
   "locationRationaleTitle": "Benarkan akses lokasi?",
   "locationRationaleBody": "Lokasi anda digunakan untuk menunjukkan kedudukan anda di peta dan sebagai titik mula laluan. Ia dihantar terus ke perkhidmatan laluan awam hanya untuk mengira laluan dan tidak disimpan di mana-mana pelayan kami.",
   "locationAllow": "Benarkan",
@@ -99,7 +99,7 @@
   "routeSourceOffline": "Offline",
   "offlineMapsOpen": "Peta offline",
   "offlineMapsTitle": "Peta offline",
-  "offlineMapsIntro": "Muat turun peta Malaysia sekali untuk merancang laluan dan mencari tempat tanpa internet. Dengan internet, laluan dan carian menggunakan perkhidmatan dalam talian (lebih terkini) dan peta offline menjadi sandaran.",
+  "offlineMapsIntro": "Muat turun peta Malaysia sekali untuk melihat peta, merancang laluan dan mencari tempat tanpa internet. Dengan internet, laluan dan carian menggunakan perkhidmatan dalam talian (lebih terkini) dan peta offline menjadi sandaran.",
   "offlineMapsNotConfigured": "Muat turun peta offline belum dikonfigurasi dalam binaan ini.",
   "offlineMapsNotInstalled": "Belum dimuat turun",
   "offlineMapsInstalled": "Dipasang: {date}",
@@ -153,7 +153,7 @@
     }
   },
   "offlineMapsDeleteTitle": "Padam peta offline?",
-  "offlineMapsDeleteBody": "Anda perlu memuat turunnya semula untuk menggunakan laluan offline.",
+  "offlineMapsDeleteBody": "Anda perlu memuat turunnya semula untuk menggunakan paparan peta, laluan dan carian offline.",
   "offlineMapsErrorNetwork": "Tidak dapat menyambung ke pelayan peta offline. Semak internet dan cuba lagi.",
   "offlineMapsErrorStorage": "Ruang simpanan tidak mencukupi. Bebaskan ruang dan cuba lagi.",
   "offlineMapsErrorChecksum": "Fail yang dimuat turun rosak. Cuba lagi.",
@@ -1267,7 +1267,12 @@
   "weatherCodeHeavyShowers": "Hujan renyai lebat",
   "weatherCodeThunderstorm": "Ribut petir",
   "weatherCodeSnow": "Salji",
+  "mapToolsMore": "Alat lain",
   "weatherOpen": "Cuaca",
   "offlineMapsSearchAvailable": "Carian offline tersedia (+{size})",
-  "@offlineMapsSearchAvailable": {"placeholders": {"size": {"type": "String"}}}
+  "@offlineMapsSearchAvailable": {"placeholders": {"size": {"type": "String"}}},
+  "offlineMapsMapAvailable": "Paparan peta offline tersedia (+{size})",
+  "@offlineMapsMapAvailable": {"placeholders": {"size": {"type": "String"}}},
+  "offlineMapsMapSearchAvailable": "Paparan peta dan carian offline tersedia (+{size})",
+  "@offlineMapsMapSearchAvailable": {"placeholders": {"size": {"type": "String"}}}
 }

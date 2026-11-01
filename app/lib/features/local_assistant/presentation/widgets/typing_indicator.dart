@@ -2,13 +2,15 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-/// Penunjuk "sedang menaip": tiga titik beralun dan label status bersinar (shimmer).
+/// Penunjuk "sedang berfikir": label bersinar (shimmer) dengan tiga titik beralun, dan di bawahnya
+/// garis rangka jawapan yang berkilau, jadi ruang jawapan terasa "hidup" dan sedang terbentuk,
+/// bukan sekadar tiga titik. Dengan Reduce Motion, semuanya statik.
 class TypingIndicator extends StatefulWidget {
   const TypingIndicator({super.key, required this.color, this.label});
 
   final Color color;
 
-  /// Cth. "Sedang berfikir…", "Mencari dalam teks klasik…".
+  /// Cth. "Sedang berfikir…", "Mencari dalam teks klasik…". Elipsis di hujung diganti titik beralun.
   final String? label;
 
   @override
@@ -19,7 +21,7 @@ class _TypingIndicatorState extends State<TypingIndicator>
     with SingleTickerProviderStateMixin {
   late final AnimationController _c = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 1200),
+    duration: const Duration(milliseconds: 1800),
   );
 
   @override
@@ -43,59 +45,134 @@ class _TypingIndicatorState extends State<TypingIndicator>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final reduce = MediaQuery.disableAnimationsOf(context);
-    final label = widget.label;
-    return AnimatedBuilder(
-      animation: _c,
-      builder: (context, _) {
-        final t = reduce ? 0.0 : _c.value;
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (var i = 0; i < 3; i++) ...[
-              if (i > 0) const SizedBox(width: 5),
-              _dot(t, i),
-            ],
-            if (label != null) ...[
-              const SizedBox(width: 12),
+    final muted = theme.colorScheme.onSurfaceVariant;
+    final raw = widget.label?.replaceFirst(RegExp(r'[….]+$'), '');
+    return RepaintBoundary(
+      child: AnimatedBuilder(
+        animation: _c,
+        builder: (context, _) {
+          final t = reduce ? 0.0 : _c.value;
+          // Sapuan bersinar dari kiri ke kanan (-1 hingga +1 kali lebar).
+          final slide = -1 + 2 * t;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (raw != null)
+                    ShaderMask(
+                      blendMode: BlendMode.srcIn,
+                      shaderCallback: (rect) => _sweep(
+                        base: muted,
+                        glow: widget.color,
+                        slide: reduce ? 0 : slide,
+                        width: 0.45,
+                      ).createShader(rect),
+                      child: Text(
+                        raw,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  SizedBox(width: raw == null ? 0 : 3),
+                  for (var i = 0; i < 3; i++) ...[
+                    if (i > 0) const SizedBox(width: 4),
+                    _dot(t, i),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 10),
               ShaderMask(
                 blendMode: BlendMode.srcIn,
-                shaderCallback: (rect) => LinearGradient(
-                  begin: Alignment(-1.6 + t * 3.2 - 0.6, 0),
-                  end: Alignment(-1.6 + t * 3.2 + 0.6, 0),
-                  colors: [
-                    theme.colorScheme.onSurfaceVariant,
-                    widget.color,
-                    theme.colorScheme.onSurfaceVariant,
-                  ],
+                shaderCallback: (rect) => _sweep(
+                  base: widget.color.withValues(alpha: 0.10),
+                  glow: widget.color.withValues(alpha: 0.32),
+                  slide: reduce ? 0 : slide,
+                  width: 0.3,
                 ).createShader(rect),
-                child: Text(
-                  label,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                child: const _GhostLines(),
               ),
             ],
-          ],
-        );
-      },
+          );
+        },
+      ),
+    );
+  }
+
+  static LinearGradient _sweep({
+    required Color base,
+    required Color glow,
+    required double slide,
+    required double width,
+  }) {
+    final half = width / 2;
+    return LinearGradient(
+      colors: [base, glow, base],
+      stops: [0.5 - half, 0.5, 0.5 + half],
+      transform: _Slide(slide),
     );
   }
 
   Widget _dot(double t, int i) {
-    // Gelombang: setiap titik naik dan menjadi terang mengikut fasa masing-masing.
-    final phase = (t - i * 0.16) * 2 * math.pi;
+    // Gelombang sinus: setiap titik membesar dan terang mengikut fasa masing-masing (2 kitaran
+    // setiap gelung supaya sambungan gelung tidak kelihatan).
+    final phase = (t * 2 - i * 0.16) * 2 * math.pi;
     final wave = (math.sin(phase) + 1) / 2;
-    return Transform.translate(
-      offset: Offset(0, -4 * wave),
+    return Transform.scale(
+      scale: 0.62 + 0.38 * wave,
       child: Container(
-        width: 8,
-        height: 8,
+        width: 6,
+        height: 6,
         decoration: BoxDecoration(
           color: widget.color.withValues(alpha: 0.35 + 0.65 * wave),
           shape: BoxShape.circle,
         ),
       ),
+    );
+  }
+}
+
+/// Anjakan kecerunan secara mendatar: [percent] -1..1 daripada lebar kawasan lukis.
+class _Slide extends GradientTransform {
+  const _Slide(this.percent);
+
+  final double percent;
+
+  @override
+  Matrix4? transform(Rect bounds, {TextDirection? textDirection}) =>
+      Matrix4.translationValues(bounds.width * percent, 0, 0);
+}
+
+/// Tiga garis jawapan hantu (putih penuh; warna sebenar datang daripada ShaderMask).
+class _GhostLines extends StatelessWidget {
+  const _GhostLines();
+
+  @override
+  Widget build(BuildContext context) {
+    Widget bar(double factor) => FractionallySizedBox(
+      widthFactor: factor,
+      alignment: Alignment.centerLeft,
+      child: Container(
+        height: 9,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(5),
+        ),
+      ),
+    );
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        bar(1),
+        const SizedBox(height: 8),
+        bar(0.82),
+        const SizedBox(height: 8),
+        bar(0.48),
+      ],
     );
   }
 }

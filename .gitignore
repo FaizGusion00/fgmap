@@ -4,6 +4,8 @@ infra/valhalla/custom_files/*
 
 # Output tools/tiles/build.sh (tarball, sqlite, valhalla_tiles: ~1.7 GB, boleh dijana semula)
 tools/tiles/out/
+# Jar Planetiler dan sumber data yang dimuat turun oleh tools/basemap/build.sh
+tools/basemap/.cache/
 
 # Data geospatial besar di mana-mana sahaja
 *.pbf

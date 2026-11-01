@@ -183,9 +183,12 @@ class AlongRouteController extends Notifier<AlongRouteState> {
               fallbackName: _fallback,
               cancel: token,
             );
-        if (key != _routeKey || token.isCancelled) return false;
+        // Laluan sudah bertukar, dibatalkan, atau belum ada kunci: jangan simpan.
+        if (key == null || key != _routeKey || token.isCancelled) {
+          return false;
+        }
         all.forEach(_store);
-        _saveToDisk(key!, all);
+        _saveToDisk(key, all);
         return true;
       } on Object {
         return false;
@@ -247,17 +250,34 @@ class AlongRouteController extends Notifier<AlongRouteState> {
           ..remove('$alongRouteCachePrefix$key');
     // Buang yang paling lama jika melebihi had (urutan kunci tidak terjamin: semak cap masa).
     if (keys.length >= _diskMax) {
-      keys.sort((a, b) => _savedAt(prefs, a).compareTo(_savedAt(prefs, b)));
+      keys.sort((a, b) {
+        final ta = _savedAt(prefs, a);
+        final tb = _savedAt(prefs, b);
+        // Tiada cap masa bukan tahun 2000. Entri rosak dibuang dahulu; yang
+        // bertarikh kekal mengikut masa sebenar.
+        if (ta == null && tb == null) return 0;
+        if (ta == null) return -1;
+        if (tb == null) return 1;
+        return ta.compareTo(tb);
+      });
       for (final k in keys.take(keys.length - _diskMax + 1)) {
         unawaited(prefs.remove(k));
       }
     }
   }
 
-  static DateTime _savedAt(SharedPreferences prefs, String key) {
-    final raw = prefs.getString(key) ?? '';
-    final m = RegExp(r'"at":"([^"]+)"').firstMatch(raw);
-    return DateTime.tryParse(m?.group(1) ?? '') ?? DateTime(2000);
+  /// Cap masa entri cakera, atau null jika tiada / rosak. JSON dibaca terus
+  /// supaya jarak selepas titik bertindih tidak disalah anggap sebagai tiada tarikh.
+  static DateTime? _savedAt(SharedPreferences prefs, String key) {
+    final raw = prefs.getString(key);
+    if (raw == null || raw.isEmpty) return null;
+    try {
+      final json = jsonDecode(raw);
+      if (json is! Map) return null;
+      return DateTime.tryParse(json['at']?.toString() ?? '');
+    } on Object {
+      return null;
+    }
   }
 
   void clear() {

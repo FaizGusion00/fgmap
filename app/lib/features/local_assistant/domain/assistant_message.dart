@@ -63,7 +63,13 @@ class AssistantMessage {
     final sources = sourcesRaw is List
         ? [for (final e in sourcesRaw) ?AnswerSource.fromJson(e)]
         : const <AnswerSource>[];
-    if (text.trim().isEmpty && sources.isEmpty && notice == null) return null;
+    // Teks kosong hanya sah untuk jawapan pembantu yang ada nota atau sumber
+    // (had kadar, tidak berasas, pautan fatwa). Peranan lain mesti ada teks.
+    if (text.trim().isEmpty &&
+        (role != AssistantRole.assistant ||
+            (sources.isEmpty && notice == null))) {
+      return null;
+    }
     return AssistantMessage(
       role: role,
       text: text,

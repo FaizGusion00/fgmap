@@ -143,7 +143,7 @@ abstract class AppLocalizations {
   /// No description provided for @mapAttribution.
   ///
   /// In ms, this message translates to:
-  /// **'© penyumbang OpenStreetMap · OpenFreeMap'**
+  /// **'© penyumbang OpenStreetMap · © OpenMapTiles · OpenFreeMap'**
   String get mapAttribution;
 
   /// No description provided for @locationRationaleTitle.
@@ -425,7 +425,7 @@ abstract class AppLocalizations {
   /// No description provided for @offlineMapsIntro.
   ///
   /// In ms, this message translates to:
-  /// **'Muat turun peta Malaysia sekali untuk merancang laluan dan mencari tempat tanpa internet. Dengan internet, laluan dan carian menggunakan perkhidmatan dalam talian (lebih terkini) dan peta offline menjadi sandaran.'**
+  /// **'Muat turun peta Malaysia sekali untuk melihat peta, merancang laluan dan mencari tempat tanpa internet. Dengan internet, laluan dan carian menggunakan perkhidmatan dalam talian (lebih terkini) dan peta offline menjadi sandaran.'**
   String get offlineMapsIntro;
 
   /// No description provided for @offlineMapsNotConfigured.
@@ -539,7 +539,7 @@ abstract class AppLocalizations {
   /// No description provided for @offlineMapsDeleteBody.
   ///
   /// In ms, this message translates to:
-  /// **'Anda perlu memuat turunnya semula untuk menggunakan laluan offline.'**
+  /// **'Anda perlu memuat turunnya semula untuk menggunakan paparan peta, laluan dan carian offline.'**
   String get offlineMapsDeleteBody;
 
   /// No description provided for @offlineMapsErrorNetwork.
@@ -5029,6 +5029,12 @@ abstract class AppLocalizations {
   /// **'Salji'**
   String get weatherCodeSnow;
 
+  /// No description provided for @mapToolsMore.
+  ///
+  /// In ms, this message translates to:
+  /// **'Alat lain'**
+  String get mapToolsMore;
+
   /// No description provided for @weatherOpen.
   ///
   /// In ms, this message translates to:
@@ -5040,6 +5046,18 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'Carian offline tersedia (+{size})'**
   String offlineMapsSearchAvailable(String size);
+
+  /// No description provided for @offlineMapsMapAvailable.
+  ///
+  /// In ms, this message translates to:
+  /// **'Paparan peta offline tersedia (+{size})'**
+  String offlineMapsMapAvailable(String size);
+
+  /// No description provided for @offlineMapsMapSearchAvailable.
+  ///
+  /// In ms, this message translates to:
+  /// **'Paparan peta dan carian offline tersedia (+{size})'**
+  String offlineMapsMapSearchAvailable(String size);
 }
 
 class _AppLocalizationsDelegate

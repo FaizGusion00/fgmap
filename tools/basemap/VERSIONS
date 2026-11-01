@@ -1,0 +1,7 @@
+# Planetiler yang menjana tile paparan peta (skema OpenMapTiles). Jar dimuat turun daripada Release rasmi
+# dan sha256-nya DISEMAK sebelum dijalankan (tools/basemap/build.sh). Naikkan versi dan hash bersama.
+PLANETILER_VERSION=0.10.2
+PLANETILER_SHA256=f310bd0413e2e4512b27f4046d418664e8e1d3bf31603c2a70e23de06c167e4d
+# Zum tertinggi dalam fail. Di atasnya MapLibre memperbesar tile zum ini (jalan kekal; butiran bangunan
+# dan laluan pejalan kaki tidak bertambah). Turunkan ke 13 jika fail terlalu besar untuk dimuat turun.
+BASEMAP_MAXZOOM=14

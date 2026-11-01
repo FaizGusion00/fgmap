@@ -89,32 +89,251 @@ void main() {
       expect((await store.readInstalled())!.placesVersion, pack.version);
     });
 
-    test('pek laluan versi sama sudah ada: hanya indeks dimuat turun', () async {
+    test(
+      'pek laluan versi sama sudah ada: hanya indeks dimuat turun',
+      () async {
+        await install();
+        expect(server.packRequests, 1);
+        server.places = FakePack.create(rawSize: 60000, seed: 11);
+        final m = await install();
+        expect(
+          server.packRequests,
+          1,
+          reason: 'pek laluan tidak dimuat semula',
+        );
+        expect(server.placesRequests, 1);
+        expect(m.placesVersion, pack.version);
+      },
+    );
+
+    test(
+      'indeks rosak: pek laluan tetap dipasang, carian kekal dalam talian',
+      () async {
+        server.places = FakePack.create(rawSize: 60000, seed: 11);
+        server.placesOverrideBody = Uint8List.fromList(List.filled(100, 1));
+        final m = await install();
+        expect(m.version, pack.version);
+        expect(m.placesVersion, isNull);
+        expect(await store.readInstalled(), isNotNull);
+      },
+    );
+
+    test(
+      'manifest dengan entri indeks tidak sah: diabaikan, pek laluan sah',
+      () {
+        final json = pack.manifestJson()
+          ..['places'] = {'file': '../x', 'sizeBytes': 1};
+        final m = OfflineManifest.fromJson(json);
+        expect(m.places, isNull);
+        expect(m.version, pack.version);
+      },
+    );
+  });
+
+  group('paparan peta offline (PMTiles)', () {
+    test('dipasang bersama pek laluan, dilaporkan dan dibaca semula', () async {
+      server.basemap = FakePack.create(rawSize: 90000, seed: 21);
+      final m = await install();
+      expect(m.basemapVersion, pack.version);
+      expect(m.basemapPath, endsWith('basemap-${pack.version}.pmtiles'));
+      expect(await File(m.basemapPath!).readAsBytes(), server.basemap!.raw);
+      final again = (await store.readInstalled())!;
+      expect(again.basemapVersion, pack.version);
+      expect(again.basemapSizeBytes, 90000);
+      expect(
+        File('${store.dir.path}/basemap.part').existsSync(),
+        isFalse,
+        reason: 'fail separa dibuang selepas dipasang',
+      );
+    });
+
+    test(
+      'pek laluan versi sama sudah ada: hanya paparan peta dimuat turun',
+      () async {
+        await install();
+        server.basemap = FakePack.create(rawSize: 90000, seed: 21);
+        final m = await install();
+        expect(
+          server.packRequests,
+          1,
+          reason: 'pek laluan tidak dimuat semula',
+        );
+        expect(server.basemapRequests, 1);
+        expect(m.basemapVersion, pack.version);
+      },
+    );
+
+    test('versi sama dipasang: tiada muat turun semula', () async {
+      server.basemap = FakePack.create(rawSize: 90000, seed: 21);
       await install();
-      expect(server.packRequests, 1);
-      server.places = FakePack.create(rawSize: 60000, seed: 11);
-      final m = await install();
-      expect(server.packRequests, 1, reason: 'pek laluan tidak dimuat semula');
-      expect(server.placesRequests, 1);
-      expect(m.placesVersion, pack.version);
+      await install();
+      expect(server.basemapRequests, 1);
     });
 
-    test('indeks rosak: pek laluan tetap dipasang, carian kekal dalam talian', () async {
-      server.places = FakePack.create(rawSize: 60000, seed: 11);
-      server.placesOverrideBody = Uint8List.fromList(List.filled(100, 1));
-      final m = await install();
-      expect(m.version, pack.version);
-      expect(m.placesVersion, isNull);
-      expect(await store.readInstalled(), isNotNull);
+    test(
+      'fail rosak: pek laluan tetap dipasang, paparan peta kekal dalam talian',
+      () async {
+        server.basemap = FakePack.create(rawSize: 90000, seed: 21);
+        server.basemapOverrideBody = Uint8List.fromList(List.filled(90000, 7));
+        final m = await install();
+        expect(m.version, pack.version);
+        expect(m.basemapVersion, isNull);
+        expect(File('${store.dir.path}/basemap.part').existsSync(), isFalse);
+        expect(await store.readInstalled(), isNotNull);
+      },
+    );
+
+    test(
+      'sambungan terputus: bait diterima dikekalkan dan disambung dengan Range',
+      () async {
+        final bm = FakePack.create(rawSize: 200000, seed: 21);
+        server.basemap = bm;
+        server.basemapDropAfterBytes = 40000;
+        final first = await install();
+        expect(
+          first.version,
+          pack.version,
+          reason: 'pek laluan tidak terjejas',
+        );
+        expect(first.basemapVersion, isNull);
+        final part = File('${store.dir.path}/basemap.part');
+        expect(part.existsSync(), isTrue);
+        final partial = part.lengthSync();
+        expect(partial, greaterThan(0));
+        expect(partial, lessThan(200000));
+
+        final second = await install();
+        expect(server.basemapRangeHeaders.last, 'bytes=$partial-');
+        expect(second.basemapVersion, pack.version);
+        expect(await File(second.basemapPath!).readAsBytes(), bm.raw);
+      },
+    );
+
+    test('versi baharu menggantikan fail lama', () async {
+      server.basemap = FakePack.create(rawSize: 50000, seed: 21);
+      final v1 = await install();
+      final oldPath = v1.basemapPath!;
+      server.pack = FakePack.create(version: '20261102', seed: 9);
+      server.basemap = FakePack.create(rawSize: 60000, seed: 22);
+      final v2 = await install();
+      expect(v2.basemapVersion, '20261102');
+      expect(File(oldPath).existsSync(), isFalse);
+      expect(await File(v2.basemapPath!).length(), 60000);
     });
 
-    test('manifest dengan entri indeks tidak sah: diabaikan, pek laluan sah', () {
-      final json = pack.manifestJson()
-        ..['places'] = {'file': '../x', 'sizeBytes': 1};
-      final m = OfflineManifest.fromJson(json);
-      expect(m.places, isNull);
-      expect(m.version, pack.version);
+    test(
+      'dibatalkan: dilempar semula, bukan ditelan sebagai kegagalan paparan peta',
+      () async {
+        server.basemap = FakePack.create(rawSize: 400000, seed: 21);
+        server.chunkDelay = const Duration(milliseconds: 10);
+        final token = CancelToken();
+        final e = await _expectFailure(
+          () => install(
+            cancel: token,
+            onProgress: (phase, received, total) {
+              if (total == 400000 &&
+                  phase == InstallPhase.downloading &&
+                  received > 30000 &&
+                  !token.isCancelled) {
+                token.cancel('test');
+              }
+            },
+          ),
+        );
+        expect(e.kind, OfflineMapFailure.cancelled);
+        expect(File('${store.dir.path}/basemap.part').existsSync(), isTrue);
+      },
+    );
+
+    test('padam: fail paparan peta dan aset gaya dibuang', () async {
+      server.basemap = FakePack.create(rawSize: 50000, seed: 21);
+      final m = await install();
+      await store.styleAssetsDir.create(recursive: true);
+      await store.deleteInstalled();
+      expect(File(m.basemapPath!).existsSync(), isFalse);
+      expect(store.styleAssetsDir.existsSync(), isFalse);
+      expect(await store.readInstalled(), isNull);
     });
+
+    test(
+      'fail dipotong pada cakera: tidak dilaporkan sebagai dipasang',
+      () async {
+        server.basemap = FakePack.create(rawSize: 50000, seed: 21);
+        final m = await install();
+        await File(m.basemapPath!).writeAsBytes(List.filled(10, 0));
+        final again = (await store.readInstalled())!;
+        expect(again.basemapVersion, isNull);
+        expect(again.version, pack.version);
+      },
+    );
+
+    test(
+      'manifest: entri tidak sah diabaikan; jumlah muat turun merangkumi paparan peta',
+      () {
+        final good = pack.manifestJson()
+          ..['basemap'] = {
+            'file': 'basemap-20261026.pmtiles',
+            'sizeBytes': 500,
+            'sha256': 'a' * 64,
+            'maxZoom': 14,
+            'schema': 1,
+          };
+        final m = OfflineManifest.fromJson(good);
+        expect(m.basemap!.maxZoom, 14);
+        expect(m.totalDownloadBytes, pack.gz.length + 500);
+
+        for (final bad in <Map<String, Object?>>[
+          {
+            'file': '../x.pmtiles',
+            'sizeBytes': 5,
+            'sha256': 'a' * 64,
+            'maxZoom': 14,
+            'schema': 1,
+          },
+          {
+            'file': 'x.tar.gz',
+            'sizeBytes': 5,
+            'sha256': 'a' * 64,
+            'maxZoom': 14,
+            'schema': 1,
+          },
+          {
+            'file': 'x.pmtiles',
+            'sizeBytes': 0,
+            'sha256': 'a' * 64,
+            'maxZoom': 14,
+            'schema': 1,
+          },
+          {
+            'file': 'x.pmtiles',
+            'sizeBytes': 5,
+            'sha256': 'zz',
+            'maxZoom': 14,
+            'schema': 1,
+          },
+          {
+            'file': 'x.pmtiles',
+            'sizeBytes': 5,
+            'sha256': 'a' * 64,
+            'maxZoom': 99,
+            'schema': 1,
+          },
+          {
+            'file': 'x.pmtiles',
+            'sizeBytes': 5,
+            'sha256': 'a' * 64,
+            'maxZoom': 14,
+            'schema': 2,
+          },
+        ]) {
+          final parsed = OfflineManifest.fromJson(
+            pack.manifestJson()..['basemap'] = bad,
+          );
+          expect(parsed.basemap, isNull, reason: '$bad');
+          expect(parsed.version, pack.version);
+        }
+      },
+    );
   });
 
   group('fetchManifest', () {

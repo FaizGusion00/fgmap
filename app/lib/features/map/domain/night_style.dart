@@ -57,17 +57,18 @@ abstract final class NightStyle {
     final layers = decoded['layers'];
     if (layers is! List || layers.isEmpty) return null;
 
-    // Gaya mesti boleh dimuat tanpa URL asal: sprite/glyph/sumber mestilah URL mutlak.
+    // Gaya mesti boleh dimuat tanpa URL asal: sprite/glyph/sumber mestilah URL mutlak (http, atau
+    // file/pmtiles untuk paparan peta offline).
     final glyphs = decoded['glyphs'];
-    if (glyphs is String && !glyphs.startsWith('http')) return null;
+    if (glyphs is String && !_isAbsolute(glyphs)) return null;
     final sprite = decoded['sprite'];
-    if (sprite is String && !sprite.startsWith('http')) return null;
+    if (sprite is String && !_isAbsolute(sprite)) return null;
     final sources = decoded['sources'];
     if (sources is Map) {
       for (final s in sources.values) {
         if (s is Map &&
             s['url'] is String &&
-            !(s['url'] as String).startsWith('http')) {
+            !_isAbsolute(s['url'] as String)) {
           return null;
         }
       }
@@ -82,6 +83,11 @@ abstract final class NightStyle {
     if (recognised < 5) return null;
     return jsonEncode(decoded);
   }
+
+  static bool _isAbsolute(String url) =>
+      url.startsWith('http') ||
+      url.startsWith('file://') ||
+      url.startsWith('pmtiles://');
 
   /// Mengembalikan benar jika lapisan ini dikenali dan diwarnakan semula.
   static bool _restyle(Map<String, dynamic> layer) {

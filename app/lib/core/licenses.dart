@@ -15,4 +15,11 @@ void registerBundledLicenses() {
     final text = await rootBundle.loadString('assets/audio/LICENSE-azan.txt');
     yield LicenseEntryWithLineBreaks(['Azan (rakaman)'], text);
   });
+  // Gaya peta offline (Liberty), fon Noto Sans dan ikon Maki: lihat assets/map/LICENSE-map.txt.
+  LicenseRegistry.addLicense(() async* {
+    final text = await rootBundle.loadString('assets/map/LICENSE-map.txt');
+    yield LicenseEntryWithLineBreaks([
+      'Gaya peta (OSM Liberty), Noto Sans, Maki',
+    ], text);
+  });
 }
