@@ -306,8 +306,14 @@ def _extra_row(pname, alt, kind, lat, lon, rank, area):
 
 
 def _load_extra_geojson(path):
-    with open(path, encoding="utf-8") as f:
-        data = json.load(f)
+    if path.endswith(".gz"):
+        import gzip
+
+        with gzip.open(path, "rt", encoding="utf-8") as f:
+            data = json.load(f)
+    else:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
     features = data.get("features") if isinstance(data, dict) else data
     if not isinstance(features, list):
         features = [data] if isinstance(data, dict) and "name" in data else []
@@ -368,17 +374,18 @@ def load_extra_places(extra_dir):
     """Lapisan tambahan berjadual (GeoJSON / JSON / CSV) — bukan Google Places.
 
     Setiap ciri: name (wajib), lat/lng atau geometry Point, kind/cat pilihan, alt, area, rank.
-    Fail dalam [extra_dir] dengan akhiran .geojson / .json / .csv.
-    Lihat tools/places/README.md. Jangan import data Google Places/Maps (ToS).
+    Fail dalam [extra_dir]: .geojson / .geojson.gz / .json / .csv
+    (abaikan *.meta.json). Lihat tools/places/README.md.
+    Jangan import data Google Places/Maps (ToS).
     """
     if not extra_dir or not os.path.isdir(extra_dir):
         return []
     out = []
     for name in sorted(os.listdir(extra_dir)):
-        if name.startswith("."):
+        if name.startswith(".") or name.endswith(".meta.json"):
             continue
         path = os.path.join(extra_dir, name)
-        if name.endswith((".geojson", ".json")):
+        if name.endswith(".geojson.gz") or name.endswith((".geojson", ".json")):
             out.extend(_load_extra_geojson(path))
         elif name.endswith(".csv"):
             out.extend(_load_extra_csv(path))

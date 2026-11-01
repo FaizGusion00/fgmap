@@ -74,6 +74,28 @@ class ExtraLayerTest(unittest.TestCase):
             self.assertAlmostEqual(rows[0][3], 3.14)
             self.assertAlmostEqual(rows[0][4], 101.7)
 
+    def test_load_geojson_gz_and_skip_meta(self):
+        import gzip
+
+        with tempfile.TemporaryDirectory() as d:
+            doc = {
+                "type": "FeatureCollection",
+                "features": [
+                    {
+                        "type": "Feature",
+                        "geometry": {"type": "Point", "coordinates": [101.7, 3.14]},
+                        "properties": {"name": "Gzip Spot", "kind": "food"},
+                    }
+                ],
+            }
+            with gzip.open(os.path.join(d, "overture_my.geojson.gz"), "wt", encoding="utf-8") as f:
+                json.dump(doc, f)
+            with open(os.path.join(d, "overture_my.meta.json"), "w", encoding="utf-8") as f:
+                json.dump({"count": 1}, f)
+            rows = bp.load_extra_places(d)
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0][0], "Gzip Spot")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,127 @@
+name: places-overture
+
+# Import bulanan Overture Maps Places (Malaysia) → tools/places/extra/.
+# Lesen: CDLA Permissive 2.0. BUKAN Google Places/Maps (ToS melarang dump saingan).
+#
+# Aliran:
+#   1. cron (1hb UTC) atau Actions → places-overture → Run workflow
+#   2. duckdb + import_overture.py --release latest → overture_my.geojson.gz
+#   3. Jika hash/meta berubah vs main: buka PR bot (tiada PR kosong)
+#   4. Selepas merge ke main, tiles.yml (path tools/places/extra/**) bina semula pek places
+#
+# Binaan APK / release app TIDAK memerlukan menjalankan skrip ini di mesin tempatan.
+# Cron GitHub hanya aktif pada branch lalai (main) selepas workflow ini digabung.
+
+on:
+  schedule:
+    - cron: "17 4 1 * *" # 1hb setiap bulan 04:17 UTC
+  workflow_dispatch:
+    inputs:
+      release:
+        description: "Id release Overture (kosongkan = latest daripada STAC)"
+        required: false
+        default: "latest"
+      limit:
+        description: "Had baris ujian (kosongkan = penuh)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: places-overture
+  cancel-in-progress: false
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Pasang duckdb
+        run: python3 -m pip install --quiet "duckdb>=1.1,<2"
+
+      - name: Import Overture Places (MY bbox)
+        env:
+          RELEASE: ${{ github.event.inputs.release || 'latest' }}
+          LIMIT: ${{ github.event.inputs.limit || '' }}
+        run: |
+          set -euo pipefail
+          OUT="tools/places/extra/overture_my.geojson.gz"
+          mkdir -p tools/places/extra
+          ARGS=(--release "${RELEASE:-latest}" --out "$OUT")
+          if [ -n "${LIMIT}" ]; then
+            ARGS+=(--limit "$LIMIT")
+          fi
+          python3 tools/places/import_overture.py "${ARGS[@]}"
+          META="tools/places/extra/overture_my.meta.json"
+          test -f "$OUT" && test -f "$META"
+          python3 - <<'PY'
+          import json
+          m = json.load(open("tools/places/extra/overture_my.meta.json"))
+          print(f"release={m['release']} count={m['count']} sha256={m['sha256']}")
+          assert m["count"] > 0, "import kosong"
+          PY
+          # Simpan keluaran di luar tree supaya boleh checkout main bersih untuk PR.
+          mkdir -p /tmp/overture-out
+          cp -f "$OUT" "$META" /tmp/overture-out/
+
+      - name: Buka PR bot hanya jika berubah vs main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git checkout -B _overture_compare origin/main
+
+          mkdir -p tools/places/extra
+          cp -f /tmp/overture-out/overture_my.geojson.gz tools/places/extra/
+          cp -f /tmp/overture-out/overture_my.meta.json tools/places/extra/
+
+          git add tools/places/extra/overture_my.geojson.gz \
+                  tools/places/extra/overture_my.meta.json
+          if git diff --cached --quiet; then
+            echo "Tiada perubahan vs main — skip PR."
+            exit 0
+          fi
+
+          RELEASE=$(python3 -c "import json;print(json.load(open('tools/places/extra/overture_my.meta.json'))['release'])")
+          COUNT=$(python3 -c "import json;print(json.load(open('tools/places/extra/overture_my.meta.json'))['count'])")
+          STAMP=$(date -u +%Y%m)
+          BRANCH="cursor/overture-places-${STAMP}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$BRANCH"
+          git commit -m "chore(places): Overture MY ${RELEASE} (${COUNT} tempat)"
+          git push -u origin "$BRANCH" --force-with-lease
+
+          BODY=$(cat <<EOF
+          ## Overture Places (Malaysia) — kemas kini berjadual
+
+          - Release: \`${RELEASE}\`
+          - Ciri: ${COUNT}
+          - Fail: \`tools/places/extra/overture_my.geojson.gz\` (+ \`.meta.json\`)
+          - Lesen: **CDLA Permissive 2.0** (bukan Google Places / Maps)
+
+          Dihasilkan oleh \`.github/workflows/places-overture.yml\` (cron 1hb UTC atau
+          **Actions → places-overture → Run workflow**).
+
+          Selepas merge ke \`main\`, workflow **tiles** membina semula indeks places
+          (path \`tools/places/extra/**\`). Binaan APK **tidak** memerlukan
+          \`import_overture.py\` di mesin tempatan.
+          EOF
+          )
+          # Rapikan indent heredoc untuk badan PR.
+          BODY=$(printf '%s\n' "$BODY" | sed 's/^          //')
+
+          if gh pr list --head "$BRANCH" --base main --json number --jq 'length' | grep -qx 0; then
+            gh pr create --base main --head "$BRANCH" \
+              --title "chore(places): Overture MY ${RELEASE}" \
+              --body "$BODY"
+          else
+            gh pr edit "$BRANCH" --title "chore(places): Overture MY ${RELEASE}" --body "$BODY"
+          fi

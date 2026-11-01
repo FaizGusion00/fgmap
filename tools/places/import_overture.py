@@ -15,19 +15,23 @@ DITOLAK (ToS / saingan pangkalan tempat):
 
 Keperluan: Python 3.10+, duckdb (pip install duckdb), rangkaian untuk muat S3 Overture.
 
-Contoh bulanan:
-  python3 tools/places/import_overture.py \\
-      --release 2025-10-22.0 \\
-      --out tools/places/extra/overture_my.geojson
+Contoh bulanan (atau biarkan Actions `.github/workflows/places-overture.yml`):
+  python3 tools/places/import_overture.py --release latest \\
+      --out tools/places/extra/overture_my.geojson.gz
 
-Kemudian jalankan workflow tiles (atau build_places.py) supaya pek menyerap fail extra/.
+Binaan APK / pek offline TIDAK memerlukan langkah ini di mesin tempatan — cron
+bulanan + `workflow_dispatch` menulis `extra/`, dan `tiles.yml` menyerapnya pada
+push ke main. Tiada laluan Google Places.
 """
 from __future__ import annotations
 
 import argparse
+import gzip
+import hashlib
 import json
 import os
 import sys
+import urllib.request
 
 # Sempadan kasar Malaysia + SG + BN (sama liputan Geofabrik pek).
 BBOX = (99.5, 0.8, 119.4, 7.6)  # west, south, east, north
@@ -106,6 +110,23 @@ def names_of(names) -> tuple[str, str]:
     return str(common).strip(), " ".join(dict.fromkeys(alts))
 
 
+def resolve_release(release: str) -> str:
+    """`latest` → id release semasa daripada STAC Overture; lain dikembalikan apa adanya."""
+    if release != "latest":
+        return release
+    url = "https://stac.overturemaps.org/catalog.json"
+    req = urllib.request.Request(
+        url,
+        headers={"User-Agent": "fgmap-places-overture/1.0 (+https://github.com/FaizGusion00/fgmap)"},
+    )
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        data = json.load(resp)
+    latest = data.get("latest")
+    if not isinstance(latest, str) or not latest.strip():
+        raise SystemExit(f"STAC {url} tiada medan 'latest'")
+    return latest.strip()
+
+
 def fetch_overture(release: str, limit: int | None) -> list[dict]:
     import duckdb
 
@@ -178,33 +199,74 @@ def to_features(rows: list[dict]) -> list[dict]:
     return features
 
 
+def _write_geojson(path: str, doc: dict) -> str:
+    """Tulis GeoJSON (atau .gz). Pulangkan sha256 hex kandungan yang ditulis."""
+    payload = json.dumps(doc, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+    raw = payload.encode("utf-8")
+    os.makedirs(os.path.dirname(os.path.abspath(path)) or ".", exist_ok=True)
+    if path.endswith(".gz"):
+        with gzip.open(path, "wb", compresslevel=6) as f:
+            f.write(raw)
+    else:
+        with open(path, "wb") as f:
+            f.write(raw)
+    return hashlib.sha256(raw).hexdigest()
+
+
 def main(argv: list[str]) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--release", required=True, help="Id release Overture, cth. 2025-10-22.0")
+    p.add_argument(
+        "--release",
+        default="latest",
+        help="Id release Overture (cth. 2025-10-22.0) atau 'latest' (STAC)",
+    )
     p.add_argument(
         "--out",
-        default=os.path.join(os.path.dirname(__file__), "extra", "overture_my.geojson"),
-        help="Laluan GeoJSON keluaran (lalai: tools/places/extra/overture_my.geojson)",
+        default=os.path.join(os.path.dirname(__file__), "extra", "overture_my.geojson.gz"),
+        help="Laluan keluaran (.geojson atau .geojson.gz)",
     )
     p.add_argument("--limit", type=int, default=None, help="Had baris (ujian)")
     args = p.parse_args(argv)
 
-    print(f">> Overture places release={args.release} bbox={BBOX}", flush=True)
-    rows = fetch_overture(args.release, args.limit)
+    release = resolve_release(args.release)
+    print(f">> Overture places release={release} (diminta={args.release}) bbox={BBOX}", flush=True)
+    rows = fetch_overture(release, args.limit)
     features = to_features(rows)
-    os.makedirs(os.path.dirname(os.path.abspath(args.out)) or ".", exist_ok=True)
+    # Susunan stabil supaya hash sama bila data sama (elak PR kosong).
+    features.sort(
+        key=lambda f: (
+            str((f.get("properties") or {}).get("id") or ""),
+            str((f.get("properties") or {}).get("name") or ""),
+        )
+    )
     doc = {
         "type": "FeatureCollection",
         "features": features,
         "attribution": "Overture Maps Foundation (CDLA Permissive 2.0)",
-        "release": args.release,
+        "release": release,
     }
-    with open(args.out, "w", encoding="utf-8") as f:
-        json.dump(doc, f, ensure_ascii=False)
-    print(f">> {len(features)} tempat → {args.out}", flush=True)
+    digest = _write_geojson(args.out, doc)
+    meta_path = args.out + ".meta.json"
+    if args.out.endswith(".gz"):
+        meta_path = args.out[: -len(".gz")] + ".meta.json"
+    elif args.out.endswith(".geojson"):
+        meta_path = args.out[: -len(".geojson")] + ".meta.json"
+    meta = {
+        "release": release,
+        "count": len(features),
+        "sha256": digest,
+        "out": os.path.basename(args.out),
+        "attribution": doc["attribution"],
+        "license": "CDLA Permissive 2.0",
+    }
+    with open(meta_path, "w", encoding="utf-8") as f:
+        json.dump(meta, f, indent=2, sort_keys=True)
+        f.write("\n")
+    print(f">> {len(features)} tempat → {args.out} sha256={digest}", flush=True)
+    print(f">> meta {meta_path}", flush=True)
     print(
-        "Seterusnya: commit/update tools/places/extra/ lalu jalankan tiles workflow "
-        "(build_places.py memuatkan extra/ secara automatik).",
+        "Seterusnya: workflow places-overture membuka PR jika hash berubah; "
+        "tiles.yml pada main menyerap extra/ secara automatik.",
         flush=True,
     )
     return 0
