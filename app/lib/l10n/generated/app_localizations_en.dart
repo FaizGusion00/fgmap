@@ -3222,4 +3222,105 @@ class AppLocalizationsEn extends AppLocalizations {
   String aiGuessedPlace(String query) {
     return 'I am not sure what you meant, so I searched for \"$query\" as a place. Tap one to go there.';
   }
+
+  @override
+  String get searchCatBarber => 'Barber / hair salon';
+
+  @override
+  String get searchCatPharmacy => 'Pharmacy';
+
+  @override
+  String get searchCatClinic => 'Clinic';
+
+  @override
+  String get searchCatAtm => 'ATM';
+
+  @override
+  String get searchCatBank => 'Bank';
+
+  @override
+  String get searchCatConvenience => 'Convenience store';
+
+  @override
+  String get searchCatSupermarket => 'Supermarket';
+
+  @override
+  String get searchCatMall => 'Shopping mall';
+
+  @override
+  String get searchCatCarWash => 'Car wash';
+
+  @override
+  String get searchCatWorkshop => 'Car workshop';
+
+  @override
+  String get searchCatTyres => 'Tyre shop';
+
+  @override
+  String get searchCatLaundry => 'Laundry';
+
+  @override
+  String get searchCatHotel => 'Hotel / stay';
+
+  @override
+  String get searchCatPolice => 'Police station';
+
+  @override
+  String get searchCatPostOffice => 'Post office';
+
+  @override
+  String get searchCatEvCharging => 'EV charger';
+
+  @override
+  String get searchCatTrainStation => 'Train / LRT / MRT station';
+
+  @override
+  String aiDateToday(String date) {
+    return 'Today is **$date**.';
+  }
+
+  @override
+  String aiTimeNow(String time) {
+    return 'It\'s **$time** right now.';
+  }
+
+  @override
+  String get aiUserIdentity =>
+      'I don\'t know your name. FGMaps doesn\'t ask for an account or personal details, so you stay anonymous. All I know is where you are on the map when you allow location. Want me to find something nearby?';
+
+  @override
+  String get aiHowAreYou =>
+      'Doing great, thanks for asking! Ready to help you get around. Where to, or what do you need?';
+
+  @override
+  String get aiFarewell =>
+      'Safe travels! Come back any time you need directions.';
+
+  @override
+  String get aiDrowsy =>
+      'Drowsy driving is dangerous. Pull over somewhere safe, like a petrol station, R&R or prayer room, and rest at least 15 minutes before you continue. Want me to find one?';
+
+  @override
+  String aiAskNearest(String category) {
+    return 'Nearest $category';
+  }
+
+  @override
+  String get aiAskWeather => 'Weather now';
+
+  @override
+  String get aiAskPrayer => 'Prayer times';
+
+  @override
+  String get aiNoAnswer =>
+      'I\'m not sure how to answer that one. I\'m best with maps and places: routes, petrol, food, pharmacies, barbers, ATMs, weather, prayer times and qibla. Try one of these:';
+
+  @override
+  String get aiPlaceNearest => 'Nearest';
+
+  @override
+  String get aiPlaceGo => 'Go';
+
+  @override
+  String get aiTryAsking => 'Try asking';
 }

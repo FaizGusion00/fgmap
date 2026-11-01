@@ -17,7 +17,7 @@ String cleanReply(String raw) {
     'function',
     'tool',
   ]);
-  t = t.replaceAll('/no_think', '');
+  t = _stripControlTokens(t);
 
   // Model 0.6B kerap mencetak skema alat sebagai teks biasa di luar tag:
   // "search_place: Find a place... Parameters: { ... }"
@@ -53,6 +53,43 @@ String cleanReply(String raw) {
     if (kept.isNotEmpty) out.add(_join(kept));
   }
   return out.join('\n\n').trim();
+}
+
+/// Token kawalan model yang bocor sebagai teks: "/no_think", "/no_tool" (kerap melekat pada perkataan
+/// seterusnya: "/no_toolWhat day..."), "/think", "/tool", serta token khas templat sembang
+/// (`<|im_end|>`, `<end_of_turn>`, `<eos>`). Pengguna tidak sepatutnya melihat satu pun.
+final _controlTokens = RegExp(
+  r'(?<![\w.])/?no[_-](?:think|tools?)'
+  r'|(?<![\w.])/(?:think|tools?)(?![\w/])'
+  r'|<\|[^|>\n]{1,24}\|>'
+  r'|</?(?:start_of_turn|end_of_turn|eos|bos|pad)>',
+  caseSensitive: false,
+);
+
+const _controlWords = [
+  'no_think',
+  'no_tool',
+  'no_tools',
+  'think',
+  'tool',
+  'tools',
+];
+
+String _stripControlTokens(String input) {
+  var t = input.replaceAll(_controlTokens, ' ');
+  // Semasa penstriman, token yang belum lengkap ("/no_to") jangan sempat berkelip di skrin.
+  final slash = t.lastIndexOf('/');
+  if (slash >= 0 && t.length - slash <= 9) {
+    final before = slash == 0 ? '' : t[slash - 1];
+    final tail = t.substring(slash + 1).toLowerCase();
+    final isPartial = _controlWords.any((w) => w.startsWith(tail));
+    if (isPartial && !RegExp(r'[\w.]').hasMatch(before)) {
+      t = t.substring(0, slash);
+    }
+  }
+  return t
+      .replaceAll(RegExp(r'[ \t]{2,}'), ' ')
+      .replaceAll(RegExp(r' +([?!.,])'), r'\1');
 }
 
 /// True jika teks mentah nampak seperti longgokan skema / markup alat (bukan jawapan pengguna).

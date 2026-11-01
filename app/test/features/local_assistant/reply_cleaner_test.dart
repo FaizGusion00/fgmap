@@ -79,4 +79,71 @@ void main() {
     expect(cleanReply(raw), raw);
     expect(looksLikeToolLeak(raw), isFalse);
   });
+
+  group('token kawalan model', () {
+    test('"/no_tool" melekat pada ayat seterusnya (tangkapan skrin penguji)', () {
+      // Jawapan sebenar yang dipaparkan: "What can I help you with? /no_toolWhat day is today?"
+      final out = cleanReply(
+        'What can I help you with? /no_toolWhat day is today?',
+      );
+      expect(out, isNot(contains('no_tool')));
+      expect(out, isNot(contains('/')));
+      expect(out, 'What can I help you with? What day is today?');
+    });
+
+    test('"/no_tool" di hujung jawapan dibuang', () {
+      expect(
+        cleanReply(
+          'I am a tool designed to assist with navigation. What can I help you with? /no_tool',
+        ),
+        'I am a tool designed to assist with navigation. What can I help you with?',
+      );
+    });
+
+    test(
+      '"/no_think", "/think", "/tool" dan token templat sembang dibuang',
+      () {
+        expect(cleanReply('/no_think Hello'), 'Hello');
+        expect(cleanReply('Hello /think there'), 'Hello there');
+        expect(cleanReply('Done /tool'), 'Done');
+        expect(cleanReply('Hi<|im_end|>'), 'Hi');
+        expect(cleanReply('Hi<end_of_turn>'), 'Hi');
+        expect(cleanReply('no_tool Hi'), 'Hi');
+      },
+    );
+
+    test('token separuh semasa penstriman tidak berkelip di skrin', () {
+      for (final partial in ['/', '/n', '/no', '/no_', '/no_to', '/no_too']) {
+        expect(
+          cleanReply('Hello there $partial'),
+          'Hello there',
+          reason: partial,
+        );
+      }
+    });
+
+    test(
+      'teks biasa dengan "think", "tool" atau garis condong tidak diusik',
+      () {
+        expect(cleanReply('I think so'), 'I think so');
+        expect(cleanReply('Use either and/or here'), 'Use either and/or here');
+        expect(
+          cleanReply('See example.com/tools for more'),
+          'See example.com/tools for more',
+        );
+        expect(cleanReply('A tool for the job'), 'A tool for the job');
+        expect(
+          cleanReply('Pergi ke KLCC / Pavilion'),
+          'Pergi ke KLCC / Pavilion',
+        );
+      },
+    );
+
+    test('gema selepas token dibuang kini dikesan sebagai gema', () {
+      final out = cleanReply(
+        'What can I help you with? /no_toolWhat day is today?',
+      );
+      expect(isEchoReply(out, 'What day is today?'), isTrue);
+    });
+  });
 }

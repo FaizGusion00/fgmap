@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:intl/intl.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
@@ -15,9 +16,11 @@ import '../domain/intent_router.dart' show ChatKind, TripInfoKind;
 /// Jawapan bertemplat untuk arahan peta: tepat (dari data alat), ringkas, tidak pernah mengulang
 /// jawapan sebelumnya, dan dalam bahasa mesej pengguna.
 class AiReplyBuilder {
-  AiReplyBuilder(this.l10n);
+  AiReplyBuilder(this.l10n, {DateTime Function()? clock})
+    : _clock = clock ?? DateTime.now;
 
   final AppLocalizations l10n;
+  final DateTime Function() _clock;
 
   bool get _malay => l10n.localeName.startsWith('ms');
 
@@ -127,7 +130,7 @@ class AiReplyBuilder {
     return _reply(text);
   }
 
-  String _clock(DateTime t) =>
+  String _hhmm(DateTime t) =>
       '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
   /// Jawapan soalan perjalanan daripada data setempat (lihat `tripInfo`).
@@ -146,7 +149,7 @@ class AiReplyBuilder {
             ? l10n.aiTripTimeLeft(formatDuration(l10n, seconds))
             : l10n.aiTripTimeTotal(formatDuration(l10n, seconds)),
       TripInfoKind.arrival => l10n.aiTripArrival(
-        _clock(r['arrival']! as DateTime),
+        _hhmm(r['arrival']! as DateTime),
         formatDuration(l10n, seconds),
       ),
       TripInfoKind.toll => _tripToll(r),
@@ -183,13 +186,66 @@ class AiReplyBuilder {
         : l10n.aiTripNextTurn(text, formatDistance(l10n, d));
   }
 
-  AssistantMessage chat(ChatKind kind) => _reply(switch (kind) {
-    ChatKind.identity => l10n.aiIdentity,
-    ChatKind.greeting => l10n.aiGreeting,
-    ChatKind.thanks => l10n.aiThanks,
-    ChatKind.ping => l10n.aiPing,
-    ChatKind.ack => l10n.aiAck,
-  });
+  AssistantMessage chat(ChatKind kind) {
+    final now = _clock();
+    return switch (kind) {
+      ChatKind.identity => _reply(l10n.aiIdentity),
+      ChatKind.greeting => _reply(l10n.aiGreeting),
+      ChatKind.thanks => _reply(l10n.aiThanks),
+      ChatKind.ping => _reply(l10n.aiPing),
+      ChatKind.ack => _reply(l10n.aiAck),
+      ChatKind.date => _reply(
+        l10n.aiDateToday(formatLongDate(now, malay: _malay)),
+      ),
+      ChatKind.time => _reply(
+        l10n.aiTimeNow(formatClock12(now, malay: _malay)),
+      ),
+      ChatKind.userIdentity => _reply(
+        l10n.aiUserIdentity,
+        actions: _asks(const [
+          NearbyCategory.fuel,
+          NearbyCategory.food,
+          NearbyCategory.mosque,
+        ]),
+      ),
+      ChatKind.howAreYou => _reply(l10n.aiHowAreYou),
+      ChatKind.farewell => _reply(l10n.aiFarewell),
+      ChatKind.drowsy => _reply(
+        l10n.aiDrowsy,
+        actions: _asks(const [
+          NearbyCategory.fuel,
+          NearbyCategory.mosque,
+          NearbyCategory.food,
+        ]),
+      ),
+    };
+  }
+
+  /// Cadangan "Stesen minyak terdekat" yang boleh diketik: dihantar semula sebagai mesej pengguna.
+  List<AssistantAction> _asks(Iterable<NearbyCategory> categories) => [
+    for (final c in categories)
+      AssistantAction(
+        AssistantActionKind.ask,
+        label: l10n.aiAskNearest(categoryName(c)),
+      ),
+  ];
+
+  /// Cadangan lalai bila app tidak pasti apa yang pengguna mahu: tempat yang paling kerap dicari
+  /// pemandu, cuaca dan waktu solat.
+  List<AssistantAction> defaultAsks() => [
+    ..._asks(const [
+      NearbyCategory.fuel,
+      NearbyCategory.food,
+      NearbyCategory.mosque,
+    ]),
+    AssistantAction(AssistantActionKind.ask, label: l10n.aiAskWeather),
+    AssistantAction(AssistantActionKind.ask, label: l10n.aiAskPrayer),
+  ];
+
+  /// Jawapan bila soalan tidak dikenali dan model tidak dapat menjawab: terangkan kekuatan app dan
+  /// beri butang yang boleh terus diketik (bukan jalan buntu).
+  AssistantMessage noAnswer() =>
+      _reply(l10n.aiNoAnswer, actions: defaultAsks());
 
   /// Ringkasan Wikipedia ("Tajuk — petikan", mungkin dipotong dengan "…"): tajuk tebal, ayat penuh
   /// sahaja, dan sumber di hujung.
@@ -217,44 +273,40 @@ class AiReplyBuilder {
     Map<String, Object?> r, {
     required String title,
     String? query,
+    NearbyCategory? category,
   }) {
     if (r['ok'] != true) return _reply(failure(r, query: query));
     final list = (r['places'] as List).whereType<Map<String, Object?>>();
-    final b = StringBuffer(title);
-    final actions = <AssistantAction>[];
+    final cards = <ChatPlace>[];
     for (final p in list.take(5)) {
+      final lat = (p['lat'] as num?)?.toDouble();
+      final lng = (p['lng'] as num?)?.toDouble();
+      if (lat == null || lng == null) continue;
       final name = p['name']?.toString() ?? '';
       final meters =
           (p['distance_m'] as num?)?.round() ??
           (((p['distance_km'] as num?) ?? -1) * 1000).round();
       final area = (p['subtitle']?.toString() ?? '').split(',').first.trim();
-      b.write('\n- **$name**');
-      if (area.isNotEmpty && area != name) b.write(', $area');
-      if (meters >= 0) b.write(' · ${formatDistance(l10n, meters)}');
-      final lat = (p['lat'] as num?)?.toDouble();
-      final lng = (p['lng'] as num?)?.toDouble();
-      if (lat != null && lng != null && actions.length < 3) {
-        actions.add(
-          AssistantAction(
-            AssistantActionKind.routeTo,
-            label: name,
-            lat: lat,
-            lng: lng,
-          ),
-        );
-      }
+      cards.add(
+        ChatPlace(
+          name: name,
+          lat: lat,
+          lng: lng,
+          area: area.isEmpty || area == name ? null : area,
+          distanceM: meters >= 0 ? meters : null,
+          category: category,
+        ),
+      );
     }
-    return _reply(b.toString(), actions: actions);
+    return AssistantMessage(
+      role: AssistantRole.assistant,
+      text: title,
+      at: _clock(),
+      places: cards,
+    );
   }
 
-  String categoryName(NearbyCategory c) => switch (c) {
-    NearbyCategory.fuel => l10n.searchCatFuel,
-    NearbyCategory.food => l10n.searchCatFood,
-    NearbyCategory.mosque => l10n.searchCatMosque,
-    NearbyCategory.toilets => l10n.searchCatToilet,
-    NearbyCategory.parking => l10n.searchCatParking,
-    NearbyCategory.hospital => l10n.searchCatHospital,
-  };
+  String categoryName(NearbyCategory c) => nearbyCategoryLabel(l10n, c);
 
   String alongName(String category) => switch (category) {
     'fuel' => l10n.alongRouteFuel,
@@ -365,7 +417,105 @@ class AiReplyBuilder {
   }) => AssistantMessage(
     role: AssistantRole.assistant,
     text: text,
-    at: DateTime.now(),
+    at: _clock(),
     actions: actions,
   );
+}
+
+/// Nama kategori dalam bahasa [l10n] ("Stesen minyak", "Kedai gunting").
+String nearbyCategoryLabel(AppLocalizations l10n, NearbyCategory c) =>
+    switch (c) {
+      NearbyCategory.fuel => l10n.searchCatFuel,
+      NearbyCategory.food => l10n.searchCatFood,
+      NearbyCategory.mosque => l10n.searchCatMosque,
+      NearbyCategory.toilets => l10n.searchCatToilet,
+      NearbyCategory.parking => l10n.searchCatParking,
+      NearbyCategory.hospital => l10n.searchCatHospital,
+      NearbyCategory.barber => l10n.searchCatBarber,
+      NearbyCategory.pharmacy => l10n.searchCatPharmacy,
+      NearbyCategory.clinic => l10n.searchCatClinic,
+      NearbyCategory.atm => l10n.searchCatAtm,
+      NearbyCategory.bank => l10n.searchCatBank,
+      NearbyCategory.convenience => l10n.searchCatConvenience,
+      NearbyCategory.supermarket => l10n.searchCatSupermarket,
+      NearbyCategory.mall => l10n.searchCatMall,
+      NearbyCategory.carWash => l10n.searchCatCarWash,
+      NearbyCategory.workshop => l10n.searchCatWorkshop,
+      NearbyCategory.tyres => l10n.searchCatTyres,
+      NearbyCategory.laundry => l10n.searchCatLaundry,
+      NearbyCategory.hotel => l10n.searchCatHotel,
+      NearbyCategory.police => l10n.searchCatPolice,
+      NearbyCategory.postOffice => l10n.searchCatPostOffice,
+      NearbyCategory.evCharging => l10n.searchCatEvCharging,
+      NearbyCategory.trainStation => l10n.searchCatTrainStation,
+    };
+
+const _daysEn = [
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+  'Sunday',
+];
+const _daysMs = [
+  'Isnin',
+  'Selasa',
+  'Rabu',
+  'Khamis',
+  'Jumaat',
+  'Sabtu',
+  'Ahad',
+];
+const _monthsEn = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+const _monthsMs = [
+  'Januari',
+  'Februari',
+  'Mac',
+  'April',
+  'Mei',
+  'Jun',
+  'Julai',
+  'Ogos',
+  'September',
+  'Oktober',
+  'November',
+  'Disember',
+];
+
+/// "Ahad, 1 November 2026" / "Sunday, 1 November 2026". Tanpa pakej intl: jawapan mengikut bahasa
+/// mesej pengguna, yang mungkin bukan bahasa UI (data tarikh intl hanya dimuat untuk bahasa UI).
+@visibleForTesting
+String formatLongDate(DateTime d, {required bool malay}) =>
+    '${(malay ? _daysMs : _daysEn)[d.weekday - 1]}, ${d.day} '
+    '${(malay ? _monthsMs : _monthsEn)[d.month - 1]} ${d.year}';
+
+/// "9:01 PM" / "9:01 malam" (pagi, tengah hari, petang, malam).
+@visibleForTesting
+String formatClock12(DateTime t, {required bool malay}) {
+  final h = t.hour % 12 == 0 ? 12 : t.hour % 12;
+  final mm = t.minute.toString().padLeft(2, '0');
+  if (!malay) return '$h:$mm ${t.hour < 12 ? 'AM' : 'PM'}';
+  final part = t.hour < 12
+      ? 'pagi'
+      : t.hour < 14
+      ? 'tengah hari'
+      : t.hour < 19
+      ? 'petang'
+      : 'malam';
+  return '$h:$mm $part';
 }

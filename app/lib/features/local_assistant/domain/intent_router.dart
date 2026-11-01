@@ -362,7 +362,7 @@ final _routeVerbs = <({RegExp re, bool autoStart})>[
 ];
 
 final _nearbyWords = RegExp(
-  r'\b(?:where\s+(?:can|could|do|should)\s+(?:i|we)\s+(?:find|get|eat|park|pray|refuel|fill|charge|buy)|nak\s+(?:makan|isi\s+minyak|letak\s+kereta|buang\s+air)|lapar|hungry|terkucil|nearest|nearby|near\s+me|closest|around\s+me|terdekat|berdekatan|dekat\s+(?:sini|saya|aku)|dekat(?:\s+(?:je|ja|jer|ni))?$|sekitar\s+sini|paling\s+dekat)\b',
+  r'\b(?:where\s+(?:can|could|do|should)\s+(?:i|we)\s+(?:find|get|eat|park|pray|refuel|fill|charge|buy|wash|fix|cut)|(?:i\s+)?(?:need|want)\s+(?:a|an|some|to\s+(?:buy|find|get|wash|fix|cut|charge|sleep|withdraw))|looking\s+for|nak\s+(?:makan|isi\s+minyak|letak\s+kereta|buang\s+air|cuci|gunting|potong|beli|servis|tampal|tukar|bayar|ambil|keluarkan|hantar|tidur|menginap|cas)|lapar|hungry|terkucil|nearest|nearby|near\s+me|closest|around\s+me|terdekat|berdekatan|dekat\s+(?:sini|saya|aku)|dekat(?:\s+(?:je|ja|jer|ni))?$|sekitar\s+sini|paling\s+dekat)\b',
 );
 
 final _alongWords = RegExp(
@@ -628,7 +628,7 @@ AssistantIntent? _parseCore(String raw, ConversationContext ctx) {
     if (!_startExplicit.contains(t)) return const ChatIntent(ChatKind.ack);
   }
 
-  if (_isCurrentLocationQuery(t)) {
+  if (_isCurrentLocationQuery(t) || _lost.hasMatch(t)) {
     return const CurrentLocationIntent();
   }
 
@@ -757,6 +757,8 @@ AssistantIntent? _parseCore(String raw, ConversationContext ctx) {
     }
     return NearbyIntent(nearby);
   }
+  // "kedai gunting", "farmasi", "atm": hanya kategori, tanpa nama tempat = yang terdekat.
+  if (nearby != null && _isOnlyCategory(t)) return NearbyIntent(nearby);
 
   final search = _searchVerb.firstMatch(t);
   if (search != null) {
@@ -1225,11 +1227,68 @@ final _ping = RegExp(
   r'^(?:(?:can|could)\s+(?:you|u)\s+(?:answer|hear|reply\s+to|respond\s+to)\s+me|(?:are|r)\s+(?:you|u)\s+(?:there|working|alive|ok|okay)|(?:you|u)\s+there|answer\s+me|why\s+(?:are\s+)?(?:you|u)\s+not\s+(?:answering|replying|responding)|boleh\s+(?:jawab|dengar|balas)(?:\s+(?:tak|ke|x|soalan\s+saya))?|(?:awak|kamu|anda)?\s*ada\s+(?:tak|ke|x)|kenapa\s+(?:tak|tidak|x)\s+(?:jawab|balas)|jawab\s+(?:la|lah|soalan\s+saya))$',
 );
 
+/// Hari / tarikh: "what day is today", "what is the date", "hari apa hari ini", "tarikh berapa hari ni".
+final _askDate = RegExp(
+  r'^(?:(?:what|which)(?:s|\s+is)?\s+(?:the\s+)?(?:day|date)(?:\s+(?:of\s+the\s+week|is\s+(?:it|today)|it\s+is|today|now))?(?:\s+(?:today|now|is\s+it))?'
+  r'|what(?:s|\s+is)\s+today(?:s)?(?:\s+date)?'
+  r'|todays\s+date|today\s+date|the\s+date\s+today|date\s+today|current\s+date'
+  r'|(?:apa\s+)?hari\s+apa(?:\s+(?:hari\s+)?(?:ini|ni|sekarang))?'
+  r'|hari\s+(?:ini|ni)\s+hari\s+apa'
+  r'|(?:apa\s+)?tarikh(?:\s+berapa)?(?:\s+(?:hari\s+)?(?:ini|ni|sekarang))?'
+  r'|hari\s+(?:ini|ni)\s+(?:tarikh\s+berapa|berapa\s+haribulan)'
+  r'|berapa\s+haribulan(?:\s+(?:hari\s+)?(?:ini|ni))?)(?:\s+(?:please|pls|la|lah|ya|bro|boss|fg\s*ai))*$',
+);
+
+/// Masa: "what time is it", "whats the time now", "pukul berapa sekarang", "jam berapa".
+final _askTime = RegExp(
+  r'^(?:what\s+time\s+is\s+it(?:\s+now|\s+right\s+now)?|what(?:s|\s+is)\s+the\s+time(?:\s+now|\s+right\s+now)?|(?:the\s+)?(?:current\s+)?time\s+now|current\s+time|got\s+the\s+time'
+  r'|(?:apa\s+)?(?:pukul|jam)\s+berapa(?:\s+(?:sekarang|ni|ini|dah|lagi))?|berapa\s+(?:pukul|jam)(?:\s+(?:sekarang|ni|ini|dah))?|masa\s+(?:sekarang|ni|ini)|waktu\s+sekarang)(?:\s+(?:please|pls|la|lah|ya|bro|boss|fg\s*ai))*$',
+);
+
+/// "Do you know who am i", "who am i", "do you know me", "siapa saya", "awak kenal saya tak".
+final _askUserIdentity = RegExp(
+  r'^(?:'
+  r'(?:(?:do|can)\s+(?:you|u)\s+(?:know|tell\s+me|guess)\s+)?(?:who\s+(?:am\s+i|i\s+am)|what(?:s|\s+is)\s+my\s+name)'
+  r'|do\s+(?:you|u)\s+(?:know|remember|recognize|recognise)\s+(?:me|who\s+i\s+am)'
+  r'|(?:(?:awak|kamu|anda|kau|ko)\s+)?(?:tahu|kenal|ingat)(?:\s+tak)?\s+(?:saya|aku|sy)(?:\s+siapa)?'
+  r'|(?:siapa|apa\s+nama)\s+(?:saya|aku|sy)(?:\s+(?:ni|ini))?'
+  r'|(?:tahu\s+tak\s+)?(?:saya|aku)\s+(?:ni\s+)?siapa'
+  r')(?:\s+(?:tak|ke|x|ya|la|lah|please|pls|bro|boss))*$',
+);
+
+final _askHowAreYou = RegExp(
+  r'^(?:how\s+(?:are|r)\s+(?:you|u)(?:\s+(?:today|doing|now|bro))?|how\s+do\s+you\s+do|hows\s+it\s+going|hows\s+life|whats\s+up|wassup|sup|apa\s+khabar(?:\s+(?:awak|kamu|anda|hari\s+ini))?|apa\s+cerita|(?:macam\s+mana|camne)\s+(?:awak|kamu|anda)|(?:awak|kamu|anda)\s+(?:sihat|ok|okay)(?:\s+(?:tak|ke))?|khabar\s+baik\s+(?:tak|ke))(?:\s+(?:today|bro|boss|fg\s*ai|hari\s+ini))*$',
+);
+
+final _farewell = RegExp(
+  r'^(?:bye+|bye\s+bye|goodbye|good\s+night|see\s+(?:you|ya)(?:\s+(?:later|soon|tomorrow))?|catch\s+you\s+later|ttyl|selamat\s+(?:tinggal|jalan)|jumpa\s+lagi|jumpa\s+(?:nanti|esok)|pergi\s+dulu|saya\s+pergi\s+dulu|gerak\s+dulu|chow|ciao)(?:\s+(?:fg\s*ai|bro|boss|ya|lah|la|dulu))*$',
+);
+
+/// Pemandu mengantuk / letih: bukan carian tempat. Hanya ayat pendek tentang diri sendiri.
+final _drowsy = RegExp(
+  r'^(?:(?:im|i\s+am|i\s+feel|i\s+feeling|feeling|saya|aku|kami|rasa)\s+)?(?:(?:so|very|really|too|quite|sangat|terlalu|dah|agak|rasa|amat)\s+)?(?:sleepy|drowsy|tired|exhausted|dozing|mengantuk|ngantuk|antuk|penat|letih|lesu|mata\s+(?:berat|layu|pedih))(?:\s+(?:now|already|while\s+driving|la|lah|ni|sangat|sekarang|dah|ni\s+la))*$'
+  r'|^(?:(?:i|saya|aku)\s+)?(?:need|want|nak|mahu|perlu)\s+(?:to\s+)?(?:rest|sleep|nap|take\s+a\s+break|rehat|tidur|berehat|lelap)(?:\s+(?:now|sekejap|kejap|dulu|la|lah))*$'
+  r'|^(?:i\s+(?:cant|cannot)\s+(?:keep\s+my\s+eyes\s+open|stay\s+awake)|(?:saya|aku)\s+(?:tak|x)\s+(?:tahan|boleh\s+tahan)\s+(?:mengantuk|ngantuk))$',
+);
+
+/// "I'm lost", "saya sesat": tunjukkan di mana pengguna berada.
+final _lost = RegExp(
+  r'^(?:(?:im|i\s+am|i\s+think\s+im|saya|aku|kami|kita)\s+)?(?:(?:so|totally|completely|dah|agak|rasa)\s+)?(?:lost|tersesat|sesat|sesat\s+jalan|hilang\s+arah)(?:\s+(?:here|now|la|lah|ni|sekarang|dah|bro))*$',
+);
+
 ChatIntent? _chatIntent(String t) {
   if (_identity.hasMatch(t)) return const ChatIntent(ChatKind.identity);
+  if (_askUserIdentity.hasMatch(t)) {
+    return const ChatIntent(ChatKind.userIdentity);
+  }
   if (_greeting.hasMatch(t)) return const ChatIntent(ChatKind.greeting);
   if (_thanks.hasMatch(t)) return const ChatIntent(ChatKind.thanks);
   if (_ping.hasMatch(t)) return const ChatIntent(ChatKind.ping);
+  if (_askDate.hasMatch(t)) return const ChatIntent(ChatKind.date);
+  if (_askTime.hasMatch(t)) return const ChatIntent(ChatKind.time);
+  if (_askHowAreYou.hasMatch(t)) return const ChatIntent(ChatKind.howAreYou);
+  if (_farewell.hasMatch(t)) return const ChatIntent(ChatKind.farewell);
+  if (_drowsy.hasMatch(t)) return const ChatIntent(ChatKind.drowsy);
   return null;
 }
 
@@ -1401,6 +1460,9 @@ String? _alongCategory(String t) {
   return null;
 }
 
+/// Perkataan (BM, Inggeris, SMS) bagi setiap kategori. Bentuk majmuk ("bengkel kereta", "kedai gunting")
+/// dimasukkan penuh supaya `_isOnlyCategory` dapat mengenali ayat yang hanya menyebut kategori.
+/// Jenama sengaja tidak dimasukkan: "Guardian" ialah nama tempat, bukan kategori.
 final _categoryPatterns = <NearbyCategory, RegExp>{
   NearbyCategory.fuel: RegExp(
     r'\b(?:petrol|fuel|gas\s+station|minyak|stesen\s+minyak|isi\s+minyak)\b',
@@ -1414,9 +1476,60 @@ final _categoryPatterns = <NearbyCategory, RegExp>{
   NearbyCategory.parking: RegExp(
     r'\b(?:parking|parkir|letak\s+kereta|tempat\s+letak)\b',
   ),
-  NearbyCategory.hospital: RegExp(r'\b(?:hospital|klinik|clinic)\b'),
+  NearbyCategory.hospital: RegExp(
+    r'\b(?:hospital|hospitals|emergency\s+room|bilik\s+kecemasan|kecemasan|a\s*&\s*e)\b',
+  ),
+  NearbyCategory.clinic: RegExp(
+    r'\b(?:klinik|clinic|clinics|poliklinik|doktor|doctor|doctors)\b',
+  ),
   NearbyCategory.food: RegExp(
     r'\b(?:food|makan|makanan|restaurant|restoran|kedai\s+makan|cafe|kafe|mamak|eat|lapar|hungry)\b',
+  ),
+  NearbyCategory.barber: RegExp(
+    r'\b(?:barber|barbers|barber\s?shop|hair[\s-]?cut|hair[\s-]?dresser|hair\s+salon|salon|gunting\s+rambut|gunting|potong\s+rambut|kedai\s+rambut|kedai\s+dandan)\b',
+  ),
+  NearbyCategory.pharmacy: RegExp(
+    r'\b(?:pharmacy|pharmacies|farmasi|apotek|kedai\s+ubat|beli\s+ubat|drug\s?store|chemist)\b',
+  ),
+  NearbyCategory.atm: RegExp(
+    r'\b(?:atm|atms|cdm|cash\s+machine|cash\s+deposit|mesin\s+(?:atm|tunai|wang)|keluar(?:kan)?\s+(?:duit|wang)|ambil\s+(?:duit|wang))\b',
+  ),
+  NearbyCategory.bank: RegExp(r'\b(?:banks?|cawangan\s+bank)\b'),
+  NearbyCategory.convenience: RegExp(
+    r'\b(?:convenience\s+store|mini\s?market|kedai\s+runcit|runcit|kedai\s+serbaneka|serbaneka|7[\s-]?eleven|seven[\s-]+eleven|99[\s-]+speed[\s-]?mart|kk[\s-]+mart|grocery|groceries|kedai\s+barang\s+dapur)\b',
+  ),
+  NearbyCategory.supermarket: RegExp(
+    r'\b(?:supermarket|super\s+market|hypermarket|hipermarket|pasar\s+raya)\b',
+  ),
+  NearbyCategory.mall: RegExp(
+    r'\b(?:malls?|shopping\s+(?:mall|centre|center)|pusat\s+(?:beli[\s-]*belah|membeli[\s-]*belah)|kompleks\s+membeli[\s-]*belah)\b',
+  ),
+  NearbyCategory.tyres: RegExp(
+    r'\b(?:tyres?|tires?|tayar|kedai\s+tayar|tukar\s+tayar|tampal\s+tayar|pancit|puncture|flat\s+tyre|flat\s+tire)\b',
+  ),
+  NearbyCategory.carWash: RegExp(
+    r'\b(?:car\s*wash|cuci\s+kereta|cucian(?:\s+kereta)?|jet\s*wash|auto\s*wash|steam\s+wash)\b',
+  ),
+  NearbyCategory.workshop: RegExp(
+    r'\b(?:workshop|car\s+workshop|bengkel(?:\s+(?:kereta|motor|motosikal))?|mechanic|mekanik|car\s+repair|repair\s+shop|servis\s+kereta|kereta\s+rosak)\b',
+  ),
+  NearbyCategory.laundry: RegExp(
+    r'\b(?:laundry|laundrette|laundromat|dobi|kedai\s+dobi|dry\s*clean(?:er|ers|ing)?|cuci\s+pakaian)\b',
+  ),
+  NearbyCategory.hotel: RegExp(
+    r'\b(?:hotels?|motel|homestay|home\s+stay|hostel|penginapan|bilik\s+(?:hotel|sewa)|tempat\s+(?:tidur|menginap)|resort|chalet|guest\s?house)\b',
+  ),
+  NearbyCategory.police: RegExp(
+    r'\b(?:police(?:\s+station)?|polis|balai(?:\s+polis)?|pdrm|ibu\s+pejabat\s+polis)\b',
+  ),
+  NearbyCategory.postOffice: RegExp(
+    r'\b(?:post\s+office|pejabat\s+pos|pos\s+malaysia|poslaju|kedai\s+pos)\b',
+  ),
+  NearbyCategory.evCharging: RegExp(
+    r'\b(?:ev\s+charg(?:er|ers|ing)(?:\s+(?:station|stations|point|points))?|charging\s+(?:station|stations|point|points|spot)|chargers?|pengecas(?:\s+ev)?|stesen\s+cas|cas\s+(?:kereta|ev)|tempat\s+cas)\b',
+  ),
+  NearbyCategory.trainStation: RegExp(
+    r'\b(?:lrt|mrt|ktm|komuter|monorel|monorail|erl|train\s+station|railway\s+station|stesen\s+(?:keretapi|kereta\s+api|lrt|mrt|komuter|ktm|monorel)|keretapi|kereta\s+api)\b',
   ),
 };
 

@@ -104,6 +104,24 @@ enum ChatKind {
 
   /// "ok", "baik", "tak jadi" tanpa apa-apa untuk dilakukan: pengesahan ringkas, bukan jawapan model.
   ack,
+
+  /// "What day is today?", "hari apa hari ini", "tarikh hari ini": dijawab daripada jam telefon.
+  date,
+
+  /// "What time is it?", "pukul berapa sekarang".
+  time,
+
+  /// "Do you know who am i?", "siapa saya": app tidak tahu nama pengguna (tiada akaun), jadi terangkan itu.
+  userIdentity,
+
+  /// "How are you?", "apa khabar".
+  howAreYou,
+
+  /// "Bye", "jumpa lagi", "selamat jalan".
+  farewell,
+
+  /// "I'm sleepy", "mengantuk": pemandu perlu berhenti rehat; tawarkan tempat berhenti yang selamat.
+  drowsy,
 }
 
 class ChatIntent extends AssistantIntent {

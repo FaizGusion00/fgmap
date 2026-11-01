@@ -3225,4 +3225,105 @@ class AppLocalizationsMs extends AppLocalizations {
   String aiGuessedPlace(String query) {
     return 'Saya tidak pasti maksud anda, jadi saya cari \"$query\" sebagai tempat. Ketik salah satu untuk ke sana.';
   }
+
+  @override
+  String get searchCatBarber => 'Kedai gunting';
+
+  @override
+  String get searchCatPharmacy => 'Farmasi';
+
+  @override
+  String get searchCatClinic => 'Klinik';
+
+  @override
+  String get searchCatAtm => 'ATM';
+
+  @override
+  String get searchCatBank => 'Bank';
+
+  @override
+  String get searchCatConvenience => 'Kedai runcit';
+
+  @override
+  String get searchCatSupermarket => 'Pasar raya';
+
+  @override
+  String get searchCatMall => 'Pusat beli-belah';
+
+  @override
+  String get searchCatCarWash => 'Cuci kereta';
+
+  @override
+  String get searchCatWorkshop => 'Bengkel kereta';
+
+  @override
+  String get searchCatTyres => 'Kedai tayar';
+
+  @override
+  String get searchCatLaundry => 'Dobi';
+
+  @override
+  String get searchCatHotel => 'Hotel & penginapan';
+
+  @override
+  String get searchCatPolice => 'Balai polis';
+
+  @override
+  String get searchCatPostOffice => 'Pejabat pos';
+
+  @override
+  String get searchCatEvCharging => 'Pengecas EV';
+
+  @override
+  String get searchCatTrainStation => 'Stesen LRT / MRT / KTM';
+
+  @override
+  String aiDateToday(String date) {
+    return 'Hari ini **$date**.';
+  }
+
+  @override
+  String aiTimeNow(String time) {
+    return 'Sekarang pukul **$time**.';
+  }
+
+  @override
+  String get aiUserIdentity =>
+      'Saya tak tahu nama anda. FGMaps tak minta akaun atau maklumat peribadi, jadi anda kekal tanpa nama. Yang saya tahu hanyalah lokasi anda pada peta bila anda benarkan GPS. Nak saya carikan sesuatu berdekatan?';
+
+  @override
+  String get aiHowAreYou =>
+      'Alhamdulillah baik, terima kasih! Saya sedia membantu anda bergerak. Nak ke mana, atau perlukan apa?';
+
+  @override
+  String get aiFarewell =>
+      'Selamat jalan! Panggil saya bila-bila masa anda perlukan arah.';
+
+  @override
+  String get aiDrowsy =>
+      'Mengantuk semasa memandu sangat bahaya. Berhenti di tempat selamat seperti stesen minyak, R&R atau surau, dan rehat sekurang-kurangnya 15 minit sebelum sambung. Mahu saya carikan?';
+
+  @override
+  String aiAskNearest(String category) {
+    return '$category terdekat';
+  }
+
+  @override
+  String get aiAskWeather => 'Cuaca sekarang';
+
+  @override
+  String get aiAskPrayer => 'Waktu solat';
+
+  @override
+  String get aiNoAnswer =>
+      'Saya belum pasti jawapan untuk itu. Saya paling mahir tentang peta dan tempat: laluan, minyak, makan, farmasi, kedai gunting, ATM, cuaca, waktu solat dan kiblat. Cuba salah satu:';
+
+  @override
+  String get aiPlaceNearest => 'Terdekat';
+
+  @override
+  String get aiPlaceGo => 'Pergi';
+
+  @override
+  String get aiTryAsking => 'Cuba tanya';
 }

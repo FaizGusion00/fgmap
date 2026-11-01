@@ -14,9 +14,14 @@ import 'package:fgmap/features/local_assistant/presentation/ai_chat_page.dart';
 import 'package:fgmap/features/local_assistant/presentation/assistant_controller.dart';
 import 'package:fgmap/features/route_preview/domain/route_option.dart';
 import 'package:fgmap/features/route_preview/presentation/route_preview_controller.dart';
+import 'package:fgmap/features/local_assistant/presentation/ai_reply_builder.dart'
+    show formatLongDate;
+import 'package:fgmap/features/search/data/nearby_search.dart';
 import 'package:fgmap/features/search/data/photon_geocoder.dart';
+import 'package:fgmap/features/search/domain/nearby_category.dart';
 import 'package:fgmap/features/search/domain/place.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -44,6 +49,7 @@ void main() {
     WidgetTester tester,
     FakeLlm llm, {
     Geocoder? geocoder,
+    NearbySearch? nearby,
     bool online = true,
     Locale locale = const Locale('ms'),
   }) async {
@@ -73,6 +79,7 @@ void main() {
         ),
         onlineProbeProvider.overrideWithValue(() async => online),
         if (geocoder != null) geocoderProvider.overrideWithValue(geocoder),
+        if (nearby != null) nearbySearchProvider.overrideWithValue(nearby),
         routePreviewControllerProvider.overrideWith(_Preview.new),
       ],
     );
@@ -212,8 +219,164 @@ void main() {
     await pump(tester, llm);
     await send(tester, 'Explain how tolls work please');
     expect(llm.lastUserText, isNotNull, reason: 'soalan umum memang ke model');
-    expect(find.textContaining("I didn't quite get that"), findsOneWidget);
+    expect(find.textContaining("I'm not sure how to answer"), findsOneWidget);
     expect(find.textContaining("Hello! I'm FG AI"), findsNothing);
+    // Bukan jalan buntu: cadangan yang boleh diketik.
+    expect(find.byKey(const ValueKey('ai-ask-Nearest Fuel')), findsOneWidget);
+  });
+
+  group('soalan sebenar penguji (2026-11-01)', () {
+    // Dua stesen "Caltex" yang berlainan: kad mesti boleh dibezakan (kawasan + jarak).
+    final fuel = _FakeNearby([
+      const Place(
+        name: 'Caltex',
+        subtitle: 'Sungai Buloh, Selangor',
+        point: GeoPoint(3.1390 + 0.00423, 101.6869),
+      ),
+      const Place(
+        name: 'Shell',
+        subtitle: 'Jalan Eco Grandeur 1/9, Selangor',
+        point: GeoPoint(3.1390 + 0.0234, 101.6869),
+      ),
+      const Place(
+        name: 'Caltex',
+        subtitle: 'Bandar Puncak Alam, Selangor',
+        point: GeoPoint(3.1390 + 0.0252, 101.6869),
+      ),
+    ]);
+
+    testWidgets(
+      '"kedai gunting terdekat" dijawab dengan kad tempat, bukan "maklumat tiada"',
+      (tester) async {
+        final llm = FakeLlm(reply: 'MODEL_SHOULD_NOT_ANSWER');
+        final nearby = _FakeNearby([
+          const Place(
+            name: 'Barber Ali',
+            subtitle: 'Seksyen 7, Shah Alam',
+            point: GeoPoint(3.1390 + 0.0036, 101.6869),
+          ),
+        ]);
+        await pump(tester, llm, nearby: nearby);
+        await send(
+          tester,
+          'Ok boleh bagi tahu saya dimana kedai gunting terdekat?',
+        );
+        expect(llm.lastUserText, isNull, reason: 'dijawab oleh penghala');
+        expect(nearby.categories, [NearbyCategory.barber]);
+        expect(find.text('Kedai gunting terdekat:'), findsOneWidget);
+        expect(find.byKey(const ValueKey('ai-place-card-0')), findsOneWidget);
+        expect(find.text('Barber Ali'), findsOneWidget);
+        expect(find.textContaining('Seksyen 7'), findsOneWidget);
+        expect(find.textContaining('Maklumat itu tiada'), findsNothing);
+      },
+    );
+
+    testWidgets('senarai stesen minyak: kad berbeza walaupun nama sama', (
+      tester,
+    ) async {
+      await pump(tester, FakeLlm(), nearby: fuel, locale: const Locale('en'));
+      await send(tester, 'nearest petrol station');
+      expect(find.byKey(const ValueKey('ai-place-card-0')), findsOneWidget);
+      expect(find.byKey(const ValueKey('ai-place-card-2')), findsOneWidget);
+      expect(find.text('Caltex'), findsNWidgets(2));
+      // Jarak dan kawasan membezakan dua "Caltex"; yang terdekat ditanda.
+      expect(find.textContaining('470 m'), findsOneWidget);
+      expect(find.textContaining('Sungai Buloh'), findsOneWidget);
+      expect(find.textContaining('2.8 km'), findsOneWidget);
+      expect(find.textContaining('Bandar Puncak Alam'), findsOneWidget);
+      expect(find.text('Nearest'), findsOneWidget);
+    });
+
+    testWidgets('mengetik kad merancang laluan ke tempat itu', (tester) async {
+      await pump(tester, FakeLlm(), nearby: fuel, locale: const Locale('en'));
+      await send(tester, 'nearest petrol station');
+      await tester.tap(find.byKey(const ValueKey('ai-place-card-1')));
+      await tester.pumpAndSettle();
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(AiChatPage)),
+      );
+      final state = container.read(routePreviewControllerProvider);
+      expect(state, isA<RouteReady>());
+      expect((state as RouteReady).query.destinationLabel, 'Shell');
+    });
+
+    testWidgets('"What day is today?" dijawab daripada jam, tanpa model', (
+      tester,
+    ) async {
+      final llm = FakeLlm(reply: 'MODEL_SHOULD_NOT_ANSWER');
+      await pump(tester, llm, locale: const Locale('en'));
+      await send(tester, 'What day is today?');
+      expect(llm.lastUserText, isNull);
+      final today = formatLongDate(DateTime.now(), malay: false);
+      expect(find.textContaining(today), findsOneWidget);
+      expect(find.textContaining('no_tool'), findsNothing);
+    });
+
+    testWidgets('"Do you know who am i?" dijawab jujur tanpa akaun', (
+      tester,
+    ) async {
+      final llm = FakeLlm(reply: 'I am a tool designed to assist');
+      await pump(tester, llm, locale: const Locale('en'));
+      await send(tester, 'Do you know who am i?');
+      expect(llm.lastUserText, isNull);
+      expect(find.textContaining("don't know your name"), findsOneWidget);
+      expect(find.textContaining('I am a tool'), findsNothing);
+    });
+
+    testWidgets('"/no_tool" daripada model tidak sampai ke skrin', (
+      tester,
+    ) async {
+      final llm = FakeLlm(
+        reply: 'Tolls are fees on highways. What can I help you with? /no_tool',
+      );
+      await pump(tester, llm, locale: const Locale('en'));
+      await send(tester, 'Explain how tolls work please');
+      expect(llm.lastUserText, isNotNull);
+      expect(find.textContaining('Tolls are fees on highways'), findsOneWidget);
+      expect(find.textContaining('no_tool'), findsNothing);
+    });
+
+    testWidgets('mengantuk: nasihat selamat + cip yang boleh diketik', (
+      tester,
+    ) async {
+      await pump(tester, FakeLlm(), nearby: fuel);
+      await send(tester, 'saya mengantuk');
+      expect(find.textContaining('Mengantuk semasa memandu'), findsOneWidget);
+      await tester.tap(
+        find.byKey(const ValueKey('ai-ask-Stesen minyak terdekat')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Stesen minyak terdekat:'), findsOneWidget);
+      expect(find.byKey(const ValueKey('ai-place-card-0')), findsOneWidget);
+    });
+
+    testWidgets('skrin kosong: cip kategori terus mencari', (tester) async {
+      final nearby = _FakeNearby([
+        const Place(
+          name: 'Farmasi Sihat',
+          subtitle: 'Seksyen 9',
+          point: GeoPoint(3.1390 + 0.0036, 101.6869),
+        ),
+      ]);
+      await pump(tester, FakeLlm(), nearby: nearby);
+      await tester.tap(find.byKey(const ValueKey('ai-quick-pharmacy')));
+      await tester.pumpAndSettle();
+      expect(nearby.categories, [NearbyCategory.pharmacy]);
+      expect(find.text('Farmasi Sihat'), findsOneWidget);
+    });
+
+    testWidgets('soalan yang tidak dikenali: cadangan, bukan jalan buntu', (
+      tester,
+    ) async {
+      await pump(tester, FakeLlm(installed: false), locale: const Locale('en'));
+      await send(tester, 'tell me a long joke about penguins');
+      expect(
+        find.textContaining('download the on-device model'),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('ai-ask-Nearest Fuel')), findsOneWidget);
+      expect(find.byKey(const ValueKey('ai-ask-Prayer times')), findsOneWidget);
+    });
   });
 }
 
@@ -273,5 +436,23 @@ class _Preview extends RoutePreviewController {
         ),
       ],
     );
+  }
+}
+
+class _FakeNearby implements NearbySearch {
+  _FakeNearby(this.places);
+
+  final List<Place> places;
+  final List<NearbyCategory> categories = [];
+
+  @override
+  Future<NearbyResult> search(
+    NearbyCategory category,
+    GeoPoint center, {
+    required String fallbackName,
+    cancel,
+  }) async {
+    categories.add(category);
+    return NearbyResult(places);
   }
 }

@@ -5573,6 +5573,186 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'Saya tidak pasti maksud anda, jadi saya cari \"{query}\" sebagai tempat. Ketik salah satu untuk ke sana.'**
   String aiGuessedPlace(String query);
+
+  /// No description provided for @searchCatBarber.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kedai gunting'**
+  String get searchCatBarber;
+
+  /// No description provided for @searchCatPharmacy.
+  ///
+  /// In ms, this message translates to:
+  /// **'Farmasi'**
+  String get searchCatPharmacy;
+
+  /// No description provided for @searchCatClinic.
+  ///
+  /// In ms, this message translates to:
+  /// **'Klinik'**
+  String get searchCatClinic;
+
+  /// No description provided for @searchCatAtm.
+  ///
+  /// In ms, this message translates to:
+  /// **'ATM'**
+  String get searchCatAtm;
+
+  /// No description provided for @searchCatBank.
+  ///
+  /// In ms, this message translates to:
+  /// **'Bank'**
+  String get searchCatBank;
+
+  /// No description provided for @searchCatConvenience.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kedai runcit'**
+  String get searchCatConvenience;
+
+  /// No description provided for @searchCatSupermarket.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pasar raya'**
+  String get searchCatSupermarket;
+
+  /// No description provided for @searchCatMall.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pusat beli-belah'**
+  String get searchCatMall;
+
+  /// No description provided for @searchCatCarWash.
+  ///
+  /// In ms, this message translates to:
+  /// **'Cuci kereta'**
+  String get searchCatCarWash;
+
+  /// No description provided for @searchCatWorkshop.
+  ///
+  /// In ms, this message translates to:
+  /// **'Bengkel kereta'**
+  String get searchCatWorkshop;
+
+  /// No description provided for @searchCatTyres.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kedai tayar'**
+  String get searchCatTyres;
+
+  /// No description provided for @searchCatLaundry.
+  ///
+  /// In ms, this message translates to:
+  /// **'Dobi'**
+  String get searchCatLaundry;
+
+  /// No description provided for @searchCatHotel.
+  ///
+  /// In ms, this message translates to:
+  /// **'Hotel & penginapan'**
+  String get searchCatHotel;
+
+  /// No description provided for @searchCatPolice.
+  ///
+  /// In ms, this message translates to:
+  /// **'Balai polis'**
+  String get searchCatPolice;
+
+  /// No description provided for @searchCatPostOffice.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pejabat pos'**
+  String get searchCatPostOffice;
+
+  /// No description provided for @searchCatEvCharging.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pengecas EV'**
+  String get searchCatEvCharging;
+
+  /// No description provided for @searchCatTrainStation.
+  ///
+  /// In ms, this message translates to:
+  /// **'Stesen LRT / MRT / KTM'**
+  String get searchCatTrainStation;
+
+  /// No description provided for @aiDateToday.
+  ///
+  /// In ms, this message translates to:
+  /// **'Hari ini **{date}**.'**
+  String aiDateToday(String date);
+
+  /// No description provided for @aiTimeNow.
+  ///
+  /// In ms, this message translates to:
+  /// **'Sekarang pukul **{time}**.'**
+  String aiTimeNow(String time);
+
+  /// No description provided for @aiUserIdentity.
+  ///
+  /// In ms, this message translates to:
+  /// **'Saya tak tahu nama anda. FGMaps tak minta akaun atau maklumat peribadi, jadi anda kekal tanpa nama. Yang saya tahu hanyalah lokasi anda pada peta bila anda benarkan GPS. Nak saya carikan sesuatu berdekatan?'**
+  String get aiUserIdentity;
+
+  /// No description provided for @aiHowAreYou.
+  ///
+  /// In ms, this message translates to:
+  /// **'Alhamdulillah baik, terima kasih! Saya sedia membantu anda bergerak. Nak ke mana, atau perlukan apa?'**
+  String get aiHowAreYou;
+
+  /// No description provided for @aiFarewell.
+  ///
+  /// In ms, this message translates to:
+  /// **'Selamat jalan! Panggil saya bila-bila masa anda perlukan arah.'**
+  String get aiFarewell;
+
+  /// No description provided for @aiDrowsy.
+  ///
+  /// In ms, this message translates to:
+  /// **'Mengantuk semasa memandu sangat bahaya. Berhenti di tempat selamat seperti stesen minyak, R&R atau surau, dan rehat sekurang-kurangnya 15 minit sebelum sambung. Mahu saya carikan?'**
+  String get aiDrowsy;
+
+  /// No description provided for @aiAskNearest.
+  ///
+  /// In ms, this message translates to:
+  /// **'{category} terdekat'**
+  String aiAskNearest(String category);
+
+  /// No description provided for @aiAskWeather.
+  ///
+  /// In ms, this message translates to:
+  /// **'Cuaca sekarang'**
+  String get aiAskWeather;
+
+  /// No description provided for @aiAskPrayer.
+  ///
+  /// In ms, this message translates to:
+  /// **'Waktu solat'**
+  String get aiAskPrayer;
+
+  /// No description provided for @aiNoAnswer.
+  ///
+  /// In ms, this message translates to:
+  /// **'Saya belum pasti jawapan untuk itu. Saya paling mahir tentang peta dan tempat: laluan, minyak, makan, farmasi, kedai gunting, ATM, cuaca, waktu solat dan kiblat. Cuba salah satu:'**
+  String get aiNoAnswer;
+
+  /// No description provided for @aiPlaceNearest.
+  ///
+  /// In ms, this message translates to:
+  /// **'Terdekat'**
+  String get aiPlaceNearest;
+
+  /// No description provided for @aiPlaceGo.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pergi'**
+  String get aiPlaceGo;
+
+  /// No description provided for @aiTryAsking.
+  ///
+  /// In ms, this message translates to:
+  /// **'Cuba tanya'**
+  String get aiTryAsking;
 }
 
 class _AppLocalizationsDelegate

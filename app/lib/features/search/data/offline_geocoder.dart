@@ -107,6 +107,9 @@ class OfflineNearbySearch implements NearbySearch {
     ],
     NearbyCategory.parking => const [OfflinePlaceCat.parking],
     NearbyCategory.hospital => const [OfflinePlaceCat.hospital],
+    NearbyCategory.evCharging => const [OfflinePlaceCat.ev],
+    // Indeks offline tidak menyimpan kategori lain (kedai gunting, farmasi, ATM...).
+    _ => const [],
   };
 
   @override
@@ -120,6 +123,13 @@ class OfflineNearbySearch implements NearbySearch {
       throw const GeocodeFailure(
         GeocodeFailureKind.unavailable,
         'tiada indeks',
+      );
+    }
+    // Kategori yang tiada dalam indeks: beri peluang kepada sumber seterusnya, bukan "tiada hasil".
+    if (catsFor(category).isEmpty) {
+      throw const GeocodeFailure(
+        GeocodeFailureKind.unavailable,
+        'kategori tiada dalam indeks offline',
       );
     }
     for (final radiusKm in const [3.0, 10.0, 25.0]) {

@@ -13,12 +13,15 @@ import '../data/chat_history_store.dart';
 import '../data/muslim_ai_settings.dart';
 import '../domain/assistant_message.dart';
 import '../domain/local_llm.dart';
+import '../../search/domain/nearby_category.dart';
 import 'ai_chat_controller.dart';
+import 'ai_reply_builder.dart' show nearbyCategoryLabel;
 import 'ai_map_bridge.dart';
 import 'assistant_controller.dart';
 import 'muslim_ai_controller.dart';
 import 'muslim_terms_sheet.dart';
 import 'widgets/answer_text.dart';
+import 'widgets/place_cards.dart';
 import 'widgets/smooth_reveal.dart';
 import 'widgets/sources_section.dart';
 import 'widgets/typing_indicator.dart';
@@ -182,7 +185,7 @@ class _AiChatPageState extends ConsumerState<AiChatPage> {
   Future<void> _send([String? override]) async {
     final text = (override ?? _input.text).trim();
     if (text.isEmpty) return;
-    _input.clear();
+    if (override == null) _input.clear();
     _scrollToEnd();
     if (_isMuslim) {
       await ref
@@ -216,6 +219,11 @@ class _AiChatPageState extends ConsumerState<AiChatPage> {
               .planTo(GeoPoint(lat, lng), destinationLabel: action.label),
         );
         bridge.showRoute();
+      case AssistantActionKind.ask:
+        final text = action.label;
+        if (text == null || text.isEmpty) return;
+        if (ref.read(_provider).busy) return;
+        unawaited(_send(text));
     }
   }
 
@@ -845,6 +853,21 @@ class _AssistantMessageView extends StatelessWidget {
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (message.places.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      PlaceCards(
+                        places: message.places,
+                        accent: accent,
+                        onGo: (p) => onAction(
+                          AssistantAction(
+                            AssistantActionKind.routeTo,
+                            label: p.name,
+                            lat: p.lat,
+                            lng: p.lng,
+                          ),
+                        ),
+                      ),
+                    ],
                     if (message.sources.isNotEmpty) ...[
                       const SizedBox(height: 12),
                       SourcesSection(sources: message.sources, color: accent),
@@ -857,7 +880,7 @@ class _AssistantMessageView extends StatelessWidget {
                         onAction: onAction,
                       ),
                     ],
-                    if (message.text.isNotEmpty)
+                    if (message.text.isNotEmpty && message.places.isEmpty)
                       _CopyButton(text: message.text),
                   ],
                 ),
@@ -972,6 +995,12 @@ class _ActionsRow extends StatelessWidget {
               onPressed: () => onAction(a),
               icon: const Icon(Icons.map_outlined, size: 18),
               label: Text(l10n.aiActionShowRoute),
+            ),
+            AssistantActionKind.ask => AskChip(
+              key: ValueKey('ai-ask-${a.label}'),
+              label: a.label ?? '',
+              accent: accent,
+              onTap: () => onAction(a),
             ),
             AssistantActionKind.routeTo => ActionChip(
               avatar: Icon(Icons.directions_rounded, size: 18, color: accent),
@@ -1140,6 +1169,18 @@ class _Composer extends StatelessWidget {
   }
 }
 
+/// Tempat yang paling kerap dicari pemandu: dipaparkan sebagai cip pantas pada skrin kosong.
+const _quickCategories = [
+  NearbyCategory.fuel,
+  NearbyCategory.food,
+  NearbyCategory.mosque,
+  NearbyCategory.toilets,
+  NearbyCategory.pharmacy,
+  NearbyCategory.barber,
+  NearbyCategory.atm,
+  NearbyCategory.clinic,
+];
+
 class _EmptyState extends StatelessWidget {
   const _EmptyState({
     required this.mode,
@@ -1203,6 +1244,45 @@ class _EmptyState extends StatelessWidget {
             height: 1.4,
           ),
         ),
+        // Kad muat turun model di atas: tanpa model pengguna mesti nampak butangnya tanpa menggulung.
+        if (footer != null) ...[const SizedBox(height: 16), footer!],
+        if (!muslim) ...[
+          const SizedBox(height: 20),
+          _FadeIn(
+            index: 0,
+            child: Column(
+              children: [
+                Text(
+                  l10n.aiTryAsking,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final c in _quickCategories)
+                      AskChip(
+                        key: ValueKey('ai-quick-${c.name}'),
+                        label: nearbyCategoryLabel(l10n, c),
+                        icon: categoryIcon(c),
+                        tint: categoryTint(c),
+                        accent: accent,
+                        onTap: () => onSuggest(
+                          l10n.aiAskNearest(nearbyCategoryLabel(l10n, c)),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
         const SizedBox(height: 22),
         for (var i = 0; i < suggestions.length; i++)
           _FadeIn(
@@ -1244,7 +1324,6 @@ class _EmptyState extends StatelessWidget {
               ),
             ),
           ),
-        if (footer != null) ...[const SizedBox(height: 12), footer!],
       ],
     );
   }

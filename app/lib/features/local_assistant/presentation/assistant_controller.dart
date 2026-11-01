@@ -220,7 +220,9 @@ class AssistantController extends AiChatController {
         // semula kepada model (ia menyalinnya sebagai jawapan soalan seterusnya).
         if (!usedModel) reply = reply.copyWith(local: true);
       } else if (!state.modelReady) {
-        reply = replies.text(l10n.aiNeedModel).copyWith(local: true);
+        reply = replies
+            .text(l10n.aiNeedModel, actions: replies.defaultAsks())
+            .copyWith(local: true);
       } else {
         reply = await _askModel(trimmed, prior, replies, l10n);
       }
@@ -364,7 +366,9 @@ class AssistantController extends AiChatController {
       return replies.topic(summary).copyWith(local: true);
     }
     if (state.modelReady) return _askModel(text, prior, replies, l10n);
-    return replies.text(l10n.aiNeedModel).copyWith(local: true);
+    return replies
+        .text(l10n.aiNeedModel, actions: replies.defaultAsks())
+        .copyWith(local: true);
   }
 
   Future<String?> _wikiSummary(
@@ -476,7 +480,11 @@ class AssistantController extends AiChatController {
           _pickCursor = 0;
           return _routeTo(_lastPlaces.first, replies, start: autoStart);
         }
-        return replies.places(r, title: l10n.aiNearbyTitle(name));
+        return replies.places(
+          r,
+          title: l10n.aiNearbyTitle(name),
+          category: category,
+        );
       case SearchIntent(:final query, :final speculative):
         var r = await _tools.searchPlace(query);
         if (speculative) r = _onlyNameMatches(r, query);
@@ -650,7 +658,7 @@ class AssistantController extends AiChatController {
     final cleaned = cleanReply(raw);
     // Model kecil mengulang ayat pengguna atau memberi salam yang tidak diminta: ganti dengan panduan ringkas.
     if (cleaned.isNotEmpty && isEchoReply(cleaned, text)) {
-      return replies.text(l10n.aiNotUnderstood);
+      return replies.noAnswer();
     }
     final body = cleaned.length > 2000
         ? '${cleaned.substring(0, 1999)}…'
@@ -660,7 +668,7 @@ class AssistantController extends AiChatController {
       if (looksLikeToolLeak(raw)) {
         return replies.capabilities(offlineFocused: true);
       }
-      return replies.text(l10n.aiUnavailable);
+      return replies.noAnswer();
     }
     return replies.text(body);
   }

@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
+import '../../search/domain/nearby_category.dart';
+
 /// Satu mesej dalam sejarah sembang pembantu.
 @immutable
 class AssistantMessage {
@@ -9,6 +11,7 @@ class AssistantMessage {
     this.at,
     this.sources = const [],
     this.actions = const [],
+    this.places = const [],
     this.notice,
     this.local = false,
   });
@@ -23,6 +26,9 @@ class AssistantMessage {
   /// Butang tindakan di bawah jawapan (cth. "Mula navigasi", "Laluan ke ...").
   final List<AssistantAction> actions;
 
+  /// Tempat yang dijumpai (carian/berdekatan): dipaparkan sebagai kad dengan jarak dan butang "Pergi".
+  final List<ChatPlace> places;
+
   /// Nota tetap di atas jawapan (penafian, had kadar). Dipaparkan dalam bahasa UI semasa.
   final AnswerNotice? notice;
 
@@ -34,6 +40,7 @@ class AssistantMessage {
     String? text,
     List<AnswerSource>? sources,
     List<AssistantAction>? actions,
+    List<ChatPlace>? places,
     bool? local,
   }) => AssistantMessage(
     role: role,
@@ -41,6 +48,7 @@ class AssistantMessage {
     at: at,
     sources: sources ?? this.sources,
     actions: actions ?? this.actions,
+    places: places ?? this.places,
     notice: notice,
     local: local ?? this.local,
   );
@@ -51,6 +59,7 @@ class AssistantMessage {
     if (at != null) 'at': at!.toIso8601String(),
     if (sources.isNotEmpty) 'sources': [for (final s in sources) s.toJson()],
     if (actions.isNotEmpty) 'actions': [for (final a in actions) a.toJson()],
+    if (places.isNotEmpty) 'places': [for (final p in places) p.toJson()],
     if (notice != null) 'notice': notice!.name,
     if (local) 'local': true,
   };
@@ -65,6 +74,7 @@ class AssistantMessage {
     if (role == null) return null;
     final sourcesRaw = raw['sources'];
     final actionsRaw = raw['actions'];
+    final placesRaw = raw['places'];
     final notice = AnswerNotice.values
         .where((n) => n.name == raw['notice']?.toString())
         .firstOrNull;
@@ -85,6 +95,9 @@ class AssistantMessage {
       sources: sources,
       actions: actionsRaw is List
           ? [for (final e in actionsRaw) ?AssistantAction.fromJson(e)]
+          : const [],
+      places: placesRaw is List
+          ? [for (final e in placesRaw) ?ChatPlace.fromJson(e)]
           : const [],
       notice: notice,
       local: raw['local'] == true,
@@ -162,6 +175,9 @@ enum AssistantActionKind {
 
   /// Rancang laluan ke tempat ini ([AssistantAction.label], [lat], [lng]).
   routeTo,
+
+  /// Cadangan soalan: mengetik menghantar [AssistantAction.label] sebagai mesej pengguna.
+  ask,
 }
 
 @immutable
@@ -191,6 +207,59 @@ class AssistantAction {
       label: raw['label']?.toString(),
       lat: (raw['lat'] as num?)?.toDouble(),
       lng: (raw['lng'] as num?)?.toDouble(),
+    );
+  }
+}
+
+/// Satu tempat dalam jawapan carian/berdekatan.
+@immutable
+class ChatPlace {
+  const ChatPlace({
+    required this.name,
+    required this.lat,
+    required this.lng,
+    this.area,
+    this.distanceM,
+    this.category,
+  });
+
+  final String name;
+
+  /// Kawasan/jalan ringkas (bahagian pertama alamat), untuk membezakan dua "Caltex" yang berlainan.
+  final String? area;
+  final double lat;
+  final double lng;
+
+  /// Jarak lurus dari pengguna, dalam meter.
+  final int? distanceM;
+
+  /// Menentukan ikon kad; null untuk carian nama biasa.
+  final NearbyCategory? category;
+
+  Map<String, Object?> toJson() => {
+    'name': name,
+    'lat': lat,
+    'lng': lng,
+    if (area != null) 'area': area,
+    if (distanceM != null) 'distance_m': distanceM,
+    if (category != null) 'category': category!.name,
+  };
+
+  static ChatPlace? fromJson(Object? raw) {
+    if (raw is! Map) return null;
+    final name = raw['name']?.toString();
+    final lat = (raw['lat'] as num?)?.toDouble();
+    final lng = (raw['lng'] as num?)?.toDouble();
+    if (name == null || name.isEmpty || lat == null || lng == null) return null;
+    return ChatPlace(
+      name: name,
+      lat: lat,
+      lng: lng,
+      area: raw['area']?.toString(),
+      distanceM: (raw['distance_m'] as num?)?.round(),
+      category: NearbyCategory.values
+          .where((c) => c.name == raw['category']?.toString())
+          .firstOrNull,
     );
   }
 }

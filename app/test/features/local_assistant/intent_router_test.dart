@@ -395,4 +395,175 @@ void main() {
       expect(parseIntent('what is the best way to learn english'), isNull);
     });
   });
+
+  group('sembang ringkas dijawab terus (tangkapan skrin penguji)', () {
+    ChatKind? kind(String text) {
+      final i = parseIntent(text);
+      return i is ChatIntent ? i.kind : null;
+    }
+
+    test('hari dan tarikh', () {
+      for (final t in [
+        'What day is today?',
+        'what day is it',
+        'what is the date today',
+        "what's today's date",
+        'hari apa hari ini',
+        'Hari ni hari apa?',
+        'tarikh hari ini',
+        'tarikh berapa hari ni',
+      ]) {
+        expect(kind(t), ChatKind.date, reason: t);
+      }
+    });
+
+    test('masa', () {
+      for (final t in [
+        'what time is it',
+        "what's the time now",
+        'pukul berapa sekarang',
+        'Jam berapa?',
+        'masa sekarang',
+      ]) {
+        expect(kind(t), ChatKind.time, reason: t);
+      }
+      // Soalan perjalanan "what time will I arrive" kekal sebagai soalan perjalanan.
+      expect(parseIntent('what time will i arrive'), isA<TripInfoIntent>());
+    });
+
+    test('"siapa saya" ialah soalan tentang pengguna, bukan tentang FG AI', () {
+      for (final t in [
+        'Do you know who am i?',
+        'who am i',
+        'do you know me',
+        'siapa saya',
+        'awak kenal saya tak',
+        'aku ni siapa',
+      ]) {
+        expect(kind(t), ChatKind.userIdentity, reason: t);
+      }
+      expect(kind('who are you'), ChatKind.identity);
+    });
+
+    test('khabar, selamat tinggal, mengantuk', () {
+      expect(kind('how are you'), ChatKind.howAreYou);
+      expect(kind('apa khabar'), ChatKind.howAreYou);
+      expect(kind('bye'), ChatKind.farewell);
+      expect(kind('jumpa lagi'), ChatKind.farewell);
+      expect(kind('I am so sleepy'), ChatKind.drowsy);
+      expect(kind('saya mengantuk'), ChatKind.drowsy);
+      expect(kind('penat'), ChatKind.drowsy);
+      expect(kind('nak rehat'), ChatKind.drowsy);
+    });
+
+    test('"selamat malam" kekal salam, bukan selamat tinggal', () {
+      expect(kind('selamat malam'), ChatKind.greeting);
+    });
+
+    test('"saya sesat" menunjukkan lokasi semasa', () {
+      expect(parseIntent('I am lost'), isA<CurrentLocationIntent>());
+      expect(parseIntent('saya sesat'), isA<CurrentLocationIntent>());
+    });
+
+    test(
+      'ayat panjang yang kebetulan mengandungi perkataan itu tidak ditangkap',
+      () {
+        expect(
+          parseIntent('who am i going to meet at klcc'),
+          isNot(isA<ChatIntent>()),
+        );
+        expect(
+          parseIntent('why am i so tired of traffic jams in kl'),
+          isNot(isA<ChatIntent>()),
+        );
+      },
+    );
+  });
+
+  group('kategori tempat (kedai gunting, farmasi, ATM...)', () {
+    NearbyCategory? cat(String text) {
+      final i = parseIntent(text);
+      return i is NearbyIntent ? i.category : null;
+    }
+
+    test('ayat sebenar penguji: kedai gunting terdekat', () {
+      expect(
+        cat('Ok boleh bagi tahu saya dimana kedai gunting terdekat?'),
+        NearbyCategory.barber,
+      );
+      expect(cat('kedai gunting terdekat'), NearbyCategory.barber);
+      expect(cat('nearest barber shop'), NearbyCategory.barber);
+      expect(cat('nak gunting rambut'), NearbyCategory.barber);
+    });
+
+    test('kategori sahaja tanpa "terdekat" pun difahami', () {
+      expect(cat('kedai gunting'), NearbyCategory.barber);
+      expect(cat('farmasi'), NearbyCategory.pharmacy);
+      expect(cat('atm'), NearbyCategory.atm);
+      expect(cat('makan'), NearbyCategory.food);
+      expect(cat('bengkel kereta'), NearbyCategory.workshop);
+    });
+
+    test('perkataan BM dan Inggeris bagi setiap kategori baharu', () {
+      const cases = {
+        'klinik terdekat': NearbyCategory.clinic,
+        'nearest clinic': NearbyCategory.clinic,
+        'hospital terdekat': NearbyCategory.hospital,
+        'farmasi berdekatan': NearbyCategory.pharmacy,
+        'nearest pharmacy': NearbyCategory.pharmacy,
+        'mesin atm terdekat': NearbyCategory.atm,
+        'bank terdekat': NearbyCategory.bank,
+        'kedai runcit terdekat': NearbyCategory.convenience,
+        'nearest 7 eleven': NearbyCategory.convenience,
+        'pasar raya terdekat': NearbyCategory.supermarket,
+        'nearest shopping mall': NearbyCategory.mall,
+        'cuci kereta terdekat': NearbyCategory.carWash,
+        'nearest car wash': NearbyCategory.carWash,
+        'bengkel terdekat': NearbyCategory.workshop,
+        'kereta rosak bengkel dekat sini': NearbyCategory.workshop,
+        'kedai tayar terdekat': NearbyCategory.tyres,
+        'tayar pancit nearest tyre shop': NearbyCategory.tyres,
+        'dobi terdekat': NearbyCategory.laundry,
+        'nearest laundry': NearbyCategory.laundry,
+        'hotel terdekat': NearbyCategory.hotel,
+        'homestay berdekatan': NearbyCategory.hotel,
+        'balai polis terdekat': NearbyCategory.police,
+        'nearest police station': NearbyCategory.police,
+        'pejabat pos terdekat': NearbyCategory.postOffice,
+        'nearest post office': NearbyCategory.postOffice,
+        'nearest ev charger': NearbyCategory.evCharging,
+        'pengecas ev terdekat': NearbyCategory.evCharging,
+        'stesen lrt terdekat': NearbyCategory.trainStation,
+        'nearest mrt station': NearbyCategory.trainStation,
+      };
+      cases.forEach((text, expected) {
+        expect(cat(text), expected, reason: text);
+      });
+    });
+
+    test('klinik ialah klinik, bukan hospital', () {
+      expect(cat('klinik terdekat'), NearbyCategory.clinic);
+      expect(cat('hospital terdekat'), NearbyCategory.hospital);
+    });
+
+    test(
+      'nama tempat yang mengandungi perkataan kategori kekal carian nama',
+      () {
+        final i = parseIntent('cari bank islam');
+        expect(i, isA<SearchIntent>());
+        expect((i! as SearchIntent).query, 'bank islam');
+        expect(parseIntent('cari pavilion mall'), isA<SearchIntent>());
+        expect(
+          parseIntent('cari klinik kesihatan seksyen 7'),
+          isA<SearchIntent>(),
+        );
+      },
+    );
+
+    test('"bawa saya ke" kategori terus merancang laluan ke yang terdekat', () {
+      final i = parseIntent('bawa saya ke farmasi terdekat');
+      expect(i, isA<NearbyIntent>());
+      expect((i! as NearbyIntent).navigate, isTrue);
+    });
+  });
 }
