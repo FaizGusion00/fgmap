@@ -204,6 +204,11 @@
   "searchErrorNetwork": "Tiada sambungan internet. Carian memerlukan internet; anda masih boleh tampal koordinat atau pautan Maps.",
   "searchErrorRateLimited": "Terlalu banyak carian. Tunggu sebentar.",
   "searchErrorUnavailable": "Perkhidmatan carian tidak tersedia buat masa ini.",
+  "searchOfflinePackPrompt": "Muat turun indeks tempat offline untuk carian Malaysia yang lebih lengkap — tiada suis berasingan.",
+  "searchOfflinePackUpdate": "Kemas kini pek peta offline untuk dapat tempat baharu.",
+  "searchOfflinePackAction": "Peta offline",
+  "searchQuickDestinations": "Pergi sekarang",
+  "searchResultOffline": "Offline",
   "routeFromTo": "{from} → {to}",
   "@routeFromTo": {
     "placeholders": {

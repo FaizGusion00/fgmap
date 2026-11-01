@@ -131,6 +131,10 @@ void main() {
           findsOneWidget,
           reason: 'hint medan asal',
         );
+        // Rumah/Kerja sentiasa satu ketukan di atas hasil (walaupun belum ditetapkan).
+        expect(find.byKey(const ValueKey('saved-home')), findsOneWidget);
+        expect(find.byKey(const ValueKey('saved-work')), findsOneWidget);
+        expect(find.text('Pergi sekarang'), findsOneWidget);
         expect(geocoder.queries, isEmpty);
       },
     );
@@ -229,6 +233,22 @@ void main() {
       await pumpHost(tester);
       await type(tester, 'destination-field', 'zzzz');
       expect(find.textContaining('Tiada hasil untuk “zzzz”'), findsOneWidget);
+    });
+
+    testWidgets('hasil offline memaparkan lencana Offline', (tester) async {
+      geocoder.handler = (_) async => [
+        const Place(
+          name: 'Masjid Putra',
+          subtitle: 'Putrajaya',
+          point: GeoPoint(2.936, 101.689),
+          fromOffline: true,
+        ),
+      ];
+      await pumpHost(tester);
+      await type(tester, 'destination-field', 'masjid putra');
+      expect(find.text('Masjid Putra'), findsOneWidget);
+      expect(find.byKey(const ValueKey('result-offline-badge')), findsOneWidget);
+      expect(find.text('Offline'), findsWidgets);
     });
 
     testWidgets(

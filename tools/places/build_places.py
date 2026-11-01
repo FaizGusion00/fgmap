@@ -1,25 +1,27 @@
 #!/usr/bin/env python3
 """Membina indeks carian OFFLINE (SQLite + FTS4) daripada ekstrak OSM yang sama dengan pek tile.
 
-Isi (semua percuma, OSM ODbL):
-  - penempatan: bandar, pekan, kampung, taman/kejiranan (place=*)
+Isi (percuma / boleh diedarkan semula — tiada Google Places API langsung):
+  - penempatan: bandar, pekan, kampung, taman/kejiranan (place=*), landuse=residential bernama
   - jalan bernama (satu baris setiap nama jalan setiap ~2 km, titik tengah)
-  - POI: stesen minyak, pengecas EV, masjid/surau, tandas, R&R, hospital/klinik, sekolah/universiti,
-    pusat beli-belah, makan, hotel, tarikan pelancong, stesen/lapangan terbang, balai polis, dll.
+  - POI OSM: minyak, EV, masjid/surau, tandas, R&R, hospital/klinik, sekolah/universiti,
+    kedai bernama (termasuk jenis biasa MY), makan, hotel, leisure, pejabat, pengangkutan, dll.
+  - lapisan tambahan pilihan: tools/places/extra/*.{geojson,json} (kurasi pemilik atau Overture, dll.)
 
 Keluaran dalam <outdir>:
   places-<versi>.sqlite.gz   pangkalan data (dimampat) untuk dimuat turun oleh app
   manifest.json              (jika ada) ditambah medan `places` {file, sizeBytes, sha256,
-                             extractedSizeBytes, extractedSha256, count, schema}
+                             extractedSizeBytes, extractedSha256, count, schema, extraCount}
 
-Skema (mesti sepadan dengan app/lib/features/search/data/offline_geocoder.dart):
+Skema (mesti sepadan dengan app/lib/features/search/domain/offline_place.dart):
   place(id INTEGER PRIMARY KEY, name TEXT, alt TEXT, kind TEXT, cat INTEGER, lat REAL, lng REAL,
         area TEXT, rank INTEGER)
   place_fts USING fts4(content="place", name, alt, area, tokenize=simple)
 FTS4 + tokenizer `simple` (bukan FTS5/unicode61) kerana hanya itu dijamin ada dalam SQLite sistem
 setiap versi Android; app menggunakan SQLite sistem melalui sqflite (tiada pustaka natif tambahan).
 
-Penggunaan: build_places.py <osm.pbf> <outdir> <versi-pek>
+Penggunaan: build_places.py <osm.pbf> <outdir> <versi-pek> [extra_dir]
+Lihat tools/places/README.md untuk jadual kemas kini dan sumber yang dibenarkan.
 """
 import gzip
 import hashlib
@@ -66,6 +68,24 @@ ROAD_RANK = {
 UNNAMED_OK = {"fuel", "ev", "toilets", "rest_area", "mosque", "parking"}
 
 
+# Kedai bernama yang sering dicari di MY tetapi dulunya digugurkan (saiz kekal terkawal: perlu name/brand).
+_SHOP_HIGH = {"mall", "department_store", "supermarket", "wholesale"}
+_SHOP_MID = {
+    "convenience", "hardware", "electronics", "car_repair", "bakery", "clothes", "fashion",
+    "shoes", "mobile_phone", "computer", "furniture", "doityourself", "chemist", "optician",
+    "books", "sports", "gift", "laundry", "hairdresser", "beauty", "car", "motorcycle",
+    "tyres", "pet", "greengrocer", "butcher", "seafood", "florist", "jewelry", "watches",
+}
+_LEISURE = {
+    "park", "stadium", "sports_centre", "golf_course", "water_park", "fitness_centre",
+    "swimming_pool", "pitch", "track", "recreation_ground", "nature_reserve", "marina",
+}
+_OFFICE = {
+    "government", "administrative", "company", "estate_agent", "insurance", "lawyer",
+    "telecommunication", "educational_institution", "ngo", "association",
+}
+
+
 def poi_category(tags):
     a = tags.get("amenity")
     if a == "fuel":
@@ -80,17 +100,19 @@ def poi_category(tags):
         return "toilets", 15
     if a in ("hospital",):
         return "hospital", 60
-    if a in ("clinic", "doctors"):
+    if a in ("clinic", "doctors", "dentist"):
         return "hospital", 30
-    if a in ("restaurant", "fast_food", "cafe", "food_court"):
+    if a in ("restaurant", "fast_food", "cafe", "food_court", "ice_cream", "bar", "pub", "biergarten"):
         return "food", 22
-    if a in ("school", "university", "college", "kindergarten"):
+    if a in ("school", "university", "college", "kindergarten", "language_school", "music_school"):
         return "education", 40 if a in ("university", "college") else 28
-    if a in ("police", "fire_station", "townhall", "courthouse", "post_office", "library", "community_centre"):
+    if a in ("police", "fire_station", "townhall", "courthouse", "post_office", "library",
+             "community_centre", "public_building"):
         return "government", 38
-    if a in ("bus_station", "ferry_terminal"):
+    if a in ("bus_station", "ferry_terminal", "taxi"):
         return "transport", 55
-    if a in ("bank", "atm", "pharmacy", "marketplace", "cinema"):
+    if a in ("bank", "atm", "pharmacy", "marketplace", "cinema", "theatre", "car_wash",
+             "veterinary", "place_of_worship"):
         return "other", 25
     if a == "parking":
         return "parking", 12
@@ -98,24 +120,33 @@ def poi_category(tags):
     if h in ("services", "rest_area"):
         return "rest_area", 58
     s = tags.get("shop")
-    if s in ("mall", "department_store"):
-        return "shop", 62
-    if s in ("supermarket",):
-        return "shop", 35
-    if s in ("convenience", "hardware", "electronics", "car_repair", "bakery"):
-        return "shop", 18
+    if s in _SHOP_HIGH:
+        return "shop", 62 if s in ("mall", "department_store") else 35
+    if s in _SHOP_MID or (s and s != "no" and (tags.get("name") or tags.get("brand"))):
+        # Kedai bernama lain (termasuk shop=yes): berguna untuk destinasi MY tanpa meletupkan
+        # indeks dengan nod tanpa nama.
+        return "shop", 18 if s in _SHOP_MID else 14
     t = tags.get("tourism")
-    if t in ("hotel", "motel", "resort", "guest_house", "hostel", "chalet"):
+    if t in ("hotel", "motel", "resort", "guest_house", "hostel", "chalet", "apartment"):
         return "lodging", 30
-    if t in ("attraction", "museum", "theme_park", "zoo", "viewpoint", "aquarium", "gallery"):
+    if t in ("attraction", "museum", "theme_park", "zoo", "viewpoint", "aquarium", "gallery",
+             "artwork", "information"):
         return "tourism", 55
     if tags.get("aeroway") == "aerodrome":
         return "transport", 80
     if tags.get("railway") in ("station", "halt") or tags.get("public_transport") == "station":
         return "transport", 55
     l = tags.get("leisure")
-    if l in ("park", "stadium", "sports_centre", "golf_course", "water_park"):
+    if l in _LEISURE:
         return "tourism", 35
+    o = tags.get("office")
+    if o in _OFFICE or (o and tags.get("name")):
+        return "government" if o in ("government", "administrative") else "other", 28
+    # Taman perumahan / kawasan kediaman bernama (sering hilang daripada place=* sahaja).
+    if tags.get("landuse") == "residential" and tags.get("name"):
+        return "settlement", 42
+    if tags.get("place") in ("housing_estate", "residential"):
+        return "settlement", 45
     return None
 
 
@@ -253,10 +284,64 @@ def alt_names(tags):
     return " ".join(names)
 
 
-def build(pbf, outdir, version):
+def load_extra_places(extra_dir):
+    """Lapisan tambahan berjadual (GeoJSON / JSON) — bukan Google Places API.
+
+    Setiap ciri: name (wajib), lat/lng atau geometry Point, kind/cat pilihan, alt, area, rank.
+    Fail dalam [extra_dir] dengan akhiran .geojson / .json. Lihat tools/places/README.md.
+    """
+    if not extra_dir or not os.path.isdir(extra_dir):
+        return []
+    out = []
+    for name in sorted(os.listdir(extra_dir)):
+        if not name.endswith((".geojson", ".json")) or name.startswith("."):
+            continue
+        path = os.path.join(extra_dir, name)
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        features = data.get("features") if isinstance(data, dict) else data
+        if not isinstance(features, list):
+            features = [data] if isinstance(data, dict) and "name" in data else []
+        for feat in features:
+            props = feat.get("properties", feat) if isinstance(feat, dict) else {}
+            if not isinstance(props, dict):
+                continue
+            pname = clean(props.get("name") or props.get("name:en") or "")
+            if not pname:
+                continue
+            geom = feat.get("geometry") if isinstance(feat, dict) else None
+            lat = props.get("lat")
+            lon = props.get("lon") or props.get("lng")
+            if geom and geom.get("type") == "Point" and isinstance(geom.get("coordinates"), list):
+                lon, lat = geom["coordinates"][0], geom["coordinates"][1]
+            try:
+                lat, lon = float(lat), float(lon)
+            except (TypeError, ValueError):
+                continue
+            if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+                continue
+            kind = clean(props.get("kind") or "other") or "other"
+            if kind not in CAT:
+                kind = "other"
+            rank = props.get("rank")
+            try:
+                rank = int(rank) if rank is not None else 36
+            except (TypeError, ValueError):
+                rank = 36
+            alt = clean(props.get("alt") or props.get("alt_name") or "")
+            area = clean(props.get("area") or props.get("city") or "")
+            out.append((pname, alt, kind, lat, lon, rank, area))
+    return out
+
+
+def build(pbf, outdir, version, extra_dir=None):
     t0 = time.time()
     settlements, roads, pois = read(pbf)
-    print(f">> dibaca: {len(settlements)} penempatan, {len(roads)} jalan, {len(pois)} POI ({time.time()-t0:.0f}s)")
+    extras = load_extra_places(extra_dir)
+    print(
+        f">> dibaca: {len(settlements)} penempatan, {len(roads)} jalan, {len(pois)} POI, "
+        f"{len(extras)} tambahan ({time.time()-t0:.0f}s)"
+    )
 
     towns = Grid(0.1)
     villages = Grid(0.05)
@@ -300,7 +385,11 @@ def build(pbf, outdir, version):
     for name, alt, hw, (lat, lon), rank, ref in roads:
         rows.append((name, (alt + " " + ref).strip(), hw, CAT["road"], lat, lon, area(lat, lon), rank))
     for name, alt, kind, lat, lon, rank, city in pois:
-        rows.append((name, alt, kind, CAT[kind], lat, lon, area(lat, lon, given=city), rank))
+        # landuse/residential bernama boleh kembali sebagai kind=settlement daripada poi_category.
+        cat = CAT.get(kind, CAT["other"])
+        rows.append((name, alt, kind, cat, lat, lon, area(lat, lon, given=city), rank))
+    for name, alt, kind, lat, lon, rank, city in extras:
+        rows.append((name, alt, kind, CAT[kind], lat, lon, area(lat, lon, given=city) or city, rank))
     rows.sort(key=lambda r: -r[7])
     db.executemany(
         "INSERT INTO place(name, alt, kind, cat, lat, lng, area, rank) VALUES (?,?,?,?,?,?,?,?)",
@@ -314,10 +403,13 @@ def build(pbf, outdir, version):
         INSERT INTO place_fts(place_fts) VALUES('optimize');
         """
     )
+    sources = ["OpenStreetMap contributors (ODbL)"]
+    if extras:
+        sources.append(f"curated extra ({len(extras)})")
     db.executemany(
         "INSERT INTO meta VALUES (?,?)",
         [("schema", str(SCHEMA)), ("version", version), ("count", str(len(rows))),
-         ("source", "OpenStreetMap contributors (ODbL)")],
+         ("source", "; ".join(sources)), ("extraCount", str(len(extras)))],
     )
     db.commit()
     db.execute("VACUUM")
@@ -334,7 +426,7 @@ def build(pbf, outdir, version):
     info = {
         "file": gz_name, "sizeBytes": size, "sha256": sha256(gz_path),
         "extractedSizeBytes": raw_size, "extractedSha256": raw_sha,
-        "count": len(rows), "schema": SCHEMA,
+        "count": len(rows), "schema": SCHEMA, "extraCount": len(extras),
     }
     manifest = os.path.join(outdir, "manifest.json")
     if os.path.exists(manifest):
@@ -356,7 +448,10 @@ def sha256(path):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 4:
+    if len(sys.argv) not in (4, 5):
         print(__doc__)
+        print("Penggunaan: build_places.py <osm.pbf> <outdir> <versi-pek> [extra_dir]")
         sys.exit(2)
-    build(sys.argv[1], sys.argv[2], sys.argv[3])
+    default_extra = os.path.join(os.path.dirname(__file__), "extra")
+    extra = sys.argv[4] if len(sys.argv) == 5 else (default_extra if os.path.isdir(default_extra) else None)
+    build(sys.argv[1], sys.argv[2], sys.argv[3], extra_dir=extra)

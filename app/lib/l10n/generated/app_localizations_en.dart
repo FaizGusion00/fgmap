@@ -375,6 +375,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchErrorUnavailable => 'Search is unavailable right now.';
 
   @override
+  String get searchOfflinePackPrompt =>
+      'Download the offline place index for richer Malaysia search — no separate toggle.';
+
+  @override
+  String get searchOfflinePackUpdate =>
+      'Update the offline map pack to get newer places.';
+
+  @override
+  String get searchOfflinePackAction => 'Offline map';
+
+  @override
+  String get searchQuickDestinations => 'Go now';
+
+  @override
+  String get searchResultOffline => 'Offline';
+
+  @override
   String routeFromTo(String from, String to) {
     return '$from → $to';
   }

@@ -77,24 +77,65 @@ class OfflinePlaceRow {
     osmKey: switch (cat) {
       OfflinePlaceCat.settlement => 'place',
       OfflinePlaceCat.road || OfflinePlaceCat.restArea => 'highway',
+      9 => 'shop', // OfflinePlaceCat shop dalam build_places.py
       _ => 'amenity',
     },
     countryCode: 'MY',
+    fromOffline: true,
   );
 }
 
+/// Singkatan / pasangan MY–EN yang tokenizer `simple` FTS4 tidak kembangkan sendiri.
+const _ftsTokenAliases = <String, List<String>>{
+  'jln': ['jalan', 'jln'],
+  'jalan': ['jalan', 'jln'],
+  'tmn': ['taman', 'tmn'],
+  'taman': ['taman', 'tmn'],
+  'lrg': ['lorong', 'lrg'],
+  'lorong': ['lorong', 'lrg'],
+  'psn': ['persiaran', 'psn'],
+  'persiaran': ['persiaran', 'psn'],
+  'kg': ['kampung', 'kampong', 'kg'],
+  'kampung': ['kampung', 'kampong', 'kg'],
+  'kampong': ['kampung', 'kampong', 'kg'],
+  'bt': ['bukit', 'bt'],
+  'bukit': ['bukit', 'bt'],
+  'stn': ['stesen', 'station', 'stn'],
+  'stesen': ['stesen', 'station', 'stn'],
+  'station': ['stesen', 'station', 'stn'],
+  'hosp': ['hospital', 'hosp'],
+  'hospital': ['hospital', 'hosp'],
+  'uni': ['universiti', 'university', 'uni'],
+  'universiti': ['universiti', 'university', 'uni'],
+  'university': ['universiti', 'university', 'uni'],
+  'masjid': ['masjid', 'mosque'],
+  'mosque': ['masjid', 'mosque'],
+  'surau': ['surau', 'prayer'],
+};
+
 /// Ungkapan MATCH FTS4 untuk teks pengguna: setiap perkataan sebagai awalan ("jalan amp" → semua
-/// "jalan* amp*"). Aksara selain huruf/nombor dibuang (tokenizer `simple` memisahkan pada aksara itu).
-/// Null jika tiada perkataan.
+/// "jalan* amp*"), dengan OR untuk varian Melayu/Inggeris (jln/jalan, stesen/station). Aksara selain
+/// huruf/nombor dibuang (tokenizer `simple` memisahkan pada aksara itu). Null jika tiada perkataan.
 String? ftsMatchQuery(String text) {
-  final tokens = text
+  final normalized = text
       .toLowerCase()
-      .split(RegExp(r'[^a-z0-9À-ɏ]+'))
+      .replaceAll(RegExp(r"['’`]"), '')
+      .replaceAll('&', ' ');
+  final tokens = normalized
+      .split(RegExp(r'[^a-z0-9]+'))
       .where((t) => t.isNotEmpty)
       .take(6)
       .toList();
   if (tokens.isEmpty) return null;
-  return tokens.map((t) => '$t*').join(' ');
+  return tokens.map(_ftsTokenClause).join(' ');
+}
+
+String _ftsTokenClause(String token) {
+  final variants = _ftsTokenAliases[token] ?? [token];
+  // Awalan pada setiap varian: "amp" padan "ampang"; OR menyatukan singkatan.
+  final clauses = [for (final v in variants) '$v*'];
+  if (clauses.length == 1) return clauses.single;
+  return '(${clauses.join(' OR ')})';
 }
 
 /// Susun hasil offline: padanan nama tepat/awalan, kepentingan, dan jarak dari [near]. Pendua (nama
@@ -106,6 +147,11 @@ List<OfflinePlaceRow> rankOfflinePlaces(
   int limit = 20,
 }) {
   final q = query.trim().toLowerCase();
+  final qTokens = q
+      .replaceAll(RegExp(r"['’`]"), '')
+      .split(RegExp(r'[^a-z0-9]+'))
+      .where((t) => t.isNotEmpty)
+      .toList();
   double score(OfflinePlaceRow r) {
     final name = r.name.toLowerCase();
     var s = r.rank.toDouble();
@@ -115,11 +161,20 @@ List<OfflinePlaceRow> rankOfflinePlaces(
       s += 20;
     } else if (name.contains(q)) {
       s += 8;
+    } else if (qTokens.isNotEmpty) {
+      final nameTokens = name.split(RegExp(r'[^a-z0-9]+'));
+      final hit = qTokens.every(
+        (t) => nameTokens.any((n) => n.startsWith(t) || t.startsWith(n)),
+      );
+      if (hit) s += 14;
     }
     if (near != null) {
       final km = distanceMeters(near, r.point) / 1000;
-      // Dekat lebih relevan untuk tempat biasa; bandar besar tetap menang walaupun jauh.
-      s -= math.min(45, math.sqrt(km) * 3);
+      // POI berhampiran menang untuk navigasi; penempatan berperingkat tinggi masih relevan jauh.
+      final distancePenalty = math.min(55.0, math.sqrt(km) * 4.5);
+      final settlementBoost = r.cat == OfflinePlaceCat.settlement ? 8.0 : 0.0;
+      s -= distancePenalty;
+      s += settlementBoost * math.min(1.0, km / 40);
     }
     return s;
   }

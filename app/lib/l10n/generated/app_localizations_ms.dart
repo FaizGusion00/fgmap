@@ -374,6 +374,23 @@ class AppLocalizationsMs extends AppLocalizations {
       'Perkhidmatan carian tidak tersedia buat masa ini.';
 
   @override
+  String get searchOfflinePackPrompt =>
+      'Muat turun indeks tempat offline untuk carian Malaysia yang lebih lengkap — tiada suis berasingan.';
+
+  @override
+  String get searchOfflinePackUpdate =>
+      'Kemas kini pek peta offline untuk dapat tempat baharu.';
+
+  @override
+  String get searchOfflinePackAction => 'Peta offline';
+
+  @override
+  String get searchQuickDestinations => 'Pergi sekarang';
+
+  @override
+  String get searchResultOffline => 'Offline';
+
+  @override
   String routeFromTo(String from, String to) {
     return '$from → $to';
   }

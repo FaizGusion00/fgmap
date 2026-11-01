@@ -716,6 +716,36 @@ abstract class AppLocalizations {
   /// **'Perkhidmatan carian tidak tersedia buat masa ini.'**
   String get searchErrorUnavailable;
 
+  /// No description provided for @searchOfflinePackPrompt.
+  ///
+  /// In ms, this message translates to:
+  /// **'Muat turun indeks tempat offline untuk carian Malaysia yang lebih lengkap — tiada suis berasingan.'**
+  String get searchOfflinePackPrompt;
+
+  /// No description provided for @searchOfflinePackUpdate.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kemas kini pek peta offline untuk dapat tempat baharu.'**
+  String get searchOfflinePackUpdate;
+
+  /// No description provided for @searchOfflinePackAction.
+  ///
+  /// In ms, this message translates to:
+  /// **'Peta offline'**
+  String get searchOfflinePackAction;
+
+  /// No description provided for @searchQuickDestinations.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pergi sekarang'**
+  String get searchQuickDestinations;
+
+  /// No description provided for @searchResultOffline.
+  ///
+  /// In ms, this message translates to:
+  /// **'Offline'**
+  String get searchResultOffline;
+
   /// No description provided for @routeFromTo.
   ///
   /// In ms, this message translates to:
