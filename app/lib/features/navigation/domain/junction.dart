@@ -132,7 +132,12 @@ Junction? parseJunction(
   required bool roundabout,
   int? roundaboutExit,
 }) {
-  final decoded = body is String ? jsonDecode(body) : body;
+  Object? decoded;
+  try {
+    decoded = body is String ? jsonDecode(body) : body;
+  } on FormatException {
+    return null;
+  }
   if (decoded is! Map) return null;
   final edges = decoded['edges'];
   final shapeText = decoded['shape'];

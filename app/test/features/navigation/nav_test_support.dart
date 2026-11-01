@@ -195,6 +195,16 @@ class FakeSpeedLimitService implements SpeedLimitService {
     if (points.length < 2) return null;
     return snapPoint ?? points.last;
   }
+
+  /// Respons trace_attributes palsu (cth. simpang); null = tiada rangkaian.
+  String? traceBody;
+  int rawCalls = 0;
+
+  @override
+  Future<String?> traceRaw(String request, {bool offlineFirst = false}) async {
+    rawCalls++;
+    return traceBody;
+  }
 }
 
 /// Had laju seragam [kmh] sepanjang [lengthM] meter.

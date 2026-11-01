@@ -72,6 +72,8 @@ import '../../navigation/data/navigation_settings.dart';
 import '../../navigation/domain/camera_planner.dart';
 import '../../navigation/domain/instruction_text.dart';
 import '../../navigation/domain/nav_route.dart';
+import '../../navigation/domain/junction.dart' show wantsJunction;
+import '../../navigation/presentation/junction_provider.dart';
 import '../../navigation/presentation/car_session_hub.dart';
 import '../../navigation/presentation/cruise_controller.dart';
 import '../../navigation/presentation/cruise_frame_driver.dart';
@@ -703,7 +705,26 @@ class _MapScreenState extends ConsumerState<MapScreen>
     }
   }
 
+  /// Gambar simpang diminta sebaik manuver menjadi "seterusnya" (dan yang selepasnya), jadi ia sudah
+  /// sedia sebelum kotak lorong muncul ~200-500 m sebelum simpang.
+  void _prefetchJunctions(NavigationState? prev, NavigationState next) {
+    final route = next.route;
+    final progress = next.progress;
+    if (route == null || progress == null) return;
+    if (identical(prev?.progress?.next, progress.next) &&
+        identical(prev?.route, route)) {
+      return;
+    }
+    final costing = (next.query?.vehicle ?? RouteVehicle.car).costing;
+    for (final m in [progress.next, progress.following]) {
+      if (m != null && wantsJunction(m)) {
+        ref.read(junctionProvider((route, m.index, costing)));
+      }
+    }
+  }
+
   void _onNavigationChanged(NavigationState? prev, NavigationState next) {
+    _prefetchJunctions(prev, next);
     final wasActive = prev?.isActive ?? false;
     if (next.isActive && !wasActive) {
       _endCruise(settle: false);
