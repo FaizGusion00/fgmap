@@ -5,7 +5,10 @@ String cleanReply(String raw) {
   var t = raw.replaceAll('\r', '');
 
   // Blok pemikiran / panggilan alat (tertutup atau tag terbuka tanpa penutup).
-  t = t.replaceAll(RegExp(r'<think>[\s\S]*?</think>', caseSensitive: false), '');
+  t = t.replaceAll(
+    RegExp(r'<think>[\s\S]*?</think>', caseSensitive: false),
+    '',
+  );
   t = _stripTaggedBlocks(t, const [
     'tool_code',
     'tool_call',
@@ -98,10 +101,7 @@ String _stripTaggedBlocks(String input, List<String> tags) {
   var t = input;
   for (final tag in tags) {
     t = t.replaceAll(
-      RegExp(
-        '<$tag\\b[^>]*>[\\s\\S]*?</$tag>',
-        caseSensitive: false,
-      ),
+      RegExp('<$tag\\b[^>]*>[\\s\\S]*?</$tag>', caseSensitive: false),
       '',
     );
     t = t.replaceAll(RegExp('</?$tag\\b[^>]*>', caseSensitive: false), '');

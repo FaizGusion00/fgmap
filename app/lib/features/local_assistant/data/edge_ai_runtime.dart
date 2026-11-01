@@ -186,11 +186,14 @@ class EdgeAiLlmRuntime implements LocalLlmRuntime {
     try {
       await for (final response in chat.generateChatResponseWithTools(
         maxToolTurns: maxToolTurns,
+        // Model sudah memberi jawapan sebenar, kemudian meminta alat juga: kekalkan jawapan itu dan
+        // jangan jalankan alat (jika tidak, jawapan di skrin hilang dan "memuatkan" bermula semula).
+        isCancelled: () => hasSubstantiveAnswer(buf.toString()),
         onToolCall: (call) async {
           // Teks sebelum panggilan alat (cth. ".") bukan jawapan: buang.
           buf.clear();
           onText?.call('');
-          if (!isKnownAssistantTool(call.name)) {
+          if (!llmToolNames.contains(call.name)) {
             return {'error': 'unknown_tool'};
           }
           final args = <String, Object?>{
@@ -248,12 +251,29 @@ class EdgeAiLlmRuntime implements LocalLlmRuntime {
   static int _approxTokens(String text) => (text.length / 3.2).ceil() + 4;
 }
 
+/// Teks yang sudah menjadi jawapan (bukan sisa sebelum panggilan alat seperti "." atau "Let me
+/// check"): sekurang-kurangnya satu ayat penuh.
+bool hasSubstantiveAnswer(String raw) {
+  final t = cleanReply(raw);
+  return t.length >= 40 && RegExp(r'[.!?。]\s*$|[.!?]\s').hasMatch(t);
+}
+
 /// Sejarah ringkas untuk sesi baharu: 2 pusingan terakhir; jawapan dipotong ke 200 aksara.
+///
+/// Kad arahan daripada penghala (laluan, tempat: jawapan dengan butang tindakan) dibuang bersama
+/// soalannya: model kecil menyalin kad itu sebagai jawapan kepada soalan seterusnya.
 List<AssistantMessage> compactHistory(List<AssistantMessage> history) {
-  final turns = [
-    for (final m in history)
-      if (m.role != AssistantRole.system && m.text.trim().isNotEmpty) m,
-  ];
+  final turns = <AssistantMessage>[];
+  for (final m in history) {
+    if (m.role == AssistantRole.system || m.text.trim().isEmpty) continue;
+    if (m.role == AssistantRole.assistant && m.actions.isNotEmpty) {
+      if (turns.isNotEmpty && turns.last.role == AssistantRole.user) {
+        turns.removeLast();
+      }
+      continue;
+    }
+    turns.add(m);
+  }
   final recent = turns.length <= 4 ? turns : turns.sublist(turns.length - 4);
   return [
     for (final m in recent)

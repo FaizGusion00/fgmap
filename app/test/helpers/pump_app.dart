@@ -10,6 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fgmap/features/local_assistant/presentation/widgets/ai_motion.dart';
 
 /// Saiz skrin telefon biasa (iPhone 14) pada DPR 3.
 const phoneSize = Size(390, 844);
@@ -40,6 +41,9 @@ void reduceMotion(WidgetTester tester) {
   tester.platformDispatcher.accessibilityFeaturesTestValue =
       const FakeAccessibilityFeatures(disableAnimations: true);
   addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+  // Animasi sembang AI sengaja tidak mengikut tetapan sistem (AiMotion); bekukan dalam ujian.
+  AiMotion.forceStatic = true;
+  addTearDown(() => AiMotion.forceStatic = false);
 }
 
 Future<void> pumpApp(

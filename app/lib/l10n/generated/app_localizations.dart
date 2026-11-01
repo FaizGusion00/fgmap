@@ -5124,6 +5124,30 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'Paparan peta dan carian offline tersedia (+{size})'**
   String offlineMapsMapSearchAvailable(String size);
+
+  /// No description provided for @aiIdentity.
+  ///
+  /// In ms, this message translates to:
+  /// **'Saya FG AI, pembantu pintar dalam FGMaps, dibangunkan oleh Faiz Nasir dari FG Universal Empire. Saya berjalan terus pada telefon anda, jadi banyak perkara boleh dibuat tanpa internet: merancang laluan (dengan peta offline), arah kiblat, waktu solat, dan menjawab soalan umum. Dengan internet, saya juga boleh mencari tempat, menyemak cuaca dan banyak lagi.'**
+  String get aiIdentity;
+
+  /// No description provided for @aiGreeting.
+  ///
+  /// In ms, this message translates to:
+  /// **'Hai! Saya FG AI. Nak ke mana hari ini, atau ada apa yang boleh saya bantu?'**
+  String get aiGreeting;
+
+  /// No description provided for @aiThanks.
+  ///
+  /// In ms, this message translates to:
+  /// **'Sama-sama! Ada apa-apa lagi yang boleh saya bantu?'**
+  String get aiThanks;
+
+  /// No description provided for @aiPing.
+  ///
+  /// In ms, this message translates to:
+  /// **'Ya, saya di sini. Tanya apa sahaja, contohnya \"laluan ke Ipoh\", \"cuaca di Kuantan\", \"masjid terdekat\" atau soalan umum.'**
+  String get aiPing;
 }
 
 class _AppLocalizationsDelegate

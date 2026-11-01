@@ -1,10 +1,12 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'ai_motion.dart';
 
 /// Penunjuk "sedang berfikir": label bersinar (shimmer) dengan tiga titik beralun, dan di bawahnya
 /// garis rangka jawapan yang berkilau, jadi ruang jawapan terasa "hidup" dan sedang terbentuk,
-/// bukan sekadar tiga titik. Dengan Reduce Motion, semuanya statik.
+/// bukan sekadar tiga titik. Kekal beranimasi walaupun sistem melaporkan animasi dimatikan
+/// (lihat [AiMotion]); hanya ujian membekukannya.
 class TypingIndicator extends StatefulWidget {
   const TypingIndicator({super.key, required this.color, this.label});
 
@@ -27,8 +29,8 @@ class _TypingIndicatorState extends State<TypingIndicator>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Reduce Motion: statik (dan pumpAndSettle dalam ujian boleh selesai).
-    if (MediaQuery.disableAnimationsOf(context)) {
+    // Ujian sahaja: statik supaya pumpAndSettle boleh selesai.
+    if (AiMotion.reduce(context)) {
       _c.stop();
     } else if (!_c.isAnimating) {
       _c.repeat();
@@ -44,7 +46,7 @@ class _TypingIndicatorState extends State<TypingIndicator>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final reduce = MediaQuery.disableAnimationsOf(context);
+    final reduce = AiMotion.reduce(context);
     final muted = theme.colorScheme.onSurfaceVariant;
     final raw = widget.label?.replaceFirst(RegExp(r'[….]+$'), '');
     return RepaintBoundary(

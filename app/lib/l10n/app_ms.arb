@@ -1287,5 +1287,9 @@
   "offlineMapsMapAvailable": "Paparan peta offline tersedia (+{size})",
   "@offlineMapsMapAvailable": {"placeholders": {"size": {"type": "String"}}},
   "offlineMapsMapSearchAvailable": "Paparan peta dan carian offline tersedia (+{size})",
-  "@offlineMapsMapSearchAvailable": {"placeholders": {"size": {"type": "String"}}}
+  "@offlineMapsMapSearchAvailable": {"placeholders": {"size": {"type": "String"}}},
+  "aiIdentity": "Saya FG AI, pembantu pintar dalam FGMaps, dibangunkan oleh Faiz Nasir dari FG Universal Empire. Saya berjalan terus pada telefon anda, jadi banyak perkara boleh dibuat tanpa internet: merancang laluan (dengan peta offline), arah kiblat, waktu solat, dan menjawab soalan umum. Dengan internet, saya juga boleh mencari tempat, menyemak cuaca dan banyak lagi.",
+  "aiGreeting": "Hai! Saya FG AI. Nak ke mana hari ini, atau ada apa yang boleh saya bantu?",
+  "aiThanks": "Sama-sama! Ada apa-apa lagi yang boleh saya bantu?",
+  "aiPing": "Ya, saya di sini. Tanya apa sahaja, contohnya \"laluan ke Ipoh\", \"cuaca di Kuantan\", \"masjid terdekat\" atau soalan umum."
 }

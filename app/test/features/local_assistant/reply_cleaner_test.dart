@@ -28,21 +28,24 @@ void main() {
     expect(cleanReply('<think>hmm</think>Hello there.'), 'Hello there.');
   });
 
-  test('tag tool_code dan skema Parameters dibuang (tangkapan skrin offline FAQ)', () {
-    const raw =
-        'What can i ask you using your ofline features?\n'
-        '<tool_code>search_place: Find a place name and its latitude/longitude '
-        'in Malaysia. Parameters: {"type": "object", "properties": {"query": '
-        '{"type": "string", "description": "Place name to search"}}, "required": '
-        '["query"]}</tool_code>';
-    final out = cleanReply(raw);
-    expect(out.toLowerCase(), isNot(contains('tool_code')));
-    expect(out.toLowerCase(), isNot(contains('parameters')));
-    expect(out, isNot(contains('"type": "object"')));
-    expect(out, isNot(contains('search_place')));
-    expect(out, isNot(contains('properties')));
-    expect(looksLikeToolLeak(raw), isTrue);
-  });
+  test(
+    'tag tool_code dan skema Parameters dibuang (tangkapan skrin offline FAQ)',
+    () {
+      const raw =
+          'What can i ask you using your ofline features?\n'
+          '<tool_code>search_place: Find a place name and its latitude/longitude '
+          'in Malaysia. Parameters: {"type": "object", "properties": {"query": '
+          '{"type": "string", "description": "Place name to search"}}, "required": '
+          '["query"]}</tool_code>';
+      final out = cleanReply(raw);
+      expect(out.toLowerCase(), isNot(contains('tool_code')));
+      expect(out.toLowerCase(), isNot(contains('parameters')));
+      expect(out, isNot(contains('"type": "object"')));
+      expect(out, isNot(contains('search_place')));
+      expect(out, isNot(contains('properties')));
+      expect(looksLikeToolLeak(raw), isTrue);
+    },
+  );
 
   test('greeting + get_weather tool_code: kekalkan salam, buang skema', () {
     const raw =

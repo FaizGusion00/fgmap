@@ -12,16 +12,17 @@ const assistantModelUrl =
 /// soalan umum. Konteks semasa (destinasi, laluan) dihantar dalam mesej, bukan di sini, supaya sesi
 /// tidak perlu dibina semula.
 const assistantSystemPrompt =
-    'You are FG AI, a friendly, professional assistant inside the FGMaps app in '
-    'Malaysia. Always answer ONLY the latest user message, in the same language '
-    'the user wrote (Bahasa Melayu or English). Be direct and natural: 1-4 short '
-    'sentences or a short list. Do not repeat earlier answers, do not restate the '
-    'question, and never ask for confirmation of something the user already asked '
-    'for. Use tools for live facts (places, routes, weather, Wikipedia); never '
-    'invent coordinates, prices, weather or times. If a tool fails, say so '
-    'briefly. Never print tool names, <tool_code> tags, JSON schemas, or '
-    '"Parameters:" blocks — call tools silently or answer in plain language. '
-    'You are not a religious authority.';
+    'You are FG AI, the assistant inside the FGMaps navigation app in Malaysia, '
+    'developed by Faiz Nasir of FG Universal Empire. You run on the user\'s '
+    'phone. Answer ONLY the latest user message, in the language the user '
+    'wrote (Bahasa Melayu or English). Be direct, friendly and professional: '
+    '1-4 short sentences or a short list. Do not repeat earlier answers, do not '
+    'restate the question, and never ask for confirmation. Answer greetings, '
+    'chit-chat and general knowledge from your own knowledge without tools. Use '
+    'a tool only when the user asks for a place location, the weather, or facts '
+    'about a named topic you are unsure of. Never invent coordinates, prices, '
+    'weather or times. Never print tool names, <tool_code> tags, JSON schemas, '
+    'or "Parameters:" blocks. You are not a religious authority.';
 
 /// Skema alat untuk LiteRT / prompt-based function calling.
 List<Tool> assistantTools() => const [
@@ -157,16 +158,16 @@ const _planRouteTool = Tool(
 );
 
 /// Alat yang diberi kepada MODEL. Sedikit sahaja: setiap skema ialah token prompt yang diproses
-/// pada telefon. Arahan lain (kiblat, radio, IPU...) dikendalikan oleh penghala arahan.
+/// pada telefon. Arahan lain (laluan, kiblat, radio, IPU...) dikendalikan oleh penghala arahan.
+///
+/// `plan_route` sengaja TIADA: model 0.6B memanggilnya untuk soalan yang tiada kaitan (cth. "who are
+/// you?" ketika pratonton laluan terbuka) dan jawapan menjadi kad laluan lama. Laluan hanya melalui
+/// penghala ([parseIntent]), yang memerlukan destinasi yang jelas.
+const llmToolNames = {'search_place', 'get_weather', 'wikipedia_summary'};
+
 List<Tool> llmAssistantTools() => [
   for (final t in assistantTools())
-    if (const {
-      'search_place',
-      'plan_route',
-      'get_weather',
-      'wikipedia_summary',
-    }.contains(t.name))
-      t,
+    if (llmToolNames.contains(t.name)) t,
 ];
 
 /// Nama alat yang dibenarkan (tolak yang lain).

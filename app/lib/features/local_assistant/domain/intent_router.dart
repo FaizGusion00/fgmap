@@ -61,6 +61,28 @@ class CurrentLocationIntent extends AssistantIntent {
   const CurrentLocationIntent();
 }
 
+/// Perbualan ringkas yang dijawab dengan templat, bukan model: model kecil 0.6B tidak tahu siapa
+/// dirinya dan cenderung memanggil alat (cth. merancang semula laluan terakhir) untuk "hai".
+enum ChatKind {
+  /// "Who are you?", "siapa awak", "who made you".
+  identity,
+
+  /// "Hi", "hai", "assalamualaikum" (seluruh mesej).
+  greeting,
+
+  /// "Thanks", "terima kasih".
+  thanks,
+
+  /// "Can you answer me?", "ada tak?", "kenapa tak jawab".
+  ping,
+}
+
+class ChatIntent extends AssistantIntent {
+  const ChatIntent(this.kind);
+
+  final ChatKind kind;
+}
+
 /// "What can I ask offline?", "apa boleh tanya" — FAQ ciri, tanpa skema alat.
 class CapabilitiesIntent extends AssistantIntent {
   const CapabilitiesIntent({this.offlineFocused = false});
@@ -305,6 +327,9 @@ AssistantIntent? parseIntent(String text, {bool hasRoute = false}) {
     return hasRoute ? const CancelRouteIntent() : null;
   }
 
+  final chat = _chatIntent(t);
+  if (chat != null) return chat;
+
   final capabilities = _capabilitiesIntent(t);
   if (capabilities != null) return capabilities;
 
@@ -424,6 +449,30 @@ bool _isCurrentLocationPhrase(String q) {
   return RegExp(
     r'^(?:my\s+)?(?:current\s+)?(?:location|position|gps)(?:\s+here)?$|^(?:lokasi|kedudukan)(?:\s+(?:saya|aku|semasa|ini))?$|^(?:my\s+)?(?:lokasi|kedudukan)\s+(?:saya|aku)$',
   ).hasMatch(t);
+}
+
+final _identity = RegExp(
+  r'\b(?:who\s+(?:are|r)\s+(?:you|u|ya)|what\s+are\s+you|what\s*(?:s|\s+is)\s+your\s+name|your\s+name|introduce\s+yourself|who\s+(?:made|built|created|developed|owns)\s+(?:you|u|this(?:\s+app)?|fg\s*ai)|siapa\s+(?:awak|kamu|anda|engkau|kau|ko|hang|korang)|(?:awak|kamu|anda|kau|ko|hang)\s+(?:ni\s+)?siapa|(?:apa|siapa)\s+nama\s+(?:awak|kamu|anda|kau|ko|hang)|nama\s+(?:awak|kamu|anda|kau|ko)\s+(?:apa|siapa)|perkenalkan\s+diri|siapa\s+(?:yang\s+)?(?:buat|cipta|bina|bangunkan|develop|reka)\s+(?:awak|kamu|anda|kau|app\s+ni|aplikasi\s+ini|fg\s*ai))\b',
+);
+
+final _greeting = RegExp(
+  r'^(?:hi+|hello+|helo+|hai+|hey+|hye|yo|salam|assalamualaikum|assalamu\s+alaikum|asalamualaikum|selamat\s+(?:pagi|tengah\s+hari|petang|malam)|good\s+(?:morning|afternoon|evening))(?:\s+(?:there|fg\s*ai|ai|bot|bro|boss|semua))?$',
+);
+
+final _thanks = RegExp(
+  r'^(?:thanks?|thank\s+(?:you|u)|thx|ty|terima\s*kasih|tq|tqvm|tenkiu|thanks\s+a\s+lot)(?:\s+(?:so\s+much|very\s+much|banyak(?:\s+banyak)?|bro|boss|fg\s*ai))?$',
+);
+
+final _ping = RegExp(
+  r'^(?:(?:can|could)\s+(?:you|u)\s+(?:answer|hear|reply\s+to|respond\s+to)\s+me|(?:are|r)\s+(?:you|u)\s+(?:there|working|alive|ok|okay)|(?:you|u)\s+there|answer\s+me|why\s+(?:are\s+)?(?:you|u)\s+not\s+(?:answering|replying|responding)|boleh\s+(?:jawab|dengar|balas)(?:\s+(?:tak|ke|x|soalan\s+saya))?|(?:awak|kamu|anda)?\s*ada\s+(?:tak|ke|x)|kenapa\s+(?:tak|tidak|x)\s+(?:jawab|balas)|jawab\s+(?:la|lah|soalan\s+saya))$',
+);
+
+ChatIntent? _chatIntent(String t) {
+  if (_identity.hasMatch(t)) return const ChatIntent(ChatKind.identity);
+  if (_greeting.hasMatch(t)) return const ChatIntent(ChatKind.greeting);
+  if (_thanks.hasMatch(t)) return const ChatIntent(ChatKind.thanks);
+  if (_ping.hasMatch(t)) return const ChatIntent(ChatKind.ping);
+  return null;
 }
 
 CapabilitiesIntent? _capabilitiesIntent(String t) {

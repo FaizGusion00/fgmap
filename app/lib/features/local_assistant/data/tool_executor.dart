@@ -633,8 +633,8 @@ String? networkErrorCode(Object e) {
   if (e is GeocodeFailure) {
     return switch (e.kind) {
       GeocodeFailureKind.network => 'offline',
-      GeocodeFailureKind.unavailable || GeocodeFailureKind.rateLimited =>
-        'offline',
+      GeocodeFailureKind.unavailable ||
+      GeocodeFailureKind.rateLimited => 'offline',
       GeocodeFailureKind.generic => null,
     };
   }

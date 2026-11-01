@@ -2928,4 +2928,19 @@ class AppLocalizationsMs extends AppLocalizations {
   String offlineMapsMapSearchAvailable(String size) {
     return 'Paparan peta dan carian offline tersedia (+$size)';
   }
+
+  @override
+  String get aiIdentity =>
+      'Saya FG AI, pembantu pintar dalam FGMaps, dibangunkan oleh Faiz Nasir dari FG Universal Empire. Saya berjalan terus pada telefon anda, jadi banyak perkara boleh dibuat tanpa internet: merancang laluan (dengan peta offline), arah kiblat, waktu solat, dan menjawab soalan umum. Dengan internet, saya juga boleh mencari tempat, menyemak cuaca dan banyak lagi.';
+
+  @override
+  String get aiGreeting =>
+      'Hai! Saya FG AI. Nak ke mana hari ini, atau ada apa yang boleh saya bantu?';
+
+  @override
+  String get aiThanks => 'Sama-sama! Ada apa-apa lagi yang boleh saya bantu?';
+
+  @override
+  String get aiPing =>
+      'Ya, saya di sini. Tanya apa sahaja, contohnya \"laluan ke Ipoh\", \"cuaca di Kuantan\", \"masjid terdekat\" atau soalan umum.';
 }

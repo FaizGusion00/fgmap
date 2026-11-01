@@ -8,6 +8,7 @@ import '../../route_preview/presentation/route_format.dart';
 import '../../search/domain/nearby_category.dart';
 import '../../weather/domain/weather_codes.dart';
 import '../domain/assistant_message.dart';
+import '../domain/intent_router.dart' show ChatKind;
 
 /// Jawapan bertemplat untuk arahan peta: tepat (dari data alat), ringkas, tidak pernah mengulang
 /// jawapan sebelumnya, dan dalam bahasa mesej pengguna.
@@ -107,6 +108,13 @@ class AiReplyBuilder {
         : l10n.aiCurrentLocation('**$place**', lat, lng);
     return _reply(text);
   }
+
+  AssistantMessage chat(ChatKind kind) => _reply(switch (kind) {
+    ChatKind.identity => l10n.aiIdentity,
+    ChatKind.greeting => l10n.aiGreeting,
+    ChatKind.thanks => l10n.aiThanks,
+    ChatKind.ping => l10n.aiPing,
+  });
 
   AssistantMessage capabilities({bool offlineFocused = false}) =>
       _reply(offlineFocused ? l10n.aiCapabilitiesOffline : l10n.aiCapabilities);

@@ -22,6 +22,7 @@ import 'widgets/answer_text.dart';
 import 'widgets/smooth_reveal.dart';
 import 'widgets/sources_section.dart';
 import 'widgets/typing_indicator.dart';
+import 'widgets/ai_motion.dart';
 
 /// Buka halaman penuh FG AI atau FGMuslim AI (dua AI berasingan, masing-masing dengan senarai sembang).
 Future<void> showAiPage(BuildContext context, AiMode mode) =>
@@ -442,7 +443,7 @@ class _AiAvatar extends StatelessWidget {
       ),
       child: _AvatarGlyph(mode: mode, size: size, active: active),
     );
-    if (!active || MediaQuery.disableAnimationsOf(context)) return orb;
+    if (!active || AiMotion.reduce(context)) return orb;
     return _AvatarHalo(size: size, color: _aiGradient(mode).last, child: orb);
   }
 }
@@ -472,7 +473,7 @@ class _AvatarGlyphState extends State<_AvatarGlyph>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final animate = widget.active && !MediaQuery.disableAnimationsOf(context);
+    final animate = widget.active && !AiMotion.reduce(context);
     if (animate && !_c.isAnimating) {
       _c.repeat(reverse: true);
     } else if (!animate) {
@@ -657,7 +658,9 @@ class _MessageList extends StatelessWidget {
                       ),
                     )
                   : Padding(
-                      key: ValueKey('ai-thinking-${state.phase.name}'),
+                      // Kunci tetap: bila fasa bertukar (berfikir/bekerja), hanya label berubah; animasi
+                      // tidak bermula semula dan tidak berkelip.
+                      key: const ValueKey('ai-thinking'),
                       padding: const EdgeInsets.symmetric(vertical: 4),
                       child: TypingIndicator(color: accent, label: label),
                     ),

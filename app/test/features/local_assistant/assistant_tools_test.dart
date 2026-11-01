@@ -12,6 +12,14 @@ void main() {
     expect(assistantTools().map((t) => t.name).toSet(), assistantToolNames);
   });
 
+  test('model TIDAK diberi plan_route (laluan hanya melalui penghala)', () {
+    final names = llmAssistantTools().map((t) => t.name).toSet();
+    expect(names, isNot(contains('plan_route')));
+    expect(names, llmToolNames);
+    expect(assistantSystemPrompt, contains('FG AI'));
+    expect(assistantSystemPrompt, contains('Faiz Nasir'));
+  });
+
   test('clipToolResult memotong teks panjang', () {
     final long = 'a' * 1200;
     final clipped = clipToolResult(long, max: 100);

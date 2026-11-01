@@ -2925,4 +2925,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String offlineMapsMapSearchAvailable(String size) {
     return 'Offline map display and search available (+$size)';
   }
+
+  @override
+  String get aiIdentity =>
+      'I\'m FG AI, the smart assistant in FGMaps, developed by Faiz Nasir of FG Universal Empire. I run directly on your phone, so a lot works without internet: planning routes (with the offline map), qibla direction, prayer times, and answering general questions. With internet I can also find places, check the weather and more.';
+
+  @override
+  String get aiGreeting =>
+      'Hi! I\'m FG AI. Where are you heading today, or what can I help with?';
+
+  @override
+  String get aiThanks => 'You\'re welcome! Anything else I can help with?';
+
+  @override
+  String get aiPing =>
+      'Yes, I\'m here. Ask me anything, for example \"route to Ipoh\", \"weather in Kuantan\", \"nearest mosque\" or a general question.';
 }

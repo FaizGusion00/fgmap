@@ -56,6 +56,30 @@ void main() {
     expect(find.textContaining("There's no route yet"), findsOneWidget);
   });
 
+  testWidgets(
+    '"who are you" dan "can you answer me" dijawab tanpa model, tiada kad laluan',
+    (tester) async {
+      final llm = FakeLlm(reply: 'Route to Kuala Kedah is ready');
+      await pump(tester, llm);
+      await send(tester, 'Hi who are you?');
+      expect(find.textContaining('Faiz Nasir'), findsOneWidget);
+      expect(find.textContaining('FG Universal Empire'), findsOneWidget);
+      await send(tester, 'Can you answer me?');
+      expect(find.textContaining("Yes, I'm here"), findsOneWidget);
+      expect(llm.lastUserText, isNull, reason: 'model tidak dipanggil');
+      expect(find.textContaining('Kuala Kedah'), findsNothing);
+      expect(find.text('Start navigation'), findsNothing);
+    },
+  );
+
+  testWidgets('BM: "siapa awak" dijawab dalam BM', (tester) async {
+    final llm = FakeLlm();
+    await pump(tester, llm, locale: const Locale('ms'));
+    await send(tester, 'siapa awak');
+    expect(find.textContaining('Saya FG AI'), findsOneWidget);
+    expect(llm.lastUserText, isNull);
+  });
+
   testWidgets('soalan umum ke model; teks dipaparkan; perbualan disimpan', (
     tester,
   ) async {
@@ -84,23 +108,24 @@ void main() {
     expect(find.textContaining('are paid by card'), findsOneWidget);
   });
 
-  testWidgets('model yang membuang tool_code tidak dipaparkan dalam gelembung', (
-    tester,
-  ) async {
-    final llm = FakeLlm(
-      reply:
-          'Hello! How can I help?\n'
-          '<tool_code>get_weather: Current weather at GPS. Parameters: '
-          '{"type": "object", "properties": {"query": {"type": "string"}}}'
-          '</tool_code>',
-    );
-    await pump(tester, llm);
-    await send(tester, 'Hello');
-    expect(find.textContaining('Hello'), findsWidgets);
-    expect(find.textContaining('tool_code'), findsNothing);
-    expect(find.textContaining('Parameters'), findsNothing);
-    expect(find.textContaining('get_weather'), findsNothing);
-  });
+  testWidgets(
+    'model yang membuang tool_code tidak dipaparkan dalam gelembung',
+    (tester) async {
+      final llm = FakeLlm(
+        reply:
+            'Hello! How can I help?\n'
+            '<tool_code>get_weather: Current weather at GPS. Parameters: '
+            '{"type": "object", "properties": {"query": {"type": "string"}}}'
+            '</tool_code>',
+      );
+      await pump(tester, llm);
+      await send(tester, 'Hello');
+      expect(find.textContaining('Hello'), findsWidgets);
+      expect(find.textContaining('tool_code'), findsNothing);
+      expect(find.textContaining('Parameters'), findsNothing);
+      expect(find.textContaining('get_weather'), findsNothing);
+    },
+  );
 
   testWidgets('soalan ciri offline dijawab tanpa model / tanpa skema alat', (
     tester,

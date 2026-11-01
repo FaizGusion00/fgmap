@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'ai_motion.dart';
 
 /// Mendedahkan [text] aksara demi aksara pada kadar yang licin (satu langkah setiap bingkai),
 /// bukan perkataan demi perkataan yang tersentak-sentak.
@@ -74,7 +75,7 @@ class _SmoothRevealState extends State<SmoothReveal>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final reduce = MediaQuery.disableAnimationsOf(context);
+    final reduce = AiMotion.reduce(context);
     if (reduce == _reduce) return;
     _reduce = reduce;
     if (reduce) {

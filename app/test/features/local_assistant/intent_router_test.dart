@@ -182,4 +182,60 @@ void main() {
     expect(looksMalay('route to klcc'), isFalse);
     expect(looksEnglish('route to klcc'), isTrue);
   });
+
+  group('perbualan (templat, bukan model)', () {
+    ChatKind? kind(String t) => switch (parseIntent(t, hasRoute: true)) {
+      ChatIntent(:final kind) => kind,
+      _ => null,
+    };
+
+    test('identiti: BI dan BM, termasuk bercampur salam', () {
+      for (final t in [
+        'Hi who are you?',
+        'who r u',
+        "What's your name?",
+        'who made you',
+        'Who developed this app?',
+        'siapa awak',
+        'Awak ni siapa?',
+        'apa nama kamu',
+        'siapa buat app ni',
+        'perkenalkan diri',
+      ]) {
+        expect(kind(t), ChatKind.identity, reason: t);
+      }
+    });
+
+    test('salam, terima kasih dan "boleh jawab tak"', () {
+      for (final t in [
+        'hi',
+        'Hello!',
+        'Assalamualaikum',
+        'selamat pagi',
+        'hai FG AI',
+      ]) {
+        expect(kind(t), ChatKind.greeting, reason: t);
+      }
+      for (final t in ['thanks', 'Thank you so much', 'terima kasih', 'tq']) {
+        expect(kind(t), ChatKind.thanks, reason: t);
+      }
+      for (final t in [
+        'Can you answer me?',
+        'are you there',
+        'boleh jawab tak',
+        'kenapa tak jawab',
+        'ada tak?',
+      ]) {
+        expect(kind(t), ChatKind.ping, reason: t);
+      }
+    });
+
+    test('bukan perbualan: soalan umum dan arahan tetap ke laluan biasa', () {
+      expect(kind('who is the prime minister of Malaysia'), isNull);
+      expect(kind('siapa perdana menteri malaysia'), isNull);
+      expect(kind('hi, route to Ipoh'), isNull);
+      expect(kind('hello world program in python'), isNull);
+      expect(parseIntent('route to Kuala Kedah'), isA<RouteIntent>());
+    });
+  });
 }

@@ -159,9 +159,7 @@ class AssistantController extends AiChatController {
     } on Object catch (e) {
       logDiag('FG AI gagal: $e');
       final offline = networkErrorCode(e);
-      reply = replies.text(
-        offline != null ? l10n.aiOfflineTool : l10n.aiError,
-      );
+      reply = replies.text(offline != null ? l10n.aiOfflineTool : l10n.aiError);
     }
     if (!ref.mounted) return;
     final all = [...state.messages, reply];
@@ -234,6 +232,8 @@ class AssistantController extends AiChatController {
         );
       case CurrentLocationIntent():
         return replies.currentLocation(await _tools.currentLocation());
+      case ChatIntent(:final kind):
+        return replies.chat(kind);
       case CapabilitiesIntent(:final offlineFocused):
         return replies.capabilities(offlineFocused: offlineFocused);
       case WeatherIntent(:final place):
@@ -275,8 +275,7 @@ class AssistantController extends AiChatController {
     AppLocalizations l10n,
   ) async {
     state = state.copyWith(phase: AiPhase.thinking);
-    final context = _contextLine();
-    Map<String, Object?>? route;
+    final context = _contextLine(text);
     final raw = await ref
         .read(localLlmRuntimeProvider)
         .chat(
@@ -286,6 +285,7 @@ class AssistantController extends AiChatController {
           sessionKey: state.current?.id,
           maxToolTurns: 2,
           onTool: (name, args) async {
+            if (!llmToolNames.contains(name)) return {'error': 'unknown_tool'};
             if (ref.mounted) {
               state = state.copyWith(
                 phase: AiPhase.working,
@@ -293,12 +293,6 @@ class AssistantController extends AiChatController {
               );
             }
             final result = await _tools.run(name, args);
-            if (name == 'plan_route') {
-              route = result;
-              if (result['ok'] == true) {
-                _lastDestination = result['destination'] as String?;
-              }
-            }
             if (ref.mounted) state = state.copyWith(phase: AiPhase.thinking);
             return clipToolMap(result);
           },
@@ -323,15 +317,6 @@ class AssistantController extends AiChatController {
     final body = cleaned.length > 2000
         ? '${cleaned.substring(0, 1999)}…'
         : cleaned;
-    final r = route;
-    if (r != null && r['ok'] == true) {
-      // Butiran laluan daripada data sebenar (bukan teks model) supaya angka sentiasa tepat.
-      final card = replies.route(r);
-      final safeExtra = cleanReply(body);
-      return safeExtra.isEmpty
-          ? card
-          : card.copyWith(text: '${card.text}\n\n$safeExtra');
-    }
     if (body.isEmpty) {
       // Model membuang skema alat sahaja (cth. soalan "what can I ask offline").
       if (looksLikeToolLeak(raw)) {
@@ -342,9 +327,11 @@ class AssistantController extends AiChatController {
     return replies.text(body);
   }
 
-  /// Konteks ringkas untuk model (Inggeris; bukan dipaparkan): laluan semasa sahaja, supaya model
-  /// tidak perlu bergantung pada jawapan lama.
-  String? _contextLine() {
+  /// Konteks ringkas untuk model (Inggeris; bukan dipaparkan): laluan semasa, HANYA bila soalan
+  /// menyebut perjalanan. Jika dihantar untuk setiap soalan, model kecil mengulang laluan itu
+  /// sebagai jawapan kepada "hai" atau "siapa awak".
+  String? _contextLine(String text) {
+    if (!_tripQuestion.hasMatch(normalizeCommand(text))) return null;
     final nav = ref.read(navigationControllerProvider);
     if (nav.isActive) {
       return '[Context: the user is navigating now.]';
@@ -360,6 +347,10 @@ class AssistantController extends AiChatController {
     return null;
   }
 }
+
+final _tripQuestion = RegExp(
+  r'\b(?:route|routes|trip|journey|drive|driving|toll|tolls|eta|arrive|arrival|distance|destination|navigat\w*|how\s+long|how\s+far|laluan|perjalanan|tol|jarak|destinasi|sampai|tiba|berapa\s+lama|berapa\s+jauh|memandu|navigasi)\b',
+);
 
 /// Potong nilai teks panjang dalam hasil alat supaya konteks telefon tidak membengkak.
 Map<String, Object?> clipToolMap(Map<String, Object?> result, {int max = 900}) {

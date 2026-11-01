@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'smooth_reveal.dart';
+import 'ai_motion.dart';
 
 /// Teks jawapan dengan format ringan: perenggan, senarai "- ", **tebal**, dan penanda petikan "[2]"
 /// sebagai lencana kecil. Tahan teks separuh (semasa animasi menaip): "**" tanpa penutup ditebalkan
@@ -160,7 +161,7 @@ class _TypingCaretState extends State<TypingCaret>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (MediaQuery.disableAnimationsOf(context)) {
+    if (AiMotion.reduce(context)) {
       _c.stop();
     } else if (!_c.isAnimating) {
       _c.repeat(reverse: true);
@@ -191,7 +192,7 @@ class _TypingCaretState extends State<TypingCaret>
         ],
       ),
     );
-    if (MediaQuery.disableAnimationsOf(context)) return bar;
+    if (AiMotion.reduce(context)) return bar;
     return FadeTransition(
       opacity: Tween<double>(
         begin: 0.35,
