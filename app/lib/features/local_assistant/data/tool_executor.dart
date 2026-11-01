@@ -217,7 +217,23 @@ class AssistantToolExecutor {
         'query': q,
       };
     }
-    final place = found.places.first;
+    return planRouteToPlace(
+      found.places.first,
+      preference: preference,
+      start: start,
+      query: q,
+    );
+  }
+
+  /// Rancang laluan ke [place] yang SUDAH diketahui (pilihan daripada senarai, tempat tersimpan, yang terdekat):
+  /// tiada carian semula, jadi tepat dan berfungsi tanpa rangkaian carian.
+  Future<Map<String, Object?>> planRouteToPlace(
+    Place place, {
+    RoutePreference preference = RoutePreference.recommended,
+    bool start = false,
+    String? query,
+  }) async {
+    final q = query ?? place.name;
     await _ref
         .read(routePreviewControllerProvider.notifier)
         .planTo(place.point, destinationLabel: place.name);

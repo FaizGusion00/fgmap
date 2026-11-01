@@ -2989,4 +2989,148 @@ class AppLocalizationsMs extends AppLocalizations {
   @override
   String get aiPing =>
       'Ya, saya di sini. Tanya apa sahaja, contohnya \"laluan ke Ipoh\", \"cuaca di Kuantan\", \"masjid terdekat\" atau soalan umum.';
+
+  @override
+  String get aiNoTrip =>
+      'Belum ada laluan atau navigasi. Beritahu saya destinasi dahulu, contohnya \"bawa saya ke KLCC\".';
+
+  @override
+  String aiTripDistanceLeft(String distance) {
+    return 'Baki jarak: **$distance**.';
+  }
+
+  @override
+  String aiTripDistanceTotal(String distance) {
+    return 'Jarak ke destinasi: **$distance**.';
+  }
+
+  @override
+  String aiTripTimeLeft(String duration) {
+    return 'Baki masa: kira-kira **$duration**.';
+  }
+
+  @override
+  String aiTripTimeTotal(String duration) {
+    return 'Perjalanan mengambil masa kira-kira **$duration**.';
+  }
+
+  @override
+  String aiTripArrival(String time, String duration) {
+    return 'Anda dijangka tiba pada pukul **$time** (lagi $duration).';
+  }
+
+  @override
+  String get aiTripTollNone => 'Laluan ini tiada tol.';
+
+  @override
+  String aiTripToll(String amount) {
+    return 'Anggaran tol laluan ini: **$amount**.';
+  }
+
+  @override
+  String aiTripTollPartial(String amount) {
+    return 'Anggaran tol sekurang-kurangnya **$amount** (ada plaza yang harganya tiada dalam data).';
+  }
+
+  @override
+  String get aiTripTollPending =>
+      'Laluan ini ada tol tetapi anggarannya masih dikira. Tanya lagi sebentar nanti.';
+
+  @override
+  String get aiTripTollUnknown =>
+      'Laluan ini ada tol tetapi harganya tiada dalam data kami.';
+
+  @override
+  String get aiTripTollMotorcycle =>
+      'Harga tol motosikal tiada dalam data kami (kebanyakan lebuh raya percuma untuk motosikal, tetapi tidak semua). Saya tidak mahu meneka.';
+
+  @override
+  String aiTripFuel(
+    String amount,
+    String distance,
+    String price,
+    String liters,
+  ) {
+    return 'Anggaran kos minyak: **$amount** untuk $distance (RM$price seliter, $liters L/100 km).';
+  }
+
+  @override
+  String get aiTripFuelNoPrice =>
+      'Harga minyak belum diketahui (tiada data dan tiada harga yang anda tetapkan). Tetapkan harga di Tetapan > Minyak.';
+
+  @override
+  String aiTripNextTurn(String action, String distance) {
+    return 'Seterusnya: **$action** dalam $distance.';
+  }
+
+  @override
+  String aiTripNextTurnNow(String action) {
+    return 'Seterusnya: **$action**.';
+  }
+
+  @override
+  String get aiTripNoNav =>
+      'Navigasi belum bermula, jadi saya tiada arahan seterusnya. Mulakan navigasi dahulu.';
+
+  @override
+  String aiTripSpeedLimit(String kmh) {
+    return 'Had laju di jalan ini: **$kmh km/j**.';
+  }
+
+  @override
+  String get aiTripSpeedUnknown => 'Had laju jalan ini tiada dalam data.';
+
+  @override
+  String get aiHomeNotSet =>
+      'Anda belum menetapkan Rumah. Ketik Rumah pada skrin carian untuk menetapkannya, kemudian minta lagi.';
+
+  @override
+  String get aiWorkNotSet =>
+      'Anda belum menetapkan Kerja. Ketik Kerja pada skrin carian untuk menetapkannya, kemudian minta lagi.';
+
+  @override
+  String get aiVehicleCar => 'Baik, kenderaan ditukar kepada **kereta**.';
+
+  @override
+  String get aiVehicleMotorcycle =>
+      'Baik, kenderaan ditukar kepada **motosikal**.';
+
+  @override
+  String get aiVoiceOn => 'Suara panduan dihidupkan.';
+
+  @override
+  String get aiVoiceOff => 'Suara panduan dimatikan.';
+
+  @override
+  String get aiThemeDark => 'Baik, mod gelap dihidupkan.';
+
+  @override
+  String get aiThemeLight => 'Baik, mod cerah dihidupkan.';
+
+  @override
+  String get aiThemeSystem => 'Baik, tema mengikut sistem peranti.';
+
+  @override
+  String get aiNavStopped => 'Navigasi dihentikan.';
+
+  @override
+  String get aiAck =>
+      'Baik. Beritahu saya bila perlu bantuan peta, contohnya \"bawa saya ke KLCC\".';
+
+  @override
+  String get aiAskRadio =>
+      'Stesen radio mana? Contohnya \"play Era\" atau \"pasang Hitz\".';
+
+  @override
+  String get aiAskMusic =>
+      'Lagu atau artis apa? Contohnya \"mainkan lagu Siti Nurhaliza\".';
+
+  @override
+  String get aiNoMoreResults =>
+      'Tiada pilihan lain dalam senarai tadi. Cuba cari dengan nama yang lebih tepat.';
+
+  @override
+  String aiGuessedPlace(String query) {
+    return 'Saya tidak pasti maksud anda, jadi saya cari \"$query\" sebagai tempat. Ketik salah satu untuk ke sana.';
+  }
 }

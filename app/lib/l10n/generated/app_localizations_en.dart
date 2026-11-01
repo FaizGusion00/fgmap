@@ -2986,4 +2986,148 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get aiPing =>
       'Yes, I\'m here. Ask me anything, for example \"route to Ipoh\", \"weather in Kuantan\", \"nearest mosque\" or a general question.';
+
+  @override
+  String get aiNoTrip =>
+      'There is no route or navigation yet. Tell me where you want to go first, for example \"take me to KLCC\".';
+
+  @override
+  String aiTripDistanceLeft(String distance) {
+    return 'Distance left: **$distance**.';
+  }
+
+  @override
+  String aiTripDistanceTotal(String distance) {
+    return 'Distance to your destination: **$distance**.';
+  }
+
+  @override
+  String aiTripTimeLeft(String duration) {
+    return 'Time left: about **$duration**.';
+  }
+
+  @override
+  String aiTripTimeTotal(String duration) {
+    return 'The trip takes about **$duration**.';
+  }
+
+  @override
+  String aiTripArrival(String time, String duration) {
+    return 'You should arrive at **$time** ($duration from now).';
+  }
+
+  @override
+  String get aiTripTollNone => 'There are no tolls on this route.';
+
+  @override
+  String aiTripToll(String amount) {
+    return 'Estimated tolls on this route: **$amount**.';
+  }
+
+  @override
+  String aiTripTollPartial(String amount) {
+    return 'Tolls are at least **$amount** (some plazas have no price in our data).';
+  }
+
+  @override
+  String get aiTripTollPending =>
+      'This route has tolls but the estimate is still being calculated. Ask again in a moment.';
+
+  @override
+  String get aiTripTollUnknown =>
+      'This route has tolls but their prices are not in our data.';
+
+  @override
+  String get aiTripTollMotorcycle =>
+      'Motorcycle toll prices are not in our data (most expressways are free for motorcycles, but not all), and I will not guess.';
+
+  @override
+  String aiTripFuel(
+    String amount,
+    String distance,
+    String price,
+    String liters,
+  ) {
+    return 'Estimated fuel cost: **$amount** for $distance (RM$price per litre, $liters L/100 km).';
+  }
+
+  @override
+  String get aiTripFuelNoPrice =>
+      'The fuel price is not known yet (no data and none set by you). Set a price in Settings > Fuel.';
+
+  @override
+  String aiTripNextTurn(String action, String distance) {
+    return 'Next: **$action** in $distance.';
+  }
+
+  @override
+  String aiTripNextTurnNow(String action) {
+    return 'Next: **$action**.';
+  }
+
+  @override
+  String get aiTripNoNav =>
+      'Navigation has not started, so I have no next instruction. Start navigating first.';
+
+  @override
+  String aiTripSpeedLimit(String kmh) {
+    return 'Speed limit on this road: **$kmh km/h**.';
+  }
+
+  @override
+  String get aiTripSpeedUnknown =>
+      'The speed limit for this road is not in our data.';
+
+  @override
+  String get aiHomeNotSet =>
+      'You have not set Home yet. Tap Home on the search screen to set it, then ask again.';
+
+  @override
+  String get aiWorkNotSet =>
+      'You have not set Work yet. Tap Work on the search screen to set it, then ask again.';
+
+  @override
+  String get aiVehicleCar => 'Done, vehicle changed to **car**.';
+
+  @override
+  String get aiVehicleMotorcycle => 'Done, vehicle changed to **motorcycle**.';
+
+  @override
+  String get aiVoiceOn => 'Voice guidance is on.';
+
+  @override
+  String get aiVoiceOff => 'Voice guidance is off.';
+
+  @override
+  String get aiThemeDark => 'Done, dark mode is on.';
+
+  @override
+  String get aiThemeLight => 'Done, light mode is on.';
+
+  @override
+  String get aiThemeSystem => 'Done, the theme now follows your device.';
+
+  @override
+  String get aiNavStopped => 'Navigation stopped.';
+
+  @override
+  String get aiAck =>
+      'Okay. Tell me when you need map help, for example \"take me to KLCC\".';
+
+  @override
+  String get aiAskRadio =>
+      'Which radio station? For example \"play Era\" or \"play Hitz\".';
+
+  @override
+  String get aiAskMusic =>
+      'Which song or artist? For example \"play songs by Siti Nurhaliza\".';
+
+  @override
+  String get aiNoMoreResults =>
+      'There are no more options in that list. Try searching with a more specific name.';
+
+  @override
+  String aiGuessedPlace(String query) {
+    return 'I am not sure what you meant, so I searched for \"$query\" as a place. Tap one to go there.';
+  }
 }

@@ -3,12 +3,14 @@ import 'package:intl/intl.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../azan/domain/prayer.dart';
 import '../../azan/presentation/azan_l10n.dart';
+import '../../navigation/domain/instruction_text.dart';
+import '../../navigation/domain/nav_route.dart';
 import '../../route_preview/domain/route_preference.dart';
 import '../../route_preview/presentation/route_format.dart';
 import '../../search/domain/nearby_category.dart';
 import '../../weather/domain/weather_codes.dart';
 import '../domain/assistant_message.dart';
-import '../domain/intent_router.dart' show ChatKind;
+import '../domain/intent_router.dart' show ChatKind, TripInfoKind;
 
 /// Jawapan bertemplat untuk arahan peta: tepat (dari data alat), ringkas, tidak pernah mengulang
 /// jawapan sebelumnya, dan dalam bahasa mesej pengguna.
@@ -78,6 +80,10 @@ class AiReplyBuilder {
       'no_drivable_route' || 'route_failed' => l10n.aiRouteFailed,
       'search_failed' => l10n.aiSearchFailed,
       'no_route' => l10n.aiNeedRoute,
+      'no_trip' => l10n.aiNoTrip,
+      'no_nav' => l10n.aiTripNoNav,
+      'no_speed_limit' => l10n.aiTripSpeedUnknown,
+      'no_fuel_price' => l10n.aiTripFuelNoPrice,
       _ => l10n.aiUnavailable,
     };
   }
@@ -121,11 +127,68 @@ class AiReplyBuilder {
     return _reply(text);
   }
 
+  String _clock(DateTime t) =>
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+
+  /// Jawapan soalan perjalanan daripada data setempat (lihat `tripInfo`).
+  AssistantMessage trip(TripInfoKind kind, Map<String, Object?> r) {
+    if (r['ok'] != true) return _reply(failure(r));
+    final meters = (r['meters'] as num?)?.round() ?? 0;
+    final seconds = (r['seconds'] as num?)?.round() ?? 0;
+    final remaining = r['remaining'] == true;
+    return _reply(switch (kind) {
+      TripInfoKind.distance =>
+        remaining
+            ? l10n.aiTripDistanceLeft(formatDistance(l10n, meters))
+            : l10n.aiTripDistanceTotal(formatDistance(l10n, meters)),
+      TripInfoKind.timeLeft =>
+        remaining
+            ? l10n.aiTripTimeLeft(formatDuration(l10n, seconds))
+            : l10n.aiTripTimeTotal(formatDuration(l10n, seconds)),
+      TripInfoKind.arrival => l10n.aiTripArrival(
+        _clock(r['arrival']! as DateTime),
+        formatDuration(l10n, seconds),
+      ),
+      TripInfoKind.toll => _tripToll(r),
+      TripInfoKind.fuelCost => l10n.aiTripFuel(
+        _rm(r['fuel_rm']! as num),
+        formatDistance(l10n, meters),
+        (r['price']! as num).toStringAsFixed(2),
+        (r['liters_per_100km']! as num).toStringAsFixed(1),
+      ),
+      TripInfoKind.nextTurn => _tripNextTurn(r),
+      TripInfoKind.speedLimit => l10n.aiTripSpeedLimit('${r['kmh']}'),
+    });
+  }
+
+  String _tripToll(Map<String, Object?> r) {
+    if (r['has_tolls'] != true) return l10n.aiTripTollNone;
+    if (r['motorcycle'] == true) return l10n.aiTripTollMotorcycle;
+    if (r['pending'] == true) return l10n.aiTripTollPending;
+    if (r['unknown'] == true) return l10n.aiTripTollUnknown;
+    final amount = _rm((r['toll_rm'] as num?) ?? 0);
+    return r['toll_partial'] == true
+        ? l10n.aiTripTollPartial(amount)
+        : l10n.aiTripToll(amount);
+  }
+
+  String _tripNextTurn(Map<String, Object?> r) {
+    final m = r['maneuver']! as NavManeuver;
+    final text = InstructionText(
+      VoiceLanguage.fromCode(_malay ? 'ms' : 'en'),
+    ).action(m);
+    final d = (r['distance_m'] as num?)?.round();
+    return d == null || d <= 0
+        ? l10n.aiTripNextTurnNow(text)
+        : l10n.aiTripNextTurn(text, formatDistance(l10n, d));
+  }
+
   AssistantMessage chat(ChatKind kind) => _reply(switch (kind) {
     ChatKind.identity => l10n.aiIdentity,
     ChatKind.greeting => l10n.aiGreeting,
     ChatKind.thanks => l10n.aiThanks,
     ChatKind.ping => l10n.aiPing,
+    ChatKind.ack => l10n.aiAck,
   });
 
   AssistantMessage capabilities({bool offlineFocused = false}) =>

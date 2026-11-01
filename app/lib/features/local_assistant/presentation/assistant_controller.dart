@@ -5,13 +5,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/connectivity_probe.dart';
 import '../../../core/storage/preferences.dart';
+import '../../../core/theme/theme_controller.dart';
+import '../../../core/utils/geo.dart';
 import '../../../core/utils/log.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../navigation/data/navigation_settings.dart';
 import '../../navigation/presentation/navigation_controller.dart';
+import '../../route_preview/domain/route_option.dart';
+import '../../saved_places/data/saved_places_controller.dart';
+import '../../search/domain/place.dart';
 import '../../route_preview/presentation/route_preview_controller.dart';
 import '../data/chat_history_store.dart';
 import '../data/edge_ai_runtime.dart';
 import '../data/tool_executor.dart';
+import '../data/trip_info.dart';
 import '../domain/assistant_message.dart';
 import '../domain/assistant_tools.dart';
 import '../domain/intent_router.dart';
@@ -33,6 +40,16 @@ class AssistantController extends AiChatController {
   /// Destinasi terakhir yang dirancang dalam sembang ini ("tanpa tol" selepas laluan ditutup).
   String? _lastDestination;
 
+  /// Senarai tempat terakhir (carian/dekat) yang boleh dirujuk dengan "yang pertama", "satu lagi".
+  List<Place> _lastPlaces = const [];
+  int _pickCursor = -1;
+
+  /// AI baru menawarkan "mula navigasi" (balasan terakhir ada butang mula): hanya ketika itu "ok/ya" bermakna mula.
+  bool _offeredStart = false;
+
+  /// AI baru bertanya "nak ke mana?": jawapan pendek seterusnya ialah destinasi.
+  bool _pendingDestination = false;
+
   /// Halaman AI dibuka sebelum status model diketahui: panaskan sebaik sahaja ia sedia.
   bool _wantWarm = false;
   DateTime _lastStreamPush = DateTime.fromMillisecondsSinceEpoch(0);
@@ -49,7 +66,13 @@ class AssistantController extends AiChatController {
   }
 
   @override
-  void onConversationChanged() => _lastDestination = null;
+  void onConversationChanged() {
+    _lastDestination = null;
+    _lastPlaces = const [];
+    _pickCursor = -1;
+    _offeredStart = false;
+    _pendingDestination = false;
+  }
 
   Future<void> _refreshInstalled() async {
     try {
@@ -149,9 +172,24 @@ class AssistantController extends AiChatController {
     AssistantMessage reply;
     try {
       final hasRoute = ref.read(routePreviewControllerProvider) is RouteReady;
-      final intent = parseIntent(trimmed, hasRoute: hasRoute);
+      final intent = parseIntent(
+        trimmed,
+        context: ConversationContext(
+          hasRoute: hasRoute,
+          navActive: ref.read(navigationControllerProvider).isActive,
+          offeredStart: _offeredStart,
+          resultCount: _lastPlaces.length,
+          pendingDestination: _pendingDestination,
+        ),
+      );
+      _pendingDestination = false;
       if (intent != null) {
-        reply = await _handle(intent, replies, l10n);
+        reply = await _handle(
+          intent,
+          replies,
+          l10n,
+          askModel: () => _askModel(trimmed, prior, replies, l10n),
+        );
       } else if (!state.modelReady) {
         reply = replies.text(l10n.aiNeedModel);
       } else {
@@ -165,6 +203,9 @@ class AssistantController extends AiChatController {
       );
     }
     if (!ref.mounted) return;
+    _offeredStart = reply.actions.any(
+      (a) => a.kind == AssistantActionKind.startNavigation,
+    );
     final all = [...state.messages, reply];
     state = state.copyWith(
       messages: all,
@@ -174,6 +215,38 @@ class AssistantController extends AiChatController {
       freshAt: reply.at,
     );
     await persist(all);
+  }
+
+  /// Ingat tempat daripada hasil carian/dekat untuk rujukan "yang pertama".
+  void _rememberPlaces(Map<String, Object?> r) {
+    if (r['ok'] != true) return;
+    final list = (r['places'] as List?)?.whereType<Map<String, Object?>>();
+    if (list == null) return;
+    final places = <Place>[
+      for (final p in list)
+        if (p['lat'] is num && p['lng'] is num)
+          Place(
+            name: p['name']?.toString() ?? '',
+            subtitle: p['subtitle']?.toString() ?? '',
+            point: GeoPoint(
+              (p['lat']! as num).toDouble(),
+              (p['lng']! as num).toDouble(),
+            ),
+          ),
+    ];
+    if (places.isEmpty) return;
+    _lastPlaces = places;
+    _pickCursor = -1;
+  }
+
+  Future<AssistantMessage> _routeTo(
+    Place place,
+    AiReplyBuilder replies, {
+    bool start = false,
+  }) async {
+    final r = await _tools.planRouteToPlace(place, start: start);
+    if (r['ok'] == true) _lastDestination = r['destination'] as String?;
+    return replies.route(r, query: place.name);
   }
 
   AssistantToolExecutor get _tools => ref.read(assistantToolExecutorProvider);
@@ -189,8 +262,9 @@ class AssistantController extends AiChatController {
   Future<AssistantMessage> _handle(
     AssistantIntent intent,
     AiReplyBuilder replies,
-    AppLocalizations l10n,
-  ) async {
+    AppLocalizations l10n, {
+    required Future<AssistantMessage> Function() askModel,
+  }) async {
     switch (intent) {
       case RouteIntent(:final destination, :final preference, :final autoStart):
         final r = await _tools.planRoute(
@@ -214,7 +288,10 @@ class AssistantController extends AiChatController {
           return replies.text(l10n.aiNavStarting);
         }
         final last = _lastDestination;
-        if (last == null) return replies.text(l10n.aiAskDestination);
+        if (last == null) {
+          _pendingDestination = true;
+          return replies.text(l10n.aiAskDestination);
+        }
         final r = await _tools.planRoute(last, start: autoStart);
         if (r['ok'] == true) _lastDestination = r['destination'] as String?;
         return replies.route(r, query: last);
@@ -247,18 +324,93 @@ class AssistantController extends AiChatController {
       case CancelRouteIntent():
         ref.read(routePreviewControllerProvider.notifier).clear();
         return replies.text(l10n.aiRouteCleared);
-      case NearbyIntent(:final category):
+      case NearbyIntent(:final category, :final navigate, :final autoStart):
         final name = replies.categoryName(category);
+        final r = await _tools.nearby(category, fallbackName: name);
+        _rememberPlaces(r);
+        if (navigate && r['ok'] == true && _lastPlaces.isNotEmpty) {
+          // "bawa saya ke stesen minyak terdekat": terus ke yang terdekat (yang lain ada dalam senarai untuk "satu lagi").
+          _pickCursor = 0;
+          return _routeTo(_lastPlaces.first, replies, start: autoStart);
+        }
+        return replies.places(r, title: l10n.aiNearbyTitle(name));
+      case SearchIntent(:final query, :final speculative):
+        final r = await _tools.searchPlace(query);
+        _rememberPlaces(r);
+        if (speculative && r['ok'] != true && state.modelReady) {
+          // Bukan nama tempat yang dikenali: mungkin soalan pendek, serahkan kepada model.
+          return askModel();
+        }
         return replies.places(
-          await _tools.nearby(category, fallbackName: name),
-          title: l10n.aiNearbyTitle(name),
-        );
-      case SearchIntent(:final query):
-        return replies.places(
-          await _tools.searchPlace(query),
-          title: l10n.aiSearchTitle(query),
+          r,
+          title: speculative
+              ? l10n.aiGuessedPlace(query)
+              : l10n.aiSearchTitle(query),
           query: query,
         );
+      case PickResultIntent(:final index, :final other, :final autoStart):
+        if (_lastPlaces.isEmpty) return replies.text(l10n.aiAskDestination);
+        final i = other ? _pickCursor + 1 : index;
+        if (i < 0 || i >= _lastPlaces.length) {
+          return replies.text(l10n.aiNoMoreResults);
+        }
+        _pickCursor = i;
+        return _routeTo(_lastPlaces[i], replies, start: autoStart);
+      case GoSavedPlaceIntent(:final slot, :final autoStart):
+        final saved = ref.read(savedPlacesControllerProvider.notifier);
+        final target = slot == SavedSlot.home ? saved.home : saved.work;
+        if (target == null) {
+          return replies.text(
+            slot == SavedSlot.home ? l10n.aiHomeNotSet : l10n.aiWorkNotSet,
+          );
+        }
+        return _routeTo(target.place, replies, start: autoStart);
+      case TripInfoIntent(:final kind):
+        return replies.trip(kind, tripInfo(ref, kind));
+      case ChangeVehicleIntent(:final vehicle):
+        await ref
+            .read(routePreviewControllerProvider.notifier)
+            .setVehicle(
+              vehicle == AssistVehicle.motorcycle
+                  ? RouteVehicle.motorcycle
+                  : RouteVehicle.car,
+            );
+        return replies.text(
+          vehicle == AssistVehicle.motorcycle
+              ? l10n.aiVehicleMotorcycle
+              : l10n.aiVehicleCar,
+        );
+      case VoiceIntent(:final enabled):
+        await ref
+            .read(navigationSettingsProvider.notifier)
+            .setVoiceEnabled(enabled);
+        return replies.text(enabled ? l10n.aiVoiceOn : l10n.aiVoiceOff);
+      case ThemeIntent(:final theme):
+        await ref.read(themeControllerProvider.notifier).setMode(
+          switch (theme) {
+            AssistTheme.dark => AppThemeMode.dark,
+            AssistTheme.light => AppThemeMode.light,
+            AssistTheme.system => AppThemeMode.system,
+          },
+        );
+        return replies.text(switch (theme) {
+          AssistTheme.dark => l10n.aiThemeDark,
+          AssistTheme.light => l10n.aiThemeLight,
+          AssistTheme.system => l10n.aiThemeSystem,
+        });
+      case StopNavigationIntent():
+        if (!ref.read(navigationControllerProvider).isActive) {
+          return replies.text(l10n.aiAck);
+        }
+        await ref.read(navigationControllerProvider.notifier).stop();
+        return replies.text(l10n.aiNavStopped);
+      case AskSlotIntent(:final slot):
+        if (slot == AskSlot.destination) _pendingDestination = true;
+        return replies.text(switch (slot) {
+          AskSlot.destination => l10n.aiAskDestination,
+          AskSlot.radioStation => l10n.aiAskRadio,
+          AskSlot.musicQuery => l10n.aiAskMusic,
+        });
       case CurrentLocationIntent():
         return replies.currentLocation(await _tools.currentLocation());
       case ChatIntent(:final kind):

@@ -78,7 +78,8 @@ void main() {
     test('perkataan pendek hanya bermakna bila laluan ada', () {
       expect(parseIntent('ok', hasRoute: true), isA<StartNavigationIntent>());
       expect(parseIntent('jom', hasRoute: true), isA<StartNavigationIntent>());
-      expect(parseIntent('ok'), isNull);
+      // Tanpa laluan, "ok" ialah pengesahan ringkas (templat), bukan arahan mula dan bukan soalan untuk model.
+      expect(parseIntent('ok'), isA<ChatIntent>());
     });
 
     test('"tanpa tol" pada laluan semasa', () {
