@@ -44,9 +44,12 @@ class EdgeAiLlmRuntime implements LocalLlmRuntime {
   /// Model yang sedang dimuat dalam RAM (mungkin berbeza daripada yang dipilih selepas ditukar).
   AiModelOption? _loaded;
 
+  /// Model aktif untuk bajet konteks / output: yang dalam RAM, atau yang dipilih jika belum dimuat.
+  AiModelOption get _activeModel => _loaded ?? _selected;
+
   /// Bila anggaran konteks melebihi bahagian ini daripada konteks model, sesi dimulakan semula
   /// dengan sejarah ringkas.
-  int get _sessionBudget => (_selected.contextTokens * 0.68).round();
+  int get _sessionBudget => (_activeModel.contextTokens * 0.68).round();
   static const idleRelease = Duration(minutes: 3);
 
   AiModelOption get _selected => aiModelById(_prefs.getString(aiModelPrefsKey));
@@ -158,7 +161,7 @@ class EdgeAiLlmRuntime implements LocalLlmRuntime {
       try {
         if (_chat != null) await release();
         final model = _model ??= await _loadModel();
-        final m = _loaded ?? _selected;
+        final m = _activeModel;
         final chat = await model.createChat(
           temperature: 0.3,
           topK: 40,
@@ -223,7 +226,7 @@ class EdgeAiLlmRuntime implements LocalLlmRuntime {
       _sessionKey = sessionKey;
       _estimatedTokens =
           _approxTokens(system) +
-          _selected.maxOutputTokens +
+          _activeModel.maxOutputTokens +
           replay.fold(0, (sum, m) => sum + _approxTokens(m.text));
     }
     await chat.addQueryChunk(Message.text(text: userText, isUser: true));
