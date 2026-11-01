@@ -284,53 +284,104 @@ def alt_names(tags):
     return " ".join(names)
 
 
+def _extra_row(pname, alt, kind, lat, lon, rank, area):
+    """Normalisasi satu baris tambahan; pulangkan tuple atau None."""
+    pname = clean(pname or "")
+    if not pname:
+        return None
+    try:
+        lat, lon = float(lat), float(lon)
+    except (TypeError, ValueError):
+        return None
+    if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+        return None
+    kind = clean(kind or "other") or "other"
+    if kind not in CAT:
+        kind = "other"
+    try:
+        rank = int(rank) if rank is not None and rank != "" else 36
+    except (TypeError, ValueError):
+        rank = 36
+    return (pname, clean(alt or ""), kind, lat, lon, rank, clean(area or ""))
+
+
+def _load_extra_geojson(path):
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+    features = data.get("features") if isinstance(data, dict) else data
+    if not isinstance(features, list):
+        features = [data] if isinstance(data, dict) and "name" in data else []
+    out = []
+    for feat in features:
+        props = feat.get("properties", feat) if isinstance(feat, dict) else {}
+        if not isinstance(props, dict):
+            continue
+        geom = feat.get("geometry") if isinstance(feat, dict) else None
+        lat = props.get("lat")
+        lon = props.get("lon") or props.get("lng")
+        if geom and geom.get("type") == "Point" and isinstance(geom.get("coordinates"), list):
+            lon, lat = geom["coordinates"][0], geom["coordinates"][1]
+        row = _extra_row(
+            props.get("name") or props.get("name:en"),
+            props.get("alt") or props.get("alt_name"),
+            props.get("kind"),
+            lat,
+            lon,
+            props.get("rank"),
+            props.get("area") or props.get("city"),
+        )
+        if row:
+            out.append(row)
+    return out
+
+
+def _load_extra_csv(path):
+    """CSV berkurasi: name,lat,lon|lng[,alt,kind,area,rank]. Header wajib."""
+    import csv
+
+    out = []
+    with open(path, encoding="utf-8-sig", newline="") as f:
+        reader = csv.DictReader(f)
+        if not reader.fieldnames:
+            return out
+        for props in reader:
+            if not isinstance(props, dict):
+                continue
+            # Normalisasi kunci header (case / ruang).
+            norm = {((k or "").strip().lower()): (v.strip() if isinstance(v, str) else v)
+                    for k, v in props.items()}
+            row = _extra_row(
+                norm.get("name") or norm.get("name:en"),
+                norm.get("alt") or norm.get("alt_name"),
+                norm.get("kind"),
+                norm.get("lat"),
+                norm.get("lon") or norm.get("lng") or norm.get("longitude"),
+                norm.get("rank"),
+                norm.get("area") or norm.get("city"),
+            )
+            if row:
+                out.append(row)
+    return out
+
+
 def load_extra_places(extra_dir):
-    """Lapisan tambahan berjadual (GeoJSON / JSON) — bukan Google Places API.
+    """Lapisan tambahan berjadual (GeoJSON / JSON / CSV) — bukan Google Places.
 
     Setiap ciri: name (wajib), lat/lng atau geometry Point, kind/cat pilihan, alt, area, rank.
-    Fail dalam [extra_dir] dengan akhiran .geojson / .json. Lihat tools/places/README.md.
+    Fail dalam [extra_dir] dengan akhiran .geojson / .json / .csv.
+    Lihat tools/places/README.md. Jangan import data Google Places/Maps (ToS).
     """
     if not extra_dir or not os.path.isdir(extra_dir):
         return []
     out = []
     for name in sorted(os.listdir(extra_dir)):
-        if not name.endswith((".geojson", ".json")) or name.startswith("."):
+        if name.startswith("."):
             continue
         path = os.path.join(extra_dir, name)
-        with open(path, encoding="utf-8") as f:
-            data = json.load(f)
-        features = data.get("features") if isinstance(data, dict) else data
-        if not isinstance(features, list):
-            features = [data] if isinstance(data, dict) and "name" in data else []
-        for feat in features:
-            props = feat.get("properties", feat) if isinstance(feat, dict) else {}
-            if not isinstance(props, dict):
-                continue
-            pname = clean(props.get("name") or props.get("name:en") or "")
-            if not pname:
-                continue
-            geom = feat.get("geometry") if isinstance(feat, dict) else None
-            lat = props.get("lat")
-            lon = props.get("lon") or props.get("lng")
-            if geom and geom.get("type") == "Point" and isinstance(geom.get("coordinates"), list):
-                lon, lat = geom["coordinates"][0], geom["coordinates"][1]
-            try:
-                lat, lon = float(lat), float(lon)
-            except (TypeError, ValueError):
-                continue
-            if not (-90 <= lat <= 90 and -180 <= lon <= 180):
-                continue
-            kind = clean(props.get("kind") or "other") or "other"
-            if kind not in CAT:
-                kind = "other"
-            rank = props.get("rank")
-            try:
-                rank = int(rank) if rank is not None else 36
-            except (TypeError, ValueError):
-                rank = 36
-            alt = clean(props.get("alt") or props.get("alt_name") or "")
-            area = clean(props.get("area") or props.get("city") or "")
-            out.append((pname, alt, kind, lat, lon, rank, area))
+        if name.endswith((".geojson", ".json")):
+            out.extend(_load_extra_geojson(path))
+        elif name.endswith(".csv"):
+            out.extend(_load_extra_csv(path))
     return out
 
 

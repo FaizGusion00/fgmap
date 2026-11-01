@@ -48,7 +48,7 @@ class OfflinePlacesDb {
   Future<List<OfflinePlaceRow>> search(
     String text, {
     GeoPoint? near,
-    int limit = 20,
+    int limit = 40,
   }) async {
     final match = ftsMatchQuery(text);
     if (match == null) return const [];

@@ -61,6 +61,19 @@ class ExtraLayerTest(unittest.TestCase):
     def test_missing_dir(self):
         self.assertEqual(bp.load_extra_places("/no/such/dir"), [])
 
+    def test_load_csv(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, "curated.csv")
+            with open(path, "w", encoding="utf-8") as f:
+                f.write("name,lat,lng,kind,alt,area,rank\n")
+                f.write("Klinik Contoh,3.14,101.7,hospital,Example Clinic,KL,55\n")
+            rows = bp.load_extra_places(d)
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0][0], "Klinik Contoh")
+            self.assertEqual(rows[0][2], "hospital")
+            self.assertAlmostEqual(rows[0][3], 3.14)
+            self.assertAlmostEqual(rows[0][4], 101.7)
+
 
 if __name__ == "__main__":
     unittest.main()

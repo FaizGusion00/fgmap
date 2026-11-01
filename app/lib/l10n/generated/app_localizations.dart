@@ -1199,7 +1199,7 @@ abstract class AppLocalizations {
   /// No description provided for @searchCatMosque.
   ///
   /// In ms, this message translates to:
-  /// **'Masjid'**
+  /// **'Masjid / surau'**
   String get searchCatMosque;
 
   /// No description provided for @searchCatToilet.
@@ -1219,6 +1219,12 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'Hospital'**
   String get searchCatHospital;
+
+  /// No description provided for @searchCategories.
+  ///
+  /// In ms, this message translates to:
+  /// **'Berhampiran dari lokasi anda'**
+  String get searchCategories;
 
   /// No description provided for @placeKindShopping.
   ///
@@ -2551,12 +2557,6 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'Navigasi komuniti Malaysia'**
   String get splashTagline;
-
-  /// No description provided for @searchCategories.
-  ///
-  /// In ms, this message translates to:
-  /// **'Cari berhampiran'**
-  String get searchCategories;
 
   /// No description provided for @reportTitle.
   ///

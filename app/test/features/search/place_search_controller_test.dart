@@ -77,8 +77,8 @@ void main() {
 
     await wait();
     expect(state().status, SearchStatus.results);
-    expect(state().results.single.name, 'klia');
-    expect(geocoder.queries, ['klia']);
+    expect(state().results.single.name, 'KLIA');
+    expect(geocoder.queries, ['KLIA']);
   });
 
   test('menaip pantas: hanya carian terakhir dihantar (debounce)', () async {
@@ -87,7 +87,7 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 5));
     }
     await wait();
-    expect(geocoder.queries, ['klia']);
+    expect(geocoder.queries, ['KLIA']);
   });
 
   test(
@@ -187,7 +187,7 @@ void main() {
           reason: 'daripada cache, tanpa loading',
         );
         await wait();
-        expect(geocoder.queries, ['klia']);
+        expect(geocoder.queries, ['KLIA']);
       },
     );
 
@@ -196,14 +196,14 @@ void main() {
       await wait();
       ctl().onQueryChanged('klia', near: const GeoPoint(5.40, 100.30));
       await wait();
-      expect(geocoder.queries, ['klia', 'klia']);
+      expect(geocoder.queries, ['KLIA', 'KLIA']);
     });
 
     test('pergerakan kecil kekal dalam cache', () async {
       ctl().onQueryChanged('klia', near: const GeoPoint(3.1401, 101.6901));
       await wait();
       ctl().onQueryChanged('klia', near: const GeoPoint(3.1403, 101.6902));
-      expect(geocoder.queries, ['klia']);
+      expect(geocoder.queries, ['KLIA']);
     });
 
     test('kegagalan tidak dicache', () async {

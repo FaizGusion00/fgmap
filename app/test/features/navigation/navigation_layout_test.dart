@@ -53,6 +53,9 @@ void main() {
         routePlannerProvider.overrideWithValue(
           FakeRoutePlanner((_) async => [lShapedRoute(legM: 1500)]),
         ),
+        routeOptionsPlannerProvider.overrideWithValue(
+          FakeRoutePlanner((_) async => [lShapedRoute(legM: 1500)]),
+        ),
         sharedPreferencesProvider.overrideWithValue(prefs),
         voiceGuideProvider.overrideWithValue(FakeVoice()),
         speedLimitServiceProvider.overrideWithValue(FakeSpeedLimitService()),
@@ -240,6 +243,9 @@ void main() {
           routePlannerProvider.overrideWithValue(
             FakeRoutePlanner((_) async => [lShapedRoute(legM: 1500)]),
           ),
+          routeOptionsPlannerProvider.overrideWithValue(
+            FakeRoutePlanner((_) async => [lShapedRoute(legM: 1500)]),
+          ),
           sharedPreferencesProvider.overrideWithValue(prefs),
         ],
       );
@@ -271,6 +277,9 @@ void main() {
             FakeLocationService(fix: const LocationFix(point: klcc)),
           ),
           routePlannerProvider.overrideWithValue(
+            FakeRoutePlanner((_) async => [lShapedRoute(legM: 1500)]),
+          ),
+          routeOptionsPlannerProvider.overrideWithValue(
             FakeRoutePlanner((_) async => [lShapedRoute(legM: 1500)]),
           ),
           sharedPreferencesProvider.overrideWithValue(prefs),

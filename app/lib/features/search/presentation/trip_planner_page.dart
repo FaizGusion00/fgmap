@@ -522,52 +522,10 @@ class _ResultsList extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
-    final Widget body = switch (state.status) {
-      SearchStatus.idle => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const OfflinePlacesPromptBanner(),
-          if (showSaved)
-            _QuickDestinations(
-              history: history,
-              near: near,
-              userLocation: userLocation,
-              onPick: onPick,
-              onClearHistory: onClearHistory,
-            ),
-          _CategoryChips(onPick: onCategory),
-          if (history.isEmpty)
-            _Message(icon: Icons.search_rounded, text: l10n.searchPrompt),
-        ],
-      ),
-      SearchStatus.loading => const _ResultsSkeleton(),
-      SearchStatus.empty => Column(
-        children: [
-          const OfflinePlacesPromptBanner(),
-          _Message(
-            icon: Icons.search_off_rounded,
-            text: state.nearby != null
-                ? l10n.searchNoNearby(state.query)
-                : l10n.searchNoResults(state.query),
-          ),
-        ],
-      ),
-      SearchStatus.failed => Column(
-        children: [
-          const OfflinePlacesPromptBanner(),
-          _Message(
-            icon: Icons.cloud_off_rounded,
-            text: switch (state.failure) {
-              GeocodeFailureKind.network => l10n.searchErrorNetwork,
-              GeocodeFailureKind.rateLimited => l10n.searchErrorRateLimited,
-              GeocodeFailureKind.unavailable => l10n.searchErrorUnavailable,
-              _ => l10n.routeErrorGeneric,
-            },
-            action: TextButton(onPressed: onRetry, child: Text(l10n.routeRetry)),
-          ),
-        ],
-      ),
-      SearchStatus.results => Column(
+    // Hasil typeahead: tile terus dalam ListView supaya ~24 padanan kuat ditatal lancar.
+    if (state.status == SearchStatus.results) {
+      return ListView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         children: [
           if (state.cachedAt != null) _SavedBanner(at: state.cachedAt!),
           if (state.refreshing) const _RefiningRibbon(),
@@ -601,7 +559,56 @@ class _ResultsList extends StatelessWidget {
               ),
             ),
         ],
+      );
+    }
+
+    final Widget body = switch (state.status) {
+      SearchStatus.idle => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const OfflinePlacesPromptBanner(),
+          // Chip berdekatan (fuel/food/masjid/hospital) menonjol — satu ketukan dari GPS.
+          _CategoryChips(onPick: onCategory),
+          if (showSaved)
+            _QuickDestinations(
+              history: history,
+              near: near,
+              userLocation: userLocation,
+              onPick: onPick,
+              onClearHistory: onClearHistory,
+            ),
+          if (history.isEmpty)
+            _Message(icon: Icons.search_rounded, text: l10n.searchPrompt),
+        ],
       ),
+      SearchStatus.loading => const _ResultsSkeleton(),
+      SearchStatus.empty => Column(
+        children: [
+          const OfflinePlacesPromptBanner(),
+          _Message(
+            icon: Icons.search_off_rounded,
+            text: state.nearby != null
+                ? l10n.searchNoNearby(state.query)
+                : l10n.searchNoResults(state.query),
+          ),
+        ],
+      ),
+      SearchStatus.failed => Column(
+        children: [
+          const OfflinePlacesPromptBanner(),
+          _Message(
+            icon: Icons.cloud_off_rounded,
+            text: switch (state.failure) {
+              GeocodeFailureKind.network => l10n.searchErrorNetwork,
+              GeocodeFailureKind.rateLimited => l10n.searchErrorRateLimited,
+              GeocodeFailureKind.unavailable => l10n.searchErrorUnavailable,
+              _ => l10n.routeErrorGeneric,
+            },
+            action: TextButton(onPressed: onRetry, child: Text(l10n.routeRetry)),
+          ),
+        ],
+      ),
+      SearchStatus.results => const SizedBox.shrink(),
     };
 
     return ListView(
@@ -1013,7 +1020,8 @@ class _PlaceIcon extends StatelessWidget {
   }
 }
 
-/// Pintasan kategori berhampiran (minyak, makan, masjid, ...). Mengetuk mengisi medan carian.
+/// Pintasan kategori berhampiran (minyak, makan, masjid/surau, hospital, …).
+/// Empat kategori utama lebih menonjol (FilledChip); lain ActionChip.
 class _CategoryChips extends StatelessWidget {
   const _CategoryChips({required this.onPick});
 
@@ -1024,7 +1032,8 @@ class _CategoryChips extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final easy = EasyModeScope.of(context);
-    final items = [
+    // Utama dahulu: fuel / food / mosque / hospital (GPS → Overpass + offline).
+    final primary = [
       (
         Icons.local_gas_station_rounded,
         l10n.searchCatFuel,
@@ -1032,18 +1041,57 @@ class _CategoryChips extends StatelessWidget {
       ),
       (Icons.restaurant_rounded, l10n.searchCatFood, NearbyCategory.food),
       (Icons.mosque_rounded, l10n.searchCatMosque, NearbyCategory.mosque),
-      (Icons.wc_rounded, l10n.searchCatToilet, NearbyCategory.toilets),
-      (
-        Icons.local_parking_rounded,
-        l10n.searchCatParking,
-        NearbyCategory.parking,
-      ),
       (
         Icons.local_hospital_rounded,
         l10n.searchCatHospital,
         NearbyCategory.hospital,
       ),
     ];
+    final secondary = [
+      (Icons.wc_rounded, l10n.searchCatToilet, NearbyCategory.toilets),
+      (
+        Icons.local_parking_rounded,
+        l10n.searchCatParking,
+        NearbyCategory.parking,
+      ),
+    ];
+    Widget chip({
+      required IconData icon,
+      required String label,
+      required NearbyCategory category,
+      required bool filled,
+    }) {
+      final avatar = Icon(
+        icon,
+        size: easy ? 24 : 18,
+        color: filled
+            ? theme.colorScheme.onSecondaryContainer
+            : theme.colorScheme.primary,
+      );
+      final pad = easy
+          ? const EdgeInsets.symmetric(horizontal: 10, vertical: 10)
+          : null;
+      final style = easy ? theme.textTheme.titleMedium : null;
+      if (filled) {
+        return FilterChip(
+          selected: true,
+          showCheckmark: false,
+          avatar: avatar,
+          label: Text(label),
+          labelStyle: style,
+          padding: pad,
+          onSelected: (_) => onPick(category, label),
+        );
+      }
+      return ActionChip(
+        avatar: avatar,
+        label: Text(label),
+        labelStyle: style,
+        padding: pad,
+        onPressed: () => onPick(category, label),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.only(top: 12),
       child: Column(
@@ -1053,8 +1101,9 @@ class _CategoryChips extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
               l10n.searchCategories,
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: theme.colorScheme.onSurface,
               ),
             ),
           ),
@@ -1065,23 +1114,19 @@ class _CategoryChips extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children: [
-                // Ikon + teks sentiasa (bukan ikon sahaja); Mod mudah: lebih besar lagi.
-                for (final item in items)
-                  ActionChip(
-                    avatar: Icon(
-                      item.$1,
-                      size: easy ? 24 : 18,
-                      color: theme.colorScheme.primary,
-                    ),
-                    label: Text(item.$2),
-                    labelStyle: easy ? theme.textTheme.titleMedium : null,
-                    padding: easy
-                        ? const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 10,
-                          )
-                        : null,
-                    onPressed: () => onPick(item.$3, item.$2),
+                for (final item in primary)
+                  chip(
+                    icon: item.$1,
+                    label: item.$2,
+                    category: item.$3,
+                    filled: true,
+                  ),
+                for (final item in secondary)
+                  chip(
+                    icon: item.$1,
+                    label: item.$2,
+                    category: item.$3,
+                    filled: false,
                   ),
               ],
             ),
@@ -1104,7 +1149,7 @@ class _ResultsSkeleton extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
         child: Column(
           children: [
-            for (var i = 0; i < 5; i++)
+            for (var i = 0; i < 8; i++)
               const Padding(
                 padding: EdgeInsets.only(bottom: 16),
                 child: Row(

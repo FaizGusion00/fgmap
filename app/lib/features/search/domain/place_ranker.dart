@@ -102,7 +102,7 @@ class PlaceRanker {
     List<Place> places,
     String query, {
     GeoPoint? near,
-    int maxResults = 10,
+    int maxResults = 24,
   }) {
     if (places.isEmpty) return const [];
     final queryTokens = _tokens(query);

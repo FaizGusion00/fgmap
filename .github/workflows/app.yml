@@ -59,6 +59,12 @@ jobs:
 
       - run: flutter pub get
 
-      # Garis asas dijana pada pelari macOS yang sama (Flutter 3.47.9). Jangan
-      # jana semula pada Linux: teks tidak sepadan.
-      - run: flutter test --tags golden
+      # Sementara: jana semula garis asas trip planner (Home/Work/recents) pada
+      # pelari macOS. Commit PNG daripada artifak, kemudian pulihkan --tags golden.
+      - run: flutter test --update-goldens --tags golden
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-goldens
+          path: app/test/**/goldens/*.png
+          if-no-files-found: error

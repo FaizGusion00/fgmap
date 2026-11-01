@@ -55,6 +55,9 @@ void main() {
         routePlannerProvider.overrideWithValue(
           FakeRoutePlanner((_) async => [lShapedRoute(legM: 800)]),
         ),
+        routeOptionsPlannerProvider.overrideWithValue(
+          FakeRoutePlanner((_) async => [lShapedRoute(legM: 800)]),
+        ),
         sharedPreferencesProvider.overrideWithValue(prefs),
         voiceGuideProvider.overrideWithValue(voice),
         speedLimitServiceProvider.overrideWithValue(FakeSpeedLimitService()),
@@ -427,6 +430,9 @@ void main() {
           FakeLocationService(fix: const LocationFix(point: klcc)),
         ),
         routePlannerProvider.overrideWithValue(
+          FakeRoutePlanner((_) async => [lShapedRoute(legM: 800)]),
+        ),
+        routeOptionsPlannerProvider.overrideWithValue(
           FakeRoutePlanner((_) async => [lShapedRoute(legM: 800)]),
         ),
         sharedPreferencesProvider.overrideWithValue(prefs),

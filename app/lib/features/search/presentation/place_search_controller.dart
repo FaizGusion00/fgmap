@@ -13,6 +13,7 @@ import '../domain/direct_destination.dart';
 import '../domain/location_link.dart';
 import '../domain/nearby_category.dart';
 import '../domain/place.dart';
+import '../domain/place_query_expand.dart';
 import '../domain/place_ranker.dart';
 
 enum SearchStatus { idle, loading, results, empty, failed }
@@ -235,13 +236,17 @@ class PlaceSearchController extends Notifier<PlaceSearchState> {
       }
 
       final searchQuery = searchLabelFromMapLink(query) ?? query;
+      // Singkatan / landasan MY (jln→jalan, klcc→Suria KLCC) sebelum Photon + offline FTS.
+      final expanded = expandPlaceQuery(searchQuery);
       final results = await ref
           .read(geocoderProvider)
-          .search(searchQuery, near: near, cancel: cancel);
+          .search(expanded, near: near, cancel: cancel);
       if (seq != _seq || !ref.mounted) return;
+      // Senarai typeahead penuh (~24 padanan kuat), bukan 10 jarang; ranking kekal
+      // (destinasi > perhentian bas) + bias jarak.
       final ranked = ref
           .read(placeRankerProvider)
-          .rank(results, searchQuery, near: near);
+          .rank(results, searchQuery, near: near, maxResults: 24);
       _cache[_key(query, near)] = ranked;
       state = _ready(query, ranked);
     } on GeocodeFailure catch (f) {

@@ -14,6 +14,7 @@ on:
       - ".github/workflows/tiles.yml"
       - "tools/tiles/VERSIONS"
       - "tools/places/build_places.py"
+      - "tools/places/import_overture.py"
       - "tools/places/extra/**"
       - "tools/basemap/**"
   schedule:

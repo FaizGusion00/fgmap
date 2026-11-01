@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../../core/utils/geo.dart';
 import 'place.dart';
+import 'place_query_expand.dart';
 
 /// Kategori dalam indeks carian offline (`tools/places/build_places.py`, medan `cat`).
 abstract final class OfflinePlaceCat {
@@ -111,13 +112,16 @@ const _ftsTokenAliases = <String, List<String>>{
   'masjid': ['masjid', 'mosque'],
   'mosque': ['masjid', 'mosque'],
   'surau': ['surau', 'prayer'],
+  ...extraFtsTokenAliases,
 };
 
 /// Ungkapan MATCH FTS4 untuk teks pengguna: setiap perkataan sebagai awalan ("jalan amp" → semua
 /// "jalan* amp*"), dengan OR untuk varian Melayu/Inggeris (jln/jalan, stesen/station). Aksara selain
 /// huruf/nombor dibuang (tokenizer `simple` memisahkan pada aksara itu). Null jika tiada perkataan.
+/// Landasan (KLCC, Pavilion, …) dikembangkan melalui [expandPlaceQuery] sebelum tokenisasi.
 String? ftsMatchQuery(String text) {
-  final normalized = text
+  final source = expandPlaceQuery(text);
+  final normalized = source
       .toLowerCase()
       .replaceAll(RegExp(r"['’`]"), '')
       .replaceAll('&', ' ');
@@ -144,7 +148,7 @@ List<OfflinePlaceRow> rankOfflinePlaces(
   List<OfflinePlaceRow> rows,
   String query, {
   GeoPoint? near,
-  int limit = 20,
+  int limit = 40,
 }) {
   final q = query.trim().toLowerCase();
   final qTokens = q

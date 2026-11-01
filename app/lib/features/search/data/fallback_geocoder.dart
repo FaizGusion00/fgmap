@@ -16,7 +16,7 @@ class FallbackGeocoder implements Geocoder {
     this.secondary, {
     this.settle = const Duration(milliseconds: 700),
     this.minGap = const Duration(milliseconds: 1100),
-    this.enrichBelow = 5,
+    this.enrichBelow = 10,
     DateTime Function()? clock,
     Future<void> Function(Duration)? delay,
   }) : _clock = clock ?? DateTime.now,

@@ -641,7 +641,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchCatFood => 'Food';
 
   @override
-  String get searchCatMosque => 'Mosque';
+  String get searchCatMosque => 'Mosque / prayer room';
 
   @override
   String get searchCatToilet => 'Toilets';
@@ -651,6 +651,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get searchCatHospital => 'Hospital';
+
+  @override
+  String get searchCategories => 'Nearby from your location';
 
   @override
   String get placeKindShopping => 'Shopping';
@@ -1385,9 +1388,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get splashTagline => 'Community navigation for Malaysia';
-
-  @override
-  String get searchCategories => 'Search nearby';
 
   @override
   String get reportTitle => 'Report here';

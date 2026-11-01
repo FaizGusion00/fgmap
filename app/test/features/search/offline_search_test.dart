@@ -163,7 +163,7 @@ void main() {
     expect(out.last.fromOffline, isTrue);
   });
 
-  test('ambang gabungan 12: hasil dalam talian jarang digabung offline', () async {
+  test('ambang gabungan 20: hasil dalam talian jarang digabung offline', () async {
     final online = [
       for (var i = 0; i < 8; i++)
         Place(
@@ -173,7 +173,7 @@ void main() {
         ),
     ];
     final offline = [
-      for (var i = 0; i < 10; i++)
+      for (var i = 0; i < 20; i++)
         _row(
           'Spot Offline $i',
           rank: 40 - i,
@@ -182,18 +182,18 @@ void main() {
     ];
     final g = OfflineAwareGeocoder(_Online(results: online), _FakeDb(offline));
     final out = await g.search('spot', near: _kl);
-    expect(out.length, 12);
+    expect(out.length, 28);
     expect(out.take(8).every((p) => !p.fromOffline), isTrue);
     expect(out.skip(8).every((p) => p.fromOffline), isTrue);
   });
 
-  test('ambang 12: dalam talian cukup tidak digabung', () async {
+  test('ambang 20: dalam talian cukup tidak digabung', () async {
     final online = [
-      for (var i = 0; i < 12; i++)
+      for (var i = 0; i < 20; i++)
         Place(
           name: 'Spot Online $i',
           subtitle: '',
-          point: GeoPoint(3.14 + i * 0.01, 101.68),
+          point: GeoPoint(3.14 + i * 0.001, 101.68),
         ),
     ];
     final g = OfflineAwareGeocoder(
@@ -201,8 +201,13 @@ void main() {
       _FakeDb([_row('Spot Offline X', point: const GeoPoint(4, 102))]),
     );
     final out = await g.search('spot', near: _kl);
-    expect(out, hasLength(12));
+    expect(out, hasLength(20));
     expect(out.every((p) => !p.fromOffline), isTrue);
+  });
+
+  test('FTS landasan: klcc dikembangkan ke Suria KLCC', () {
+    expect(ftsMatchQuery('klcc'), 'suria* klcc*');
+    expect(ftsMatchQuery('jln amp'), '(jalan* OR jln*) amp*');
   });
 
   test('berdekatan offline: kategori dipetakan, disusun ikut jarak', () async {

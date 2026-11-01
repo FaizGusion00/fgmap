@@ -11,7 +11,7 @@ import 'photon_geocoder.dart';
 /// awam melarang autocomplete, mewajibkan pengenalan app dan had 1 permintaan sesaat, jadi pemanggil
 /// ([FallbackGeocoder]) mengawal kadar dan tidak memanggilnya pada setiap ketukan kekunci.
 class NominatimGeocoder implements Geocoder {
-  NominatimGeocoder(this._dio, this._url, {this.limit = 10});
+  NominatimGeocoder(this._dio, this._url, {this.limit = 20});
 
   final Dio _dio;
   final String _url;
