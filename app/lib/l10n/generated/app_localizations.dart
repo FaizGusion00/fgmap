@@ -425,7 +425,7 @@ abstract class AppLocalizations {
   /// No description provided for @offlineMapsIntro.
   ///
   /// In ms, this message translates to:
-  /// **'Muat turun peta Malaysia sekali supaya laluan boleh dikira tanpa internet. Dengan internet, laluan dikira secara online (lebih terkini) dan peta offline menjadi sandaran.'**
+  /// **'Muat turun peta Malaysia sekali untuk merancang laluan dan mencari tempat tanpa internet. Dengan internet, laluan dan carian menggunakan perkhidmatan dalam talian (lebih terkini) dan peta offline menjadi sandaran.'**
   String get offlineMapsIntro;
 
   /// No description provided for @offlineMapsNotConfigured.
@@ -3839,7 +3839,7 @@ abstract class AppLocalizations {
   /// No description provided for @assistantTitle.
   ///
   /// In ms, this message translates to:
-  /// **'FGMaps AI'**
+  /// **'FG AI'**
   String get assistantTitle;
 
   /// No description provided for @assistantHint.
@@ -3887,7 +3887,7 @@ abstract class AppLocalizations {
   /// No description provided for @assistantSettingsTitle.
   ///
   /// In ms, this message translates to:
-  /// **'FGMaps AI'**
+  /// **'FG AI'**
   String get assistantSettingsTitle;
 
   /// No description provided for @assistantSettingsReady.
@@ -3911,7 +3911,7 @@ abstract class AppLocalizations {
   /// No description provided for @assistantModeFgmaps.
   ///
   /// In ms, this message translates to:
-  /// **'FGMaps AI'**
+  /// **'FG AI'**
   String get assistantModeFgmaps;
 
   /// No description provided for @assistantModeMuslim.
@@ -4237,6 +4237,809 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'Perlukan GPS untuk arah kiblat.'**
   String get qiblaUnavailable;
+
+  /// No description provided for @aiRouteReady.
+  ///
+  /// In ms, this message translates to:
+  /// **'Laluan ke {place} sedia: {summary}.'**
+  String aiRouteReady(String place, String summary);
+
+  /// No description provided for @aiTollAmount.
+  ///
+  /// In ms, this message translates to:
+  /// **'tol {amount}'**
+  String aiTollAmount(String amount);
+
+  /// No description provided for @aiTollAmountPlus.
+  ///
+  /// In ms, this message translates to:
+  /// **'tol {amount}+'**
+  String aiTollAmountPlus(String amount);
+
+  /// No description provided for @aiTollNone.
+  ///
+  /// In ms, this message translates to:
+  /// **'tiada tol'**
+  String get aiTollNone;
+
+  /// No description provided for @aiTollUnknown.
+  ///
+  /// In ms, this message translates to:
+  /// **'ada tol'**
+  String get aiTollUnknown;
+
+  /// No description provided for @aiReasonRecommended.
+  ///
+  /// In ms, this message translates to:
+  /// **'Ini pilihan disyorkan: seimbang antara masa, belokan dan kualiti jalan.'**
+  String get aiReasonRecommended;
+
+  /// No description provided for @aiReasonFastest.
+  ///
+  /// In ms, this message translates to:
+  /// **'Ini pilihan paling cepat.'**
+  String get aiReasonFastest;
+
+  /// No description provided for @aiReasonShortest.
+  ///
+  /// In ms, this message translates to:
+  /// **'Ini jarak paling pendek.'**
+  String get aiReasonShortest;
+
+  /// No description provided for @aiReasonTollFree.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pilihan ini mengelak semua tol.'**
+  String get aiReasonTollFree;
+
+  /// No description provided for @aiReasonFewestTolls.
+  ///
+  /// In ms, this message translates to:
+  /// **'Semua pilihan ada tol, jadi saya pilih yang paling sedikit jalan bertol.'**
+  String get aiReasonFewestTolls;
+
+  /// No description provided for @aiReasonNoHighways.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pilihan ini guna jalan biasa sebanyak mungkin.'**
+  String get aiReasonNoHighways;
+
+  /// No description provided for @aiReasonCheapest.
+  ///
+  /// In ms, this message translates to:
+  /// **'Ini paling murah secara keseluruhan (tol dan anggaran minyak).'**
+  String get aiReasonCheapest;
+
+  /// No description provided for @aiReasonSafest.
+  ///
+  /// In ms, this message translates to:
+  /// **'Saya pilih yang paling selamat: kebanyakannya jalan utama, kurang belokan dan pusingan-U, tiada feri. Ini berdasarkan jenis jalan, bukan data kemalangan.'**
+  String get aiReasonSafest;
+
+  /// No description provided for @aiOtherOptions.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pilihan lain:'**
+  String get aiOtherOptions;
+
+  /// No description provided for @aiNavStarting.
+  ///
+  /// In ms, this message translates to:
+  /// **'Navigasi dimulakan sekarang. Pandu cermat.'**
+  String get aiNavStarting;
+
+  /// No description provided for @aiNoRouteToStart.
+  ///
+  /// In ms, this message translates to:
+  /// **'Belum ada laluan. Beritahu saya destinasi, contohnya \"Laluan ke KLCC\".'**
+  String get aiNoRouteToStart;
+
+  /// No description provided for @aiPlaceNotFound.
+  ///
+  /// In ms, this message translates to:
+  /// **'Saya tak jumpa \"{place}\". Cuba nama yang lebih spesifik.'**
+  String aiPlaceNotFound(String place);
+
+  /// No description provided for @aiRouteFailed.
+  ///
+  /// In ms, this message translates to:
+  /// **'Laluan tidak dapat dikira sekarang. Semak sambungan, atau muat turun peta offline untuk laluan tanpa internet.'**
+  String get aiRouteFailed;
+
+  /// No description provided for @aiNoLocation.
+  ///
+  /// In ms, this message translates to:
+  /// **'Saya perlukan lokasi anda untuk ini. Hidupkan lokasi dan cuba lagi.'**
+  String get aiNoLocation;
+
+  /// No description provided for @aiRouteCleared.
+  ///
+  /// In ms, this message translates to:
+  /// **'Laluan dipadam.'**
+  String get aiRouteCleared;
+
+  /// No description provided for @aiNearbyTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'{category} terdekat:'**
+  String aiNearbyTitle(String category);
+
+  /// No description provided for @aiNothingFound.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tiada apa-apa dijumpai berdekatan sekarang.'**
+  String get aiNothingFound;
+
+  /// No description provided for @aiSearchTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Ini yang saya jumpa untuk \"{query}\":'**
+  String aiSearchTitle(String query);
+
+  /// No description provided for @aiWeatherNow.
+  ///
+  /// In ms, this message translates to:
+  /// **'{place}: {condition}, {temp}°C (terasa {feels}°C).'**
+  String aiWeatherNow(
+    String place,
+    String condition,
+    String temp,
+    String feels,
+  );
+
+  /// No description provided for @aiWeatherDetails.
+  ///
+  /// In ms, this message translates to:
+  /// **'Peluang hujan {rain}%, kelembapan {humidity}%, angin {wind} km/j.'**
+  String aiWeatherDetails(String rain, String humidity, String wind);
+
+  /// No description provided for @aiHere.
+  ///
+  /// In ms, this message translates to:
+  /// **'Di sini'**
+  String get aiHere;
+
+  /// No description provided for @aiAirLine.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kualiti udara berhampiran {station}: IPU {ipu}, {band}.'**
+  String aiAirLine(String station, String ipu, String band);
+
+  /// No description provided for @aiQiblaLine.
+  ///
+  /// In ms, this message translates to:
+  /// **'Arah kiblat dari lokasi anda ialah {bearing}° dari utara benar, {distance} km ke Kaabah. Buka kompas Kiblat untuk arah secara langsung.'**
+  String aiQiblaLine(String bearing, String distance);
+
+  /// No description provided for @aiPrayerTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Waktu solat hari ini ({zone}):'**
+  String aiPrayerTitle(String zone);
+
+  /// No description provided for @aiPrayerTitleLocal.
+  ///
+  /// In ms, this message translates to:
+  /// **'Waktu solat hari ini:'**
+  String get aiPrayerTitleLocal;
+
+  /// No description provided for @aiPrayerNext.
+  ///
+  /// In ms, this message translates to:
+  /// **'Seterusnya: {prayer} pada {time}.'**
+  String aiPrayerNext(String prayer, String time);
+
+  /// No description provided for @aiUnavailable.
+  ///
+  /// In ms, this message translates to:
+  /// **'Maklumat itu tiada buat masa ini. Cuba lagi sebentar.'**
+  String get aiUnavailable;
+
+  /// No description provided for @aiAlongTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'{category} sepanjang laluan:'**
+  String aiAlongTitle(String category);
+
+  /// No description provided for @aiAlongIn.
+  ///
+  /// In ms, this message translates to:
+  /// **'dalam {distance}'**
+  String aiAlongIn(String distance);
+
+  /// No description provided for @aiNeedRoute.
+  ///
+  /// In ms, this message translates to:
+  /// **'Rancang laluan dahulu, kemudian saya boleh cari sepanjang laluan.'**
+  String get aiNeedRoute;
+
+  /// No description provided for @aiPlaying.
+  ///
+  /// In ms, this message translates to:
+  /// **'Memainkan {title}.'**
+  String aiPlaying(String title);
+
+  /// No description provided for @aiNeedModel.
+  ///
+  /// In ms, this message translates to:
+  /// **'Arahan peta boleh digunakan terus (laluan, tempat berdekatan, cuaca, kiblat). Untuk soalan umum, muat turun model pada telefon dahulu.'**
+  String get aiNeedModel;
+
+  /// No description provided for @aiError.
+  ///
+  /// In ms, this message translates to:
+  /// **'Maaf, ada masalah. Sila cuba lagi.'**
+  String get aiError;
+
+  /// No description provided for @aiPreparing.
+  ///
+  /// In ms, this message translates to:
+  /// **'Menyediakan model…'**
+  String get aiPreparing;
+
+  /// No description provided for @aiThinking.
+  ///
+  /// In ms, this message translates to:
+  /// **'Sedang berfikir…'**
+  String get aiThinking;
+
+  /// No description provided for @aiWorking.
+  ///
+  /// In ms, this message translates to:
+  /// **'Sedang diproses…'**
+  String get aiWorking;
+
+  /// No description provided for @aiSearchingSources.
+  ///
+  /// In ms, this message translates to:
+  /// **'Mencari dalam teks klasik…'**
+  String get aiSearchingSources;
+
+  /// No description provided for @aiActionStart.
+  ///
+  /// In ms, this message translates to:
+  /// **'Mula navigasi'**
+  String get aiActionStart;
+
+  /// No description provided for @aiActionShowRoute.
+  ///
+  /// In ms, this message translates to:
+  /// **'Lihat di peta'**
+  String get aiActionShowRoute;
+
+  /// No description provided for @aiActionRouteTo.
+  ///
+  /// In ms, this message translates to:
+  /// **'Laluan ke {place}'**
+  String aiActionRouteTo(String place);
+
+  /// No description provided for @aiNewChat.
+  ///
+  /// In ms, this message translates to:
+  /// **'Sembang baharu'**
+  String get aiNewChat;
+
+  /// No description provided for @aiChats.
+  ///
+  /// In ms, this message translates to:
+  /// **'Sembang'**
+  String get aiChats;
+
+  /// No description provided for @aiRename.
+  ///
+  /// In ms, this message translates to:
+  /// **'Namakan semula'**
+  String get aiRename;
+
+  /// No description provided for @aiRenameTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Namakan semula sembang'**
+  String get aiRenameTitle;
+
+  /// No description provided for @aiDelete.
+  ///
+  /// In ms, this message translates to:
+  /// **'Padam'**
+  String get aiDelete;
+
+  /// No description provided for @aiDeleteAll.
+  ///
+  /// In ms, this message translates to:
+  /// **'Padam semua sembang'**
+  String get aiDeleteAll;
+
+  /// No description provided for @aiDeleteAllConfirm.
+  ///
+  /// In ms, this message translates to:
+  /// **'Padam semua sembang dalam {name}? Tindakan ini tidak boleh dibuat asal.'**
+  String aiDeleteAllConfirm(String name);
+
+  /// No description provided for @aiDeleted.
+  ///
+  /// In ms, this message translates to:
+  /// **'Sembang dipadam'**
+  String get aiDeleted;
+
+  /// No description provided for @aiUndo.
+  ///
+  /// In ms, this message translates to:
+  /// **'Buat asal'**
+  String get aiUndo;
+
+  /// No description provided for @aiSave.
+  ///
+  /// In ms, this message translates to:
+  /// **'Simpan'**
+  String get aiSave;
+
+  /// No description provided for @aiCancel.
+  ///
+  /// In ms, this message translates to:
+  /// **'Batal'**
+  String get aiCancel;
+
+  /// No description provided for @aiToday.
+  ///
+  /// In ms, this message translates to:
+  /// **'Hari ini'**
+  String get aiToday;
+
+  /// No description provided for @aiPrevious7Days.
+  ///
+  /// In ms, this message translates to:
+  /// **'7 hari lalu'**
+  String get aiPrevious7Days;
+
+  /// No description provided for @aiOlder.
+  ///
+  /// In ms, this message translates to:
+  /// **'Lebih lama'**
+  String get aiOlder;
+
+  /// No description provided for @aiNoChats.
+  ///
+  /// In ms, this message translates to:
+  /// **'Belum ada sembang. Mulakan di bawah.'**
+  String get aiNoChats;
+
+  /// No description provided for @aiCopy.
+  ///
+  /// In ms, this message translates to:
+  /// **'Salin'**
+  String get aiCopy;
+
+  /// No description provided for @aiCopied.
+  ///
+  /// In ms, this message translates to:
+  /// **'Disalin'**
+  String get aiCopied;
+
+  /// No description provided for @aiStop.
+  ///
+  /// In ms, this message translates to:
+  /// **'Henti'**
+  String get aiStop;
+
+  /// No description provided for @muslimNoticeSummary.
+  ///
+  /// In ms, this message translates to:
+  /// **'Ringkasan daripada teks klasik (islamic.app). Bukan fatwa rasmi JAKIM atau mufti negeri; semak petikan dan rujuk ulama untuk keputusan peribadi. Wallahu a\'lam.'**
+  String get muslimNoticeSummary;
+
+  /// No description provided for @muslimNoticeRateLimited.
+  ///
+  /// In ms, this message translates to:
+  /// **'islamic.app sibuk sekarang (had permintaan). Cuba lagi sebentar. Pautan fatwa berkaitan di bawah jika ada.'**
+  String get muslimNoticeRateLimited;
+
+  /// No description provided for @muslimNoticeNotGrounded.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tiada petikan klasik yang cukup hampir untuk soalan ini. Sila rujuk ulama. Wallahu a\'lam.'**
+  String get muslimNoticeNotGrounded;
+
+  /// No description provided for @muslimNoticeUnreachable.
+  ///
+  /// In ms, this message translates to:
+  /// **'Sumber rujukan tidak dapat dicapai sekarang. Cuba lagi, atau rujuk pejabat mufti tempatan. Wallahu a\'lam.'**
+  String get muslimNoticeUnreachable;
+
+  /// No description provided for @muslimSources.
+  ///
+  /// In ms, this message translates to:
+  /// **'Sumber ({count})'**
+  String muslimSources(int count);
+
+  /// No description provided for @muslimClassical.
+  ///
+  /// In ms, this message translates to:
+  /// **'Teks klasik'**
+  String get muslimClassical;
+
+  /// No description provided for @muslimFatwa.
+  ///
+  /// In ms, this message translates to:
+  /// **'Fatwa berkaitan (indeks deen.ai, bukan rasmi di Malaysia)'**
+  String get muslimFatwa;
+
+  /// No description provided for @muslimPage.
+  ///
+  /// In ms, this message translates to:
+  /// **'hlm. {page}'**
+  String muslimPage(String page);
+
+  /// No description provided for @assistantSuggestFuel.
+  ///
+  /// In ms, this message translates to:
+  /// **'Stesen minyak terdekat'**
+  String get assistantSuggestFuel;
+
+  /// No description provided for @assistantSuggestWeather.
+  ///
+  /// In ms, this message translates to:
+  /// **'Cuaca di Kuala Terengganu'**
+  String get assistantSuggestWeather;
+
+  /// No description provided for @routeTollShort.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tol'**
+  String get routeTollShort;
+
+  /// No description provided for @qiblaCalibrateAction.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kalibrasi'**
+  String get qiblaCalibrateAction;
+
+  /// No description provided for @qiblaCalibrateSteps.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pegang telefon dan lukis angka 8 yang besar di udara tiga kali sambil memusingkan pergelangan tangan. Jauhkan daripada logam dan magnet.'**
+  String get qiblaCalibrateSteps;
+
+  /// No description provided for @qiblaCalibrateDone.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kompas sudah dikalibrasi'**
+  String get qiblaCalibrateDone;
+
+  /// No description provided for @qiblaCalibrateProgress.
+  ///
+  /// In ms, this message translates to:
+  /// **'Teruskan… ketepatan ±{deg}°'**
+  String qiblaCalibrateProgress(String deg);
+
+  /// No description provided for @qiblaCalibrateProgressLevel.
+  ///
+  /// In ms, this message translates to:
+  /// **'Teruskan… ketepatan: {level}'**
+  String qiblaCalibrateProgressLevel(String level);
+
+  /// No description provided for @qiblaInterferenceTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Gangguan magnet'**
+  String get qiblaInterferenceTitle;
+
+  /// No description provided for @qiblaInterferenceBody.
+  ///
+  /// In ms, this message translates to:
+  /// **'Medan magnet di sekitar telefon luar biasa. Jauhkan daripada logam, magnet, kereta, pembesar suara dan sarung telefon bermagnet, kemudian kalibrasi semula.'**
+  String get qiblaInterferenceBody;
+
+  /// No description provided for @qiblaAccuracyDegrees.
+  ///
+  /// In ms, this message translates to:
+  /// **'±{deg}°'**
+  String qiblaAccuracyDegrees(String deg);
+
+  /// No description provided for @qiblaDone.
+  ///
+  /// In ms, this message translates to:
+  /// **'Selesai'**
+  String get qiblaDone;
+
+  /// No description provided for @qiblaNotAccurateYet.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kalibrasi untuk arah yang tepat'**
+  String get qiblaNotAccurateYet;
+
+  /// No description provided for @weatherCurrentLocation.
+  ///
+  /// In ms, this message translates to:
+  /// **'Lokasi saya'**
+  String get weatherCurrentLocation;
+
+  /// No description provided for @weatherHighLow.
+  ///
+  /// In ms, this message translates to:
+  /// **'T:{high}°  R:{low}°'**
+  String weatherHighLow(String high, String low);
+
+  /// No description provided for @weatherFeelsLikeValue.
+  ///
+  /// In ms, this message translates to:
+  /// **'Terasa {temp}°'**
+  String weatherFeelsLikeValue(String temp);
+
+  /// No description provided for @weatherHourly.
+  ///
+  /// In ms, this message translates to:
+  /// **'Ramalan setiap jam'**
+  String get weatherHourly;
+
+  /// No description provided for @weatherDaily.
+  ///
+  /// In ms, this message translates to:
+  /// **'Ramalan 10 hari'**
+  String get weatherDaily;
+
+  /// No description provided for @weatherNow.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kini'**
+  String get weatherNow;
+
+  /// No description provided for @weatherToday.
+  ///
+  /// In ms, this message translates to:
+  /// **'Hari ini'**
+  String get weatherToday;
+
+  /// No description provided for @weatherHumidity.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kelembapan'**
+  String get weatherHumidity;
+
+  /// No description provided for @weatherWind.
+  ///
+  /// In ms, this message translates to:
+  /// **'Angin'**
+  String get weatherWind;
+
+  /// No description provided for @weatherUv.
+  ///
+  /// In ms, this message translates to:
+  /// **'Indeks UV'**
+  String get weatherUv;
+
+  /// No description provided for @weatherUvLow.
+  ///
+  /// In ms, this message translates to:
+  /// **'Rendah'**
+  String get weatherUvLow;
+
+  /// No description provided for @weatherUvModerate.
+  ///
+  /// In ms, this message translates to:
+  /// **'Sederhana'**
+  String get weatherUvModerate;
+
+  /// No description provided for @weatherUvHigh.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tinggi'**
+  String get weatherUvHigh;
+
+  /// No description provided for @weatherUvVeryHigh.
+  ///
+  /// In ms, this message translates to:
+  /// **'Sangat tinggi'**
+  String get weatherUvVeryHigh;
+
+  /// No description provided for @weatherUvExtreme.
+  ///
+  /// In ms, this message translates to:
+  /// **'Melampau'**
+  String get weatherUvExtreme;
+
+  /// No description provided for @weatherSunrise.
+  ///
+  /// In ms, this message translates to:
+  /// **'Matahari terbit'**
+  String get weatherSunrise;
+
+  /// No description provided for @weatherSunset.
+  ///
+  /// In ms, this message translates to:
+  /// **'Matahari terbenam'**
+  String get weatherSunset;
+
+  /// No description provided for @weatherPressure.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tekanan'**
+  String get weatherPressure;
+
+  /// No description provided for @weatherVisibility.
+  ///
+  /// In ms, this message translates to:
+  /// **'Jarak penglihatan'**
+  String get weatherVisibility;
+
+  /// No description provided for @weatherRainToday.
+  ///
+  /// In ms, this message translates to:
+  /// **'Hujan hari ini'**
+  String get weatherRainToday;
+
+  /// No description provided for @weatherRainChance.
+  ///
+  /// In ms, this message translates to:
+  /// **'Peluang hujan'**
+  String get weatherRainChance;
+
+  /// No description provided for @weatherUpdated.
+  ///
+  /// In ms, this message translates to:
+  /// **'Dikemas kini {time}'**
+  String weatherUpdated(String time);
+
+  /// No description provided for @weatherOfflineStale.
+  ///
+  /// In ms, this message translates to:
+  /// **'Luar talian · dikemas kini {time}'**
+  String weatherOfflineStale(String time);
+
+  /// No description provided for @weatherSearchHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Cari bandar atau tempat'**
+  String get weatherSearchHint;
+
+  /// No description provided for @weatherAddPlace.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tambah tempat'**
+  String get weatherAddPlace;
+
+  /// No description provided for @weatherRemovePlace.
+  ///
+  /// In ms, this message translates to:
+  /// **'Buang tempat'**
+  String get weatherRemovePlace;
+
+  /// No description provided for @weatherSevereSoon.
+  ///
+  /// In ms, this message translates to:
+  /// **'Ribut petir atau hujan lebat dijangka dalam 24 jam akan datang.'**
+  String get weatherSevereSoon;
+
+  /// No description provided for @weatherLoadFailed.
+  ///
+  /// In ms, this message translates to:
+  /// **'Ramalan tidak dapat dimuat. Semak sambungan dan cuba lagi.'**
+  String get weatherLoadFailed;
+
+  /// No description provided for @weatherNoLocation.
+  ///
+  /// In ms, this message translates to:
+  /// **'Hidupkan lokasi untuk melihat cuaca di tempat anda, atau cari tempat.'**
+  String get weatherNoLocation;
+
+  /// No description provided for @weatherSpeedKmh.
+  ///
+  /// In ms, this message translates to:
+  /// **'{value} km/j'**
+  String weatherSpeedKmh(String value);
+
+  /// No description provided for @weatherMm.
+  ///
+  /// In ms, this message translates to:
+  /// **'{value} mm'**
+  String weatherMm(String value);
+
+  /// No description provided for @weatherHpa.
+  ///
+  /// In ms, this message translates to:
+  /// **'{value} hPa'**
+  String weatherHpa(String value);
+
+  /// No description provided for @weatherKm.
+  ///
+  /// In ms, this message translates to:
+  /// **'{value} km'**
+  String weatherKm(String value);
+
+  /// No description provided for @weatherCardinals.
+  ///
+  /// In ms, this message translates to:
+  /// **'U,TL,T,TG,S,BD,B,BL'**
+  String get weatherCardinals;
+
+  /// No description provided for @weatherFrom.
+  ///
+  /// In ms, this message translates to:
+  /// **'dari {dir}'**
+  String weatherFrom(String dir);
+
+  /// No description provided for @weatherCodeClear.
+  ///
+  /// In ms, this message translates to:
+  /// **'Cerah'**
+  String get weatherCodeClear;
+
+  /// No description provided for @weatherCodeMainlyClear.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kebanyakannya cerah'**
+  String get weatherCodeMainlyClear;
+
+  /// No description provided for @weatherCodePartlyCloudy.
+  ///
+  /// In ms, this message translates to:
+  /// **'Sebahagian berawan'**
+  String get weatherCodePartlyCloudy;
+
+  /// No description provided for @weatherCodeOvercast.
+  ///
+  /// In ms, this message translates to:
+  /// **'Mendung'**
+  String get weatherCodeOvercast;
+
+  /// No description provided for @weatherCodeFog.
+  ///
+  /// In ms, this message translates to:
+  /// **'Berkabus'**
+  String get weatherCodeFog;
+
+  /// No description provided for @weatherCodeDrizzle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Gerimis'**
+  String get weatherCodeDrizzle;
+
+  /// No description provided for @weatherCodeRain.
+  ///
+  /// In ms, this message translates to:
+  /// **'Hujan'**
+  String get weatherCodeRain;
+
+  /// No description provided for @weatherCodeHeavyRain.
+  ///
+  /// In ms, this message translates to:
+  /// **'Hujan lebat'**
+  String get weatherCodeHeavyRain;
+
+  /// No description provided for @weatherCodeShowers.
+  ///
+  /// In ms, this message translates to:
+  /// **'Hujan renyai'**
+  String get weatherCodeShowers;
+
+  /// No description provided for @weatherCodeHeavyShowers.
+  ///
+  /// In ms, this message translates to:
+  /// **'Hujan renyai lebat'**
+  String get weatherCodeHeavyShowers;
+
+  /// No description provided for @weatherCodeThunderstorm.
+  ///
+  /// In ms, this message translates to:
+  /// **'Ribut petir'**
+  String get weatherCodeThunderstorm;
+
+  /// No description provided for @weatherCodeSnow.
+  ///
+  /// In ms, this message translates to:
+  /// **'Salji'**
+  String get weatherCodeSnow;
+
+  /// No description provided for @weatherOpen.
+  ///
+  /// In ms, this message translates to:
+  /// **'Cuaca'**
+  String get weatherOpen;
+
+  /// No description provided for @offlineMapsSearchAvailable.
+  ///
+  /// In ms, this message translates to:
+  /// **'Carian offline tersedia (+{size})'**
+  String offlineMapsSearchAvailable(String size);
 }
 
 class _AppLocalizationsDelegate

@@ -11,6 +11,8 @@ import '../../../core/network/dio_provider.dart';
 import '../../../core/network/response_text.dart';
 import '../../../core/storage/preferences.dart';
 import '../../../core/utils/geo.dart';
+import 'offline_geocoder.dart';
+import 'offline_places_db.dart';
 import '../domain/nearby_category.dart';
 import '../domain/place.dart';
 import 'nearby_cache.dart';
@@ -535,10 +537,14 @@ List<Place> sortNearby(
 
 final nearbySearchProvider = Provider<NearbySearch>((ref) {
   final dio = ref.watch(dioProvider);
+  // Overpass -> indeks offline pek peta (jika dipasang) -> Nominatim.
   return CachedNearbySearch(
     FallbackNearbySearch(
       OverpassNearbySearch(dio, AppConfig.overpassUrls),
-      NominatimNearbySearch(dio, AppConfig.nominatimUrl),
+      FallbackNearbySearch(
+        OfflineNearbySearch(ref.watch(offlinePlacesDbProvider)),
+        NominatimNearbySearch(dio, AppConfig.nominatimUrl),
+      ),
     ),
     ref.watch(sharedPreferencesProvider),
   );

@@ -1,13 +1,45 @@
-import 'package:flutter_edge_ai/flutter_edge_ai.dart';
+import 'dart:async';
 
+import 'package:flutter_edge_ai/flutter_edge_ai.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../core/utils/log.dart';
 import '../domain/assistant_message.dart';
 import '../domain/assistant_tools.dart';
 import '../domain/local_llm.dart';
+import '../domain/reply_cleaner.dart';
+
+/// Status percubaan GPU, disimpan supaya laluan GPU yang merosakkan app tidak dicuba lagi.
+const assistantGpuPrefsKey = 'assistant.llm.gpu';
 
 /// Runtime sebenar melalui flutter_edge_ai + LiteRT-LM.
+///
+/// Kelajuan pada telefon perlahan:
+///  - sesi diteruskan antara mesej (tidak dibina semula dan arahan sistem/alat tidak disuap semula);
+///  - model kekal dalam RAM [idleRelease] selepas mesej terakhir, bukan dilepaskan setiap kali tutup;
+///  - GPU dicuba sekali; jika gagal (atau app mati semasa mencuba) CPU digunakan selama-lamanya.
 class EdgeAiLlmRuntime implements LocalLlmRuntime {
+  EdgeAiLlmRuntime(this._prefs);
+
+  final SharedPreferences _prefs;
+
   InferenceModel? _model;
   InferenceChat? _chat;
+  String? _system;
+  String? _sessionKey;
+  int _estimatedTokens = 0;
+
+  /// Sesi baru dibina dan belum menerima sebarang mesej.
+  bool _fresh = true;
+  Timer? _idle;
+  Future<InferenceChat>? _opening;
+
+  /// Konteks model (token). Kecil = kurang memori; cukup untuk arahan + alat + beberapa pusingan.
+  static const contextTokens = 1536;
+
+  /// Bila anggaran konteks melebihi ini, sesi dimulakan semula dengan sejarah ringkas.
+  static const _sessionBudget = 1050;
+  static const idleRelease = Duration(minutes: 3);
 
   @override
   Future<bool> isInstalled() =>
@@ -32,28 +64,74 @@ class EdgeAiLlmRuntime implements LocalLlmRuntime {
     }
   }
 
-  Future<InferenceChat> _ensureChat(String system) async {
-    final existing = _chat;
-    if (existing != null) return existing;
+  @override
+  Future<void> warmUp({required String system}) async {
+    _idle?.cancel();
+    try {
+      await _ensureChat(system);
+      _scheduleRelease();
+    } on Object catch (e) {
+      logDiag('AI: pemanasan model gagal: $e');
+    }
+  }
+
+  Future<InferenceModel> _loadModel() async {
+    final watch = Stopwatch()..start();
+    final gpu = _prefs.getString(assistantGpuPrefsKey);
+    if (gpu == null || gpu == 'ok') {
+      if (gpu == null) await _prefs.setString(assistantGpuPrefsKey, 'trying');
+      try {
+        final model = await FlutterEdgeAi.getActiveModel(
+          maxTokens: contextTokens,
+          preferredBackend: PreferredBackend.gpu,
+        );
+        logDiag('AI: model GPU dimuat dalam ${watch.elapsedMilliseconds} ms');
+        return model;
+      } on Object catch (e) {
+        logDiag('AI: GPU tidak tersedia ($e); guna CPU');
+        await _prefs.setString(assistantGpuPrefsKey, 'failed');
+      }
+    } else if (gpu == 'trying') {
+      // Percubaan lalu tidak pernah selesai (app mati semasa memuat GPU).
+      await _prefs.setString(assistantGpuPrefsKey, 'failed');
+    }
     final model = await FlutterEdgeAi.getActiveModel(
-      maxTokens: 2048,
+      maxTokens: contextTokens,
       preferredBackend: PreferredBackend.cpu,
     );
-    _model = model;
-    final chat = await model.createChat(
-      temperature: 0.4,
-      topK: 40,
-      topP: 0.9,
-      maxOutputTokens: 512,
-      tools: assistantTools(),
-      supportsFunctionCalls: true,
-      enableThinking: false,
-      modelType: ModelType.qwen3,
-      toolChoice: ToolChoice.auto,
-      systemInstruction: system,
-    );
-    _chat = chat;
-    return chat;
+    logDiag('AI: model CPU dimuat dalam ${watch.elapsedMilliseconds} ms');
+    return model;
+  }
+
+  Future<InferenceChat> _ensureChat(String system) {
+    final existing = _chat;
+    if (existing != null && _system == system) return Future.value(existing);
+    return _opening ??= () async {
+      try {
+        if (_chat != null) await release();
+        final model = _model ??= await _loadModel();
+        final chat = await model.createChat(
+          temperature: 0.3,
+          topK: 40,
+          topP: 0.9,
+          maxOutputTokens: 320,
+          tools: llmAssistantTools(),
+          supportsFunctionCalls: true,
+          enableThinking: false,
+          modelType: ModelType.qwen3,
+          toolChoice: ToolChoice.auto,
+          systemInstruction: system,
+        );
+        _chat = chat;
+        _system = system;
+        _sessionKey = null;
+        _fresh = true;
+        _estimatedTokens = _approxTokens(system) + 320;
+        return chat;
+      } finally {
+        _opening = null;
+      }
+    }();
   }
 
   @override
@@ -67,50 +145,120 @@ class EdgeAiLlmRuntime implements LocalLlmRuntime {
     )
     onTool,
     int maxToolTurns = 2,
+    String? sessionKey,
+    void Function(String text)? onText,
   }) async {
+    _idle?.cancel();
+    final watch = Stopwatch()..start();
     final chat = await _ensureChat(system);
-    // Sejarah pendek: hanya beberapa pusingan terakhir (elak konteks penuh).
-    final recent = history.length <= 6
-        ? history
-        : history.sublist(history.length - 6);
-    await chat.clearHistory();
-    for (final m in recent) {
-      if (m.role == AssistantRole.user) {
-        await chat.addQueryChunk(Message.text(text: m.text, isUser: true));
-      } else if (m.role == AssistantRole.assistant) {
-        await chat.addQueryChunk(Message.text(text: m.text, isUser: false));
+    final continuing =
+        sessionKey != null &&
+        sessionKey == _sessionKey &&
+        _estimatedTokens + _approxTokens(userText) < _sessionBudget;
+    if (!continuing) {
+      // Perbualan lain atau konteks hampir penuh: sesi baharu dengan sejarah RINGKAS sahaja. Jawapan
+      // lama dipotong supaya model tidak menyalin semula ayatnya.
+      final replay = <Message>[];
+      for (final m in compactHistory(history)) {
+        replay.add(
+          Message.text(text: m.text, isUser: m.role == AssistantRole.user),
+        );
       }
+      if (!_fresh) {
+        await chat.clearHistory(replayHistory: replay);
+      } else {
+        for (final m in replay) {
+          await chat.addQueryChunk(m);
+        }
+      }
+      _sessionKey = sessionKey;
+      _estimatedTokens =
+          _approxTokens(system) +
+          320 +
+          replay.fold(0, (sum, m) => sum + _approxTokens(m.text));
     }
     await chat.addQueryChunk(Message.text(text: userText, isUser: true));
+    _fresh = false;
+    _estimatedTokens += _approxTokens(userText);
 
     final buf = StringBuffer();
-    await for (final response in chat.generateChatResponseWithTools(
-      maxToolTurns: maxToolTurns,
-      onToolCall: (call) async {
-        if (!isKnownAssistantTool(call.name)) {
-          return {'error': 'unknown_tool'};
+    int? firstTokenMs;
+    try {
+      await for (final response in chat.generateChatResponseWithTools(
+        maxToolTurns: maxToolTurns,
+        onToolCall: (call) async {
+          // Teks sebelum panggilan alat (cth. ".") bukan jawapan: buang.
+          buf.clear();
+          onText?.call('');
+          if (!isKnownAssistantTool(call.name)) {
+            return {'error': 'unknown_tool'};
+          }
+          final args = <String, Object?>{
+            for (final e in call.args.entries) e.key: e.value,
+          };
+          final result = await onTool(call.name, args);
+          _estimatedTokens += _approxTokens(result.toString());
+          return result;
+        },
+      )) {
+        if (response is TextResponse) {
+          firstTokenMs ??= watch.elapsedMilliseconds;
+          buf.write(response.token);
+          onText?.call(cleanReply(buf.toString()));
         }
-        final args = <String, Object?>{
-          for (final e in call.args.entries) e.key: e.value,
-        };
-        final result = await onTool(call.name, args);
-        return result;
-      },
-    )) {
-      if (response is TextResponse) {
-        buf.write(response.token);
       }
+    } on Object {
+      // Sesi mungkin rosak selepas ralat: mulakan semula pada mesej seterusnya.
+      _sessionKey = null;
+      rethrow;
+    } finally {
+      _scheduleRelease();
     }
-    return buf.toString().trim();
+    final reply = cleanReply(buf.toString());
+    _estimatedTokens += _approxTokens(reply);
+    if (_prefs.getString(assistantGpuPrefsKey) == 'trying') {
+      await _prefs.setString(assistantGpuPrefsKey, 'ok');
+    }
+    logDiag(
+      'AI: token pertama ${firstTokenMs ?? -1} ms, jumlah '
+      '${watch.elapsedMilliseconds} ms, ${reply.length} aksara, '
+      '${continuing ? 'sesi diteruskan' : 'sesi baharu'}',
+    );
+    return reply;
+  }
+
+  void _scheduleRelease() {
+    _idle?.cancel();
+    _idle = Timer(idleRelease, () => unawaited(release()));
   }
 
   @override
   Future<void> release() async {
+    _idle?.cancel();
     _chat = null;
+    _system = null;
+    _sessionKey = null;
     final model = _model;
     _model = null;
     if (model != null && !model.isClosed) {
       await model.close();
     }
   }
+
+  static int _approxTokens(String text) => (text.length / 3.2).ceil() + 4;
+}
+
+/// Sejarah ringkas untuk sesi baharu: 2 pusingan terakhir; jawapan dipotong ke 200 aksara.
+List<AssistantMessage> compactHistory(List<AssistantMessage> history) {
+  final turns = [
+    for (final m in history)
+      if (m.role != AssistantRole.system && m.text.trim().isNotEmpty) m,
+  ];
+  final recent = turns.length <= 4 ? turns : turns.sublist(turns.length - 4);
+  return [
+    for (final m in recent)
+      m.role == AssistantRole.assistant && m.text.length > 200
+          ? m.copyWith(text: '${m.text.substring(0, 199)}…')
+          : m,
+  ];
 }

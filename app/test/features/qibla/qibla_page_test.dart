@@ -39,11 +39,15 @@ class _FakeCompass implements CompassHeadingSource {
     double heading, {
     CompassAccuracy accuracy = CompassAccuracy.high,
     bool trueNorth = true,
+    double? accuracyDeg,
+    bool interference = false,
   }) => _c.add(
     CompassReading(
       headingDegrees: heading,
       accuracy: accuracy,
       trueNorth: trueNorth,
+      accuracyDeg: accuracyDeg,
+      interference: interference,
     ),
   );
 }
@@ -173,6 +177,65 @@ void main() {
     expect(find.byKey(const ValueKey('qibla-state-aligned')), findsOneWidget);
     expect(find.byKey(const ValueKey('qibla-calibrate')), findsNothing);
     expect(find.text('Tinggi'), findsOneWidget);
+  });
+
+  testWidgets('ralat dalam darjah: dipaparkan; > 20° tidak mendakwa tepat', (
+    tester,
+  ) async {
+    await pump(tester);
+    compass.emit(qibla, accuracyDeg: 30);
+    for (var i = 0; i < 60; i++) {
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    expect(find.text('±30°'), findsOneWidget);
+    expect(find.byKey(const ValueKey('qibla-state-aligned')), findsNothing);
+
+    compass.emit(qibla, accuracyDeg: 8);
+    for (var i = 0; i < 60; i++) {
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    expect(find.text('±8°'), findsOneWidget);
+    expect(find.byKey(const ValueKey('qibla-state-aligned')), findsOneWidget);
+  });
+
+  testWidgets('gangguan magnet: amaran, tidak mendakwa tepat', (tester) async {
+    await pump(tester);
+    compass.emit(qibla, accuracyDeg: 5, interference: true);
+    for (var i = 0; i < 60; i++) {
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    expect(find.byKey(const ValueKey('qibla-interference')), findsOneWidget);
+    expect(find.byKey(const ValueKey('qibla-state-aligned')), findsNothing);
+  });
+
+  testWidgets('bacaan kurang tepat berterusan: panduan kalibrasi dibuka sekali '
+      'dan ditutup sendiri bila tepat', (tester) async {
+    await pump(tester);
+    compass.emit(qibla - 40, accuracyDeg: 45);
+    await tester.pump(const Duration(milliseconds: 100));
+    // Masih dalam tempoh tenang: belum dibuka.
+    expect(
+      find.byKey(const ValueKey('qibla-calibration-status')),
+      findsNothing,
+    );
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(
+      find.byKey(const ValueKey('qibla-calibration-status')),
+      findsOneWidget,
+    );
+    expect(find.text('Teruskan… ketepatan ±45°'), findsOneWidget);
+
+    compass.emit(qibla - 40, accuracyDeg: 6);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 1600));
+    expect(find.text('Kompas sudah dikalibrasi'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(
+      find.byKey(const ValueKey('qibla-calibration-status')),
+      findsNothing,
+    );
   });
 
   testWidgets('maklumat: bearing 1 perpuluhan dan jarak geodesik', (

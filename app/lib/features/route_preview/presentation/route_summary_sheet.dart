@@ -721,7 +721,7 @@ class _RouteOptionCard extends StatelessWidget {
           child: ConstrainedBox(
             constraints: const BoxConstraints(minWidth: 106, maxWidth: 190),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -785,10 +785,16 @@ class _RouteOptionCard extends StatelessWidget {
                               size: 14,
                               color: fg.warning,
                             ),
-                            if (_tollShort(l10n, toll) case final text?) ...[
-                              const SizedBox(width: 3),
-                              Text(text, style: theme.textTheme.labelSmall),
-                            ],
+                            const SizedBox(width: 3),
+                            // Harga terus pada kad (bukan sekadar ikon): pemandu membandingkan kos.
+                            Text(
+                              _tollShort(l10n, toll) ?? l10n.routeTollShort,
+                              key: const ValueKey('route-card-toll'),
+                              style: theme.textTheme.labelMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: theme.colorScheme.onSurface,
+                              ),
+                            ),
                           ],
                           if (option.hasHighway) ...[
                             const SizedBox(width: 6),
@@ -1135,10 +1141,11 @@ class _TollSummary extends StatelessWidget {
         .map((r) => r.label)
         .where((l) => l.isNotEmpty);
     final priced = _tollLong(l10n, estimate);
+    // Harga dahulu (yang paling penting), kemudian paling banyak dua nama jalan bertol.
     final text = route.hasTolls
         ? [
-            if (roads.isNotEmpty) l10n.routeTollOn(roads.take(3).join(', ')),
             ?priced,
+            if (roads.isNotEmpty) l10n.routeTollOn(roads.take(2).join(', ')),
           ].join(' · ')
         : l10n.routeNoTolls;
     return Column(
@@ -1176,6 +1183,8 @@ class _TollSummary extends StatelessWidget {
             padding: const EdgeInsets.only(left: 22, top: 2),
             child: Text(
               l10n.routeTollDisclaimer,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: theme.textTheme.labelSmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),

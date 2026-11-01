@@ -5,6 +5,7 @@ import '../../../core/config/app_config.dart';
 import '../../../core/network/dio_provider.dart';
 import '../../../core/utils/geo.dart';
 import '../domain/weather_codes.dart';
+import '../domain/weather_forecast.dart';
 import '../domain/weather_snapshot.dart';
 
 /// Open-Meteo — percuma tanpa kunci; soft-fail jika offline.
@@ -109,6 +110,45 @@ class OpenMeteoClient {
     } catch (_) {
       return _cachedNear(destination);
     }
+  }
+
+  /// Ramalan penuh untuk halaman Cuaca: semasa + 48 jam + 10 hari dalam SATU permintaan. Melempar
+  /// jika gagal (pemanggil memaparkan simpanan terakhir). Pulangkan juga respons mentah untuk disimpan.
+  Future<(WeatherForecast, Map<String, dynamic>)> fetchForecast(
+    GeoPoint point, {
+    CancelToken? cancel,
+  }) async {
+    final res = await _dio.get<Map<String, dynamic>>(
+      baseUrl,
+      queryParameters: {
+        'latitude': point.lat.toStringAsFixed(3),
+        'longitude': point.lng.toStringAsFixed(3),
+        'current':
+            'temperature_2m,relative_humidity_2m,apparent_temperature,is_day,'
+            'precipitation,weather_code,surface_pressure,wind_speed_10m,'
+            'wind_direction_10m,uv_index,visibility',
+        'hourly':
+            'temperature_2m,precipitation_probability,weather_code,is_day',
+        'daily':
+            'weather_code,temperature_2m_max,temperature_2m_min,'
+            'precipitation_probability_max,precipitation_sum,sunrise,sunset,'
+            'uv_index_max',
+        'forecast_days': 10,
+        'forecast_hours': 48,
+        'timezone': 'auto',
+      },
+      options: Options(
+        headers: {'User-Agent': AppConfig.userAgent},
+        receiveTimeout: const Duration(seconds: 12),
+      ),
+      cancelToken: cancel,
+    );
+    final data = res.data;
+    final forecast = data == null ? null : WeatherForecast.parse(data, point);
+    if (data == null || forecast == null) {
+      throw const FormatException('Open-Meteo: respons tidak lengkap');
+    }
+    return (forecast, data);
   }
 
   Future<Map<String, dynamic>?> _softForecast(

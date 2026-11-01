@@ -18,6 +18,8 @@ class CompassReading {
     required this.headingDegrees,
     required this.accuracy,
     this.trueNorth = false,
+    this.accuracyDeg,
+    this.interference = false,
   });
 
   /// Arah bahagian atas telefon (0–360). Utara benar jika [trueNorth], jika tidak utara magnet.
@@ -26,6 +28,36 @@ class CompassReading {
 
   /// Deklinasi magnet sudah diambil kira (lokasi diketahui).
   final bool trueNorth;
+
+  /// Anggaran ralat arah dalam darjah (±), jika peranti menyediakannya.
+  final double? accuracyDeg;
+
+  /// Medan magnet jauh berbeza daripada medan bumi: logam/magnet berhampiran.
+  final bool interference;
+
+  /// Tahap berkesan: ralat dalam darjah (jika ada) lebih jujur daripada tahap 0–3 yang kerap kekal
+  /// "tinggi"; gangguan magnet sentiasa "tidak boleh dipercayai".
+  CompassAccuracy get effectiveAccuracy {
+    if (interference) return CompassAccuracy.unreliable;
+    final deg = accuracyDeg;
+    if (deg == null) return accuracy;
+    final fromDeg = deg <= 10
+        ? CompassAccuracy.high
+        : deg <= 20
+        ? CompassAccuracy.medium
+        : deg <= 35
+        ? CompassAccuracy.low
+        : CompassAccuracy.unreliable;
+    return fromDeg.index < accuracy.index ? fromDeg : accuracy;
+  }
+
+  /// Cukup tepat untuk mendakwa "menghadap kiblat".
+  bool get trustworthy {
+    if (interference) return false;
+    final deg = accuracyDeg;
+    if (deg != null) return deg <= 20;
+    return accuracy != CompassAccuracy.unreliable;
+  }
 }
 
 /// Sumber arah kompas. Antara muka supaya ujian boleh memalsukannya; pelaksanaan sebenar membaca
@@ -48,8 +80,7 @@ class PlatformCompassHeadingSource implements CompassHeadingSource {
     'com.fguniversalempire.fgmaps/heading_ctl',
   );
 
-  bool get _supported =>
-      !kIsWeb && (Platform.isAndroid || Platform.isIOS);
+  bool get _supported => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 
   @override
   Stream<CompassReading> readings() {
@@ -99,6 +130,11 @@ CompassReading? parseCompassEvent(Object? event) {
       _ => CompassAccuracy.unreliable,
     },
     trueNorth: event['trueNorth'] == true,
+    accuracyDeg: switch (event['accuracyDeg']) {
+      final num d when d.isFinite && d >= 0 => d.toDouble(),
+      _ => null,
+    },
+    interference: event['interference'] == true,
   );
 }
 

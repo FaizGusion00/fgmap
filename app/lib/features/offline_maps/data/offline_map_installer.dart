@@ -8,6 +8,7 @@ import 'package:dio/dio.dart';
 
 import '../../../core/network/response_text.dart';
 import '../../../core/network/retry_interceptor.dart';
+import '../../../core/utils/log.dart';
 import '../domain/offline_models.dart';
 import 'offline_engine_host.dart';
 import 'offline_map_store.dart';
@@ -29,13 +30,18 @@ class OfflineMapInstaller {
     required Dio dio,
     required OfflineMapStore store,
     required OfflineEngineHost host,
+    Future<void> Function()? beforePlacesSwap,
   }) : _dio = dio,
        _store = store,
-       _host = host;
+       _host = host,
+       _beforePlacesSwap = beforePlacesSwap;
 
   final Dio _dio;
   final OfflineMapStore _store;
   final OfflineEngineHost _host;
+
+  /// Tutup pangkalan data carian offline sebelum failnya diganti.
+  final Future<void> Function()? _beforePlacesSwap;
 
   Future<OfflineManifest> fetchManifest(String manifestUrl) async {
     if (manifestUrl.isEmpty) {
@@ -72,6 +78,9 @@ class OfflineMapInstaller {
   Uri packUrl(String manifestUrl, OfflineManifest manifest) =>
       Uri.parse(manifestUrl).resolve(manifest.file);
 
+  /// Pasang pek laluan (jika belum versi ini) dan indeks carian offline (jika manifest ada). Kegagalan
+  /// indeks carian TIDAK menggagalkan pek laluan yang sudah dipasang: carian kekal dalam talian dan
+  /// "kemas kini" ditawarkan semula.
   Future<InstalledMap> install({
     required String manifestUrl,
     required OfflineManifest manifest,
@@ -79,6 +88,100 @@ class OfflineMapInstaller {
     required InstallProgress onProgress,
   }) async {
     await _store.ensureDir();
+    final current = await _store.readInstalled();
+    final map = current != null && current.version == manifest.version
+        ? current
+        : await _installTiles(manifestUrl, manifest, cancel, onProgress);
+    final places = manifest.places;
+    if (places == null || map.placesVersion == manifest.version) return map;
+    try {
+      await _installPlaces(
+        Uri.parse(manifestUrl).resolve(places.file),
+        manifest.version,
+        places,
+        cancel,
+        onProgress,
+      );
+      return await _store.readInstalled() ?? map;
+    } on OfflineMapException catch (e) {
+      if (e.kind == OfflineMapFailure.cancelled) rethrow;
+      logDiag('Indeks carian offline gagal dipasang: $e');
+      return map;
+    } on Object catch (e) {
+      logDiag('Indeks carian offline gagal dipasang: $e');
+      await _store.discardPlacesPartial();
+      return map;
+    }
+  }
+
+  Future<void> _installPlaces(
+    Uri url,
+    String version,
+    OfflinePlacesInfo info,
+    CancelToken cancel,
+    InstallProgress onProgress,
+  ) async {
+    try {
+      await _store.discardPlacesPartial();
+      final response = await _dio.getUri<ResponseBody>(
+        url,
+        cancelToken: cancel,
+        options: Options(
+          responseType: ResponseType.stream,
+          receiveTimeout: const Duration(seconds: 30),
+        ),
+      );
+      var received = 0;
+      final sink = _store.placesPart.openWrite();
+      try {
+        await for (final chunk in response.data!.stream) {
+          sink.add(chunk);
+          received += chunk.length;
+          onProgress(InstallPhase.downloading, received, info.sizeBytes);
+        }
+        await sink.flush();
+      } finally {
+        await sink.close();
+      }
+      onProgress(InstallPhase.verifying, info.sizeBytes, info.sizeBytes);
+      if (received != info.sizeBytes ||
+          await _sha256Of(_store.placesPart.path) != info.sha256) {
+        throw const OfflineMapException(
+          OfflineMapFailure.checksum,
+          'indeks carian',
+        );
+      }
+      onProgress(InstallPhase.installing, 0, info.extractedSizeBytes);
+      await _gunzipInIsolate(_store.placesPart.path, _store.placesTmp.path);
+      if (await _store.placesTmp.length() != info.extractedSizeBytes ||
+          await _sha256Of(_store.placesTmp.path) != info.extractedSha256) {
+        throw const OfflineMapException(
+          OfflineMapFailure.checksum,
+          'indeks carian (ekstrak)',
+        );
+      }
+      await _store.placesPart.delete();
+      await _beforePlacesSwap?.call();
+      await _store.installPlaces(
+        _store.placesTmp,
+        version: version,
+        sizeBytes: info.extractedSizeBytes,
+      );
+    } on DioException catch (e) {
+      await _store.discardPlacesPartial();
+      throw _fromDio(e);
+    } on OfflineMapException {
+      await _store.discardPlacesPartial();
+      rethrow;
+    }
+  }
+
+  Future<InstalledMap> _installTiles(
+    String manifestUrl,
+    OfflineManifest manifest,
+    CancelToken cancel,
+    InstallProgress onProgress,
+  ) async {
     try {
       await _download(
         packUrl(manifestUrl, manifest),

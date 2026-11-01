@@ -10,6 +10,8 @@ import '../../../core/utils/geo.dart';
 import '../domain/place.dart';
 import 'fallback_geocoder.dart';
 import 'nominatim_geocoder.dart';
+import 'offline_geocoder.dart';
+import 'offline_places_db.dart';
 
 abstract interface class Geocoder {
   /// Mencari tempat. [near] memberi keutamaan kepada hasil yang hampir (bukan penapis).
@@ -240,10 +242,14 @@ final reverseGeocoderProvider = Provider<ReverseGeocoder>(
   (ref) => PhotonGeocoder(ref.watch(dioProvider), AppConfig.photonUrl),
 );
 
+/// Dalam talian (Photon, kemudian Nominatim) dengan indeks offline pek peta sebagai sandaran.
 final geocoderProvider = Provider<Geocoder>((ref) {
   final dio = ref.watch(dioProvider);
-  return FallbackGeocoder(
-    PhotonGeocoder(dio, AppConfig.photonUrl),
-    NominatimGeocoder(dio, AppConfig.nominatimUrl),
+  return OfflineAwareGeocoder(
+    FallbackGeocoder(
+      PhotonGeocoder(dio, AppConfig.photonUrl),
+      NominatimGeocoder(dio, AppConfig.nominatimUrl),
+    ),
+    ref.watch(offlinePlacesDbProvider),
   );
 });

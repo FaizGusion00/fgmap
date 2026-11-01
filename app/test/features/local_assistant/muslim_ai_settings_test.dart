@@ -1,7 +1,5 @@
 import 'package:fgmap/core/storage/preferences.dart';
 import 'package:fgmap/features/local_assistant/data/muslim_ai_settings.dart';
-import 'package:fgmap/features/local_assistant/domain/assistant_message.dart';
-import 'package:fgmap/features/local_assistant/domain/local_llm.dart';
 import 'package:fgmap/features/local_assistant/presentation/assistant_controller.dart';
 import 'package:fgmap/features/local_assistant/presentation/assistant_settings_section.dart';
 import 'package:flutter/material.dart';
@@ -10,6 +8,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/pump_app.dart';
+
+import 'fake_llm.dart';
 
 void main() {
   late SharedPreferences prefs;
@@ -48,7 +48,7 @@ void main() {
       ),
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
-        localLlmRuntimeProvider.overrideWithValue(_FakeLlm()),
+        localLlmRuntimeProvider.overrideWithValue(FakeLlm(installed: false)),
       ],
     );
     await tester.pumpAndSettle();
@@ -68,7 +68,9 @@ void main() {
       await tester.tap(boxes.at(i));
       await tester.pump();
     }
-    await tester.ensureVisible(find.byKey(const ValueKey('muslim-terms-agree')));
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('muslim-terms-agree')),
+    );
     await tester.tap(find.byKey(const ValueKey('muslim-terms-agree')));
     await tester.pumpAndSettle();
 
@@ -76,32 +78,4 @@ void main() {
     final switchTile = tester.widget<SwitchListTile>(toggle);
     expect(switchTile.value, isTrue);
   });
-}
-
-class _FakeLlm implements LocalLlmRuntime {
-  @override
-  Future<bool> isInstalled() async => false;
-
-  @override
-  Future<void> download({void Function(double progress)? onProgress}) async {}
-
-  @override
-  Future<void> delete() async {}
-
-  @override
-  Future<String> chat({
-    required String system,
-    required List<AssistantMessage> history,
-    required String userText,
-    required Future<Map<String, Object?>> Function(
-      String name,
-      Map<String, Object?> args,
-    )
-    onTool,
-    int maxToolTurns = 2,
-  }) async =>
-      '';
-
-  @override
-  Future<void> release() async {}
 }

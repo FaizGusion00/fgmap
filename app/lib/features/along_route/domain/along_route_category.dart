@@ -12,10 +12,11 @@ enum AlongRouteCategory {
     corridorM: 600,
     sampleEveryM: 800,
   ),
+  // `building=mosque` sengaja tidak dicari: ia biasanya poligon bangunan masjid yang sama (pendua)
+  // dan pengiraan pusat poligon memperlahankan pelayan.
   mosque(
     selectors: [
       '["amenity"="place_of_worship"]["religion"="muslim"]',
-      '["building"="mosque"]',
       '["amenity"="prayer_room"]',
     ],
     corridorM: 600,
@@ -40,6 +41,50 @@ enum AlongRouteCategory {
   final List<String> selectors;
   final double corridorM;
   final double sampleEveryM;
+
+  /// Tag OSM elemen ini menepati kategori? (Padanan sebelah klien untuk pertanyaan gabungan.)
+  bool matches(Map<String, dynamic> tags) {
+    final amenity = tags['amenity'];
+    final highway = tags['highway'];
+    final services = highway == 'services' || highway == 'rest_area';
+    return switch (this) {
+      restArea => services,
+      fuel => amenity == 'fuel',
+      evCharging => amenity == 'charging_station',
+      mosque =>
+        (amenity == 'place_of_worship' && tags['religion'] == 'muslim') ||
+            amenity == 'prayer_room',
+      toilets => amenity == 'toilets' || (services && tags['toilets'] == 'yes'),
+    };
+  }
+
+  /// Koridor terlebar antara semua kategori (pertanyaan gabungan menapis lebih ketat selepas itu).
+  static double get maxCorridorM =>
+      values.map((c) => c.corridorM).reduce((a, b) => a > b ? a : b);
+
+  /// SATU pertanyaan untuk SEMUA kategori, dalam kotak sempadan kecil sepanjang laluan ([boxes]:
+  /// selatan, barat, utara, timur). Penapis kotak menggunakan indeks ruang pelayan dan jauh lebih
+  /// pantas daripada `around` pada polyline ratusan titik (diukur 2026-11-01, KL→Ipoh 203 km pada
+  /// overpass.openstreetmap.fr: kotak 5.8 s, polyline 9.5 s; lima permintaan lama 35-46 s setiap satu
+  /// pada pelayan yang sibuk). Kategori diasingkan pada telefon ([matches]) dan setiap satu ditapis
+  /// mengikut koridornya sendiri.
+  static String combinedOverpassQuery(
+    Iterable<(double s, double w, double n, double e)> boxes,
+  ) {
+    String f(double v) => v.toStringAsFixed(4);
+    final b = StringBuffer('[out:json][timeout:25];(');
+    for (final (s, w, n, e) in boxes) {
+      final box = '(${f(s)},${f(w)},${f(n)},${f(e)})';
+      b
+        ..write('nw["highway"~"^(services|rest_area)\$"]$box;')
+        ..write(
+          'nw["amenity"~"^(fuel|charging_station|toilets|prayer_room)\$"]$box;',
+        )
+        ..write('nw["amenity"="place_of_worship"]["religion"="muslim"]$box;');
+    }
+    b.write(');out tags center qt;');
+    return b.toString();
+  }
 
   /// Satu pertanyaan Overpass untuk seluruh laluan: SATU penapis `around` pada polyline (bukan satu
   /// penapis bulat setiap sampel). Pada laluan jauh, versi lama menghasilkan ratusan penyata berasingan

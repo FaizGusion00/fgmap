@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -12,6 +13,7 @@ import '../../../core/utils/geo.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../azan/data/azan_location.dart';
 import '../domain/qibla.dart';
+import 'qibla_calibration_sheet.dart';
 import 'qibla_dial.dart';
 
 /// Buka skrin Kiblat (kompas sensor sebenar).
@@ -48,10 +50,21 @@ class _QiblaPageState extends ConsumerState<QiblaPage>
   var _sensorMissing = false;
   var _accuracy = CompassAccuracy.unreliable;
   var _trueNorth = false;
+  var _trusted = false;
+  var _interference = false;
+  double? _accuracyDeg;
+
+  /// Bacaan terkini untuk lembaran kalibrasi (dikemas kini tanpa membina semula halaman).
+  final _latest = ValueNotifier<CompassReading?>(null);
+
+  /// Berjalan selagi bacaan tidak tepat; lembaran kalibrasi dibuka sendiri sekali jika berterusan.
+  Timer? _poorTimer;
+  var _calibrationOffered = false;
+  var _calibrationOpen = false;
   double? _target;
   double? _gpsHeading;
 
-  final _smoother = HeadingSmoother();
+  final _smoother = HeadingSmoother(adaptive: true);
   final _alignment = QiblaAlignment();
   final _heading = ValueNotifier<double>(0);
   final _turn = ValueNotifier<int?>(null);
@@ -72,11 +85,13 @@ class _QiblaPageState extends ConsumerState<QiblaPage>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _noSensorTimer?.cancel();
+    _poorTimer?.cancel();
     unawaited(_compassSub?.cancel());
     unawaited(_fixSub?.cancel());
     _ticker.dispose();
     _heading.dispose();
     _turn.dispose();
+    _latest.dispose();
     super.dispose();
   }
 
@@ -121,20 +136,56 @@ class _QiblaPageState extends ConsumerState<QiblaPage>
 
   void _onReading(CompassReading r) {
     _target = r.headingDegrees;
+    _latest.value = r;
+    final accuracy = r.effectiveAccuracy;
+    final deg = r.accuracyDeg?.roundToDouble();
     final changed =
         !_sensorSeen ||
         _sensorMissing ||
-        _accuracy != r.accuracy ||
-        _trueNorth != r.trueNorth;
+        _accuracy != accuracy ||
+        _trueNorth != r.trueNorth ||
+        _trusted != r.trustworthy ||
+        _interference != r.interference ||
+        _accuracyDeg != deg;
     _sensorSeen = true;
     _sensorMissing = false;
-    _accuracy = r.accuracy;
+    _accuracy = accuracy;
     _trueNorth = r.trueNorth;
+    _trusted = r.trustworthy;
+    _interference = r.interference;
+    _accuracyDeg = deg;
+    _maybeOfferCalibration();
     if (!_ticker.isActive) {
       _lastTick = Duration.zero;
       unawaited(_ticker.start());
     }
     if (changed && mounted) setState(() {});
+  }
+
+  /// Bacaan tidak tepat selama beberapa saat: buka panduan kalibrasi sekali (bukan berulang-ulang).
+  void _maybeOfferCalibration() {
+    if (_trusted) {
+      _poorTimer?.cancel();
+      _poorTimer = null;
+      return;
+    }
+    if (_calibrationOffered || _poorTimer != null) return;
+    _poorTimer = Timer(const Duration(seconds: 3), () {
+      _poorTimer = null;
+      if (_trusted || _calibrationOffered || !mounted) return;
+      _calibrationOffered = true;
+      unawaited(_openCalibration());
+    });
+  }
+
+  Future<void> _openCalibration() async {
+    if (!mounted || _calibrationOpen) return;
+    _calibrationOpen = true;
+    try {
+      await showQiblaCalibration(context, _latest);
+    } finally {
+      _calibrationOpen = false;
+    }
   }
 
   Future<void> _bootstrapLocation() async {
@@ -190,7 +241,7 @@ class _QiblaPageState extends ConsumerState<QiblaPage>
     if (_turn.value != rounded) _turn.value = rounded;
 
     // Jangan dakwa "tepat" apabila sensor tiada atau tidak boleh dipercayai.
-    final trusted = !_sensorMissing && _accuracy != CompassAccuracy.unreliable;
+    final trusted = !_sensorMissing && _trusted;
     final now = trusted && _alignment.update(turn);
     if (!trusted) _alignment.reset();
     if (now != _aligned) {
@@ -212,7 +263,19 @@ class _QiblaPageState extends ConsumerState<QiblaPage>
     final qibla = _qibla;
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.qiblaTitle)),
+      appBar: AppBar(
+        title: Text(l10n.qiblaTitle),
+        actions: [
+          if (_sensorSeen)
+            TextButton.icon(
+              key: const ValueKey('qibla-calibrate-action'),
+              onPressed: () => unawaited(_openCalibration()),
+              icon: const Icon(Icons.screen_rotation_alt_rounded, size: 18),
+              label: Text(l10n.qiblaCalibrateAction),
+            ),
+          const SizedBox(width: 4),
+        ],
+      ),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, box) {
@@ -233,6 +296,7 @@ class _QiblaPageState extends ConsumerState<QiblaPage>
                         noLocation: !_locating && qibla == null,
                         turn: _turn,
                         colors: colors,
+                        untrusted: _sensorSeen && !_trusted,
                       ),
                       const SizedBox(height: 16),
                       Semantics(
@@ -301,9 +365,16 @@ class _QiblaPageState extends ConsumerState<QiblaPage>
                             child: _InfoTile(
                               key: const ValueKey('qibla-accuracy'),
                               label: l10n.qiblaSensorLabel,
-                              value: _sensorSeen
-                                  ? _accuracyLabel(l10n, _accuracy)
-                                  : '—',
+                              value: !_sensorSeen
+                                  ? '—'
+                                  : _accuracyDeg != null && !_interference
+                                  ? l10n.qiblaAccuracyDegrees(
+                                      // ±0° tidak realistik (sensor simulasi); paparan minimum ±1°.
+                                      math
+                                          .max(1, _accuracyDeg!.round())
+                                          .toString(),
+                                    )
+                                  : _accuracyLabel(l10n, _accuracy),
                               dot: _sensorSeen
                                   ? _accuracyColor(_accuracy, colors)
                                   : null,
@@ -312,8 +383,18 @@ class _QiblaPageState extends ConsumerState<QiblaPage>
                         ],
                       ),
                       const SizedBox(height: 12),
-                      if (_sensorSeen &&
-                          (_accuracy == CompassAccuracy.unreliable ||
+                      if (_sensorSeen && _interference)
+                        _TipCard(
+                          key: const ValueKey('qibla-interference'),
+                          icon: Icons.warning_amber_rounded,
+                          title: l10n.qiblaInterferenceTitle,
+                          body: l10n.qiblaInterferenceBody,
+                          color: theme.colorScheme.errorContainer,
+                          onColor: theme.colorScheme.onErrorContainer,
+                        )
+                      else if (_sensorSeen &&
+                          (!_trusted ||
+                              _accuracy == CompassAccuracy.unreliable ||
                               _accuracy == CompassAccuracy.low))
                         _TipCard(
                           key: const ValueKey('qibla-calibrate'),
@@ -407,6 +488,7 @@ class _StatusCard extends StatelessWidget {
     required this.noLocation,
     required this.turn,
     required this.colors,
+    this.untrusted = false,
   });
 
   final bool aligned;
@@ -416,6 +498,9 @@ class _StatusCard extends StatelessWidget {
   final bool noLocation;
   final ValueListenable<int?> turn;
   final QiblaDialColors colors;
+
+  /// Bacaan tidak cukup tepat: hampir sejajar tidak boleh dilapor sebagai "pusing 0°".
+  final bool untrusted;
 
   @override
   Widget build(BuildContext context) {
@@ -513,6 +598,14 @@ class _StatusCard extends StatelessWidget {
             icon: Icons.explore_rounded,
             text: locating ? l10n.qiblaLocating : l10n.qiblaWaitingSensor,
             spinner: true,
+          );
+        } else if (untrusted && t.abs() <= 6) {
+          child = card(
+            key: const ValueKey('qibla-state-untrusted'),
+            bg: theme.colorScheme.tertiaryContainer,
+            fg: theme.colorScheme.onTertiaryContainer,
+            icon: Icons.screen_rotation_alt_rounded,
+            text: l10n.qiblaNotAccurateYet,
           );
         } else {
           final right = t >= 0;

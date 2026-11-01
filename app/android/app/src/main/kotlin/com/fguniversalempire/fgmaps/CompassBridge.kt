@@ -23,7 +23,12 @@ import io.flutter.plugin.common.MethodChannel
  * - Utara benar = utara magnet + deklinasi daripada GeomagneticField (model magnet dalam Android) bagi
  *   lokasi pengguna, dihantar oleh Dart melalui `setLocation`. Tanpa lokasi, utara magnet.
  * - Ketepatan sensor (0 tidak boleh dipercayai … 3 tinggi) dihantar supaya UI boleh meminta kalibrasi
- *   dan tidak mendakwa "tepat" apabila bacaan tidak boleh dipercayai.
+ *   dan tidak mendakwa "tepat" apabila bacaan tidak boleh dipercayai. Ketepatan dalam DARJAH juga
+ *   dihantar bila ada (`values[4]` vektor putaran, API 18+): tahap 0–3 sahaja kerap kekal "3" walaupun
+ *   jarum lari puluhan darjah pada banyak telefon.
+ * - Gangguan magnet: kekuatan medan diukur (magnetometer) dan dibandingkan dengan nilai jangkaan model
+ *   bumi di lokasi pengguna (~40 µT di Malaysia). Jauh berbeza = logam/magnet/kereta berhampiran, dan
+ *   arah tidak boleh dipercayai walaupun sensor mendakwa tepat.
  *
  * Tiada kebenaran diperlukan. Sensor hanya berjalan selama ada pendengar aliran.
  */
@@ -37,6 +42,15 @@ class CompassBridge(
 
     private var declination = 0f
     private var hasLocation = false
+
+    /// Kekuatan medan jangkaan (µT) di lokasi pengguna; null = belum tahu (julat umum digunakan).
+    private var expectedFieldUt: Float? = null
+
+    /// Kekuatan medan diukur (µT), dilicinkan.
+    private var fieldUt: Float? = null
+
+    /// Ketepatan arah (darjah) daripada vektor putaran; null jika peranti tidak menyediakannya.
+    private var headingAccuracyDeg: Double? = null
 
     // Laluan sandaran (tanpa ROTATION_VECTOR).
     private var gravity: FloatArray? = null
@@ -56,7 +70,9 @@ class CompassBridge(
                     val lat = (call.argument<Double>("lat") ?: 0.0).toFloat()
                     val lng = (call.argument<Double>("lng") ?: 0.0).toFloat()
                     val alt = (call.argument<Double>("alt") ?: 0.0).toFloat()
-                    declination = GeomagneticField(lat, lng, alt, System.currentTimeMillis()).declination
+                    val field = GeomagneticField(lat, lng, alt, System.currentTimeMillis())
+                    declination = field.declination
+                    expectedFieldUt = field.fieldStrength / 1000f
                     hasLocation = true
                     result.success(declination.toDouble())
                 }
@@ -75,9 +91,15 @@ class CompassBridge(
         sink = events
         gravity = null
         magnetic = null
+        fieldUt = null
+        headingAccuracyDeg = null
         val rv = sensors.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
         if (rv != null) {
             sensors.registerListener(this, rv, SensorManager.SENSOR_DELAY_GAME)
+            // Magnetometer juga, hanya untuk mengesan gangguan (kekuatan medan) dan tahap kalibrasinya.
+            sensors.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD)?.let {
+                sensors.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
+            }
             return
         }
         val acc = sensors.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
@@ -104,20 +126,52 @@ class CompassBridge(
         when (event.sensor.type) {
             Sensor.TYPE_ROTATION_VECTOR -> {
                 SensorManager.getRotationMatrixFromVector(rotation, event.values)
-                accuracy = event.accuracy
+                // values[4]: anggaran ketepatan arah (radian), -1 jika tiada.
+                headingAccuracyDeg =
+                    if (event.values.size > 4 && event.values[4] >= 0f) {
+                        Math.toDegrees(event.values[4].toDouble())
+                    } else {
+                        null
+                    }
+                accuracy = minOf(event.accuracy, magneticAccuracyOr(event.accuracy))
             }
             Sensor.TYPE_ACCELEROMETER -> {
                 gravity = lowPass(gravity, event.values)
                 return emitFromRaw()
             }
             Sensor.TYPE_MAGNETIC_FIELD -> {
-                magnetic = lowPass(magnetic, event.values)
                 magneticAccuracy = event.accuracy
+                trackField(event.values)
+                // Dengan vektor putaran, magnetometer hanya untuk gangguan; arah datang daripada RV.
+                if (sensors.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR) != null) return
+                magnetic = lowPass(magnetic, event.values)
                 return emitFromRaw()
             }
             else -> return
         }
         emit(accuracy)
+    }
+
+    private var magneticSeen = false
+
+    private fun magneticAccuracyOr(fallback: Int): Int = if (magneticSeen) magneticAccuracy else fallback
+
+    private fun trackField(v: FloatArray) {
+        magneticSeen = true
+        val magnitude = Math.sqrt((v[0] * v[0] + v[1] * v[1] + v[2] * v[2]).toDouble()).toFloat()
+        val prev = fieldUt
+        fieldUt = if (prev == null) magnitude else prev + 0.2f * (magnitude - prev)
+    }
+
+    /** Medan terlalu kuat/lemah berbanding jangkaan: logam atau magnet berhampiran. */
+    private fun interference(): Boolean {
+        val f = fieldUt ?: return false
+        val expected = expectedFieldUt
+        return if (expected != null) {
+            Math.abs(f - expected) / expected > 0.30f
+        } else {
+            f < 22f || f > 70f
+        }
     }
 
     private fun emitFromRaw() {
@@ -171,6 +225,9 @@ class CompassBridge(
                 "declination" to declination.toDouble(),
                 "trueNorth" to hasLocation,
                 "accuracy" to accuracy.coerceIn(0, 3),
+                "accuracyDeg" to headingAccuracyDeg,
+                "fieldUt" to fieldUt?.toDouble(),
+                "interference" to interference(),
             ),
         )
     }

@@ -281,6 +281,7 @@ class RouteQuery {
     required this.destination,
     this.headingDegrees,
     this.avoidTolls = false,
+    this.excludeTolls = false,
     this.avoidHighways = false,
     this.vehicle = RouteVehicle.car,
     this.destinationLabel,
@@ -297,6 +298,10 @@ class RouteQuery {
   final GeoPoint destination;
   final int? headingDegrees;
   final bool avoidTolls;
+
+  /// Larangan mutlak jalan bertol (Valhalla `exclude_tolls`), bukan sekadar keutamaan [avoidTolls].
+  /// Hanya bila pengguna meminta "tanpa tol" secara jelas; jika tiada jalan tanpa tol, tiada laluan.
+  final bool excludeTolls;
   final bool avoidHighways;
   final RouteVehicle vehicle;
 
@@ -330,6 +335,7 @@ class RouteQuery {
 
   RouteQuery copyWith({
     bool? avoidTolls,
+    bool? excludeTolls,
     bool? avoidHighways,
     RouteVehicle? vehicle,
     int? alternates,
@@ -342,6 +348,7 @@ class RouteQuery {
       destination: destination,
       headingDegrees: headingDegrees,
       avoidTolls: avoidTolls ?? this.avoidTolls,
+      excludeTolls: excludeTolls ?? this.excludeTolls,
       avoidHighways: avoidHighways ?? this.avoidHighways,
       vehicle: vehicle ?? this.vehicle,
       destinationLabel: destinationLabel,
@@ -386,6 +393,7 @@ class RouteQuery {
       destination: destination,
       headingDegrees: headingDegrees,
       avoidTolls: avoidTolls,
+      excludeTolls: excludeTolls,
       avoidHighways: avoidHighways,
       vehicle: vehicle,
       destinationLabel: destinationLabel,

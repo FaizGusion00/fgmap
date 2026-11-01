@@ -1,8 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../core/storage/preferences.dart';
 import '../../../core/utils/geo.dart';
 import '../../route_preview/domain/route_option.dart';
 import '../data/along_route_search.dart';
@@ -43,14 +47,20 @@ class _CacheEntry {
   final DateTime at;
 }
 
+/// Awalan kunci simpanan cakera hasil sepanjang laluan (dipadam oleh "padam data").
+const alongRouteCachePrefix = 'along.v1.';
+
 class AlongRouteController extends Notifier<AlongRouteState> {
-  /// Hasil carian kekal sah selama ini untuk laluan dan kategori yang sama. Data OSM jarang berubah
+  /// Hasil carian kekal sah selama ini untuk laluan yang sama (dalam memori). Data OSM jarang berubah
   /// dan carian itu mahal (pelayan awam percuma); menukar kategori dan kembali menjadi serta-merta.
   static const cacheTtl = Duration(minutes: 20);
+
+  /// Simpanan cakera: laluan yang sama dibuka semula (cth. perjalanan pulang esok) tanpa rangkaian.
+  static const diskTtl = Duration(hours: 24);
+  static const _diskMax = 6;
   static const _cacheMax = 24;
 
   CancelToken? _cancel;
-  CancelToken? _prefetchCancel;
   List<GeoPoint>? _points;
   String? _routeKey;
   int _seq = 0;
@@ -58,14 +68,14 @@ class AlongRouteController extends Notifier<AlongRouteState> {
   /// Kunci laluan -> kategori -> hasil; susunan sisipan = LRU.
   final _cache = <String, _CacheEntry>{};
 
-  /// Kategori yang sudah dicuba pra-muat untuk laluan semasa (sekali sahaja setiap laluan).
-  final _prefetched = <String>{};
+  /// Carian gabungan (semua kategori) yang sedang berjalan untuk laluan semasa.
+  Future<bool>? _allInFlight;
+  String? _allKey;
 
   @override
   AlongRouteState build() {
     ref.onDispose(() {
       _cancel?.cancel();
-      _prefetchCancel?.cancel();
       _seq++;
     });
     return const AlongRouteState();
@@ -90,9 +100,9 @@ class AlongRouteController extends Notifier<AlongRouteState> {
     return hit.pois;
   }
 
-  void _store(AlongRouteCategory c, List<AlongRoutePoi> pois) {
+  void _store(AlongRouteCategory c, List<AlongRoutePoi> pois, {DateTime? at}) {
     _cache.remove(_cacheKey(c));
-    _cache[_cacheKey(c)] = _CacheEntry(pois, DateTime.now());
+    _cache[_cacheKey(c)] = _CacheEntry(pois, at ?? DateTime.now());
     while (_cache.length > _cacheMax) {
       _cache.remove(_cache.keys.first);
     }
@@ -102,13 +112,14 @@ class AlongRouteController extends Notifier<AlongRouteState> {
     RouteOption route, {
     AlongRouteCategory? category,
   }) async {
-    final changed = _routeKey != routeKeyOf(route.points);
-    _points = route.points;
-    _routeKey = routeKeyOf(route.points);
-    if (changed) {
-      _prefetchCancel?.cancel();
-      _prefetched.clear();
+    final key = routeKeyOf(route.points);
+    if (_routeKey != key) {
+      _allInFlight = null;
+      _allKey = null;
     }
+    _points = route.points;
+    _routeKey = key;
+    _restoreFromDisk(key);
     await _search(route.points, category ?? state.category);
   }
 
@@ -123,8 +134,6 @@ class AlongRouteController extends Notifier<AlongRouteState> {
 
   Future<void> _search(List<GeoPoint> points, AlongRouteCategory cat) async {
     final seq = ++_seq;
-    _cancel?.cancel();
-
     final cached = _cached(cat);
     if (cached != null) {
       state = state.copyWith(
@@ -133,11 +142,8 @@ class AlongRouteController extends Notifier<AlongRouteState> {
         loading: false,
         clearError: true,
       );
-      unawaited(_prefetchNext(points, cat));
       return;
     }
-
-    _cancel = CancelToken();
     // Senarai kategori lama dikosongkan: jangan tunjuk "R&R" di bawah cip "Minyak" yang sedang dimuat.
     state = state.copyWith(
       category: cat,
@@ -145,29 +151,12 @@ class AlongRouteController extends Notifier<AlongRouteState> {
       loading: true,
       clearError: true,
     );
-    try {
-      final pois = await ref
-          .read(alongRouteSearchProvider)
-          .search(
-            routePoints: points,
-            category: cat,
-            fallbackName: _fallback(cat),
-            cancel: _cancel,
-          );
-      if (seq != _seq) return;
-      _store(cat, pois);
+    final ok = await _loadAll(points);
+    if (seq != _seq) return;
+    final pois = _cached(cat);
+    if (ok && pois != null) {
       state = state.copyWith(pois: pois, loading: false, clearError: true);
-      unawaited(_prefetchNext(points, cat));
-    } on DioException catch (e) {
-      if (seq != _seq) return;
-      if (e.type == DioExceptionType.cancel) return;
-      state = state.copyWith(
-        loading: false,
-        error: 'unavailable',
-        pois: const [],
-      );
-    } catch (_) {
-      if (seq != _seq) return;
+    } else {
       state = state.copyWith(
         loading: false,
         error: 'unavailable',
@@ -176,45 +165,108 @@ class AlongRouteController extends Notifier<AlongRouteState> {
     }
   }
 
-  /// Selepas satu kategori berjaya, muat senyap-senyap pasangannya yang paling lazim (R&R <-> minyak)
-  /// supaya ketukan seterusnya serta-merta. Sekali setiap laluan; ralat diabaikan; dibatalkan apabila
-  /// laluan bertukar. Hanya satu permintaan tambahan, jauh di bawah had penggunaan Overpass.
-  Future<void> _prefetchNext(
-    List<GeoPoint> points,
-    AlongRouteCategory done,
-  ) async {
-    final next = switch (done) {
-      AlongRouteCategory.restArea => AlongRouteCategory.fuel,
-      AlongRouteCategory.fuel => AlongRouteCategory.restArea,
-      _ => null,
-    };
-    if (next == null || _cached(next) != null) return;
-    if (!_prefetched.add('$_routeKey#${next.name}')) return;
+  /// Satu permintaan untuk semua kategori laluan ini; dikongsi oleh semua cip yang diketuk semasa ia
+  /// berjalan. Benar jika berjaya.
+  Future<bool> _loadAll(List<GeoPoint> points) {
     final key = _routeKey;
-    _prefetchCancel?.cancel();
-    final token = _prefetchCancel = CancelToken();
+    final running = _allInFlight;
+    if (running != null && _allKey == key) return running;
+    _cancel?.cancel();
+    final token = _cancel = CancelToken();
+    _allKey = key;
+    final future = () async {
+      try {
+        final all = await ref
+            .read(alongRouteSearchProvider)
+            .searchAll(
+              routePoints: points,
+              fallbackName: _fallback,
+              cancel: token,
+            );
+        if (key != _routeKey || token.isCancelled) return false;
+        all.forEach(_store);
+        _saveToDisk(key!, all);
+        return true;
+      } on Object {
+        return false;
+      } finally {
+        if (_allKey == key) _allInFlight = null;
+      }
+    }();
+    _allInFlight = future;
+    return future;
+  }
+
+  SharedPreferences? get _prefs {
     try {
-      final pois = await ref
-          .read(alongRouteSearchProvider)
-          .search(
-            routePoints: points,
-            category: next,
-            fallbackName: _fallback(next),
-            cancel: token,
-          );
-      if (key == _routeKey && !token.isCancelled) _store(next, pois);
-    } catch (_) {
-      // pra-muat gagal: kategori dimuat apabila diketuk.
+      return ref.read(sharedPreferencesProvider);
+    } on Object {
+      return null; // ujian tanpa storan
     }
+  }
+
+  void _restoreFromDisk(String key) {
+    if (AlongRouteCategory.values.every((c) => _cached(c) != null)) return;
+    final raw = _prefs?.getString('$alongRouteCachePrefix$key');
+    if (raw == null) return;
+    try {
+      final json = jsonDecode(raw) as Map<String, dynamic>;
+      final at = DateTime.tryParse(json['at']?.toString() ?? '');
+      if (at == null || DateTime.now().difference(at) > diskTtl) return;
+      final cats = json['cats'] as Map<String, dynamic>;
+      for (final c in AlongRouteCategory.values) {
+        final list = cats[c.name];
+        if (list is! List) continue;
+        // Cache memori bermula semula supaya TTL 20 minit tidak membuang hasil cakera yang masih sah.
+        _store(c, [for (final e in list) ?AlongRoutePoi.fromJson(e)]);
+      }
+    } on Object {
+      // rosak: abaikan
+    }
+  }
+
+  void _saveToDisk(
+    String key,
+    Map<AlongRouteCategory, List<AlongRoutePoi>> all,
+  ) {
+    final prefs = _prefs;
+    if (prefs == null) return;
+    final value = jsonEncode({
+      'at': DateTime.now().toIso8601String(),
+      'cats': {
+        for (final e in all.entries)
+          e.key.name: [for (final p in e.value.take(80)) p.toJson()],
+      },
+    });
+    unawaited(prefs.setString('$alongRouteCachePrefix$key', value));
+    final keys =
+        prefs
+            .getKeys()
+            .where((k) => k.startsWith(alongRouteCachePrefix))
+            .toList()
+          ..remove('$alongRouteCachePrefix$key');
+    // Buang yang paling lama jika melebihi had (urutan kunci tidak terjamin: semak cap masa).
+    if (keys.length >= _diskMax) {
+      keys.sort((a, b) => _savedAt(prefs, a).compareTo(_savedAt(prefs, b)));
+      for (final k in keys.take(keys.length - _diskMax + 1)) {
+        unawaited(prefs.remove(k));
+      }
+    }
+  }
+
+  static DateTime _savedAt(SharedPreferences prefs, String key) {
+    final raw = prefs.getString(key) ?? '';
+    final m = RegExp(r'"at":"([^"]+)"').firstMatch(raw);
+    return DateTime.tryParse(m?.group(1) ?? '') ?? DateTime(2000);
   }
 
   void clear() {
     _cancel?.cancel();
-    _prefetchCancel?.cancel();
     _seq++;
     _points = null;
     _routeKey = null;
-    _prefetched.clear();
+    _allInFlight = null;
+    _allKey = null;
     state = const AlongRouteState();
   }
 

@@ -122,8 +122,62 @@ List<({String id, GeoPoint point, String? name})> parseTollNodes(String? body) {
   return out;
 }
 
+/// Plaza daripada dataset kadar yang dibundel (koordinat plaza disahkan): dipadankan terus ke garisan
+/// laluan pada peranti. Serta-merta, berfungsi tanpa internet dan tidak membebankan Overpass awam.
+class DatasetTollFinder implements TollPlazaFinder {
+  DatasetTollFinder(this._rates);
+
+  final Future<TollRates> Function() _rates;
+
+  /// Garisan laluan melalui tengah plaza; 60 m cukup untuk lorong plaza yang lebar tanpa menangkap
+  /// plaza di susur keluar yang tidak dilalui.
+  static const toleranceM = 60.0;
+
+  @override
+  Future<List<TollPlaza>> find(RouteOption route) async {
+    final rates = await _rates();
+    if (rates.isEmpty || route.points.length < 2) return const [];
+    var s = 90.0, w = 180.0, n = -90.0, e = -180.0;
+    for (final p in route.points) {
+      if (p.lat < s) s = p.lat;
+      if (p.lat > n) n = p.lat;
+      if (p.lng < w) w = p.lng;
+      if (p.lng > e) e = p.lng;
+    }
+    const pad = 0.002;
+    final nodes = [
+      for (final node in rates.plazaNodes)
+        if (node.point.lat >= s - pad &&
+            node.point.lat <= n + pad &&
+            node.point.lng >= w - pad &&
+            node.point.lng <= e + pad)
+          node,
+    ];
+    return matchTollPlazas(route.points, nodes, toleranceM: toleranceM);
+  }
+}
+
+/// Dataset dahulu; Overpass hanya bila dataset tiada plaza tetapi laluan jelas melalui jalan bertol
+/// (cth. lebuh raya baharu yang belum ada dalam dataset).
+class HybridTollFinder implements TollPlazaFinder {
+  HybridTollFinder(this._dataset, this._fallback);
+
+  final TollPlazaFinder _dataset;
+  final TollPlazaFinder _fallback;
+
+  @override
+  Future<List<TollPlaza>> find(RouteOption route) async {
+    final plazas = await _dataset.find(route);
+    if (plazas.isNotEmpty || route.tollLengthM < 2000) return plazas;
+    return _fallback.find(route);
+  }
+}
+
 final tollPlazaFinderProvider = Provider<TollPlazaFinder>(
-  (ref) => OverpassTollFinder(ref.watch(dioProvider), AppConfig.overpassUrls),
+  (ref) => HybridTollFinder(
+    DatasetTollFinder(() => ref.read(tollRatesProvider.future)),
+    OverpassTollFinder(ref.watch(dioProvider), AppConfig.overpassUrls),
+  ),
 );
 
 /// Kadar tol yang disahkan, dimuat sekali daripada aset. Gagal memuat -> dataset kosong.
@@ -136,3 +190,19 @@ final tollRatesProvider = FutureProvider<TollRates>((ref) async {
     return TollRates.empty;
   }
 });
+
+/// Anggaran tol satu laluan daripada dataset sahaja (serta-merta, offline). Untuk paparan di luar
+/// pratonton laluan, cth. lembaran "Tukar laluan" semasa navigasi. Null = tiada tol / tiada padanan.
+final routeTollEstimateProvider = FutureProvider.autoDispose
+    .family<TollEstimate?, ({RouteOption option, RouteVehicle vehicle})>((
+      ref,
+      key,
+    ) async {
+      if (!key.option.hasTolls) return null;
+      final rates = await ref.watch(tollRatesProvider.future);
+      final plazas = await DatasetTollFinder(
+        () async => rates,
+      ).find(key.option);
+      if (plazas.isEmpty) return null;
+      return rates.estimate(plazas, key.vehicle);
+    });

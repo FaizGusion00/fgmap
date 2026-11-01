@@ -23,8 +23,9 @@ import UIKit
 
 /// Kompas untuk skrin Kiblat melalui CoreLocation heading. `trueHeading` sudah mengambil kira
 /// deklinasi magnet (utara benar); jika tidak tersedia, jatuh semula kepada utara magnet dan ditandakan
-/// `trueNorth: false`. `headingAccuracy` (darjah) dipetakan kepada 0–3 seperti Android. Sensor hanya
-/// berjalan selama ada pendengar aliran.
+/// `trueNorth: false`. `headingAccuracy` (darjah) dipetakan kepada 0–3 seperti Android dan juga dihantar
+/// dalam darjah. Gangguan magnet dianggar daripada kekuatan medan mentah. Sensor hanya berjalan selama
+/// ada pendengar aliran.
 final class CompassBridge: NSObject, FlutterStreamHandler, CLLocationManagerDelegate {
   static let shared = CompassBridge()
 
@@ -84,12 +85,19 @@ final class CompassBridge: NSObject, FlutterStreamHandler, CLLocationManagerDele
       level = 0
     }
     let trueOk = newHeading.trueHeading >= 0
-    sink?([
+    // Kekuatan medan mentah (µT) untuk mengesan gangguan logam/magnet; ~25–65 µT di permukaan bumi.
+    let field = sqrt(newHeading.x * newHeading.x + newHeading.y * newHeading.y + newHeading.z * newHeading.z)
+    let interference = field > 0 && (field < 22 || field > 70)
+    var payload: [String: Any] = [
       "heading": trueOk ? newHeading.trueHeading : newHeading.magneticHeading,
       "magnetic": newHeading.magneticHeading,
       "trueNorth": trueOk,
       "accuracy": level,
-    ])
+      "interference": interference,
+    ]
+    if acc >= 0 { payload["accuracyDeg"] = acc }
+    if field > 0 { payload["fieldUt"] = field }
+    sink?(payload)
   }
 
   func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {}

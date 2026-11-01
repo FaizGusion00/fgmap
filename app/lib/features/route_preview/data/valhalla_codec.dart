@@ -41,7 +41,8 @@ Map<String, Object?> buildRouteRequest(RouteQuery query) {
     // Lalai lebih selamat: kurangkan trek/cut-through; motosikal `use_trails: 0`. Bukan trafik langsung.
     'costing_options': {
       query.vehicle.costing: {
-        if (query.avoidTolls) 'use_tolls': 0,
+        if (query.avoidTolls || query.excludeTolls) 'use_tolls': 0,
+        if (query.excludeTolls) 'exclude_tolls': true,
         if (query.avoidHighways)
           'use_highways': 0
         else

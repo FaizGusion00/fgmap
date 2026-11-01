@@ -197,7 +197,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get offlineMapsIntro =>
-      'Download the Malaysia map once to plan routes without internet. With internet, routes are planned online (more up to date) and the offline map is the fallback.';
+      'Download the Malaysia map once to plan routes and search for places without internet. With internet, routes and search use online services (more up to date) and the offline map is the fallback.';
 
   @override
   String get offlineMapsNotConfigured =>
@@ -2153,7 +2153,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get assistantOpen => 'Assistant';
 
   @override
-  String get assistantTitle => 'FGMaps AI';
+  String get assistantTitle => 'FG AI';
 
   @override
   String get assistantHint =>
@@ -2181,7 +2181,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get assistantSettingsTitle => 'FGMaps AI';
+  String get assistantSettingsTitle => 'FG AI';
 
   @override
   String get assistantSettingsReady => 'Model ready on this phone.';
@@ -2194,7 +2194,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get assistantDeleteModel => 'Delete model';
 
   @override
-  String get assistantModeFgmaps => 'FGMaps AI';
+  String get assistantModeFgmaps => 'FG AI';
 
   @override
   String get assistantModeMuslim => 'FGMuslim';
@@ -2381,4 +2381,492 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get qiblaUnavailable => 'Need a GPS fix for qibla direction.';
+
+  @override
+  String aiRouteReady(String place, String summary) {
+    return 'Route to $place is ready: $summary.';
+  }
+
+  @override
+  String aiTollAmount(String amount) {
+    return 'toll $amount';
+  }
+
+  @override
+  String aiTollAmountPlus(String amount) {
+    return 'toll $amount+';
+  }
+
+  @override
+  String get aiTollNone => 'no tolls';
+
+  @override
+  String get aiTollUnknown => 'has tolls';
+
+  @override
+  String get aiReasonRecommended =>
+      'This is the recommended option: a balance of time, turns and road quality.';
+
+  @override
+  String get aiReasonFastest => 'This is the fastest option.';
+
+  @override
+  String get aiReasonShortest => 'This is the shortest distance.';
+
+  @override
+  String get aiReasonTollFree => 'This option avoids all tolls.';
+
+  @override
+  String get aiReasonFewestTolls =>
+      'Every option has tolls, so I picked the one with the least toll road.';
+
+  @override
+  String get aiReasonNoHighways =>
+      'This option keeps to ordinary roads where possible.';
+
+  @override
+  String get aiReasonCheapest =>
+      'This is the cheapest overall (tolls plus estimated fuel).';
+
+  @override
+  String get aiReasonSafest =>
+      'I chose the safest option: mostly major roads, fewer turns and U-turns, no ferry. This is based on road type, not accident data.';
+
+  @override
+  String get aiOtherOptions => 'Other options:';
+
+  @override
+  String get aiNavStarting => 'Starting navigation now. Drive safely.';
+
+  @override
+  String get aiNoRouteToStart =>
+      'There\'s no route yet. Tell me where to go, for example \"Route to KLCC\".';
+
+  @override
+  String aiPlaceNotFound(String place) {
+    return 'I couldn\'t find \"$place\". Try a more specific name.';
+  }
+
+  @override
+  String get aiRouteFailed =>
+      'I couldn\'t calculate a route right now. Check your connection, or download offline maps for routing without internet.';
+
+  @override
+  String get aiNoLocation =>
+      'I need your location for this. Turn on location and try again.';
+
+  @override
+  String get aiRouteCleared => 'Route cleared.';
+
+  @override
+  String aiNearbyTitle(String category) {
+    return 'Nearest $category:';
+  }
+
+  @override
+  String get aiNothingFound => 'I couldn\'t find anything nearby right now.';
+
+  @override
+  String aiSearchTitle(String query) {
+    return 'Here\'s what I found for \"$query\":';
+  }
+
+  @override
+  String aiWeatherNow(
+    String place,
+    String condition,
+    String temp,
+    String feels,
+  ) {
+    return '$place: $condition, $temp°C (feels like $feels°C).';
+  }
+
+  @override
+  String aiWeatherDetails(String rain, String humidity, String wind) {
+    return 'Rain chance $rain%, humidity $humidity%, wind $wind km/h.';
+  }
+
+  @override
+  String get aiHere => 'Here';
+
+  @override
+  String aiAirLine(String station, String ipu, String band) {
+    return 'Air quality near $station: IPU $ipu, $band.';
+  }
+
+  @override
+  String aiQiblaLine(String bearing, String distance) {
+    return 'The qibla from where you are is $bearing° from true north, $distance km to the Kaaba. Open the Qibla compass for a live direction.';
+  }
+
+  @override
+  String aiPrayerTitle(String zone) {
+    return 'Prayer times today ($zone):';
+  }
+
+  @override
+  String get aiPrayerTitleLocal => 'Prayer times today:';
+
+  @override
+  String aiPrayerNext(String prayer, String time) {
+    return 'Next: $prayer at $time.';
+  }
+
+  @override
+  String get aiUnavailable =>
+      'That information isn\'t available right now. Please try again shortly.';
+
+  @override
+  String aiAlongTitle(String category) {
+    return '$category along your route:';
+  }
+
+  @override
+  String aiAlongIn(String distance) {
+    return 'in $distance';
+  }
+
+  @override
+  String get aiNeedRoute => 'Plan a route first, then I can look along it.';
+
+  @override
+  String aiPlaying(String title) {
+    return 'Playing $title.';
+  }
+
+  @override
+  String get aiNeedModel =>
+      'Map commands work right away (routes, nearby places, weather, qibla). For general questions, download the on-device model first.';
+
+  @override
+  String get aiError => 'Sorry, something went wrong. Please try again.';
+
+  @override
+  String get aiPreparing => 'Preparing the model…';
+
+  @override
+  String get aiThinking => 'Thinking…';
+
+  @override
+  String get aiWorking => 'Working on it…';
+
+  @override
+  String get aiSearchingSources => 'Searching classical texts…';
+
+  @override
+  String get aiActionStart => 'Start navigation';
+
+  @override
+  String get aiActionShowRoute => 'Show on map';
+
+  @override
+  String aiActionRouteTo(String place) {
+    return 'Route to $place';
+  }
+
+  @override
+  String get aiNewChat => 'New chat';
+
+  @override
+  String get aiChats => 'Chats';
+
+  @override
+  String get aiRename => 'Rename';
+
+  @override
+  String get aiRenameTitle => 'Rename chat';
+
+  @override
+  String get aiDelete => 'Delete';
+
+  @override
+  String get aiDeleteAll => 'Delete all chats';
+
+  @override
+  String aiDeleteAllConfirm(String name) {
+    return 'Delete every chat in $name? This can\'t be undone.';
+  }
+
+  @override
+  String get aiDeleted => 'Chat deleted';
+
+  @override
+  String get aiUndo => 'Undo';
+
+  @override
+  String get aiSave => 'Save';
+
+  @override
+  String get aiCancel => 'Cancel';
+
+  @override
+  String get aiToday => 'Today';
+
+  @override
+  String get aiPrevious7Days => 'Previous 7 days';
+
+  @override
+  String get aiOlder => 'Older';
+
+  @override
+  String get aiNoChats => 'No chats yet. Start one below.';
+
+  @override
+  String get aiCopy => 'Copy';
+
+  @override
+  String get aiCopied => 'Copied';
+
+  @override
+  String get aiStop => 'Stop';
+
+  @override
+  String get muslimNoticeSummary =>
+      'Summary from classical texts (islamic.app). Not an official JAKIM or state mufti ruling; verify the citations and ask a scholar for personal decisions. Wallahu a\'lam.';
+
+  @override
+  String get muslimNoticeRateLimited =>
+      'islamic.app is busy right now (rate limit). Try again in a while. Related fatwa links are below if available.';
+
+  @override
+  String get muslimNoticeNotGrounded =>
+      'No closely matching classical passages were found for this question. Please ask a qualified scholar. Wallahu a\'lam.';
+
+  @override
+  String get muslimNoticeUnreachable =>
+      'Couldn\'t reach the reference sources right now. Try again, or ask your local mufti office. Wallahu a\'lam.';
+
+  @override
+  String muslimSources(int count) {
+    return 'Sources ($count)';
+  }
+
+  @override
+  String get muslimClassical => 'Classical texts';
+
+  @override
+  String get muslimFatwa =>
+      'Related fatwa (deen.ai index, not official in Malaysia)';
+
+  @override
+  String muslimPage(String page) {
+    return 'p. $page';
+  }
+
+  @override
+  String get assistantSuggestFuel => 'Nearest petrol station';
+
+  @override
+  String get assistantSuggestWeather => 'Weather in Kuala Terengganu';
+
+  @override
+  String get routeTollShort => 'Toll';
+
+  @override
+  String get qiblaCalibrateAction => 'Calibrate';
+
+  @override
+  String get qiblaCalibrateSteps =>
+      'Hold your phone and trace a large figure 8 in the air three times, turning your wrist as you go. Stay away from metal and magnets.';
+
+  @override
+  String get qiblaCalibrateDone => 'Compass calibrated';
+
+  @override
+  String qiblaCalibrateProgress(String deg) {
+    return 'Keep going… accuracy ±$deg°';
+  }
+
+  @override
+  String qiblaCalibrateProgressLevel(String level) {
+    return 'Keep going… accuracy: $level';
+  }
+
+  @override
+  String get qiblaInterferenceTitle => 'Magnetic interference';
+
+  @override
+  String get qiblaInterferenceBody =>
+      'The magnetic field around your phone is unusual. Move away from metal, magnets, cars, speakers and magnetic phone cases, then calibrate again.';
+
+  @override
+  String qiblaAccuracyDegrees(String deg) {
+    return '±$deg°';
+  }
+
+  @override
+  String get qiblaDone => 'Done';
+
+  @override
+  String get qiblaNotAccurateYet => 'Calibrate for an accurate direction';
+
+  @override
+  String get weatherCurrentLocation => 'My location';
+
+  @override
+  String weatherHighLow(String high, String low) {
+    return 'H:$high°  L:$low°';
+  }
+
+  @override
+  String weatherFeelsLikeValue(String temp) {
+    return 'Feels like $temp°';
+  }
+
+  @override
+  String get weatherHourly => 'Hourly forecast';
+
+  @override
+  String get weatherDaily => '10-day forecast';
+
+  @override
+  String get weatherNow => 'Now';
+
+  @override
+  String get weatherToday => 'Today';
+
+  @override
+  String get weatherHumidity => 'Humidity';
+
+  @override
+  String get weatherWind => 'Wind';
+
+  @override
+  String get weatherUv => 'UV index';
+
+  @override
+  String get weatherUvLow => 'Low';
+
+  @override
+  String get weatherUvModerate => 'Moderate';
+
+  @override
+  String get weatherUvHigh => 'High';
+
+  @override
+  String get weatherUvVeryHigh => 'Very high';
+
+  @override
+  String get weatherUvExtreme => 'Extreme';
+
+  @override
+  String get weatherSunrise => 'Sunrise';
+
+  @override
+  String get weatherSunset => 'Sunset';
+
+  @override
+  String get weatherPressure => 'Pressure';
+
+  @override
+  String get weatherVisibility => 'Visibility';
+
+  @override
+  String get weatherRainToday => 'Rain today';
+
+  @override
+  String get weatherRainChance => 'Chance of rain';
+
+  @override
+  String weatherUpdated(String time) {
+    return 'Updated $time';
+  }
+
+  @override
+  String weatherOfflineStale(String time) {
+    return 'Offline · last updated $time';
+  }
+
+  @override
+  String get weatherSearchHint => 'Search a city or place';
+
+  @override
+  String get weatherAddPlace => 'Add a place';
+
+  @override
+  String get weatherRemovePlace => 'Remove place';
+
+  @override
+  String get weatherSevereSoon =>
+      'Thunderstorm or heavy rain expected in the next 24 hours.';
+
+  @override
+  String get weatherLoadFailed =>
+      'Couldn\'t load the forecast. Check your connection and try again.';
+
+  @override
+  String get weatherNoLocation =>
+      'Turn on location to see the weather where you are, or search for a place.';
+
+  @override
+  String weatherSpeedKmh(String value) {
+    return '$value km/h';
+  }
+
+  @override
+  String weatherMm(String value) {
+    return '$value mm';
+  }
+
+  @override
+  String weatherHpa(String value) {
+    return '$value hPa';
+  }
+
+  @override
+  String weatherKm(String value) {
+    return '$value km';
+  }
+
+  @override
+  String get weatherCardinals => 'N,NE,E,SE,S,SW,W,NW';
+
+  @override
+  String weatherFrom(String dir) {
+    return 'from $dir';
+  }
+
+  @override
+  String get weatherCodeClear => 'Clear';
+
+  @override
+  String get weatherCodeMainlyClear => 'Mostly clear';
+
+  @override
+  String get weatherCodePartlyCloudy => 'Partly cloudy';
+
+  @override
+  String get weatherCodeOvercast => 'Overcast';
+
+  @override
+  String get weatherCodeFog => 'Fog';
+
+  @override
+  String get weatherCodeDrizzle => 'Drizzle';
+
+  @override
+  String get weatherCodeRain => 'Rain';
+
+  @override
+  String get weatherCodeHeavyRain => 'Heavy rain';
+
+  @override
+  String get weatherCodeShowers => 'Showers';
+
+  @override
+  String get weatherCodeHeavyShowers => 'Heavy showers';
+
+  @override
+  String get weatherCodeThunderstorm => 'Thunderstorm';
+
+  @override
+  String get weatherCodeSnow => 'Snow';
+
+  @override
+  String get weatherOpen => 'Weather';
+
+  @override
+  String offlineMapsSearchAvailable(String size) {
+    return 'Offline search available (+$size)';
+  }
 }

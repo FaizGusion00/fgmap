@@ -54,7 +54,10 @@ import '../../search/presentation/trip_planner_page.dart';
 import '../../settings/presentation/settings_page.dart';
 import '../../air_quality/presentation/air_quality_sheet.dart';
 import '../../air_quality/presentation/route_haze_banner.dart';
-import '../../local_assistant/presentation/assistant_sheet.dart';
+import '../../local_assistant/data/chat_history_store.dart';
+import '../../local_assistant/presentation/ai_chat_page.dart';
+import '../../local_assistant/presentation/ai_map_bridge.dart';
+import '../../weather/presentation/weather_page.dart';
 import '../../qibla/presentation/qibla_page.dart';
 import '../../weather/presentation/weather_animated_icon.dart';
 import '../../weather/presentation/weather_controller.dart';
@@ -1217,6 +1220,17 @@ class _MapScreenState extends ConsumerState<MapScreen>
       _onNavigationChanged,
     );
     ref.listen<CruiseState>(cruiseControllerProvider, _onCruiseChanged);
+    // Permintaan daripada halaman AI: tutup halaman itu, kemudian tunjuk atau mula laluan.
+    ref.listen<AiMapRequest?>(aiMapRequestProvider, (prev, next) {
+      if (next == null || next.id == prev?.id) return;
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      if (next.kind != AiMapRequestKind.startNavigation) return;
+      final ready = ref.read(routePreviewControllerProvider);
+      if (ready is RouteReady &&
+          !ref.read(navigationControllerProvider).isActive) {
+        unawaited(_startNavigation(ready, simulate: false));
+      }
+    });
     final hub = ref.watch(carSessionHubProvider);
     hub.bindCamera(
       recenter: _recenterTripCamera,
@@ -1467,6 +1481,13 @@ class _MapScreenState extends ConsumerState<MapScreen>
                           _ToolRail(
                             tools: [
                               _ToolSpec(
+                                icon: Icons.wb_cloudy_rounded,
+                                tooltip: l10n.weatherOpen,
+                                color: const Color(0xFF0284C7),
+                                onPressed: () =>
+                                    unawaited(showWeatherPage(context)),
+                              ),
+                              _ToolSpec(
                                 icon: Icons.air_rounded,
                                 tooltip: l10n.airQualityOpen,
                                 color: const Color(0xFF0D9488),
@@ -1522,17 +1543,18 @@ class _MapScreenState extends ConsumerState<MapScreen>
                           Expanded(
                             child: Align(
                               alignment: Alignment.bottomLeft,
-                              child: _AiDock(
-                                onFgmaps: () =>
-                                    unawaited(showAssistantSheet(context, ref)),
-                                onMuslim: () => unawaited(
-                                  showAssistantSheet(
-                                    context,
-                                    ref,
-                                    mode: AssistantOpenMode.muslim,
-                                  ),
-                                ),
-                              ),
+                              // Disembunyikan semasa lembaran laluan dipaparkan: lembaran yang dikembangkan
+                              // menolak lajur ini ke atas sehingga bertindih bar status.
+                              child: sheetVisible
+                                  ? const SizedBox.shrink()
+                                  : _AiDock(
+                                      onFgmaps: () => unawaited(
+                                        showAiPage(context, AiMode.fg),
+                                      ),
+                                      onMuslim: () => unawaited(
+                                        showAiPage(context, AiMode.muslim),
+                                      ),
+                                    ),
                             ),
                           ),
                           const SizedBox(width: 12),

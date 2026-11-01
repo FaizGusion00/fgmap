@@ -110,6 +110,7 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
   Place? _destination;
   final List<Place> _stops = [];
   bool _pickingStop = false;
+
   /// Jika pengguna menambah perhentian, jangan auto-pop — biar mereka pilih destinasi lalu tekan Mula.
   bool _multiStopFlow = false;
   static const _maxStops = 5;

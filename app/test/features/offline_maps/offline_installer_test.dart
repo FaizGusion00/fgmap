@@ -79,6 +79,44 @@ void main() {
     );
   }
 
+  group('indeks carian offline', () {
+    test('dipasang bersama pek laluan dan dilaporkan', () async {
+      server.places = FakePack.create(rawSize: 60000, seed: 11);
+      final m = await install();
+      expect(m.placesVersion, pack.version);
+      expect(m.placesPath, isNotNull);
+      expect(await File(m.placesPath!).length(), 60000);
+      expect((await store.readInstalled())!.placesVersion, pack.version);
+    });
+
+    test('pek laluan versi sama sudah ada: hanya indeks dimuat turun', () async {
+      await install();
+      expect(server.packRequests, 1);
+      server.places = FakePack.create(rawSize: 60000, seed: 11);
+      final m = await install();
+      expect(server.packRequests, 1, reason: 'pek laluan tidak dimuat semula');
+      expect(server.placesRequests, 1);
+      expect(m.placesVersion, pack.version);
+    });
+
+    test('indeks rosak: pek laluan tetap dipasang, carian kekal dalam talian', () async {
+      server.places = FakePack.create(rawSize: 60000, seed: 11);
+      server.placesOverrideBody = Uint8List.fromList(List.filled(100, 1));
+      final m = await install();
+      expect(m.version, pack.version);
+      expect(m.placesVersion, isNull);
+      expect(await store.readInstalled(), isNotNull);
+    });
+
+    test('manifest dengan entri indeks tidak sah: diabaikan, pek laluan sah', () {
+      final json = pack.manifestJson()
+        ..['places'] = {'file': '../x', 'sizeBytes': 1};
+      final m = OfflineManifest.fromJson(json);
+      expect(m.places, isNull);
+      expect(m.version, pack.version);
+    });
+  });
+
   group('fetchManifest', () {
     test('manifest sah', () async {
       final m = await installer.fetchManifest(server.manifestUrl);

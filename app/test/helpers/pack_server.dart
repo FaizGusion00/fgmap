@@ -66,6 +66,32 @@ class PackServer {
   final HttpServer _server;
   FakePack pack;
 
+  /// Indeks carian offline palsu (fail `places-<versi>.sqlite.gz`); null = manifest tanpa `places`.
+  FakePack? places;
+
+  /// Badan indeks carian yang ditulis ganti (cth. rosak).
+  Uint8List? placesOverrideBody;
+  int placesRequests = 0;
+
+  String get placesFile => 'places-${pack.version}.sqlite.gz';
+
+  Map<String, Object?> _manifest() {
+    final m = pack.manifestJson();
+    final pl = places;
+    if (pl != null) {
+      m['places'] = {
+        'file': placesFile,
+        'sizeBytes': pl.gz.length,
+        'sha256': sha256.convert(pl.gz).toString(),
+        'extractedSizeBytes': pl.raw.length,
+        'extractedSha256': sha256.convert(pl.raw).toString(),
+        'count': 1000,
+        'schema': 1,
+      };
+    }
+    return m;
+  }
+
   /// Pelayan mengabaikan Range dan sentiasa menghantar 200 dari awal.
   bool ignoreRange = false;
 
@@ -104,8 +130,17 @@ class PackServer {
         }
         res.headers.contentType = ContentType.json;
         res.write(
-          manifestRaw ?? jsonEncode(manifestOverride ?? pack.manifestJson()),
+          manifestRaw ?? jsonEncode(manifestOverride ?? _manifest()),
         );
+        await res.close();
+        return;
+      }
+      final pl = places;
+      if (pl != null && req.uri.path == '/$placesFile') {
+        placesRequests++;
+        final body = placesOverrideBody ?? pl.gz;
+        res.contentLength = body.length;
+        res.add(body);
         await res.close();
         return;
       }

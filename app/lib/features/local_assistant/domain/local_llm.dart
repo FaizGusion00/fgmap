@@ -14,7 +14,14 @@ abstract class LocalLlmRuntime {
   /// Padam model dari storan app.
   Future<void> delete();
 
+  /// Muatkan model dan sesi lebih awal (semasa halaman AI dibuka) supaya mesej pertama pantas.
+  Future<void> warmUp({required String system});
+
   /// Satu pusingan sembang dengan paling banyak [maxToolTurns] panggilan alat.
+  ///
+  /// [sessionKey] mengenal pasti perbualan: selagi sama, sesi model diteruskan dan [history] tidak
+  /// dimasukkan semula. [onText] menerima teks jawapan terkumpul semasa ia dijana (untuk animasi
+  /// menaip); teks giliran sebelum panggilan alat dibuang.
   Future<String> chat({
     required String system,
     required List<AssistantMessage> history,
@@ -25,6 +32,8 @@ abstract class LocalLlmRuntime {
     )
     onTool,
     int maxToolTurns = 2,
+    String? sessionKey,
+    void Function(String text)? onText,
   });
 
   /// Lepaskan sesi model dari RAM (fail kekal di storan).

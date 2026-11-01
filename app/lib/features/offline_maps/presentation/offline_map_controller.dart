@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/network/dio_provider.dart';
 import '../data/offline_engine_host.dart';
+import '../../search/data/offline_places_db.dart';
 import '../data/offline_map_installer.dart';
 import '../domain/offline_models.dart';
 import '../../../core/utils/log.dart';
@@ -43,7 +44,10 @@ class OfflineMapState {
   bool get updateAvailable {
     final i = installed;
     final l = latest;
-    return i != null && l != null && l.version.compareTo(i.version) > 0;
+    if (i == null || l == null) return false;
+    if (l.version.compareTo(i.version) > 0) return true;
+    // Pek laluan sama, tetapi indeks carian offline belum ada (atau lebih lama).
+    return l.places != null && i.placesVersion != l.version;
   }
 
   bool get canDownload =>
@@ -86,6 +90,7 @@ final offlineMapInstallerProvider = Provider<OfflineMapInstaller>(
     dio: ref.watch(dioProvider),
     store: ref.watch(offlineMapStoreProvider),
     host: ref.watch(offlineEngineHostProvider),
+    beforePlacesSwap: () => ref.read(offlinePlacesDbProvider).close(),
   ),
 );
 
@@ -214,6 +219,7 @@ class OfflineMapController extends Notifier<OfflineMapState> {
   Future<void> delete() async {
     if (state.busy) return;
     final store = ref.read(offlineMapStoreProvider);
+    await ref.read(offlinePlacesDbProvider).close();
     await ref.read(offlineEngineHostProvider).withEngineClosed(() async {
       await store.deleteInstalled();
       await store.discardPartial();

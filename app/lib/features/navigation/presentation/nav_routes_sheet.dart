@@ -3,7 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/widgets/sheet_bottom_inset.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import 'package:intl/intl.dart';
+
+import '../../route_preview/data/toll_finder.dart';
 import '../../route_preview/domain/route_option.dart';
+import '../../route_preview/domain/toll.dart';
 import '../../route_preview/presentation/route_format.dart';
 import '../../route_preview/presentation/route_summary_sheet.dart'
     show routeLabelText;
@@ -113,7 +117,7 @@ class NavRoutesSheet extends ConsumerWidget {
   }
 }
 
-class _RouteTile extends StatelessWidget {
+class _RouteTile extends ConsumerWidget {
   const _RouteTile({
     super.key,
     required this.option,
@@ -130,7 +134,23 @@ class _RouteTile extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final toll = option.hasTolls
+        ? ref
+              .watch(
+                routeTollEstimateProvider((
+                  option: option,
+                  vehicle:
+                      ref.watch(
+                        navigationControllerProvider.select(
+                          (n) => n.query?.vehicle,
+                        ),
+                      ) ??
+                      RouteVehicle.car,
+                )),
+              )
+              .value
+        : null;
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final primary = theme.colorScheme.primary;
@@ -149,7 +169,7 @@ class _RouteTile extends StatelessWidget {
     final subtitle = [
       formatDistance(l10n, option.distanceM),
       ?(via == null ? null : l10n.routeVia(via)),
-      option.hasTolls ? l10n.routeHasTolls : l10n.routeNoTolls,
+      _tollText(l10n, option, toll),
     ].join(' · ');
 
     return Padding(
@@ -225,4 +245,15 @@ class _RouteTile extends StatelessWidget {
       ),
     );
   }
+}
+
+/// "RM 12.40", "RM 12.40+" atau "Ada tol"/"Tiada tol" bila harga tidak diketahui.
+String _tollText(AppLocalizations l10n, RouteOption option, TollEstimate? e) {
+  if (!option.hasTolls) return l10n.routeNoTolls;
+  if (e == null || e.knownRm <= 0) return l10n.routeHasTolls;
+  final amount = NumberFormat.decimalPatternDigits(
+    locale: l10n.localeName,
+    decimalDigits: 2,
+  ).format(e.knownRm);
+  return e.isExact ? l10n.routeTollRm(amount) : l10n.routeTollRmPartial(amount);
 }

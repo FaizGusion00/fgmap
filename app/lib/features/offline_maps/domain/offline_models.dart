@@ -28,6 +28,7 @@ class OfflineManifest {
     required this.sha256,
     required this.extractedSizeBytes,
     required this.extractedSha256,
+    this.places,
   });
 
   final String region;
@@ -42,6 +43,13 @@ class OfflineManifest {
   final String sha256;
   final int extractedSizeBytes;
   final String extractedSha256;
+
+  /// Indeks carian offline (pilihan). Manifest lama tanpanya kekal sah; entri rosak diabaikan
+  /// (tidak menggagalkan pek laluan).
+  final OfflinePlacesInfo? places;
+
+  /// Jumlah muat turun penuh (pek laluan + indeks carian).
+  int get totalDownloadBytes => sizeBytes + (places?.sizeBytes ?? 0);
 
   static final _hex64 = RegExp(r'^[0-9a-f]{64}$');
   static final _version = RegExp(r'^\d{8}$');
@@ -95,9 +103,61 @@ class OfflineManifest {
     }
 
     return OfflineManifest(
+      places: OfflinePlacesInfo.tryParse(json['places']),
       region: field<String>('region'),
       version: version,
       valhalla: valhalla,
+      file: file,
+      sizeBytes: size,
+      sha256: sha,
+      extractedSizeBytes: rawSize,
+      extractedSha256: rawSha,
+    );
+  }
+}
+
+/// Fail indeks carian offline dalam manifest (`tools/places/build_places.py`).
+@immutable
+class OfflinePlacesInfo {
+  const OfflinePlacesInfo({
+    required this.file,
+    required this.sizeBytes,
+    required this.sha256,
+    required this.extractedSizeBytes,
+    required this.extractedSha256,
+  });
+
+  /// Skema indeks yang app tahu baca.
+  static const supportedSchema = 1;
+
+  final String file;
+  final int sizeBytes;
+  final String sha256;
+  final int extractedSizeBytes;
+  final String extractedSha256;
+
+  static OfflinePlacesInfo? tryParse(Object? json) {
+    if (json is! Map<String, dynamic>) return null;
+    final file = json['file'];
+    final size = json['sizeBytes'];
+    final sha = json['sha256'];
+    final rawSize = json['extractedSizeBytes'];
+    final rawSha = json['extractedSha256'];
+    if (json['schema'] != supportedSchema ||
+        file is! String ||
+        !OfflineManifest._safeName.hasMatch(file) ||
+        file.contains('..') ||
+        size is! int ||
+        size <= 0 ||
+        rawSize is! int ||
+        rawSize <= 0 ||
+        sha is! String ||
+        rawSha is! String ||
+        !OfflineManifest._hex64.hasMatch(sha) ||
+        !OfflineManifest._hex64.hasMatch(rawSha)) {
+      return null;
+    }
+    return OfflinePlacesInfo(
       file: file,
       sizeBytes: size,
       sha256: sha,
@@ -114,11 +174,29 @@ class InstalledMap {
     required this.version,
     required this.sizeBytes,
     required this.tarPath,
+    this.placesVersion,
+    this.placesPath,
+    this.placesSizeBytes = 0,
   });
 
   final String version;
   final int sizeBytes;
   final String tarPath;
+
+  /// Indeks carian offline yang dipasang (null = tiada; carian hanya dalam talian).
+  final String? placesVersion;
+  final String? placesPath;
+  final int placesSizeBytes;
+
+  InstalledMap withPlaces(String? version, String? path, int size) =>
+      InstalledMap(
+        version: this.version,
+        sizeBytes: sizeBytes,
+        tarPath: tarPath,
+        placesVersion: version,
+        placesPath: path,
+        placesSizeBytes: size,
+      );
 }
 
 enum OfflineMapFailure {

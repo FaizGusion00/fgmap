@@ -18,10 +18,8 @@ import 'package:fgmap/features/search/domain/place.dart';
 import 'package:fgmap/features/map/data/map_style_loader.dart';
 import 'package:fgmap/core/theme/theme_controller.dart';
 import 'package:fgmap/features/map/presentation/idle_follow.dart';
-import 'package:fgmap/features/local_assistant/domain/assistant_message.dart';
-import 'package:fgmap/features/local_assistant/domain/local_llm.dart';
 import 'package:fgmap/features/local_assistant/presentation/assistant_controller.dart';
-import 'package:fgmap/features/local_assistant/presentation/assistant_sheet.dart';
+import 'package:fgmap/features/local_assistant/presentation/ai_chat_page.dart';
 import 'package:fgmap/features/map/presentation/map_screen.dart';
 import 'package:fgmap/features/music/presentation/player_controller.dart';
 import 'package:fgmap/core/audio/audio_coordinator.dart';
@@ -40,6 +38,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../helpers/fakes.dart';
 import '../../helpers/pump_app.dart';
 import '../music/music_test_support.dart';
+
+import '../local_assistant/fake_llm.dart';
 
 /// Gaya segera (tiada rangkaian): gelap = URL gelap. Ujian yang mahu JSON malam guna [_NightLoader].
 class _UrlLoader extends MapStyleLoader {
@@ -63,32 +63,6 @@ class _NightLoader extends MapStyleLoader {
       : light();
 }
 
-class _MapFakeLlm implements LocalLlmRuntime {
-  @override
-  Future<bool> isInstalled() async => true;
-
-  @override
-  Future<void> download({void Function(double progress)? onProgress}) async {}
-
-  @override
-  Future<void> delete() async {}
-
-  @override
-  Future<String> chat({
-    required String system,
-    required List<AssistantMessage> history,
-    required String userText,
-    required Future<Map<String, Object?>> Function(
-      String name,
-      Map<String, Object?> args,
-    )
-    onTool,
-    int maxToolTurns = 2,
-  }) async => '';
-
-  @override
-  Future<void> release() async {}
-}
 
 class _Reverse implements ReverseGeocoder {
   Place? result;
@@ -196,7 +170,7 @@ void main() {
   ) async {
     await pumpScreen(
       tester,
-      extra: [localLlmRuntimeProvider.overrideWithValue(_MapFakeLlm())],
+      extra: [localLlmRuntimeProvider.overrideWithValue(FakeLlm(installed: true))],
     );
 
     final fgmaps = find.byKey(const ValueKey('ai-dock-fgmaps'));
@@ -221,14 +195,16 @@ void main() {
 
     await tester.tap(fgmaps);
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('maps-body')), findsOneWidget);
+    expect(find.byType(AiChatPage), findsOneWidget);
+    expect(find.byKey(const ValueKey('ai-input')), findsOneWidget);
+    expect(find.byKey(const ValueKey('muslim-enable')), findsNothing);
 
-    Navigator.of(tester.element(find.byType(AssistantSheet))).pop();
+    Navigator.of(tester.element(find.byType(AiChatPage))).pop();
     await tester.pumpAndSettle();
 
     await tester.tap(muslim);
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('muslim-body')), findsOneWidget);
+    expect(find.byType(AiChatPage), findsOneWidget);
     expect(find.byKey(const ValueKey('muslim-enable')), findsOneWidget);
   });
 

@@ -103,6 +103,13 @@ class _StatusCard extends ConsumerWidget {
     final String? subline;
     if (!state.configured || state.busy) {
       subline = null;
+    } else if (state.updateAvailable &&
+        installed!.version == latest!.version &&
+        latest.places != null) {
+      // Pek laluan terkini sudah ada; hanya indeks carian offline belum dipasang.
+      subline = l10n.offlineMapsSearchAvailable(
+        formatBytes(latest.places!.sizeBytes),
+      );
     } else if (state.updateAvailable) {
       subline = l10n.offlineMapsUpdateAvailable(
         formatPackDate(latest!.version, l10n.localeName),
@@ -110,7 +117,7 @@ class _StatusCard extends ConsumerWidget {
     } else if (installed != null && latest != null) {
       subline = l10n.offlineMapsUpToDate;
     } else if (latest != null) {
-      subline = l10n.offlineMapsSize(formatBytes(latest.sizeBytes));
+      subline = l10n.offlineMapsSize(formatBytes(latest.totalDownloadBytes));
     } else {
       subline = null;
     }
@@ -211,7 +218,7 @@ class _StatusCard extends ConsumerWidget {
           title: Text(l10n.offlineMapsMobileDataTitle),
           content: Text(
             l10n.offlineMapsMobileDataBody(
-              formatBytes(state.latest!.sizeBytes),
+              formatBytes(state.latest!.totalDownloadBytes),
             ),
           ),
           actions: [

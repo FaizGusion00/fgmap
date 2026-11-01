@@ -7,17 +7,19 @@ const assistantModelUrl =
     'https://huggingface.co/litert-community/Qwen3-0.6B/resolve/main/'
     'Qwen3-0.6B_dynamic_wi4b32_afp32.litertlm';
 
-/// Arahan sistem: sembang umum + alat FGMaps; fakta hidup hanya dari alat.
+/// Arahan sistem: pendek (setiap token diproses pada telefon). Arahan peta biasa ("route to X",
+/// "start", cuaca, kiblat) dikendalikan oleh kod sebelum model, jadi model kebanyakannya menjawab
+/// soalan umum. Konteks semasa (destinasi, laluan) dihantar dalam mesej, bukan di sini, supaya sesi
+/// tidak perlu dibina semula.
 const assistantSystemPrompt =
-    'You are FGMaps AI, a helpful on-device assistant. Reply in the user\'s '
-    'language (Bahasa Melayu or English). Answer general questions clearly and '
-    'briefly. For maps and live facts (places, routes, IPU air quality, weather, '
-    'qibla, prayer times, radio, music, speed cameras, places along the route, '
-    'Wikipedia), call tools — never invent coordinates, IPU, weather, or prayer '
-    'times. If a tool fails, say you do not know. Keep answers short while '
-    'driving. Planning a route opens a preview; the user taps Start to drive. '
-    'You are not a religious authority; for Islamic rulings, suggest FGMuslim AI '
-    'if the user enabled it.';
+    'You are FG AI, a friendly, professional assistant inside the FGMaps app in '
+    'Malaysia. Always answer ONLY the latest user message, in the same language '
+    'the user wrote (Bahasa Melayu or English). Be direct and natural: 1-4 short '
+    'sentences or a short list. Do not repeat earlier answers, do not restate the '
+    'question, and never ask for confirmation of something the user already asked '
+    'for. Use tools for live facts (places, routes, weather, Wikipedia); never '
+    'invent coordinates, prices, weather or times. If a tool fails, say so '
+    'briefly. You are not a religious authority.';
 
 /// Skema alat untuk LiteRT / prompt-based function calling.
 List<Tool> assistantTools() => const [
@@ -32,21 +34,7 @@ List<Tool> assistantTools() => const [
       'required': ['query'],
     },
   ),
-  Tool(
-    name: 'plan_route',
-    description:
-        'Search a destination and open the route preview. Optionally prefer '
-        'toll-free or non-highway options when available.',
-    parameters: {
-      'type': 'object',
-      'properties': {
-        'query': {'type': 'string', 'description': 'Destination place name'},
-        'avoid_tolls': {'type': 'boolean'},
-        'avoid_highways': {'type': 'boolean'},
-      },
-      'required': ['query'],
-    },
-  ),
+  _planRouteTool,
   Tool(
     name: 'get_air_quality',
     description: 'Official JAS IPU at GPS or near a named place.',
@@ -143,6 +131,40 @@ List<Tool> assistantTools() => const [
       'required': ['query'],
     },
   ),
+];
+
+const _planRouteTool = Tool(
+  name: 'plan_route',
+  description:
+      'Plan a route from the current location to a destination and pick the '
+      'option that matches the preference. Set start=true to begin navigation.',
+  parameters: {
+    'type': 'object',
+    'properties': {
+      'query': {'type': 'string', 'description': 'Destination place name'},
+      'preference': {
+        'type': 'string',
+        'description':
+            'recommended, fastest, shortest, no_tolls, no_highways, cheapest, '
+            'or safest',
+      },
+      'start': {'type': 'boolean'},
+    },
+    'required': ['query'],
+  },
+);
+
+/// Alat yang diberi kepada MODEL. Sedikit sahaja: setiap skema ialah token prompt yang diproses
+/// pada telefon. Arahan lain (kiblat, radio, IPU...) dikendalikan oleh penghala arahan.
+List<Tool> llmAssistantTools() => [
+  for (final t in assistantTools())
+    if (const {
+      'search_place',
+      'plan_route',
+      'get_weather',
+      'wikipedia_summary',
+    }.contains(t.name))
+      t,
 ];
 
 /// Nama alat yang dibenarkan (tolak yang lain).

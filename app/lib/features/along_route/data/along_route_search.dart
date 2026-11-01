@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +9,8 @@ import '../../../core/config/app_config.dart';
 import '../../../core/network/dio_provider.dart';
 import '../../../core/network/response_text.dart';
 import '../../../core/utils/geo.dart';
+import '../../search/data/offline_places_db.dart';
+import '../../search/domain/offline_place.dart';
 import '../../search/domain/place.dart';
 import '../domain/along_route_category.dart';
 import '../domain/along_route_poi.dart';
@@ -24,13 +27,22 @@ class AlongRouteSearch {
     this._dio,
     this._mirrors, {
     this.hedgeDelay = const Duration(seconds: 3),
+    this.offline,
   });
+
+  /// Indeks tempat dalam pek peta offline. Jika dipasang, carian gabungan dijawab pada telefon
+  /// (serta-merta, tanpa rangkaian); Overpass hanya bila tiada indeks.
+  final OfflinePlacesDb? offline;
 
   final Dio _dio;
   final List<String> _mirrors;
 
   /// Berapa lama menunggu satu cermin sebelum memulakan yang seterusnya serentak.
   final Duration hedgeDelay;
+
+  /// Cermin yang menang perlumbaan terakhir dicuba dahulu kali seterusnya (pelayan awam berbeza
+  /// kelajuan dari jam ke jam: diukur 47 s vs 6 s untuk pertanyaan sama).
+  int _preferred = 0;
 
   /// Garis yang dihantar kepada Overpass paling banyak ~250 titik dan sekurang-kurangnya 500 m
   /// antara titik; padanan tepat dibuat kemudian pada laluan penuh.
@@ -65,6 +77,107 @@ class AlongRouteSearch {
       category: category,
       fallbackName: fallbackName,
     );
+  }
+
+  /// Semua kategori dengan SATU permintaan (lihat [AlongRouteCategory.combinedOverpassQuery]).
+  /// Hasil setiap kategori ditapis mengikut koridornya sendiri dan disusun sepanjang laluan.
+  Future<Map<AlongRouteCategory, List<AlongRoutePoi>>> searchAll({
+    required List<GeoPoint> routePoints,
+    required String Function(AlongRouteCategory c) fallbackName,
+    CancelToken? cancel,
+  }) async {
+    if (routePoints.length < 2) return const {};
+    final along = cumulativeMeters(routePoints);
+    final local = offline;
+    if (local != null && await local.available) {
+      return _searchOffline(local, routePoints, along, fallbackName);
+    }
+    if (_mirrors.isEmpty) return const {};
+    final query = AlongRouteCategory.combinedOverpassQuery(
+      corridorBoxes(routePoints, along: along),
+    );
+    final String? body;
+    try {
+      body = await _raceMirrors(query, cancel);
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.cancel) rethrow;
+      throw GeocodeFailure(GeocodeFailureKind.unavailable, e.toString());
+    }
+    return {
+      for (final c in AlongRouteCategory.values)
+        c: _parseAndProject(
+          body,
+          routePoints: routePoints,
+          along: along,
+          category: c,
+          fallbackName: fallbackName(c),
+          filterTags: true,
+        ),
+    };
+  }
+
+  static List<int> _offlineCats(AlongRouteCategory c) => switch (c) {
+    AlongRouteCategory.restArea => const [OfflinePlaceCat.restArea],
+    AlongRouteCategory.fuel => const [OfflinePlaceCat.fuel],
+    AlongRouteCategory.evCharging => const [OfflinePlaceCat.ev],
+    AlongRouteCategory.mosque => const [OfflinePlaceCat.mosque],
+    // R&R lebuh raya sentiasa ada tandas.
+    AlongRouteCategory.toilets => const [
+      OfflinePlaceCat.toilets,
+      OfflinePlaceCat.restArea,
+    ],
+  };
+
+  Future<Map<AlongRouteCategory, List<AlongRoutePoi>>> _searchOffline(
+    OfflinePlacesDb db,
+    List<GeoPoint> routePoints,
+    List<double> along,
+    String Function(AlongRouteCategory c) fallbackName,
+  ) async {
+    final rows = <OfflinePlaceRow>[];
+    final seen = <String>{};
+    for (final box in corridorBoxes(routePoints, along: along)) {
+      for (final r in await db.inBox(
+        const [
+          OfflinePlaceCat.restArea,
+          OfflinePlaceCat.fuel,
+          OfflinePlaceCat.ev,
+          OfflinePlaceCat.mosque,
+          OfflinePlaceCat.toilets,
+        ],
+        box,
+        limit: 3000,
+      )) {
+        if (seen.add('${r.cat}:${r.point.lat},${r.point.lng}')) rows.add(r);
+      }
+    }
+    final out = <AlongRouteCategory, List<AlongRoutePoi>>{};
+    for (final c in AlongRouteCategory.values) {
+      final cats = _offlineCats(c);
+      final raw = <AlongRoutePoi>[];
+      for (final r in rows) {
+        if (!cats.contains(r.cat)) continue;
+        final proj = projectOntoPolyline(routePoints, r.point, along: along);
+        if (proj == null || proj.crossTrackM > c.corridorM) continue;
+        raw.add(
+          AlongRoutePoi(
+            id: 'off:${r.cat}:${r.point.lat},${r.point.lng}',
+            category: c,
+            name: r.name.isEmpty ? fallbackName(c) : r.name,
+            point: r.point,
+            alongM: proj.alongM,
+            crossTrackM: proj.crossTrackM,
+            subtitle: r.area ?? '',
+          ),
+        );
+      }
+      out[c] = dedupeByProximity(
+        items: raw,
+        pointOf: (p) => p.point,
+        crossTrackOf: (p) => p.crossTrackM,
+      )..sort((a, b) => a.alongM.compareTo(b.alongM));
+    }
+    return out;
   }
 
   Future<String?> _post(String url, String query, CancelToken token) async {
@@ -109,13 +222,16 @@ class AlongRouteSearch {
 
     startNext = () {
       if (done.isCompleted || started >= _mirrors.length) return;
-      final url = _mirrors[started++];
+      final index = (_preferred + started++) % _mirrors.length;
+      final url = _mirrors[index];
       final token = CancelToken();
       tokens.add(token);
       armHedge();
       _post(url, query, token).then(
         (body) {
-          if (!done.isCompleted) done.complete(body);
+          if (done.isCompleted) return;
+          _preferred = index;
+          done.complete(body);
         },
         onError: (Object e) {
           if (done.isCompleted) return;
@@ -147,6 +263,7 @@ class AlongRouteSearch {
     required List<double> along,
     required AlongRouteCategory category,
     required String fallbackName,
+    bool filterTags = false,
   }) {
     if (body == null || body.isEmpty) return const [];
     final decoded = jsonDecode(body);
@@ -159,6 +276,7 @@ class AlongRouteSearch {
       if (e is! Map<String, dynamic>) continue;
       final tags = e['tags'];
       if (tags is! Map<String, dynamic>) continue;
+      if (filterTags && !category.matches(tags)) continue;
       final lat = _num(e['lat']) ?? _num((e['center'] as Map?)?['lat']);
       final lng = _num(e['lon']) ?? _num((e['center'] as Map?)?['lon']);
       if (lat == null || lng == null) continue;
@@ -204,6 +322,40 @@ class AlongRouteSearch {
 
 double? _num(Object? v) => v is num ? v.toDouble() : null;
 
+/// Kotak sempadan bagi setiap ~[segmentM] laluan, dilebarkan [padM] (koridor terlebar + margin).
+List<(double s, double w, double n, double e)> corridorBoxes(
+  List<GeoPoint> points, {
+  List<double>? along,
+  double segmentM = 12000,
+  double? padM,
+}) {
+  final cum = along ?? cumulativeMeters(points);
+  final pad = padM ?? AlongRouteCategory.maxCorridorM + 120;
+  final boxes = <(double, double, double, double)>[];
+  var start = 0;
+  for (var i = 1; i < points.length; i++) {
+    final last = i == points.length - 1;
+    if (cum[i] - cum[start] < segmentM && !last) continue;
+    var s = 90.0, w = 180.0, n = -90.0, e = -180.0;
+    for (var k = start; k <= i; k++) {
+      final p = points[k];
+      if (p.lat < s) s = p.lat;
+      if (p.lat > n) n = p.lat;
+      if (p.lng < w) w = p.lng;
+      if (p.lng > e) e = p.lng;
+    }
+    final dLat = pad / 111320;
+    final dLng = pad / (111320 * math.cos((s + n) / 2 * math.pi / 180));
+    boxes.add((s - dLat, w - dLng, n + dLat, e + dLng));
+    start = i;
+  }
+  return boxes;
+}
+
 final alongRouteSearchProvider = Provider<AlongRouteSearch>((ref) {
-  return AlongRouteSearch(ref.watch(dioProvider), AppConfig.overpassUrls);
+  return AlongRouteSearch(
+    ref.watch(dioProvider),
+    AppConfig.overpassUrls,
+    offline: ref.watch(offlinePlacesDbProvider),
+  );
 });

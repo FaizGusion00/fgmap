@@ -42,7 +42,10 @@ void main() {
   test('ask 429 jadi rate limit', () async {
     final dio = Dio()
       ..httpClientAdapter = StubAdapter(
-        (_) => StubAdapter.json({'code': 429, 'data': 'rate_limited'}, status: 429),
+        (_) => StubAdapter.json({
+          'code': 429,
+          'data': 'rate_limited',
+        }, status: 429),
       );
     final client = IslamicAppClient(dio, baseUrl: 'https://api.islamic.app');
     expect(

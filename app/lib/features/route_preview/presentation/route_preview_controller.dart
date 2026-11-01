@@ -77,10 +77,12 @@ class RouteReady extends RoutePreviewState {
 
   /// Permintaan yang menghasilkan laluan terpilih. Navigasi menggunakannya untuk mengira semula
   /// bila menyimpang, jadi pilihan pengguna (cth. laluan tanpa tol) dikekalkan sepanjang perjalanan.
+  /// Jika permintaan asal sendiri sudah "tanpa tol" (cth. diminta melalui FG AI), pilihan itu kekal.
   RouteQuery get selectedQuery => query.copyWith(
-    avoidTolls: selected.label == RouteLabel.noTolls,
-    avoidHighways: selected.label == RouteLabel.noHighways,
-    shortest: selected.label == RouteLabel.shortest,
+    avoidTolls: query.avoidTolls || selected.label == RouteLabel.noTolls,
+    avoidHighways:
+        query.avoidHighways || selected.label == RouteLabel.noHighways,
+    shortest: query.shortest || selected.label == RouteLabel.shortest,
   );
 
   RouteReady copyWith({
@@ -190,6 +192,27 @@ class RoutePreviewController extends Notifier<RoutePreviewState> {
     await _fetch(query, ++_seq);
   }
 
+  /// Kira semula laluan semasa dengan kehendak tegas (cth. "tanpa tol" daripada FG AI) apabila tiada
+  /// pilihan sedia ada yang memenuhinya. Tiada kesan jika belum ada laluan.
+  Future<void> replanWith({
+    bool? avoidTolls,
+    bool? excludeTolls,
+    bool? avoidHighways,
+    bool? shortest,
+  }) async {
+    final query = _currentQuery;
+    if (query == null) return;
+    await _fetch(
+      query.copyWith(
+        avoidTolls: avoidTolls,
+        excludeTolls: excludeTolls,
+        avoidHighways: avoidHighways,
+        shortest: shortest,
+      ),
+      ++_seq,
+    );
+  }
+
   /// Laluan yang dipilih sendiri oleh pengguna: kekal terpilih walaupun senarai disusun semula
   /// apabila laluan lain tiba. Null = ikut laluan utama (indeks 0).
   RouteOption? _pinned;
@@ -243,6 +266,7 @@ class RoutePreviewController extends Notifier<RoutePreviewState> {
         if (seq != _seq) return;
         received = true;
         _applyBatch(query, batch);
+        unawaited(_loadTolls(seq));
       }
     } on RoutingFailure catch (failure) {
       if (seq != _seq) return;
@@ -255,26 +279,33 @@ class RoutePreviewController extends Notifier<RoutePreviewState> {
       if (received) return _finishLoading();
       state = RouteFailed(query: query, kind: RoutingFailureKind.generic);
     }
-    if (seq == _seq && state is RouteReady) {
-      _finishLoading();
-      unawaited(_loadTolls(seq));
-    }
+    if (seq == _seq && state is RouteReady) _finishLoading();
   }
 
-  /// Mengesan plaza tol dan menganggar harga untuk semua laluan bertol (terpilih dahulu).
-  /// Berjalan di latar dan senyap: kegagalan hanya bermakna anggaran tidak dipaparkan.
+  /// Laluan yang sedang dianggar tolnya (elak kerja berganda bila kelompok laluan baharu tiba).
+  final Set<String> _tollsInFlight = {};
+
+  /// Menganggar tol untuk semua laluan bertol yang belum ada anggaran, serentak (terpilih dahulu).
+  /// Dipanggil bagi setiap kelompok laluan, jadi RM dipaparkan sebaik kad muncul. Senyap: kegagalan
+  /// hanya bermakna anggaran tidak dipaparkan.
   Future<void> _loadTolls(int seq) async {
     if (!ref.read(tollLookupEnabledProvider)) return;
     final first = state;
     if (first is! RouteReady) return;
     // Semua pilihan bertol (bukan hanya yang kelihatan) supaya "Lagi" dan penukaran
     // kad terus menunjukkan RM tanpa menunggu muat semula.
-    final order = [
-      first.selected,
-      for (final o in first.options)
-        if (!identical(o, first.selected)) o,
-    ].where((o) => o.hasTolls).toList();
-    if (order.isEmpty) return;
+    final pending =
+        [
+          first.selected,
+          for (final o in first.options)
+            if (!identical(o, first.selected)) o,
+        ].where((o) {
+          final key = routeKey(o);
+          return o.hasTolls &&
+              !first.tolls.containsKey(key) &&
+              !_tollsInFlight.contains(key);
+        }).toList();
+    if (pending.isEmpty) return;
 
     final TollRates rates;
     try {
@@ -284,22 +315,29 @@ class RoutePreviewController extends Notifier<RoutePreviewState> {
     }
     if (!ref.mounted || seq != _seq) return;
     final finder = ref.read(tollPlazaFinderProvider);
-    for (final option in order) {
-      try {
-        final plazas = await finder.find(option);
-        if (!ref.mounted || seq != _seq) return;
-        final current = state;
-        if (current is! RouteReady) return;
-        state = current.copyWith(
-          tolls: {
-            ...current.tolls,
-            routeKey(option): rates.estimate(plazas, current.query.vehicle),
-          },
-        );
-      } on TollLookupFailure {
-        if (!ref.mounted || seq != _seq) return;
-      }
-    }
+    await Future.wait([
+      for (final option in pending)
+        () async {
+          final key = routeKey(option);
+          _tollsInFlight.add(key);
+          try {
+            final plazas = await finder.find(option);
+            if (!ref.mounted || seq != _seq) return;
+            final current = state;
+            if (current is! RouteReady) return;
+            state = current.copyWith(
+              tolls: {
+                ...current.tolls,
+                key: rates.estimate(plazas, current.query.vehicle),
+              },
+            );
+          } on TollLookupFailure {
+            // Tiada anggaran untuk laluan ini.
+          } finally {
+            _tollsInFlight.remove(key);
+          }
+        }(),
+    ]);
   }
 
   /// Tamatkan penunjuk "mencari laluan lain" (aliran tamat atau gagal selepas pilihan sedia ada).
@@ -340,6 +378,10 @@ class RoutePreviewController extends Notifier<RoutePreviewState> {
       options: options,
       selectedIndex: selected,
       loadingMore: !batch.done,
+      // Anggaran tol laluan yang masih ada dikekalkan (kunci ikut laluan, bukan indeks).
+      tolls: previous is RouteReady && identical(previous.query, query)
+          ? previous.tolls
+          : const {},
       // Laluan terpilih di luar kad yang dipaparkan: buka semua supaya ia kelihatan.
       expanded: expanded || selected >= RouteReady.collapsedCount,
     );

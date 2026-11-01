@@ -1,64 +1,53 @@
 import 'dart:async';
+import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/storage/preferences.dart';
+import '../../../core/utils/log.dart';
+import '../../../l10n/generated/app_localizations.dart';
+import '../../navigation/presentation/navigation_controller.dart';
+import '../../route_preview/presentation/route_preview_controller.dart';
 import '../data/chat_history_store.dart';
 import '../data/edge_ai_runtime.dart';
 import '../data/tool_executor.dart';
 import '../domain/assistant_message.dart';
 import '../domain/assistant_tools.dart';
+import '../domain/intent_router.dart';
 import '../domain/local_llm.dart';
+import 'ai_chat_controller.dart';
+import 'ai_map_bridge.dart';
+import 'ai_reply_builder.dart';
 
-@immutable
-class AssistantUiState {
-  const AssistantUiState({
-    this.modelStatus = AssistantModelStatus.missing,
-    this.downloadProgress = 0,
-    this.messages = const [],
-    this.busy = false,
-    this.error,
-  });
-
-  final AssistantModelStatus modelStatus;
-  final double downloadProgress;
-  final List<AssistantMessage> messages;
-  final bool busy;
-  final String? error;
-
-  bool get modelReady => modelStatus == AssistantModelStatus.ready;
-
-  AssistantUiState copyWith({
-    AssistantModelStatus? modelStatus,
-    double? downloadProgress,
-    List<AssistantMessage>? messages,
-    bool? busy,
-    String? error,
-    bool clearError = false,
-  }) => AssistantUiState(
-    modelStatus: modelStatus ?? this.modelStatus,
-    downloadProgress: downloadProgress ?? this.downloadProgress,
-    messages: messages ?? this.messages,
-    busy: busy ?? this.busy,
-    error: clearError ? null : (error ?? this.error),
-  );
-}
+export 'ai_chat_controller.dart' show AiPhase, AssistantUiState;
 
 final localLlmRuntimeProvider = Provider<LocalLlmRuntime>(
-  (ref) => EdgeAiLlmRuntime(),
+  (ref) => EdgeAiLlmRuntime(ref.watch(sharedPreferencesProvider)),
 );
 
-class AssistantController extends Notifier<AssistantUiState> {
+/// FG AI: arahan peta dijalankan terus oleh penghala (pantas, tanpa model); soalan lain dijawab
+/// oleh model kecil pada telefon dengan teks dialirkan ke skrin.
+class AssistantController extends AiChatController {
+  /// Destinasi terakhir yang dirancang dalam sembang ini ("tanpa tol" selepas laluan ditutup).
+  String? _lastDestination;
+
+  /// Halaman AI dibuka sebelum status model diketahui: panaskan sebaik sahaja ia sedia.
+  bool _wantWarm = false;
+  DateTime _lastStreamPush = DateTime.fromMillisecondsSinceEpoch(0);
+
+  @override
+  AiMode get mode => AiMode.fg;
+
   @override
   AssistantUiState build() {
-    final history = ref.watch(chatHistoryStoreProvider).load();
     final runtime = ref.read(localLlmRuntimeProvider);
-    ref.onDispose(() {
-      unawaited(runtime.release());
-    });
+    ref.onDispose(() => unawaited(runtime.release()));
     Future.microtask(_refreshInstalled);
-    return AssistantUiState(messages: history);
+    return initialState();
   }
+
+  @override
+  void onConversationChanged() => _lastDestination = null;
 
   Future<void> _refreshInstalled() async {
     try {
@@ -70,12 +59,28 @@ class AssistantController extends Notifier<AssistantUiState> {
             : AssistantModelStatus.missing,
         clearError: true,
       );
+      if (ok && _wantWarm) unawaited(warmUp());
     } on Object catch (e) {
       if (!ref.mounted) return;
       state = state.copyWith(
         modelStatus: AssistantModelStatus.error,
         error: e.toString(),
       );
+    }
+  }
+
+  /// Muatkan model semasa halaman dibuka supaya jawapan pertama tidak menunggu pemuatan.
+  Future<void> warmUp() async {
+    _wantWarm = true;
+    if (!state.modelReady || state.busy) return;
+    _wantWarm = false;
+    state = state.copyWith(phase: AiPhase.preparing);
+    await ref
+        .read(localLlmRuntimeProvider)
+        .warmUp(system: assistantSystemPrompt);
+    if (!ref.mounted) return;
+    if (state.phase == AiPhase.preparing) {
+      state = state.copyWith(phase: AiPhase.idle);
     }
   }
 
@@ -123,56 +128,226 @@ class AssistantController extends Notifier<AssistantUiState> {
     }
   }
 
-  Future<void> clearChat() async {
-    await ref.read(chatHistoryStoreProvider).clear();
+  Future<void> send(String text, {bool uiMalay = false}) async {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty || state.busy) return;
+    final l10n = replyL10n(trimmed, uiMalay: uiMalay);
+    final replies = AiReplyBuilder(l10n);
+    final prior = state.messages;
+    final next = [...prior, userMessage(trimmed)];
+    state = state.copyWith(
+      messages: next,
+      busy: true,
+      phase: AiPhase.working,
+      clearStreaming: true,
+      clearError: true,
+    );
+    await persist(next);
+
+    AssistantMessage reply;
+    try {
+      final hasRoute = ref.read(routePreviewControllerProvider) is RouteReady;
+      final intent = parseIntent(trimmed, hasRoute: hasRoute);
+      if (intent != null) {
+        reply = await _handle(intent, replies, l10n);
+      } else if (!state.modelReady) {
+        reply = replies.text(l10n.aiNeedModel);
+      } else {
+        reply = await _askModel(trimmed, prior, replies, l10n);
+      }
+    } on Object catch (e) {
+      logDiag('FG AI gagal: $e');
+      reply = replies.text(l10n.aiError);
+    }
     if (!ref.mounted) return;
-    state = state.copyWith(messages: const [], clearError: true);
+    final all = [...state.messages, reply];
+    state = state.copyWith(
+      messages: all,
+      busy: false,
+      phase: AiPhase.idle,
+      clearStreaming: true,
+      freshAt: reply.at,
+    );
+    await persist(all);
   }
 
-  Future<void> send(String text) async {
-    final trimmed = text.trim();
-    if (trimmed.isEmpty || state.busy || !state.modelReady) return;
-    final user = AssistantMessage(
-      role: AssistantRole.user,
-      text: trimmed,
-      at: DateTime.now(),
-    );
-    final prior = [
-      for (final m in state.messages)
-        if (m.role != AssistantRole.system) m,
-    ];
-    final next = [...prior, user];
-    state = state.copyWith(messages: next, busy: true, clearError: true);
-    await ref.read(chatHistoryStoreProvider).save(next);
+  AssistantToolExecutor get _tools => ref.read(assistantToolExecutorProvider);
 
-    try {
-      final reply = await ref
-          .read(localLlmRuntimeProvider)
-          .chat(
-            system: assistantSystemPrompt,
-            history: prior,
-            userText: trimmed,
-            maxToolTurns: 2,
-            onTool: (name, args) =>
-                ref.read(assistantToolExecutorProvider).run(name, args),
+  Future<AssistantMessage> _handle(
+    AssistantIntent intent,
+    AiReplyBuilder replies,
+    AppLocalizations l10n,
+  ) async {
+    switch (intent) {
+      case RouteIntent(:final destination, :final preference, :final autoStart):
+        final r = await _tools.planRoute(
+          destination,
+          preference: preference,
+          start: autoStart,
+        );
+        if (r['ok'] == true) _lastDestination = r['destination'] as String?;
+        return replies.route(r, query: destination);
+      case StartNavigationIntent():
+        if (ref.read(routePreviewControllerProvider) is! RouteReady) {
+          return replies.text(
+            ref.read(navigationControllerProvider).isActive
+                ? l10n.aiNavStarting
+                : l10n.aiNoRouteToStart,
           );
-      if (!ref.mounted) return;
-      final body = reply.trim().isEmpty ? '…' : reply.trim();
-      final assistant = AssistantMessage(
-        role: AssistantRole.assistant,
-        text: body.length > 2000 ? '${body.substring(0, 1999)}…' : body,
-        at: DateTime.now(),
-      );
-      final all = [...state.messages, assistant];
-      state = state.copyWith(messages: all, busy: false);
-      await ref.read(chatHistoryStoreProvider).save(all);
-    } on Object catch (e) {
-      if (!ref.mounted) return;
-      state = state.copyWith(busy: false, error: e.toString());
+        }
+        ref.read(aiMapRequestProvider.notifier).startNavigation();
+        return replies.text(l10n.aiNavStarting);
+      case RoutePreferenceIntent(:final preference, :final autoStart):
+        if (ref.read(routePreviewControllerProvider) is RouteReady) {
+          return replies.route(
+            await _tools.chooseCurrentRoute(preference, start: autoStart),
+          );
+        }
+        final last = _lastDestination;
+        if (last == null) return replies.text(l10n.aiNoRouteToStart);
+        return replies.route(
+          await _tools.planRoute(
+            last,
+            preference: preference,
+            start: autoStart,
+          ),
+          query: last,
+        );
+      case CancelRouteIntent():
+        ref.read(routePreviewControllerProvider.notifier).clear();
+        return replies.text(l10n.aiRouteCleared);
+      case NearbyIntent(:final category):
+        final name = replies.categoryName(category);
+        return replies.places(
+          await _tools.nearby(category, fallbackName: name),
+          title: l10n.aiNearbyTitle(name),
+        );
+      case SearchIntent(:final query):
+        return replies.places(
+          await _tools.searchPlace(query),
+          title: l10n.aiSearchTitle(query),
+          query: query,
+        );
+      case WeatherIntent(:final place):
+        return replies.weather(
+          await _tools.run('get_weather', {'query': ?place}),
+          query: place,
+        );
+      case AirQualityIntent(:final place):
+        return replies.air(
+          await _tools.run('get_air_quality', {'query': ?place}),
+          query: place,
+        );
+      case QiblaIntent():
+        return replies.qibla(await _tools.run('get_qibla', const {}));
+      case PrayerTimesIntent():
+        return replies.prayer(await _tools.run('get_prayer_times', const {}));
+      case AlongRouteIntent(:final category):
+        return replies.along(
+          await _tools.run('list_along_route', {'category': category}),
+          category,
+        );
+      case PlayMusicIntent(:final query):
+        return replies.playing(
+          await _tools.run('play_music', {'query': query}),
+          query: query,
+        );
+      case PlayRadioIntent(:final query):
+        return replies.playing(
+          await _tools.run('play_radio', {'query': query}),
+          query: query,
+        );
     }
   }
 
-  Future<void> releaseModel() => ref.read(localLlmRuntimeProvider).release();
+  Future<AssistantMessage> _askModel(
+    String text,
+    List<AssistantMessage> prior,
+    AiReplyBuilder replies,
+    AppLocalizations l10n,
+  ) async {
+    state = state.copyWith(phase: AiPhase.thinking);
+    final context = _contextLine();
+    Map<String, Object?>? route;
+    final raw = await ref
+        .read(localLlmRuntimeProvider)
+        .chat(
+          system: assistantSystemPrompt,
+          history: prior,
+          userText: context == null ? text : '$context\n$text',
+          sessionKey: state.current?.id,
+          maxToolTurns: 2,
+          onTool: (name, args) async {
+            if (ref.mounted) {
+              state = state.copyWith(
+                phase: AiPhase.working,
+                clearStreaming: true,
+              );
+            }
+            final result = await _tools.run(name, args);
+            if (name == 'plan_route') {
+              route = result;
+              if (result['ok'] == true) {
+                _lastDestination = result['destination'] as String?;
+              }
+            }
+            if (ref.mounted) state = state.copyWith(phase: AiPhase.thinking);
+            return clipToolMap(result);
+          },
+          onText: (partial) {
+            if (!ref.mounted) return;
+            final now = DateTime.now();
+            if (partial.isNotEmpty &&
+                now.difference(_lastStreamPush) <
+                    const Duration(milliseconds: 60)) {
+              return;
+            }
+            _lastStreamPush = now;
+            state = partial.isEmpty
+                ? state.copyWith(clearStreaming: true)
+                : state.copyWith(streamingText: partial);
+          },
+        );
+    final body = raw.length > 2000 ? '${raw.substring(0, 1999)}…' : raw;
+    final r = route;
+    if (r != null && r['ok'] == true) {
+      // Butiran laluan daripada data sebenar (bukan teks model) supaya angka sentiasa tepat.
+      final card = replies.route(r);
+      return body.isEmpty ? card : card.copyWith(text: '${card.text}\n\n$body');
+    }
+    if (body.isEmpty) return replies.text(l10n.aiUnavailable);
+    return replies.text(body);
+  }
+
+  /// Konteks ringkas untuk model (Inggeris; bukan dipaparkan): laluan semasa sahaja, supaya model
+  /// tidak perlu bergantung pada jawapan lama.
+  String? _contextLine() {
+    final nav = ref.read(navigationControllerProvider);
+    if (nav.isActive) {
+      return '[Context: the user is navigating now.]';
+    }
+    final preview = ref.read(routePreviewControllerProvider);
+    if (preview is RouteReady) {
+      final o = preview.selected;
+      final label = preview.query.destinationLabel ?? 'the destination';
+      return '[Context: route preview to $label is open, '
+          '${(o.distanceM / 1000).toStringAsFixed(0)} km, '
+          '${(o.durationS / 60).round()} min.]';
+    }
+    return null;
+  }
+}
+
+/// Potong nilai teks panjang dalam hasil alat supaya konteks telefon tidak membengkak.
+Map<String, Object?> clipToolMap(Map<String, Object?> result, {int max = 900}) {
+  final encoded = jsonEncode(result);
+  if (encoded.length <= max) return result;
+  return {
+    for (final e in result.entries)
+      e.key: e.value is String
+          ? clipToolResult(e.value! as String, max: 500)
+          : e.value,
+  };
 }
 
 final assistantControllerProvider =

@@ -165,7 +165,15 @@ class QiblaAlignment {
 /// melompat apabila melintasi 359°→0°. [step] menggerakkan nilai terpapar ke arah sasaran melalui
 /// laluan terpendek, lebih pantas apabila jauh dan hampir diam apabila sudah dekat.
 class HeadingSmoother {
-  HeadingSmoother({this.responsiveness = 14, this.deadbandDeg = 0.25});
+  HeadingSmoother({
+    this.responsiveness = 14,
+    this.deadbandDeg = 0.25,
+    this.adaptive = false,
+  });
+
+  /// Tenang ketika telefon hampir diam (perubahan kecil dilicinkan lebih kuat), pantas ketika dipusing.
+  /// Mengurangkan goyangan jarum akibat hingar magnetometer tanpa melambatkan pusingan sebenar.
+  final bool adaptive;
 
   /// Pemalar masa kebalikan (per saat): lebih besar = lebih pantas menjejak.
   final double responsiveness;
@@ -186,7 +194,10 @@ class HeadingSmoother {
     }
     final delta = normalizeDeltaDegrees(target - shown);
     if (delta.abs() < deadbandDeg) return shown;
-    final k = 1 - math.exp(-responsiveness * dtSeconds.clamp(0, 0.1));
+    final rate = adaptive
+        ? responsiveness * (0.3 + 0.7 * (delta.abs() / 12).clamp(0.0, 1.0))
+        : responsiveness;
+    final k = 1 - math.exp(-rate * dtSeconds.clamp(0, 0.1));
     _shown = _wrap(shown + delta * k);
     return _shown!;
   }

@@ -83,6 +83,27 @@ void main() {
       });
     });
 
+    test('tanpa tol mutlak: exclude_tolls, dan dikekalkan semasa reroute', () {
+      const q = RouteQuery(
+        origin: klcc,
+        destination: klia,
+        avoidTolls: true,
+        excludeTolls: true,
+      );
+      final auto =
+          (buildRouteRequest(q)['costing_options']! as Map)['auto'] as Map;
+      expect(auto['exclude_tolls'], isTrue);
+      expect(auto['use_tolls'], 0);
+      expect(q.rerouteFrom(klcc).excludeTolls, isTrue);
+      final normal =
+          (buildRouteRequest(
+                    const RouteQuery(origin: klcc, destination: klia),
+                  )['costing_options']!
+                  as Map)['auto']
+              as Map;
+      expect(normal.containsKey('exclude_tolls'), isFalse);
+    });
+
     test(
       'boleh diserialisasi ke JSON (tiada nilai null atau objek bukan JSON)',
       () {

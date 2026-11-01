@@ -4,17 +4,21 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/diagnostics/error_log.dart';
 import '../../../core/storage/preferences.dart';
 import '../../../core/theme/theme_controller.dart';
+import '../../along_route/presentation/along_route_controller.dart';
 import '../../azan/data/azan_location.dart';
 import '../../azan/data/official_prayer_times.dart';
 import '../../azan/presentation/azan_controller.dart';
 import '../../local_assistant/data/chat_history_store.dart';
 import '../../local_assistant/data/muslim_ai_settings.dart';
+import '../../local_assistant/presentation/assistant_controller.dart';
+import '../../local_assistant/presentation/muslim_ai_controller.dart';
 import '../../music/data/radio_favorites.dart';
 import '../../music/data/radio_health.dart';
 import '../../reports/presentation/reports_controller.dart';
 import '../../saved_places/data/saved_places_controller.dart';
 import '../../search/presentation/search_history_controller.dart';
 import '../../trip_history/data/trip_history_store.dart';
+import '../../weather/data/weather_forecast_store.dart';
 
 /// Awalan kunci simpanan carian berhampiran (hasil di sekitar lokasi pengguna) dalam SharedPreferences.
 const nearbyCachePrefix = 'nearby.v1.';
@@ -41,24 +45,31 @@ Future<void> eraseAllUserData(WidgetRef ref) async {
   await ref.read(tripHistoryStoreProvider).clear();
   await ref.read(radioFavoritesProvider.notifier).clear();
   await ref.read(radioHealthProvider.notifier).clear();
-  await ref.read(chatHistoryStoreProvider).clear();
-  await ref.read(muslimChatHistoryStoreProvider).clear();
 
   final prefs = ref.read(sharedPreferencesProvider);
+  await eraseConversations(prefs);
   await eraseNearbyCache(prefs);
+  for (final key in prefs.getKeys().where(
+    (k) =>
+        k.startsWith(alongRouteCachePrefix) ||
+        k.startsWith(weatherCachePrefix) ||
+        k == weatherPlacesKey,
+  )) {
+    await prefs.remove(key);
+  }
   for (final key in [
     ...sunLocationKeys,
     ...azanLocationKeys,
     ...azanScheduleKeys,
     azanOfficialCacheKey,
-    assistantChatPrefsKey,
-    muslimAiChatPrefsKey,
     muslimAiEnabledKey,
     muslimAiTermsVersionKey,
   ]) {
     await prefs.remove(key);
   }
   ref.invalidate(muslimAiSettingsProvider);
+  ref.invalidate(assistantControllerProvider);
+  ref.invalidate(muslimAiControllerProvider);
   ref.read(errorLogProvider).clear();
   // Bina semula supaya bacaan seterusnya (kini kosong) digunakan, bukan nilai dalam ingatan.
   ref.invalidate(sunLocationProvider);

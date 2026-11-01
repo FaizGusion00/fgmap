@@ -197,7 +197,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get offlineMapsIntro =>
-      'Muat turun peta Malaysia sekali supaya laluan boleh dikira tanpa internet. Dengan internet, laluan dikira secara online (lebih terkini) dan peta offline menjadi sandaran.';
+      'Muat turun peta Malaysia sekali untuk merancang laluan dan mencari tempat tanpa internet. Dengan internet, laluan dan carian menggunakan perkhidmatan dalam talian (lebih terkini) dan peta offline menjadi sandaran.';
 
   @override
   String get offlineMapsNotConfigured =>
@@ -2155,7 +2155,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get assistantOpen => 'Pembantu';
 
   @override
-  String get assistantTitle => 'FGMaps AI';
+  String get assistantTitle => 'FG AI';
 
   @override
   String get assistantHint =>
@@ -2183,7 +2183,7 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
-  String get assistantSettingsTitle => 'FGMaps AI';
+  String get assistantSettingsTitle => 'FG AI';
 
   @override
   String get assistantSettingsReady => 'Model sedia pada telefon ini.';
@@ -2196,7 +2196,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get assistantDeleteModel => 'Padam model';
 
   @override
-  String get assistantModeFgmaps => 'FGMaps AI';
+  String get assistantModeFgmaps => 'FG AI';
 
   @override
   String get assistantModeMuslim => 'FGMuslim';
@@ -2383,4 +2383,493 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get qiblaUnavailable => 'Perlukan GPS untuk arah kiblat.';
+
+  @override
+  String aiRouteReady(String place, String summary) {
+    return 'Laluan ke $place sedia: $summary.';
+  }
+
+  @override
+  String aiTollAmount(String amount) {
+    return 'tol $amount';
+  }
+
+  @override
+  String aiTollAmountPlus(String amount) {
+    return 'tol $amount+';
+  }
+
+  @override
+  String get aiTollNone => 'tiada tol';
+
+  @override
+  String get aiTollUnknown => 'ada tol';
+
+  @override
+  String get aiReasonRecommended =>
+      'Ini pilihan disyorkan: seimbang antara masa, belokan dan kualiti jalan.';
+
+  @override
+  String get aiReasonFastest => 'Ini pilihan paling cepat.';
+
+  @override
+  String get aiReasonShortest => 'Ini jarak paling pendek.';
+
+  @override
+  String get aiReasonTollFree => 'Pilihan ini mengelak semua tol.';
+
+  @override
+  String get aiReasonFewestTolls =>
+      'Semua pilihan ada tol, jadi saya pilih yang paling sedikit jalan bertol.';
+
+  @override
+  String get aiReasonNoHighways =>
+      'Pilihan ini guna jalan biasa sebanyak mungkin.';
+
+  @override
+  String get aiReasonCheapest =>
+      'Ini paling murah secara keseluruhan (tol dan anggaran minyak).';
+
+  @override
+  String get aiReasonSafest =>
+      'Saya pilih yang paling selamat: kebanyakannya jalan utama, kurang belokan dan pusingan-U, tiada feri. Ini berdasarkan jenis jalan, bukan data kemalangan.';
+
+  @override
+  String get aiOtherOptions => 'Pilihan lain:';
+
+  @override
+  String get aiNavStarting => 'Navigasi dimulakan sekarang. Pandu cermat.';
+
+  @override
+  String get aiNoRouteToStart =>
+      'Belum ada laluan. Beritahu saya destinasi, contohnya \"Laluan ke KLCC\".';
+
+  @override
+  String aiPlaceNotFound(String place) {
+    return 'Saya tak jumpa \"$place\". Cuba nama yang lebih spesifik.';
+  }
+
+  @override
+  String get aiRouteFailed =>
+      'Laluan tidak dapat dikira sekarang. Semak sambungan, atau muat turun peta offline untuk laluan tanpa internet.';
+
+  @override
+  String get aiNoLocation =>
+      'Saya perlukan lokasi anda untuk ini. Hidupkan lokasi dan cuba lagi.';
+
+  @override
+  String get aiRouteCleared => 'Laluan dipadam.';
+
+  @override
+  String aiNearbyTitle(String category) {
+    return '$category terdekat:';
+  }
+
+  @override
+  String get aiNothingFound => 'Tiada apa-apa dijumpai berdekatan sekarang.';
+
+  @override
+  String aiSearchTitle(String query) {
+    return 'Ini yang saya jumpa untuk \"$query\":';
+  }
+
+  @override
+  String aiWeatherNow(
+    String place,
+    String condition,
+    String temp,
+    String feels,
+  ) {
+    return '$place: $condition, $temp°C (terasa $feels°C).';
+  }
+
+  @override
+  String aiWeatherDetails(String rain, String humidity, String wind) {
+    return 'Peluang hujan $rain%, kelembapan $humidity%, angin $wind km/j.';
+  }
+
+  @override
+  String get aiHere => 'Di sini';
+
+  @override
+  String aiAirLine(String station, String ipu, String band) {
+    return 'Kualiti udara berhampiran $station: IPU $ipu, $band.';
+  }
+
+  @override
+  String aiQiblaLine(String bearing, String distance) {
+    return 'Arah kiblat dari lokasi anda ialah $bearing° dari utara benar, $distance km ke Kaabah. Buka kompas Kiblat untuk arah secara langsung.';
+  }
+
+  @override
+  String aiPrayerTitle(String zone) {
+    return 'Waktu solat hari ini ($zone):';
+  }
+
+  @override
+  String get aiPrayerTitleLocal => 'Waktu solat hari ini:';
+
+  @override
+  String aiPrayerNext(String prayer, String time) {
+    return 'Seterusnya: $prayer pada $time.';
+  }
+
+  @override
+  String get aiUnavailable =>
+      'Maklumat itu tiada buat masa ini. Cuba lagi sebentar.';
+
+  @override
+  String aiAlongTitle(String category) {
+    return '$category sepanjang laluan:';
+  }
+
+  @override
+  String aiAlongIn(String distance) {
+    return 'dalam $distance';
+  }
+
+  @override
+  String get aiNeedRoute =>
+      'Rancang laluan dahulu, kemudian saya boleh cari sepanjang laluan.';
+
+  @override
+  String aiPlaying(String title) {
+    return 'Memainkan $title.';
+  }
+
+  @override
+  String get aiNeedModel =>
+      'Arahan peta boleh digunakan terus (laluan, tempat berdekatan, cuaca, kiblat). Untuk soalan umum, muat turun model pada telefon dahulu.';
+
+  @override
+  String get aiError => 'Maaf, ada masalah. Sila cuba lagi.';
+
+  @override
+  String get aiPreparing => 'Menyediakan model…';
+
+  @override
+  String get aiThinking => 'Sedang berfikir…';
+
+  @override
+  String get aiWorking => 'Sedang diproses…';
+
+  @override
+  String get aiSearchingSources => 'Mencari dalam teks klasik…';
+
+  @override
+  String get aiActionStart => 'Mula navigasi';
+
+  @override
+  String get aiActionShowRoute => 'Lihat di peta';
+
+  @override
+  String aiActionRouteTo(String place) {
+    return 'Laluan ke $place';
+  }
+
+  @override
+  String get aiNewChat => 'Sembang baharu';
+
+  @override
+  String get aiChats => 'Sembang';
+
+  @override
+  String get aiRename => 'Namakan semula';
+
+  @override
+  String get aiRenameTitle => 'Namakan semula sembang';
+
+  @override
+  String get aiDelete => 'Padam';
+
+  @override
+  String get aiDeleteAll => 'Padam semua sembang';
+
+  @override
+  String aiDeleteAllConfirm(String name) {
+    return 'Padam semua sembang dalam $name? Tindakan ini tidak boleh dibuat asal.';
+  }
+
+  @override
+  String get aiDeleted => 'Sembang dipadam';
+
+  @override
+  String get aiUndo => 'Buat asal';
+
+  @override
+  String get aiSave => 'Simpan';
+
+  @override
+  String get aiCancel => 'Batal';
+
+  @override
+  String get aiToday => 'Hari ini';
+
+  @override
+  String get aiPrevious7Days => '7 hari lalu';
+
+  @override
+  String get aiOlder => 'Lebih lama';
+
+  @override
+  String get aiNoChats => 'Belum ada sembang. Mulakan di bawah.';
+
+  @override
+  String get aiCopy => 'Salin';
+
+  @override
+  String get aiCopied => 'Disalin';
+
+  @override
+  String get aiStop => 'Henti';
+
+  @override
+  String get muslimNoticeSummary =>
+      'Ringkasan daripada teks klasik (islamic.app). Bukan fatwa rasmi JAKIM atau mufti negeri; semak petikan dan rujuk ulama untuk keputusan peribadi. Wallahu a\'lam.';
+
+  @override
+  String get muslimNoticeRateLimited =>
+      'islamic.app sibuk sekarang (had permintaan). Cuba lagi sebentar. Pautan fatwa berkaitan di bawah jika ada.';
+
+  @override
+  String get muslimNoticeNotGrounded =>
+      'Tiada petikan klasik yang cukup hampir untuk soalan ini. Sila rujuk ulama. Wallahu a\'lam.';
+
+  @override
+  String get muslimNoticeUnreachable =>
+      'Sumber rujukan tidak dapat dicapai sekarang. Cuba lagi, atau rujuk pejabat mufti tempatan. Wallahu a\'lam.';
+
+  @override
+  String muslimSources(int count) {
+    return 'Sumber ($count)';
+  }
+
+  @override
+  String get muslimClassical => 'Teks klasik';
+
+  @override
+  String get muslimFatwa =>
+      'Fatwa berkaitan (indeks deen.ai, bukan rasmi di Malaysia)';
+
+  @override
+  String muslimPage(String page) {
+    return 'hlm. $page';
+  }
+
+  @override
+  String get assistantSuggestFuel => 'Stesen minyak terdekat';
+
+  @override
+  String get assistantSuggestWeather => 'Cuaca di Kuala Terengganu';
+
+  @override
+  String get routeTollShort => 'Tol';
+
+  @override
+  String get qiblaCalibrateAction => 'Kalibrasi';
+
+  @override
+  String get qiblaCalibrateSteps =>
+      'Pegang telefon dan lukis angka 8 yang besar di udara tiga kali sambil memusingkan pergelangan tangan. Jauhkan daripada logam dan magnet.';
+
+  @override
+  String get qiblaCalibrateDone => 'Kompas sudah dikalibrasi';
+
+  @override
+  String qiblaCalibrateProgress(String deg) {
+    return 'Teruskan… ketepatan ±$deg°';
+  }
+
+  @override
+  String qiblaCalibrateProgressLevel(String level) {
+    return 'Teruskan… ketepatan: $level';
+  }
+
+  @override
+  String get qiblaInterferenceTitle => 'Gangguan magnet';
+
+  @override
+  String get qiblaInterferenceBody =>
+      'Medan magnet di sekitar telefon luar biasa. Jauhkan daripada logam, magnet, kereta, pembesar suara dan sarung telefon bermagnet, kemudian kalibrasi semula.';
+
+  @override
+  String qiblaAccuracyDegrees(String deg) {
+    return '±$deg°';
+  }
+
+  @override
+  String get qiblaDone => 'Selesai';
+
+  @override
+  String get qiblaNotAccurateYet => 'Kalibrasi untuk arah yang tepat';
+
+  @override
+  String get weatherCurrentLocation => 'Lokasi saya';
+
+  @override
+  String weatherHighLow(String high, String low) {
+    return 'T:$high°  R:$low°';
+  }
+
+  @override
+  String weatherFeelsLikeValue(String temp) {
+    return 'Terasa $temp°';
+  }
+
+  @override
+  String get weatherHourly => 'Ramalan setiap jam';
+
+  @override
+  String get weatherDaily => 'Ramalan 10 hari';
+
+  @override
+  String get weatherNow => 'Kini';
+
+  @override
+  String get weatherToday => 'Hari ini';
+
+  @override
+  String get weatherHumidity => 'Kelembapan';
+
+  @override
+  String get weatherWind => 'Angin';
+
+  @override
+  String get weatherUv => 'Indeks UV';
+
+  @override
+  String get weatherUvLow => 'Rendah';
+
+  @override
+  String get weatherUvModerate => 'Sederhana';
+
+  @override
+  String get weatherUvHigh => 'Tinggi';
+
+  @override
+  String get weatherUvVeryHigh => 'Sangat tinggi';
+
+  @override
+  String get weatherUvExtreme => 'Melampau';
+
+  @override
+  String get weatherSunrise => 'Matahari terbit';
+
+  @override
+  String get weatherSunset => 'Matahari terbenam';
+
+  @override
+  String get weatherPressure => 'Tekanan';
+
+  @override
+  String get weatherVisibility => 'Jarak penglihatan';
+
+  @override
+  String get weatherRainToday => 'Hujan hari ini';
+
+  @override
+  String get weatherRainChance => 'Peluang hujan';
+
+  @override
+  String weatherUpdated(String time) {
+    return 'Dikemas kini $time';
+  }
+
+  @override
+  String weatherOfflineStale(String time) {
+    return 'Luar talian · dikemas kini $time';
+  }
+
+  @override
+  String get weatherSearchHint => 'Cari bandar atau tempat';
+
+  @override
+  String get weatherAddPlace => 'Tambah tempat';
+
+  @override
+  String get weatherRemovePlace => 'Buang tempat';
+
+  @override
+  String get weatherSevereSoon =>
+      'Ribut petir atau hujan lebat dijangka dalam 24 jam akan datang.';
+
+  @override
+  String get weatherLoadFailed =>
+      'Ramalan tidak dapat dimuat. Semak sambungan dan cuba lagi.';
+
+  @override
+  String get weatherNoLocation =>
+      'Hidupkan lokasi untuk melihat cuaca di tempat anda, atau cari tempat.';
+
+  @override
+  String weatherSpeedKmh(String value) {
+    return '$value km/j';
+  }
+
+  @override
+  String weatherMm(String value) {
+    return '$value mm';
+  }
+
+  @override
+  String weatherHpa(String value) {
+    return '$value hPa';
+  }
+
+  @override
+  String weatherKm(String value) {
+    return '$value km';
+  }
+
+  @override
+  String get weatherCardinals => 'U,TL,T,TG,S,BD,B,BL';
+
+  @override
+  String weatherFrom(String dir) {
+    return 'dari $dir';
+  }
+
+  @override
+  String get weatherCodeClear => 'Cerah';
+
+  @override
+  String get weatherCodeMainlyClear => 'Kebanyakannya cerah';
+
+  @override
+  String get weatherCodePartlyCloudy => 'Sebahagian berawan';
+
+  @override
+  String get weatherCodeOvercast => 'Mendung';
+
+  @override
+  String get weatherCodeFog => 'Berkabus';
+
+  @override
+  String get weatherCodeDrizzle => 'Gerimis';
+
+  @override
+  String get weatherCodeRain => 'Hujan';
+
+  @override
+  String get weatherCodeHeavyRain => 'Hujan lebat';
+
+  @override
+  String get weatherCodeShowers => 'Hujan renyai';
+
+  @override
+  String get weatherCodeHeavyShowers => 'Hujan renyai lebat';
+
+  @override
+  String get weatherCodeThunderstorm => 'Ribut petir';
+
+  @override
+  String get weatherCodeSnow => 'Salji';
+
+  @override
+  String get weatherOpen => 'Cuaca';
+
+  @override
+  String offlineMapsSearchAvailable(String size) {
+    return 'Carian offline tersedia (+$size)';
+  }
 }

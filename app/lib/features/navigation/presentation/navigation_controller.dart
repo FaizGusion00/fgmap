@@ -929,19 +929,18 @@ class NavigationController extends Notifier<NavigationState> {
     int routeVersion,
   ) async {
     try {
-      final search = ref.read(alongRouteSearchProvider);
-      final results = await Future.wait([
-        search.search(
-          routePoints: route.points,
-          category: AlongRouteCategory.restArea,
-          fallbackName: 'R&R',
-        ),
-        search.search(
-          routePoints: route.points,
-          category: AlongRouteCategory.fuel,
-          fallbackName: 'Fuel',
-        ),
-      ]);
+      // Satu permintaan gabungan (bukan dua) untuk R&R + minyak.
+      final all = await ref
+          .read(alongRouteSearchProvider)
+          .searchAll(
+            routePoints: route.points,
+            fallbackName: (c) =>
+                c == AlongRouteCategory.restArea ? 'R&R' : 'Fuel',
+          );
+      final results = [
+        all[AlongRouteCategory.restArea] ?? const <AlongRoutePoi>[],
+        all[AlongRouteCategory.fuel] ?? const <AlongRoutePoi>[],
+      ];
       if (generation != _generation || state.routeVersion != routeVersion) {
         return;
       }
@@ -962,10 +961,7 @@ class NavigationController extends Notifier<NavigationState> {
       }
       return;
     }
-    final next = nextAlongPoiAhead(
-      pois: _alongPois,
-      alongNow: progress.alongM,
-    );
+    final next = nextAlongPoiAhead(pois: _alongPois, alongNow: progress.alongM);
     state = next == null
         ? state.copyWith(clearUpcomingAlongPoi: true)
         : state.copyWith(upcomingAlongPoi: next);

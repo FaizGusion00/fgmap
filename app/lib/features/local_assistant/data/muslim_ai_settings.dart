@@ -14,10 +14,7 @@ const muslimAiTermsVersion = 1;
 
 @immutable
 class MuslimAiSettings {
-  const MuslimAiSettings({
-    this.enabled = false,
-    this.agreedTermsVersion = 0,
-  });
+  const MuslimAiSettings({this.enabled = false, this.agreedTermsVersion = 0});
 
   final bool enabled;
   final int agreedTermsVersion;

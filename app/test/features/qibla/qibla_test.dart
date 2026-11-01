@@ -1,3 +1,4 @@
+import 'package:fgmap/core/platform/compass_heading.dart';
 import 'package:fgmap/core/utils/geo.dart';
 import 'package:fgmap/features/qibla/domain/qibla.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -144,4 +145,67 @@ void main() {
       expect(shown, greaterThan(80));
     });
   });
+
+  group('bacaan kompas: darjah dan gangguan', () {
+    test('peristiwa natif menghurai ralat darjah dan gangguan', () {
+      final r = parseCompassEvent({
+        'heading': 291.6,
+        'accuracy': 3,
+        'trueNorth': true,
+        'accuracyDeg': 24.5,
+        'interference': false,
+      })!;
+      expect(r.accuracyDeg, 24.5);
+      expect(r.effectiveAccuracy, CompassAccuracy.low);
+      expect(r.trustworthy, isFalse);
+    });
+
+    test('tahap 3 tetapi ralat 8°: tinggi dan boleh dipercayai', () {
+      final r = parseCompassEvent({
+        'heading': 10,
+        'accuracy': 3,
+        'accuracyDeg': 8,
+      })!;
+      expect(r.effectiveAccuracy, CompassAccuracy.high);
+      expect(r.trustworthy, isTrue);
+    });
+
+    test('gangguan magnet sentiasa tidak boleh dipercayai', () {
+      final r = parseCompassEvent({
+        'heading': 10,
+        'accuracy': 3,
+        'accuracyDeg': 3,
+        'interference': true,
+      })!;
+      expect(r.effectiveAccuracy, CompassAccuracy.unreliable);
+      expect(r.trustworthy, isFalse);
+    });
+
+    test('peranti tanpa ralat darjah: ikut tahap lama', () {
+      final r = parseCompassEvent({'heading': 10, 'accuracy': 1})!;
+      expect(r.accuracyDeg, isNull);
+      expect(r.trustworthy, isTrue);
+      expect(
+        parseCompassEvent({'heading': 10, 'accuracy': 0})!.trustworthy,
+        isFalse,
+      );
+    });
+  });
+
+  test(
+    'pelicin adaptif: perubahan kecil lebih tenang, pusingan besar pantas',
+    () {
+      final calm = HeadingSmoother(adaptive: true)..step(100, 0.016);
+      final plain = HeadingSmoother()..step(100, 0.016);
+      final c = calm.step(102, 0.016);
+      final p = plain.step(102, 0.016);
+      expect((c - 100).abs(), lessThan((p - 100).abs()));
+      final fastCalm = HeadingSmoother(adaptive: true)..step(100, 0.016);
+      final fastPlain = HeadingSmoother()..step(100, 0.016);
+      expect(
+        (fastCalm.step(160, 0.016) - 100).abs(),
+        closeTo((fastPlain.step(160, 0.016) - 100).abs(), 0.001),
+      );
+    },
+  );
 }

@@ -97,11 +97,56 @@ void main() {
     );
 
     test('kategori dengan banyak selector: satu penyata setiap selector', () {
-      final q = AlongRouteCategory.mosque.overpassQuery(const [
+      final q = AlongRouteCategory.toilets.overpassQuery(const [
         (3.0, 101.0),
         (3.1, 101.1),
       ]);
       expect(RegExp('around:').allMatches(q), hasLength(3));
+    });
+
+    test('pertanyaan gabungan: kotak sepanjang laluan, semua kategori', () {
+      final route = [
+        for (var i = 0; i <= 300; i++) GeoPoint(3 + i * 0.001, 101 + i * 0.001),
+      ];
+      final boxes = corridorBoxes(route);
+      // ~47 km laluan, kotak setiap ~12 km.
+      expect(boxes.length, inInclusiveRange(4, 5));
+      for (final (s, w, n, e) in boxes) {
+        expect(s, lessThan(n));
+        expect(w, lessThan(e));
+      }
+      final q = AlongRouteCategory.combinedOverpassQuery(boxes);
+      expect(q, contains('charging_station'));
+      expect(q, contains('"religion"="muslim"'));
+      expect(RegExp(r'nw\[').allMatches(q), hasLength(boxes.length * 3));
+    });
+
+    test('padanan tag mengasingkan kategori', () {
+      expect(
+        AlongRouteCategory.toilets.matches({
+          'highway': 'services',
+          'toilets': 'yes',
+        }),
+        isTrue,
+      );
+      expect(
+        AlongRouteCategory.restArea.matches({
+          'highway': 'services',
+          'toilets': 'yes',
+        }),
+        isTrue,
+      );
+      expect(
+        AlongRouteCategory.mosque.matches({
+          'amenity': 'place_of_worship',
+          'religion': 'buddhist',
+        }),
+        isFalse,
+      );
+      expect(
+        AlongRouteCategory.evCharging.matches({'amenity': 'charging_station'}),
+        isTrue,
+      );
     });
 
     test('koordinat dibulatkan ~1 m: permintaan jauh lebih pendek', () {

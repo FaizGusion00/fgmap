@@ -131,6 +131,21 @@ class TollRates {
 
   bool get isEmpty => _open.isEmpty && _closed.isEmpty;
 
+  /// Semua plaza berkoordinat dalam dataset (tertutup + harga tetap), untuk dipadankan terus ke garisan
+  /// laluan tanpa pertanyaan rangkaian.
+  List<({String id, GeoPoint point, String? name})> get plazaNodes => [
+    for (final sys in _closed)
+      for (var k = 0; k < sys.plazas.length; k++)
+        if (sys.plazas[k].point != null)
+          (
+            id: '${sys.id}:$k',
+            point: sys.plazas[k].point!,
+            name: sys.plazas[k].name,
+          ),
+    for (var i = 0; i < _open.length; i++)
+      (id: 'open:$i', point: _open[i].point, name: null),
+  ];
+
   /// Menghurai fail kadar. Fail rosak atau versi tidak dikenali -> [empty] (tidak merosakkan app);
   /// entri tidak sah dilangkau satu-satu. Versi 1: hanya `plazas` harga tetap. Versi 2: `closed` + `open`.
   static TollRates parse(String? json) {

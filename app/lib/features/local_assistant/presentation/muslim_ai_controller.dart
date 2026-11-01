@@ -1,5 +1,6 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/chat_history_store.dart';
@@ -7,232 +8,176 @@ import '../data/deen_fatwa_client.dart';
 import '../data/islamic_app_client.dart';
 import '../data/muslim_ai_settings.dart';
 import '../domain/assistant_message.dart';
+import '../domain/local_llm.dart';
+import 'ai_chat_controller.dart';
 
-@immutable
-class MuslimAiUiState {
-  const MuslimAiUiState({
-    this.messages = const [],
-    this.busy = false,
-    this.error,
-    this.lastLibrarySources = const [],
-    this.lastFatwaHits = const [],
-  });
+export 'ai_chat_controller.dart' show AiPhase, AssistantUiState;
 
-  final List<AssistantMessage> messages;
-  final bool busy;
-  final String? error;
-  final List<IslamicAppSource> lastLibrarySources;
-  final List<DeenFatwaHit> lastFatwaHits;
-
-  /// Alias lama untuk UI yang masih guna `lastHits`.
-  List<DeenFatwaHit> get lastHits => lastFatwaHits;
-
-  MuslimAiUiState copyWith({
-    List<AssistantMessage>? messages,
-    bool? busy,
-    String? error,
-    bool clearError = false,
-    List<IslamicAppSource>? lastLibrarySources,
-    List<DeenFatwaHit>? lastFatwaHits,
-  }) => MuslimAiUiState(
-    messages: messages ?? this.messages,
-    busy: busy ?? this.busy,
-    error: clearError ? null : (error ?? this.error),
-    lastLibrarySources: lastLibrarySources ?? this.lastLibrarySources,
-    lastFatwaHits: lastFatwaHits ?? this.lastFatwaHits,
-  );
-}
-
-class MuslimAiController extends Notifier<MuslimAiUiState> {
+/// FGMuslim AI: jawapan berpetikan islamic.app (utama) + pautan fatwa deen.ai, dipaparkan sebagai
+/// jawapan bersih dengan kad sumber, bukan longgokan URL.
+class MuslimAiController extends AiChatController {
   CancelToken? _cancel;
 
   @override
-  MuslimAiUiState build() {
+  AiMode get mode => AiMode.muslim;
+
+  @override
+  AssistantUiState build() {
     ref.onDispose(() => _cancel?.cancel());
-    final history = ref.watch(muslimChatHistoryStoreProvider).load();
-    return MuslimAiUiState(messages: history);
+    return initialState().copyWith(modelStatus: AssistantModelStatus.ready);
   }
 
-  Future<void> clearChat() async {
-    await ref.read(muslimChatHistoryStoreProvider).clear();
-    if (!ref.mounted) return;
-    state = state.copyWith(
-      messages: const [],
-      lastLibrarySources: const [],
-      lastFatwaHits: const [],
-      clearError: true,
-    );
-  }
+  @override
+  void onConversationChanged() => _cancel?.cancel();
 
-  /// Utama: islamic.app RAG berpetikan. Sandaran: carian fatwa deen.ai.
-  Future<void> send(String text, {required bool malay}) async {
-    final settings = ref.read(muslimAiSettingsProvider);
-    if (!settings.isActive) {
+  Future<void> send(String text, {bool uiMalay = false}) async {
+    if (!ref.read(muslimAiSettingsProvider).isActive) {
       state = state.copyWith(error: 'not_enabled');
       return;
     }
     final trimmed = text.trim();
     if (trimmed.isEmpty || state.busy) return;
 
-    final user = AssistantMessage(
-      role: AssistantRole.user,
-      text: trimmed,
-      at: DateTime.now(),
-    );
-    final next = [...state.messages, user];
+    final next = [...state.messages, userMessage(trimmed)];
     state = state.copyWith(
       messages: next,
       busy: true,
+      phase: AiPhase.searching,
       clearError: true,
-      lastLibrarySources: const [],
-      lastFatwaHits: const [],
     );
-    await ref.read(muslimChatHistoryStoreProvider).save(next);
+    await persist(next);
 
     _cancel?.cancel();
-    _cancel = CancelToken();
+    final cancel = _cancel = CancelToken();
 
-    IslamicAppAnswer? library;
-    Object? libraryError;
-    try {
-      library = await ref
-          .read(islamicAppClientProvider)
-          .ask(trimmed, cancel: _cancel);
-    } on IslamicAppRateLimitException catch (e) {
-      libraryError = e;
-    } on DioException catch (e) {
-      if (e.type == DioExceptionType.cancel) return;
-      libraryError = e;
-    } on Object catch (e) {
-      libraryError = e;
-    }
-    if (!ref.mounted) return;
+    // Kedua-dua sumber serentak: jumlah masa = yang paling lambat, bukan dicampur.
+    final libraryFuture = _ask(trimmed, cancel);
+    final fatwaFuture = _fatwa(trimmed, cancel);
+    final library = await libraryFuture;
+    final fatwa = await fatwaFuture;
+    if (!ref.mounted || cancel.isCancelled) return;
 
-    List<DeenFatwaHit> fatwaHits = const [];
-    try {
-      fatwaHits = await ref
-          .read(deenFatwaClientProvider)
-          .search(trimmed, cancel: _cancel);
-      fatwaHits = fatwaHits.take(3).toList();
-    } on DioException catch (e) {
-      if (e.type == DioExceptionType.cancel) return;
-      // Sandaran gagal — teruskan dengan jawapan library jika ada.
-    } on Object {
-      // abaikan
-    }
-    if (!ref.mounted) return;
-
-    final replyText = _composeReply(
-      malay: malay,
-      library: library,
-      libraryError: libraryError,
-      fatwaHits: fatwaHits,
-    );
-
-    final reply = AssistantMessage(
-      role: AssistantRole.assistant,
-      text: replyText,
-      at: DateTime.now(),
+    final reply = composeMuslimReply(
+      library: library.answer,
+      libraryError: library.error,
+      fatwaHits: fatwa,
     );
     final all = [...state.messages, reply];
     state = state.copyWith(
       messages: all,
       busy: false,
-      lastLibrarySources: library?.sources ?? const [],
-      lastFatwaHits: fatwaHits,
-      error: library == null && fatwaHits.isEmpty && libraryError != null
-          ? libraryError.toString()
-          : null,
-      clearError: library != null || fatwaHits.isNotEmpty,
+      phase: AiPhase.idle,
+      freshAt: reply.at,
     );
-    await ref.read(muslimChatHistoryStoreProvider).save(all);
+    await persist(all);
   }
 
-  static String _composeReply({
-    required bool malay,
-    required IslamicAppAnswer? library,
-    required Object? libraryError,
-    required List<DeenFatwaHit> fatwaHits,
-  }) {
-    final buf = StringBuffer();
-
-    if (libraryError is IslamicAppRateLimitException) {
-      buf.writeln(
-        malay
-            ? 'Had permintaan islamic.app dicapai sebentar. Cuba lagi kemudian, '
-                  'atau semak pautan fatwa di bawah jika ada. Wallahu a\'lam.'
-            : 'islamic.app rate limit reached for now. Try again later, or check '
-                  'any fatwa links below. Wallahu a\'lam.',
-      );
-      buf.writeln();
-    } else if (library != null &&
-        library.grounded &&
-        library.answer.trim().isNotEmpty) {
-      buf.writeln(
-        malay
-            ? 'Ringkasan daripada teks klasik (islamic.app) — bukan fatwa rasmi '
-                  'JAKIM / mufti negeri. Semak petikan; rujuk ulama untuk keputusan '
-                  'peribadi. Wallahu a\'lam.'
-            : 'Summary from classical texts (islamic.app) — not an official JAKIM '
-                  '/ state mufti ruling. Verify citations; ask a scholar for personal '
-                  'decisions. Wallahu a\'lam.',
-      );
-      buf.writeln();
-      buf.writeln(library.answer.trim());
-      if (library.sources.isNotEmpty) {
-        buf.writeln();
-        buf.writeln(malay ? 'Sumber klasik:' : 'Classical sources:');
-        for (final s in library.sources.take(5)) {
-          buf.writeln('[${s.n}] ${s.label}');
-          buf.writeln('    ${s.url}');
-        }
-      }
-    } else if (library != null && !library.grounded) {
-      buf.writeln(
-        malay
-            ? 'Tiada petikan klasik yang cukup hampir dalam islamic.app untuk soalan '
-                  'ini. Sila rujuk ulama. Wallahu a\'lam.'
-            : 'No closely matching classical passages were found in islamic.app for '
-                  'this question. Please ask a qualified scholar. Wallahu a\'lam.',
-      );
-    } else if (libraryError != null && fatwaHits.isEmpty) {
-      buf.writeln(
-        malay
-            ? 'Tidak dapat menyambung ke sumber rujukan sekarang. Cuba lagi atau '
-                  'rujuk pejabat mufti tempatan. Wallahu a\'lam.'
-            : 'Could not reach reference sources right now. Try again or ask your '
-                  'local mufti office. Wallahu a\'lam.',
-      );
+  Future<({IslamicAppAnswer? answer, Object? error})> _ask(
+    String q,
+    CancelToken cancel,
+  ) async {
+    try {
+      final a = await ref.read(islamicAppClientProvider).ask(q, cancel: cancel);
+      return (answer: a, error: null);
+    } on Object catch (e) {
+      return (answer: null, error: e);
     }
+  }
 
-    if (fatwaHits.isNotEmpty) {
-      if (buf.isNotEmpty) buf.writeln();
-      buf.writeln(
-        malay
-            ? 'Sumber fatwa berkaitan (indeks deen.ai — bukan rasmi Malaysia):'
-            : 'Related fatwa sources (deen.ai index — not official in Malaysia):',
-      );
-      for (var i = 0; i < fatwaHits.length; i++) {
-        final h = fatwaHits[i];
-        final meta = [
-          if (h.madhab != null && h.madhab!.isNotEmpty) h.madhab,
-          if (h.source.isNotEmpty) h.source,
-        ].join(' · ');
-        buf.writeln('${i + 1}. ${h.title}');
-        if (meta.isNotEmpty) buf.writeln('   $meta');
-        buf.writeln('   ${h.url}');
-      }
+  Future<List<DeenFatwaHit>> _fatwa(String q, CancelToken cancel) async {
+    try {
+      final hits = await ref
+          .read(deenFatwaClientProvider)
+          .search(q, cancel: cancel);
+      return hits.take(3).toList();
+    } on Object {
+      return const [];
     }
-
-    final out = buf.toString().trim();
-    if (out.isNotEmpty) return out;
-    return malay
-        ? 'Tiada jawapan yang boleh dipetik. Rujuk ulama. Wallahu a\'lam.'
-        : 'No citable answer available. Please ask a scholar. Wallahu a\'lam.';
   }
 }
 
+/// Bina jawapan berstruktur: teks jawapan sahaja (tanpa senarai rujukan yang model sertakan),
+/// sumber sebagai data, dan nota piawai yang diterjemah semasa dipaparkan.
+AssistantMessage composeMuslimReply({
+  required IslamicAppAnswer? library,
+  required Object? libraryError,
+  required List<DeenFatwaHit> fatwaHits,
+  DateTime? at,
+}) {
+  final grounded =
+      library != null && library.grounded && library.answer.trim().isNotEmpty;
+  final AnswerNotice? notice;
+  if (libraryError is IslamicAppRateLimitException) {
+    notice = AnswerNotice.rateLimited;
+  } else if (grounded) {
+    notice = AnswerNotice.classicalSummary;
+  } else if (library != null) {
+    notice = AnswerNotice.notGrounded;
+  } else {
+    notice = fatwaHits.isEmpty ? AnswerNotice.unreachable : null;
+  }
+  return AssistantMessage(
+    role: AssistantRole.assistant,
+    text: grounded ? stripReferenceList(library.answer) : '',
+    at: at ?? DateTime.now(),
+    notice: notice,
+    sources: [
+      if (grounded)
+        for (final s in library.sources.take(6))
+          AnswerSource(
+            kind: AnswerSourceKind.classical,
+            n: s.n > 0 ? s.n : null,
+            title: (s.translit?.trim().isNotEmpty ?? false)
+                ? s.translit!.trim()
+                : s.bookTitle,
+            original:
+                (s.translit?.trim().isNotEmpty ?? false) &&
+                    s.bookTitle != s.translit
+                ? s.bookTitle
+                : null,
+            subtitle: [
+              if (s.chapterTitle?.trim().isNotEmpty ?? false)
+                s.chapterTitle!.trim(),
+              if (s.page != null) 'p.${s.page}',
+            ].join(' · '),
+            url: s.url,
+          ),
+      for (final h in fatwaHits)
+        AnswerSource(
+          kind: AnswerSourceKind.fatwa,
+          title: h.title,
+          subtitle: [
+            if (h.madhab?.isNotEmpty ?? false) h.madhab!,
+            if (h.source.isNotEmpty) h.source,
+          ].join(' · '),
+          url: h.url,
+        ),
+    ],
+  );
+}
+
+final _referenceHeading = RegExp(
+  r'^\s*(?:#+\s*)?(?:\*\*)?(?:sources|references|citations|rujukan|sumber(?:\s+rujukan)?)(?:\*\*)?\s*:?\s*(?:\*\*)?\s*$',
+  caseSensitive: false,
+);
+final _referenceLine = RegExp(r'^\s*(?:[-*•]\s*)?\[\d+\]\s+\S');
+
+/// Buang senarai rujukan di hujung jawapan model (sumber dipaparkan sebagai kad berasingan).
+/// Penanda petikan dalam ayat ("... [2]") dikekalkan.
+String stripReferenceList(String answer) {
+  final lines = answer.trim().split('\n');
+  final heading = lines.indexWhere(_referenceHeading.hasMatch);
+  var end = heading >= 0 ? heading : lines.length;
+  while (end > 0 &&
+      (lines[end - 1].trim().isEmpty ||
+          _referenceLine.hasMatch(lines[end - 1]))) {
+    end--;
+  }
+  final kept = lines.sublist(0, end).join('\n').trim();
+  return kept.isEmpty ? answer.trim() : kept;
+}
+
 final muslimAiControllerProvider =
-    NotifierProvider<MuslimAiController, MuslimAiUiState>(
+    NotifierProvider<MuslimAiController, AssistantUiState>(
       MuslimAiController.new,
     );

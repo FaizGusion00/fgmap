@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/location/location_service.dart';
@@ -18,11 +20,17 @@ import '../../music/presentation/player_controller.dart';
 import '../../navigation/presentation/navigation_controller.dart';
 import '../../qibla/domain/qibla.dart';
 import '../../route_preview/domain/route_option.dart';
+import '../../route_preview/domain/route_preference.dart';
+import '../../route_preview/domain/route_scoring.dart';
+import '../../route_preview/domain/toll.dart';
 import '../../route_preview/presentation/route_preview_controller.dart';
+import '../../search/data/nearby_search.dart';
 import '../../search/data/photon_geocoder.dart';
+import '../../search/domain/nearby_category.dart';
 import '../../weather/data/open_meteo_client.dart';
 import '../../weather/domain/weather_codes.dart';
 import '../domain/assistant_tools.dart';
+import '../presentation/ai_map_bridge.dart';
 import 'wikipedia_client.dart';
 
 /// Menjalankan alat pembantu terhadap ciri FGMaps sedia ada.
@@ -40,11 +48,11 @@ class AssistantToolExecutor {
     }
     try {
       return switch (name) {
-        'search_place' => await _searchPlace(_str(args, 'query')),
-        'plan_route' => await _planRoute(
+        'search_place' => await searchPlace(_str(args, 'query')),
+        'plan_route' => await planRoute(
           _str(args, 'query'),
-          avoidTolls: _bool(args, 'avoid_tolls'),
-          avoidHighways: _bool(args, 'avoid_highways'),
+          preference: _preference(args),
+          start: _bool(args, 'start'),
         ),
         'get_air_quality' => await _airQuality(_str(args, 'query')),
         'get_weather' => await _weather(_str(args, 'query')),
@@ -68,7 +76,7 @@ class AssistantToolExecutor {
     }
   }
 
-  Future<Map<String, Object?>> _searchPlace(String? query) async {
+  Future<Map<String, Object?>> searchPlace(String? query) async {
     if (query == null || query.trim().isEmpty) {
       return {'ok': false, 'error': 'missing_query'};
     }
@@ -87,15 +95,21 @@ class AssistantToolExecutor {
             'subtitle': p.subtitle,
             'lat': p.point.lat,
             'lng': p.point.lng,
+            if (near != null)
+              'distance_km': double.parse(
+                (distanceMeters(near, p.point) / 1000).toStringAsFixed(1),
+              ),
           },
       ],
     };
   }
 
-  Future<Map<String, Object?>> _planRoute(
+  /// Rancang laluan ke [query] dan pilih pilihan yang sepadan dengan [preference]. Dengan [start],
+  /// minta peta memulakan navigasi terus (tanpa bertanya lagi).
+  Future<Map<String, Object?>> planRoute(
     String? query, {
-    required bool avoidTolls,
-    required bool avoidHighways,
+    RoutePreference preference = RoutePreference.recommended,
+    bool start = false,
   }) async {
     if (query == null || query.trim().isEmpty) {
       return {'ok': false, 'error': 'missing_query'};
@@ -110,50 +124,201 @@ class AssistantToolExecutor {
         .read(routePreviewControllerProvider.notifier)
         .planTo(place.point, destinationLabel: place.name);
 
-    // Tunggu pratonton siap (atau gagal) sehingga ~20 s.
-    for (var i = 0; i < 40; i++) {
-      await Future<void>.delayed(const Duration(milliseconds: 500));
+    final ready = await _awaitRoute(
+      // Pilihan selain "Disyorkan" perlu calon tambahan (cth. tanpa tol) yang tiba kemudian.
+      waitForAll: preference != RoutePreference.recommended,
+      waitForTolls: preference == RoutePreference.cheapest,
+    );
+    if (ready == null) {
       final state = _ref.read(routePreviewControllerProvider);
-      if (state is RouteReady) {
-        var selected = state.selectedIndex;
-        if (avoidTolls) {
-          final i = state.options.indexWhere(
-            (o) => o.label == RouteLabel.noTolls || !o.hasTolls,
-          );
-          if (i >= 0) {
-            _ref.read(routePreviewControllerProvider.notifier).select(i);
-            selected = i;
-          }
-        } else if (avoidHighways) {
-          final i = state.options.indexWhere(
-            (o) => o.label == RouteLabel.noHighways || !o.hasHighway,
-          );
-          if (i >= 0) {
-            _ref.read(routePreviewControllerProvider.notifier).select(i);
-            selected = i;
-          }
-        }
-        final ready = _ref.read(routePreviewControllerProvider);
-        final opt = ready is RouteReady
-            ? ready.selected
-            : state.options[selected.clamp(0, state.options.length - 1)];
-        return {
-          'ok': true,
-          'destination': place.name,
-          'lat': place.point.lat,
-          'lng': place.point.lng,
-          'distance_km': (opt.distanceM / 1000).toStringAsFixed(1),
-          'duration_min': (opt.durationS / 60).round(),
-          'has_tolls': opt.hasTolls,
-          'label': opt.label.name,
-          'note': 'Route preview opened. User taps Start to navigate.',
-        };
-      }
-      if (state is RouteLocationUnavailable || state is RouteFailed) {
-        return {'ok': false, 'error': 'route_failed'};
-      }
+      return {
+        'ok': false,
+        'error': state is RouteLocationUnavailable
+            ? 'no_location'
+            : state is RouteFailed
+            ? 'route_failed'
+            : 'route_timeout',
+      };
     }
-    return {'ok': false, 'error': 'route_timeout'};
+    var choice = chooseRoute(ready.options, preference, tolls: ready.tolls);
+    var base = ready;
+    final strict = await _replanIfUnmet(preference, choice);
+    if (strict != null) {
+      base = strict;
+      choice = chooseRoute(base.options, preference, tolls: base.tolls);
+    }
+    final ctrl = _ref.read(routePreviewControllerProvider.notifier);
+    if (choice.index != base.selectedIndex) ctrl.select(choice.index);
+    final current = _ref.read(routePreviewControllerProvider);
+    final chosen = current is RouteReady ? current : base;
+    if (start) _ref.read(aiMapRequestProvider.notifier).startNavigation();
+    return {
+      'ok': true,
+      'destination': place.name,
+      'destination_area': place.subtitle,
+      'lat': place.point.lat,
+      'lng': place.point.lng,
+      ..._optionSummary(chosen.selected, chosen.tollOf(chosen.selected)),
+      'reason': choice.reason.name,
+      'options_count': chosen.options.length,
+      'alternatives': [
+        for (final o in chosen.options.take(3))
+          if (!identical(o, chosen.selected))
+            _optionSummary(o, chosen.tollOf(o)),
+      ],
+      'navigation_started': start,
+    };
+  }
+
+  /// Tukar pilihan pada laluan yang sedang dipratonton ("tanpa tol", "paling selamat").
+  Future<Map<String, Object?>> chooseCurrentRoute(
+    RoutePreference preference, {
+    bool start = false,
+  }) async {
+    final state = _ref.read(routePreviewControllerProvider);
+    if (state is! RouteReady) return {'ok': false, 'error': 'no_route'};
+    final ready = state.loadingMore
+        ? await _awaitRoute(
+                waitForAll: true,
+                waitForTolls: preference == RoutePreference.cheapest,
+              ) ??
+              state
+        : state;
+    var choice = chooseRoute(ready.options, preference, tolls: ready.tolls);
+    var base = ready;
+    final strict = await _replanIfUnmet(preference, choice);
+    if (strict != null) {
+      base = strict;
+      choice = chooseRoute(base.options, preference, tolls: base.tolls);
+    }
+    _ref.read(routePreviewControllerProvider.notifier).select(choice.index);
+    final now = _ref.read(routePreviewControllerProvider);
+    final chosen = now is RouteReady ? now : base;
+    if (start) _ref.read(aiMapRequestProvider.notifier).startNavigation();
+    return {
+      'ok': true,
+      'destination': chosen.query.destinationLabel,
+      ..._optionSummary(chosen.selected, chosen.tollOf(chosen.selected)),
+      'reason': choice.reason.name,
+      'navigation_started': start,
+    };
+  }
+
+  /// Pilihan sedia ada tidak memenuhi kehendak tegas ("tanpa tol" tetapi semua bertol; "elak lebuh
+  /// raya" tetapi semua melaluinya): minta laluan dengan kehendak itu terus daripada enjin laluan,
+  /// bukan bergantung pada calon tambahan yang mungkin gagal di pelayan awam. Jika enjin tetap
+  /// memberi laluan bertol (tiada jalan lain), jawapan melaporkannya dengan jujur.
+  Future<RouteReady?> _replanIfUnmet(
+    RoutePreference preference,
+    RouteChoice choice,
+  ) async {
+    final unmet = switch (preference) {
+      RoutePreference.noTolls => choice.reason == RouteChoiceReason.fewestTolls,
+      RoutePreference.noHighways =>
+        choice.reason != RouteChoiceReason.noHighways,
+      _ => false,
+    };
+    if (!unmet) return null;
+    final ctrl = _ref.read(routePreviewControllerProvider.notifier);
+    if (preference == RoutePreference.noTolls) {
+      // Larangan mutlak dahulu (laluan tanpa tol sebenar, mungkin jauh lebih panjang); jika tiada
+      // jalan tanpa tol langsung (cth. ke pulau), jatuh kepada keutamaan lembut.
+      await ctrl.replanWith(avoidTolls: true, excludeTolls: true);
+      final strict = await _awaitRoute();
+      if (strict != null) return strict;
+      await ctrl.replanWith(avoidTolls: true, excludeTolls: false);
+      return _awaitRoute();
+    }
+    await ctrl.replanWith(avoidHighways: true);
+    return _awaitRoute();
+  }
+
+  static Map<String, Object?> _optionSummary(RouteOption o, TollEstimate? t) =>
+      {
+        'distance_km': double.parse((o.distanceM / 1000).toStringAsFixed(1)),
+        'duration_min': (o.durationS / 60).round(),
+        'has_tolls': o.hasTolls,
+        if (t != null && t.knownRm > 0) 'toll_rm': t.knownRm,
+        if (t != null && t.isPartial) 'toll_partial': true,
+        'turns': turnCountOf(o),
+        'via': o.via,
+        'label': o.label.name,
+      };
+
+  /// Tunggu pratonton siap melalui pendengar (bukan tinjauan). [waitForAll]: tunggu calon tambahan
+  /// juga (paling lama ~8 s selepas laluan pertama); [waitForTolls]: tunggu anggaran tol.
+  Future<RouteReady?> _awaitRoute({
+    bool waitForAll = false,
+    bool waitForTolls = false,
+  }) async {
+    bool done(RoutePreviewState s) {
+      if (s is! RouteReady) return false;
+      if (waitForAll && s.loadingMore) return false;
+      if (waitForTolls &&
+          s.options.any((o) => o.hasTolls && s.tollOf(o) == null)) {
+        return false;
+      }
+      return true;
+    }
+
+    bool failed(RoutePreviewState s) =>
+        s is RouteFailed || s is RouteLocationUnavailable || s is RouteIdle;
+
+    final first = Completer<void>();
+    final complete = Completer<RouteReady?>();
+    final sub = _ref.listen<RoutePreviewState>(routePreviewControllerProvider, (
+      _,
+      next,
+    ) {
+      if (next is RouteReady && !first.isCompleted) first.complete();
+      if (complete.isCompleted) return;
+      if (next is RouteReady && done(next)) complete.complete(next);
+      if (failed(next)) complete.complete(null);
+    }, fireImmediately: true);
+    try {
+      // Laluan pertama: sehingga 15 s (pelayan awam, atau enjin offline).
+      await Future.any([
+        first.future,
+        complete.future,
+        Future<void>.delayed(const Duration(seconds: 15)),
+      ]);
+      if (_ref.read(routePreviewControllerProvider) is! RouteReady) return null;
+      return await complete.future.timeout(
+        const Duration(seconds: 8),
+        onTimeout: () {
+          final s = _ref.read(routePreviewControllerProvider);
+          return s is RouteReady ? s : null;
+        },
+      );
+    } finally {
+      sub.close();
+    }
+  }
+
+  /// Tempat terdekat mengikut kategori (stesen minyak, surau, tandas...), tersusun mengikut jarak.
+  Future<Map<String, Object?>> nearby(
+    NearbyCategory category, {
+    required String fallbackName,
+  }) async {
+    final here = await _gps();
+    if (here == null) return {'ok': false, 'error': 'no_location'};
+    final result = await _ref
+        .read(nearbySearchProvider)
+        .search(category, here, fallbackName: fallbackName);
+    if (result.places.isEmpty) return {'ok': false, 'error': 'not_found'};
+    return {
+      'ok': true,
+      'places': [
+        for (final p in result.places.take(5))
+          {
+            'name': p.name,
+            'subtitle': p.subtitle,
+            'lat': p.point.lat,
+            'lng': p.point.lng,
+            'distance_m': distanceMeters(here, p.point).round(),
+          },
+      ],
+    };
   }
 
   Future<Map<String, Object?>> _airQuality(String? query) async {
@@ -208,6 +373,7 @@ class AssistantToolExecutor {
       'temp_c': d.tempC.round(),
       'feels_like_c': d.feelsLikeC?.round(),
       'weather': WeatherCodes.label(d.weatherCode, malay: false),
+      'code': d.weatherCode,
       'precip_prob': d.precipProb,
       'humidity_pct': d.humidityPct,
       'wind_kmh': d.windKmh?.round(),
@@ -393,6 +559,23 @@ class AssistantToolExecutor {
     if (v == null) return null;
     final s = v.toString().trim();
     return s.isEmpty ? null : s;
+  }
+
+  static RoutePreference _preference(Map<String, Object?> args) {
+    if (_bool(args, 'avoid_tolls')) return RoutePreference.noTolls;
+    if (_bool(args, 'avoid_highways')) return RoutePreference.noHighways;
+    return switch (_str(
+      args,
+      'preference',
+    )?.toLowerCase().replaceAll('-', '_')) {
+      'fastest' => RoutePreference.fastest,
+      'shortest' => RoutePreference.shortest,
+      'no_tolls' || 'toll_free' || 'notolls' => RoutePreference.noTolls,
+      'no_highways' => RoutePreference.noHighways,
+      'cheapest' => RoutePreference.cheapest,
+      'safest' || 'safe' => RoutePreference.safest,
+      _ => RoutePreference.recommended,
+    };
   }
 
   static bool _bool(Map<String, Object?> args, String key) {

@@ -13,22 +13,28 @@ List<GeoPoint> _line(double km, {double lat = 0}) {
   return [for (var i = 0; i <= n; i++) GeoPoint(lat, i * (km / 111.32) / n)];
 }
 
-/// Menjawab ikut jenis pertanyaan (R&R vs minyak) dan merekod setiap panggilan.
+/// Menjawab pertanyaan gabungan (semua kategori) dan merekod setiap panggilan.
 class _Overpass {
   final calls = <String>[];
 
   ResponseBody respond(RequestOptions o) {
     final q = o.data as String;
-    final fuel = q.contains('"amenity"="fuel"');
-    calls.add(fuel ? 'fuel' : 'rr');
+    calls.add(q.contains('charging_station') ? 'all' : 'single');
     return StubAdapter.json({
       'elements': [
         {
           'type': 'node',
-          'id': fuel ? 1 : 2,
+          'id': 1,
           'lat': 0.0,
           'lon': 0.1,
-          'tags': {'name': fuel ? 'Petronas' : 'R&R Tapah'},
+          'tags': {'name': 'Petronas', 'amenity': 'fuel'},
+        },
+        {
+          'type': 'node',
+          'id': 2,
+          'lat': 0.0,
+          'lon': 0.2,
+          'tags': {'name': 'R&R Tapah', 'highway': 'services'},
         },
       ],
     });
@@ -67,7 +73,7 @@ void main() {
     );
   });
 
-  test('R&R dimuat, kemudian minyak dipra-muat senyap-senyap', () async {
+  test('satu permintaan memuat SEMUA kategori', () async {
     await ctl().loadForRoute(
       sampleOption(points: _line(50)),
       category: AlongRouteCategory.restArea,
@@ -75,16 +81,14 @@ void main() {
     expect(st().pois.single.name, 'R&R Tapah');
     expect(st().loading, isFalse);
     await pumpEventQueue();
-    expect(net.calls, ['rr', 'fuel']);
+    expect(net.calls, ['all']);
   });
 
-  test('menukar ke kategori yang sudah dimuat/pra-muat: serta-merta, '
-      'tiada rangkaian', () async {
+  test('menukar kategori selepas dimuat: serta-merta, tiada rangkaian', () async {
     await ctl().loadForRoute(
       sampleOption(points: _line(50)),
       category: AlongRouteCategory.restArea,
     );
-    await pumpEventQueue();
     net.calls.clear();
 
     final f = ctl().selectCategory(AlongRouteCategory.fuel);
@@ -94,6 +98,10 @@ void main() {
     expect(st().pois.single.name, 'Petronas');
     await f;
 
+    // EV/surau/tandas juga serta-merta (kosong di sini), bukan permintaan baharu.
+    await ctl().selectCategory(AlongRouteCategory.evCharging);
+    expect(st().loading, isFalse);
+    expect(st().pois, isEmpty);
     await ctl().selectCategory(AlongRouteCategory.restArea);
     expect(st().pois.single.name, 'R&R Tapah');
     await pumpEventQueue();
@@ -101,22 +109,23 @@ void main() {
   });
 
   test(
-    'kategori belum dimuat: senarai lama dikosongkan semasa memuat',
+    'cip diketuk semasa carian gabungan berjalan: kongsi permintaan yang sama',
     () async {
-      await ctl().loadForRoute(
+      final first = ctl().loadForRoute(
         sampleOption(points: _line(50)),
         category: AlongRouteCategory.restArea,
       );
-      await pumpEventQueue();
-      final f = ctl().selectCategory(AlongRouteCategory.mosque);
+      final second = ctl().selectCategory(AlongRouteCategory.fuel);
       expect(st().loading, isTrue);
       expect(
         st().pois,
         isEmpty,
-        reason: 'jangan tunjuk R&R di bawah cip Surau',
+        reason: 'jangan tunjuk R&R di bawah cip Minyak',
       );
-      await f;
-      expect(st().loading, isFalse);
+      await Future.wait([first, second]);
+      expect(st().category, AlongRouteCategory.fuel);
+      expect(st().pois.single.name, 'Petronas');
+      expect(net.calls, ['all']);
     },
   );
 
@@ -131,7 +140,7 @@ void main() {
       sampleOption(points: _line(50, lat: 0.02)),
       category: AlongRouteCategory.restArea,
     );
-    expect(net.calls.first, 'rr');
+    expect(net.calls.first, 'all');
   });
 
   test('laluan yang sama dipilih semula: dari cache', () async {

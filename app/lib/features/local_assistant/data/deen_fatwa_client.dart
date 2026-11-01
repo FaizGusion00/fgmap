@@ -14,10 +14,7 @@ class DeenFatwaClient {
   final Dio _dio;
   final String baseUrl;
 
-  Future<List<DeenFatwaHit>> search(
-    String query, {
-    CancelToken? cancel,
-  }) async {
+  Future<List<DeenFatwaHit>> search(String query, {CancelToken? cancel}) async {
     final q = query.trim();
     if (q.isEmpty) return const [];
     final res = await _dio.post<Map<String, dynamic>>(

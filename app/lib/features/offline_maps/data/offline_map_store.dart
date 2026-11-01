@@ -12,6 +12,8 @@ import '../domain/offline_models.dart';
 ///     download.part          muat turun separa (boleh disambung)
 ///     download.json          metadata muat turun separa
 ///     valhalla_tiles.tar.tmp hasil ekstrak sementara sebelum dipasang
+///     places.sqlite          indeks carian offline (FTS4) + places.json (versi, saiz)
+///     places.part / .tmp     muat turun dan ekstrak sementara indeks
 class OfflineMapStore {
   OfflineMapStore(this.dir);
 
@@ -22,6 +24,10 @@ class OfflineMapStore {
   File get partFile => File(p.join(dir.path, 'download.part'));
   File get _partMeta => File(p.join(dir.path, 'download.json'));
   File get tmpTar => File(p.join(dir.path, 'valhalla_tiles.tar.tmp'));
+  File get _places => File(p.join(dir.path, 'places.sqlite'));
+  File get _placesMeta => File(p.join(dir.path, 'places.json'));
+  File get placesPart => File(p.join(dir.path, 'places.part'));
+  File get placesTmp => File(p.join(dir.path, 'places.sqlite.tmp'));
 
   Future<void> ensureDir() async {
     if (!await dir.exists()) await dir.create(recursive: true);
@@ -39,13 +45,54 @@ class OfflineMapStore {
       final size = meta['sizeBytes'];
       if (version is! String || size is! int) return null;
       if (await _tar.length() != size) return null;
-      return InstalledMap(
+      final map = InstalledMap(
         version: version,
         sizeBytes: size,
         tarPath: _tar.path,
       );
+      final places = await _readPlaces();
+      return places == null
+          ? map
+          : map.withPlaces(places.$1, _places.path, places.$2);
     } on Object {
       return null;
+    }
+  }
+
+  /// (versi, saiz) indeks carian yang dipasang, atau null jika tiada/rosak.
+  Future<(String, int)?> _readPlaces() async {
+    try {
+      if (!await _places.exists() || !await _placesMeta.exists()) return null;
+      final meta = jsonDecode(await _placesMeta.readAsString());
+      if (meta is! Map<String, dynamic>) return null;
+      final version = meta['version'];
+      final size = meta['sizeBytes'];
+      if (version is! String || size is! int) return null;
+      if (await _places.length() != size) return null;
+      return (version, size);
+    } on Object {
+      return null;
+    }
+  }
+
+  /// Pasang indeks carian yang sudah disahkan. Pemanggil MESTI menutup pangkalan data dahulu.
+  Future<void> installPlaces(
+    File verifiedTmp, {
+    required String version,
+    required int sizeBytes,
+  }) async {
+    if (await _placesMeta.exists()) await _placesMeta.delete();
+    if (await _places.exists()) await _places.delete();
+    await verifiedTmp.rename(_places.path);
+    await _placesMeta.writeAsString(
+      jsonEncode({'version': version, 'sizeBytes': sizeBytes}),
+      flush: true,
+    );
+  }
+
+  Future<void> discardPlacesPartial() async {
+    for (final f in [placesPart, placesTmp]) {
+      if (await f.exists()) await f.delete();
     }
   }
 
@@ -73,7 +120,7 @@ class OfflineMapStore {
   }
 
   Future<void> deleteInstalled() async {
-    for (final f in [_installedMeta, _tar]) {
+    for (final f in [_installedMeta, _tar, _placesMeta, _places]) {
       if (await f.exists()) await f.delete();
     }
   }
@@ -106,7 +153,7 @@ class OfflineMapStore {
       );
 
   Future<void> discardPartial() async {
-    for (final f in [partFile, _partMeta, tmpTar]) {
+    for (final f in [partFile, _partMeta, tmpTar, placesPart, placesTmp]) {
       if (await f.exists()) await f.delete();
     }
   }
