@@ -119,7 +119,7 @@ const _ftsTokenAliases = <String, List<String>>{
 /// "jalan* amp*"), dengan OR untuk varian Melayu/Inggeris (jln/jalan, stesen/station). Aksara selain
 /// huruf/nombor dibuang (tokenizer `simple` memisahkan pada aksara itu). Null jika tiada perkataan.
 /// Landasan (KLCC, Pavilion, …) dikembangkan melalui [expandPlaceQuery] sebelum tokenisasi.
-String? ftsMatchQuery(String text) {
+String? ftsMatchQuery(String text, {bool loose = false}) {
   final source = expandPlaceQuery(text);
   final normalized = source
       .toLowerCase()
@@ -131,13 +131,18 @@ String? ftsMatchQuery(String text) {
       .take(6)
       .toList();
   if (tokens.isEmpty) return null;
-  return tokens.map(_ftsTokenClause).join(' ');
+  // `loose`: sebarang token padan (OR) — sandaran bila padanan ketat (semua token) tiada hasil; susunan
+  // `rankOfflinePlaces` mengutamakan nama yang paling banyak sepadan.
+  return tokens.map(_ftsTokenClause).join(loose ? ' OR ' : ' ');
 }
 
 String _ftsTokenClause(String token) {
   final variants = _ftsTokenAliases[token] ?? [token];
   // Awalan pada setiap varian: "amp" padan "ampang"; OR menyatukan singkatan.
   final clauses = [for (final v in variants) '$v*'];
+  // Ejaan dirapatkan: "attaufiqiah" juga padan token berasingan "at" + "taufiqiah" (indeks memisahkan "At-Taufiqiah").
+  final split = variants.length == 1 ? splitArabicArticle(token) : null;
+  if (split != null) clauses.add('(${split.$1}* AND ${split.$2}*)');
   if (clauses.length == 1) return clauses.single;
   return '(${clauses.join(' OR ')})';
 }

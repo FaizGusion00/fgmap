@@ -237,3 +237,46 @@ String _join(List<String> sentences) {
   }
   return b.toString();
 }
+
+List<String> _echoTokens(String text) => text
+    .toLowerCase()
+    .replaceAll(RegExp(r"['’`]"), '')
+    .split(RegExp(r'[^a-z0-9À-ɏ؀-ۿ]+'))
+    .where((t) => t.isNotEmpty)
+    .toList();
+
+/// Model kecil (0.6B) kerap MENGULANG ayat pengguna, atau memulakan dengan salam/pengenalan diri yang tidak
+/// diminta ("Hello! I'm FG AI. Where are you heading...? [ayat pengguna]"). Pengguna sudah ada router untuk
+/// salam dan identiti, jadi jawapan sebegini bukan jawapan: ditolak supaya diganti panduan ringkas.
+bool isEchoReply(String reply, String userText) {
+  final r = _echoTokens(reply);
+  final u = _echoTokens(userText);
+  if (r.isEmpty) return false;
+  // Ayat pengguna (>= 3 perkataan) muncul utuh dalam jawapan.
+  if (u.length >= 3) {
+    for (var i = 0; i + u.length <= r.length; i++) {
+      var all = true;
+      for (var j = 0; j < u.length; j++) {
+        if (r[i + j] != u[j]) {
+          all = false;
+          break;
+        }
+      }
+      if (all) return true;
+    }
+    // Jawapan hampir sama dengan soalan (Jaccard tinggi) = menyalin.
+    final ru = r.toSet();
+    final uu = u.toSet();
+    final inter = ru.intersection(uu).length;
+    final union = ru.union(uu).length;
+    if (union > 0 && inter / union >= 0.8) return true;
+  }
+  // Salam / pengenalan diri yang tidak diminta di permulaan jawapan.
+  final head = r.take(8).join(' ');
+  if (RegExp(
+    r'^(?:hello|hi|hai|hey|helo|assalamualaikum|salam)\b|\b(?:im|i am|saya) fg ?ai\b',
+  ).hasMatch(head)) {
+    return true;
+  }
+  return false;
+}

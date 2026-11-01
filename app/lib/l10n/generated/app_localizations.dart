@@ -4373,8 +4373,74 @@ abstract class AppLocalizations {
   /// No description provided for @aiRouteFailed.
   ///
   /// In ms, this message translates to:
-  /// **'Laluan tidak dapat dikira sekarang. Semak sambungan, atau muat turun peta offline untuk laluan tanpa internet.'**
+  /// **'Laluan tidak dapat dikira sekarang. Sila cuba lagi sebentar lagi.'**
   String get aiRouteFailed;
+
+  /// No description provided for @aiBusy.
+  ///
+  /// In ms, this message translates to:
+  /// **'Perkhidmatan carian dan laluan sedang sibuk. Cuba lagi sebentar lagi.'**
+  String get aiBusy;
+
+  /// No description provided for @aiServiceDown.
+  ///
+  /// In ms, this message translates to:
+  /// **'Perkhidmatan dalam talian tidak menjawab sekarang. Cuba lagi sebentar, atau muat turun pek peta offline supaya saya boleh rancang laluan tanpanya.'**
+  String get aiServiceDown;
+
+  /// No description provided for @aiSlow.
+  ///
+  /// In ms, this message translates to:
+  /// **'Sambungan anda nampak perlahan atau tidak stabil, jadi saya tak dapat siapkan. Sila cuba lagi.'**
+  String get aiSlow;
+
+  /// No description provided for @aiOfflineNotFound.
+  ///
+  /// In ms, this message translates to:
+  /// **'Anda sedang luar talian, jadi saya hanya boleh cari \"{place}\" dalam peta offline dan tiada padanan. Carian offline perlukan pek peta Malaysia (Peta offline). Cuba ejaan lain, atau sambung ke internet.'**
+  String aiOfflineNotFound(String place);
+
+  /// No description provided for @aiOfflinePackNeeded.
+  ///
+  /// In ms, this message translates to:
+  /// **'Anda luar talian dan pek peta offline belum dipasang, jadi saya tak dapat rancang laluan itu. Muat turun pek Malaysia dalam Peta offline semasa ada internet.'**
+  String get aiOfflinePackNeeded;
+
+  /// No description provided for @aiOfflineEngine.
+  ///
+  /// In ms, this message translates to:
+  /// **'Enjin laluan offline tak dapat mengira laluan itu. Cuba lagi, atau muat turun semula pek peta offline.'**
+  String get aiOfflineEngine;
+
+  /// No description provided for @aiNoDrivableRoute.
+  ///
+  /// In ms, this message translates to:
+  /// **'Saya jumpa {place}, tetapi tiada laluan boleh dipandu ke sana dari lokasi anda. Semak sama ada itu tempat yang betul.'**
+  String aiNoDrivableRoute(String place);
+
+  /// No description provided for @aiSearchFailed.
+  ///
+  /// In ms, this message translates to:
+  /// **'Saya tak dapat cari tempat itu sekarang. Sila cuba lagi.'**
+  String get aiSearchFailed;
+
+  /// No description provided for @aiAskDestination.
+  ///
+  /// In ms, this message translates to:
+  /// **'Anda nak ke mana? Cakap contohnya \"Bawa saya ke KLCC\" atau \"Navigate to Masjid Negara\".'**
+  String get aiAskDestination;
+
+  /// No description provided for @aiRouteReadyHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Laluan sudah ada pada peta. Cakap \"start now\" atau tekan Mula untuk mula memandu.'**
+  String get aiRouteReadyHint;
+
+  /// No description provided for @aiNotUnderstood.
+  ///
+  /// In ms, this message translates to:
+  /// **'Saya kurang faham. Saya boleh rancang laluan (\"Laluan ke KLCC\"), cari tempat berdekatan, beritahu lokasi anda, serta kiblat dan waktu solat. Cuba salah satu.'**
+  String get aiNotUnderstood;
 
   /// No description provided for @aiNoLocation.
   ///
@@ -4385,7 +4451,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiOfflineTool.
   ///
   /// In ms, this message translates to:
-  /// **'Itu perlukan internet. Anda sedang luar talian — cuba lagi bila online, atau tanya sesuatu yang berfungsi pada telefon (laluan dengan peta offline, kiblat, waktu solat).'**
+  /// **'Itu perlukan internet dan anda sedang luar talian. Saya masih boleh beri lokasi GPS, kiblat, waktu solat dan laluan jika anda sudah muat turun pek peta offline. Cuba lagi bila online.'**
   String get aiOfflineTool;
 
   /// No description provided for @aiRouteCleared.
@@ -5298,6 +5364,215 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'Model: {name}'**
   String assistantSettingsModel(String name);
+
+  /// No description provided for @aiNoTrip.
+  ///
+  /// In ms, this message translates to:
+  /// **'Belum ada laluan atau navigasi. Beritahu saya destinasi dahulu, contohnya \"bawa saya ke KLCC\".'**
+  String get aiNoTrip;
+
+  /// No description provided for @aiTripDistanceLeft.
+  ///
+  /// In ms, this message translates to:
+  /// **'Baki jarak: **{distance}**.'**
+  String aiTripDistanceLeft(String distance);
+
+  /// No description provided for @aiTripDistanceTotal.
+  ///
+  /// In ms, this message translates to:
+  /// **'Jarak ke destinasi: **{distance}**.'**
+  String aiTripDistanceTotal(String distance);
+
+  /// No description provided for @aiTripTimeLeft.
+  ///
+  /// In ms, this message translates to:
+  /// **'Baki masa: kira-kira **{duration}**.'**
+  String aiTripTimeLeft(String duration);
+
+  /// No description provided for @aiTripTimeTotal.
+  ///
+  /// In ms, this message translates to:
+  /// **'Perjalanan mengambil masa kira-kira **{duration}**.'**
+  String aiTripTimeTotal(String duration);
+
+  /// No description provided for @aiTripArrival.
+  ///
+  /// In ms, this message translates to:
+  /// **'Anda dijangka tiba pada pukul **{time}** (lagi {duration}).'**
+  String aiTripArrival(String time, String duration);
+
+  /// No description provided for @aiTripTollNone.
+  ///
+  /// In ms, this message translates to:
+  /// **'Laluan ini tiada tol.'**
+  String get aiTripTollNone;
+
+  /// No description provided for @aiTripToll.
+  ///
+  /// In ms, this message translates to:
+  /// **'Anggaran tol laluan ini: **{amount}**.'**
+  String aiTripToll(String amount);
+
+  /// No description provided for @aiTripTollPartial.
+  ///
+  /// In ms, this message translates to:
+  /// **'Anggaran tol sekurang-kurangnya **{amount}** (ada plaza yang harganya tiada dalam data).'**
+  String aiTripTollPartial(String amount);
+
+  /// No description provided for @aiTripTollPending.
+  ///
+  /// In ms, this message translates to:
+  /// **'Laluan ini ada tol tetapi anggarannya masih dikira. Tanya lagi sebentar nanti.'**
+  String get aiTripTollPending;
+
+  /// No description provided for @aiTripTollUnknown.
+  ///
+  /// In ms, this message translates to:
+  /// **'Laluan ini ada tol tetapi harganya tiada dalam data kami.'**
+  String get aiTripTollUnknown;
+
+  /// No description provided for @aiTripTollMotorcycle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Harga tol motosikal tiada dalam data kami (kebanyakan lebuh raya percuma untuk motosikal, tetapi tidak semua). Saya tidak mahu meneka.'**
+  String get aiTripTollMotorcycle;
+
+  /// No description provided for @aiTripFuel.
+  ///
+  /// In ms, this message translates to:
+  /// **'Anggaran kos minyak: **{amount}** untuk {distance} (RM{price} seliter, {liters} L/100 km).'**
+  String aiTripFuel(
+    String amount,
+    String distance,
+    String price,
+    String liters,
+  );
+
+  /// No description provided for @aiTripFuelNoPrice.
+  ///
+  /// In ms, this message translates to:
+  /// **'Harga minyak belum diketahui (tiada data dan tiada harga yang anda tetapkan). Tetapkan harga di Tetapan > Minyak.'**
+  String get aiTripFuelNoPrice;
+
+  /// No description provided for @aiTripNextTurn.
+  ///
+  /// In ms, this message translates to:
+  /// **'Seterusnya: **{action}** dalam {distance}.'**
+  String aiTripNextTurn(String action, String distance);
+
+  /// No description provided for @aiTripNextTurnNow.
+  ///
+  /// In ms, this message translates to:
+  /// **'Seterusnya: **{action}**.'**
+  String aiTripNextTurnNow(String action);
+
+  /// No description provided for @aiTripNoNav.
+  ///
+  /// In ms, this message translates to:
+  /// **'Navigasi belum bermula, jadi saya tiada arahan seterusnya. Mulakan navigasi dahulu.'**
+  String get aiTripNoNav;
+
+  /// No description provided for @aiTripSpeedLimit.
+  ///
+  /// In ms, this message translates to:
+  /// **'Had laju di jalan ini: **{kmh} km/j**.'**
+  String aiTripSpeedLimit(String kmh);
+
+  /// No description provided for @aiTripSpeedUnknown.
+  ///
+  /// In ms, this message translates to:
+  /// **'Had laju jalan ini tiada dalam data.'**
+  String get aiTripSpeedUnknown;
+
+  /// No description provided for @aiHomeNotSet.
+  ///
+  /// In ms, this message translates to:
+  /// **'Anda belum menetapkan Rumah. Ketik Rumah pada skrin carian untuk menetapkannya, kemudian minta lagi.'**
+  String get aiHomeNotSet;
+
+  /// No description provided for @aiWorkNotSet.
+  ///
+  /// In ms, this message translates to:
+  /// **'Anda belum menetapkan Kerja. Ketik Kerja pada skrin carian untuk menetapkannya, kemudian minta lagi.'**
+  String get aiWorkNotSet;
+
+  /// No description provided for @aiVehicleCar.
+  ///
+  /// In ms, this message translates to:
+  /// **'Baik, kenderaan ditukar kepada **kereta**.'**
+  String get aiVehicleCar;
+
+  /// No description provided for @aiVehicleMotorcycle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Baik, kenderaan ditukar kepada **motosikal**.'**
+  String get aiVehicleMotorcycle;
+
+  /// No description provided for @aiVoiceOn.
+  ///
+  /// In ms, this message translates to:
+  /// **'Suara panduan dihidupkan.'**
+  String get aiVoiceOn;
+
+  /// No description provided for @aiVoiceOff.
+  ///
+  /// In ms, this message translates to:
+  /// **'Suara panduan dimatikan.'**
+  String get aiVoiceOff;
+
+  /// No description provided for @aiThemeDark.
+  ///
+  /// In ms, this message translates to:
+  /// **'Baik, mod gelap dihidupkan.'**
+  String get aiThemeDark;
+
+  /// No description provided for @aiThemeLight.
+  ///
+  /// In ms, this message translates to:
+  /// **'Baik, mod cerah dihidupkan.'**
+  String get aiThemeLight;
+
+  /// No description provided for @aiThemeSystem.
+  ///
+  /// In ms, this message translates to:
+  /// **'Baik, tema mengikut sistem peranti.'**
+  String get aiThemeSystem;
+
+  /// No description provided for @aiNavStopped.
+  ///
+  /// In ms, this message translates to:
+  /// **'Navigasi dihentikan.'**
+  String get aiNavStopped;
+
+  /// No description provided for @aiAck.
+  ///
+  /// In ms, this message translates to:
+  /// **'Baik. Beritahu saya bila perlu bantuan peta, contohnya \"bawa saya ke KLCC\".'**
+  String get aiAck;
+
+  /// No description provided for @aiAskRadio.
+  ///
+  /// In ms, this message translates to:
+  /// **'Stesen radio mana? Contohnya \"play Era\" atau \"pasang Hitz\".'**
+  String get aiAskRadio;
+
+  /// No description provided for @aiAskMusic.
+  ///
+  /// In ms, this message translates to:
+  /// **'Lagu atau artis apa? Contohnya \"mainkan lagu Siti Nurhaliza\".'**
+  String get aiAskMusic;
+
+  /// No description provided for @aiNoMoreResults.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tiada pilihan lain dalam senarai tadi. Cuba cari dengan nama yang lebih tepat.'**
+  String get aiNoMoreResults;
+
+  /// No description provided for @aiGuessedPlace.
+  ///
+  /// In ms, this message translates to:
+  /// **'Saya tidak pasti maksud anda, jadi saya cari \"{query}\" sebagai tempat. Ketik salah satu untuk ke sana.'**
+  String aiGuessedPlace(String query);
 }
 
 class _AppLocalizationsDelegate

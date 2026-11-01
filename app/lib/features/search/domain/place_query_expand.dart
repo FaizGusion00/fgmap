@@ -111,3 +111,61 @@ List<String> landmarkSearchVariants(String raw) {
   // Sertakan kunci asal + bentuk kanonik supaya "klcc" masih padan nama pendek OSM.
   return {raw.trim(), rewritten}.toList();
 }
+
+/// Awalan kata sandang Arab yang sering dirapatkan dalam ejaan pengguna ("attaufiqiah" = "at-taufiqiah",
+/// "assyifa" = "as-syifa", "alhidayah" = "al-hidayah"). Yang lebih panjang disemak dahulu.
+const _arabicArticles = [
+  'ash',
+  'asy',
+  'as',
+  'at',
+  'al',
+  'ar',
+  'an',
+  'ad',
+  'az',
+];
+
+/// ("at", "taufiqiah") bagi "attaufiqiah"; null jika [token] tidak kelihatan seperti kata sandang + kata nama.
+(String article, String rest)? splitArabicArticle(String token) {
+  final t = token.toLowerCase();
+  for (final a in _arabicArticles) {
+    if (!t.startsWith(a)) continue;
+    final rest = t.substring(a.length);
+    // "asy"/"ash" ialah kata sandang tersendiri: jangan jatuh ke "as" + "yraf".
+    final minRest = a.length == 3 ? 3 : 4;
+    if (rest.length >= minRest) return (a, rest);
+    if (a.length == 3) return null;
+  }
+  return null;
+}
+
+/// Varian ejaan untuk dicuba berturutan bila carian pertama tiada hasil. Yang pertama sentiasa [raw]
+/// (dibersihkan). Cth. "masjid attaufiqiah" -> ["masjid attaufiqiah", "masjid at taufiqiah",
+/// "masjid at-taufiqiah"]. Berguna untuk Photon/Nominatim yang tidak mengenal ejaan dirapatkan.
+List<String> placeQueryVariants(String raw) {
+  final base = raw.trim().replaceAll(RegExp(r'\s+'), ' ');
+  if (base.isEmpty) return const [];
+  final out = <String>[base];
+  final tokens = base.split(' ');
+  var changed = false;
+  final spaced = <String>[];
+  final hyphen = <String>[];
+  for (final tok in tokens) {
+    final split = splitArabicArticle(tok);
+    if (split == null || !RegExp(r'^[A-Za-z]+$').hasMatch(tok)) {
+      spaced.add(tok);
+      hyphen.add(tok);
+    } else {
+      changed = true;
+      spaced.add('${split.$1} ${split.$2}');
+      hyphen.add('${split.$1}-${split.$2}');
+    }
+  }
+  if (changed) {
+    out
+      ..add(spaced.join(' '))
+      ..add(hyphen.join(' '));
+  }
+  return out;
+}

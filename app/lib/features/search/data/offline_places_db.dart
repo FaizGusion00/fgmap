@@ -54,12 +54,12 @@ class OfflinePlacesDb {
     if (match == null) return const [];
     final db = await _database();
     if (db == null) return const [];
-    try {
+    Future<List<OfflinePlaceRow>> run(String m) async {
       final rows = await db.rawQuery(
         'SELECT p.name, p.alt, p.kind, p.cat, p.lat, p.lng, p.area, p.rank '
         'FROM place_fts JOIN place p ON p.id = place_fts.docid '
         'WHERE place_fts MATCH ? LIMIT 400',
-        [match],
+        [m],
       );
       return rankOfflinePlaces(
         [for (final r in rows) ?OfflinePlaceRow.fromRow(r)],
@@ -67,6 +67,15 @@ class OfflinePlacesDb {
         near: near,
         limit: limit,
       );
+    }
+
+    try {
+      final strict = await run(match);
+      if (strict.isNotEmpty) return strict;
+      // Tiada padanan untuk SEMUA perkataan (ejaan lain / perkataan lebih): cuba padanan longgar.
+      final loose = ftsMatchQuery(text, loose: true);
+      if (loose == null || loose == match) return strict;
+      return await run(loose);
     } on Object catch (e) {
       logDiag('Carian offline gagal: $e');
       return const [];
