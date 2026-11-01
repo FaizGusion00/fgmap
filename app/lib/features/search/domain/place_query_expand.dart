@@ -3,6 +3,7 @@
 ///
 /// Bukan Google Places. Alias landasan ialah nama awam / OSM; lihat juga
 /// `tools/places/extra/landmarks_my.geojson` (medan `alt` dalam pek).
+library;
 
 /// Singkatan token → bentuk penuh pilihan pertama (untuk Photon/Nominatim).
 const abbreviationExpansion = <String, String>{
