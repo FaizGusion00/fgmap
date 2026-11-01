@@ -17,6 +17,8 @@ final class CarBridge {
     static let session = "session"
     static let search = "search"
     static let openPlace = "openPlace"
+    static let nearbyCategories = "nearbyCategories"
+    static let nearby = "nearby"
     static let endNavigation = "endNavigation"
     static let recenter = "recenter"
     static let pan = "pan"
@@ -80,11 +82,41 @@ final class CarBridge {
   // MARK: - Native -> Flutter
 
   func search(_ query: String, callback: @escaping ([CarPlace]) -> Void) {
+    places(Method.search, arguments: ["query": query], callback: callback)
+  }
+
+  /// Senarai kategori "Berdekatan" (id + nama dalam bahasa peranti), tersusun ikut keperluan pemandu.
+  func categories(callback: @escaping ([CarCategory]) -> Void) {
     guard let channel else {
       callback([])
       return
     }
-    channel.invokeMethod(Method.search, arguments: ["query": query]) { result in
+    channel.invokeMethod(Method.nearbyCategories, arguments: nil) { result in
+      guard let rows = result as? [Any] else {
+        callback([])
+        return
+      }
+      callback(
+        rows.compactMap { row in
+          guard let map = row as? [String: Any], let id = map["id"] as? String else { return nil }
+          return CarCategory(id: id, label: (map["label"] as? String) ?? "")
+        })
+    }
+  }
+
+  /// Tempat terdekat bagi satu kategori; `subtitle` sudah mengandungi jarak dan kawasan.
+  func nearby(_ categoryId: String, callback: @escaping ([CarPlace]) -> Void) {
+    places(Method.nearby, arguments: ["category": categoryId], callback: callback)
+  }
+
+  private func places(
+    _ method: String, arguments: [String: Any], callback: @escaping ([CarPlace]) -> Void
+  ) {
+    guard let channel else {
+      callback([])
+      return
+    }
+    channel.invokeMethod(method, arguments: arguments) { result in
       guard let rows = result as? [Any] else {
         callback([])
         return
@@ -148,4 +180,9 @@ struct CarPlace {
   let subtitle: String
   let lat: Double
   let lng: Double
+}
+
+struct CarCategory {
+  let id: String
+  let label: String
 }

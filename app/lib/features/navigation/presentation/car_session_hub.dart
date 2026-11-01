@@ -9,17 +9,20 @@ import '../../../core/theme/theme_controller.dart';
 import '../../../core/utils/geo.dart';
 import '../../air_quality/domain/air_quality.dart';
 import '../../air_quality/presentation/air_quality_controller.dart';
+import '../../azan/data/azan_settings.dart';
+import '../../azan/presentation/azan_controller.dart';
+import '../../azan/presentation/azan_l10n.dart' show prayerName;
 import '../../along_route/domain/along_route_category.dart';
 import '../../cameras/domain/speed_camera.dart';
 import '../../map/data/map_style_loader.dart';
 import '../../route_preview/data/route_planner.dart';
 import '../../route_preview/domain/route_option.dart';
-import '../../search/data/photon_geocoder.dart';
 import '../../search/domain/place.dart';
 import '../data/navigation_settings.dart';
 import '../domain/camera_planner.dart';
 import '../domain/car_session.dart';
 import '../domain/instruction_text.dart';
+import 'car_places.dart';
 import 'cruise_controller.dart';
 import 'navigation_controller.dart';
 
@@ -33,6 +36,9 @@ class CarSessionHub {
   }
 
   final Ref ref;
+
+  /// Carian dan "Berdekatan" untuk skrin kereta (penghala arahan FG AI + carian kategori).
+  late final CarPlaces _places = CarPlaces(ref, live: _near);
   CameraPose? _pose;
   bool _following = true;
   int _sentRouteVersion = -1;
@@ -194,7 +200,25 @@ class CarSessionHub {
       weatherAlert: _weatherLine(nav, settings, en),
       alongCue: _alongLine(nav, progress?.alongM ?? 0, en),
       airAqi: _airLine(en),
+      prayerLine: _prayerLine(),
     );
+  }
+
+  /// Waktu solat seterusnya untuk skrin kereta ("Asar 16:28"), hanya jika Waktu Azan dihidupkan.
+  /// Tanpa baki masa: baris ini tidak berubah setiap minit, jadi skrin kereta tidak dikemas kini
+  /// tanpa perlu dan pemandu tidak terganggu.
+  String? _prayerLine() {
+    if (!ref.read(azanSettingsProvider).enabled) return null;
+    final azan = ref.read(azanControllerProvider);
+    final next = azan.upNext;
+    final at = azan.upNextAt;
+    if (next == null || at == null) return null;
+    final l10n = CarPlaces.l10nFor(
+      WidgetsBinding.instance.platformDispatcher.locale.languageCode,
+    );
+    final hh = at.hour.toString().padLeft(2, '0');
+    final mm = at.minute.toString().padLeft(2, '0');
+    return '${prayerName(l10n, next)} $hh:$mm';
   }
 
   String? _cameraLine(NavigationState nav, bool en) {
@@ -261,7 +285,12 @@ class CarSessionHub {
     switch (call.method) {
       case 'search':
         final query = (call.arguments as Map?)?['query']?.toString() ?? '';
-        return _search(query);
+        return _places.search(query);
+      case 'nearbyCategories':
+        return _places.categories();
+      case 'nearby':
+        final id = (call.arguments as Map?)?['category']?.toString() ?? '';
+        return _places.nearby(id);
       case 'openPlace':
         final args = (call.arguments as Map).cast<String, Object?>();
         final lat = (args['lat'] as num?)?.toDouble();
@@ -296,24 +325,6 @@ class CarSessionHub {
     _pan = pan;
   }
 
-  Future<List<Map<String, Object?>>> _search(String query) async {
-    final near = _near();
-    try {
-      final places = await ref.read(geocoderProvider).search(query, near: near);
-      return [
-        for (final p in places)
-          {
-            'name': p.name,
-            'subtitle': p.subtitle,
-            'lat': p.point.lat,
-            'lng': p.point.lng,
-          },
-      ];
-    } on Object {
-      return const [];
-    }
-  }
-
   GeoPoint? _near() {
     final nav = ref.read(navigationControllerProvider);
     final progress = nav.progress;
@@ -323,7 +334,8 @@ class CarSessionHub {
 
   /// Merancang dan memulakan sesi navigasi yang sama dengan telefon.
   Future<String?> _openPlace(Place place) async {
-    final origin = _near();
+    // Kereta berhenti = tiada cruise: guna GPS peranti, bukan hanya kedudukan navigasi.
+    final origin = await _places.origin();
     if (origin == null) return 'no-location';
     final query = RouteQuery(
       origin: origin,
@@ -372,6 +384,13 @@ final carSessionHubProvider = Provider<CarSessionHub>((ref) {
   });
   ref.listen(cruiseControllerProvider, (_, _) => hub.publish());
   ref.listen(airQualityControllerProvider, (_, _) => hub.publish());
+  // Waktu solat seterusnya di skrin kereta: hanya bila waktu seterusnya atau suisnya berubah.
+  ref.listen(azanControllerProvider.select((s) => s.upNext), (_, _) {
+    hub.publish();
+  });
+  ref.listen(azanSettingsProvider.select((s) => s.enabled), (_, _) {
+    hub.publish();
+  });
   ref.listen(navigationSettingsProvider, (_, _) => hub.publish());
   return hub;
 });

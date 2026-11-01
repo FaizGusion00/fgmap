@@ -17,6 +17,8 @@ void main() {
   /// Native -> Flutter (dikendalikan oleh CarSessionHub._onCall).
   const fromNative = [
     'search',
+    'nearbyCategories',
+    'nearby',
     'openPlace',
     'endNavigation',
     'recenter',
@@ -58,6 +60,7 @@ void main() {
       'alongCue',
       'driveAlert',
       'airAqi',
+      'prayerLine',
     ]) {
       expect(map.containsKey(key), isTrue, reason: key);
     }
@@ -83,6 +86,18 @@ void main() {
         expect(src, contains('"$m"'), reason: m);
       }
     });
+
+    test(
+      'CarSessionHub (Dart) mengendalikan setiap kaedah daripada native',
+      () {
+        final src = File(
+          'lib/features/navigation/presentation/car_session_hub.dart',
+        ).readAsStringSync();
+        for (final m in fromNative) {
+          expect(src, contains("case '$m'"), reason: m);
+        }
+      },
+    );
 
     test('CarBridge.kt guna saluran dan kaedah yang sama', () {
       final src = kotlin.readAsStringSync();

@@ -11,7 +11,7 @@ Keputusan reka bentuk: [ADR 0013](adr/0013-along-route-cameras-widgets-carplay.m
 | Fail | Peranan |
 | --- | --- |
 | `app/ios/Runner/CarPlay/CarBridge.swift` | Cermin `CarBridge.kt`. MethodChannel `com.fguniversalempire.fgmaps/car`; menyimpan gambar sesi (`session`) dan laluan terakhir; memanggil Flutter `search`, `openPlace`, `endNavigation`, `recenter`, `pan`. |
-| `app/ios/Runner/CarPlay/CarPlaySceneDelegate.swift` | `CPTemplateApplicationSceneDelegate`. `CPMapTemplate` + `CPNavigationSession` (teks manuver, jarak, ETA, butang **Tamat**); mod browse: butang **Cari** (`CPSearchTemplate`) dan **Pusatkan**. |
+| `app/ios/Runner/CarPlay/CarPlaySceneDelegate.swift` | `CPTemplateApplicationSceneDelegate`. `CPMapTemplate` + `CPNavigationSession` (teks manuver, jarak, ETA, butang **Tamat**); mod browse: butang **Cari** (`CPSearchTemplate`), **Berdekatan** (`CPListTemplate` kategori, kemudian hasil mengikut jarak) dan **Pusatkan**. Skrin kosong memaparkan waktu solat seterusnya (jika Waktu Azan hidup) dan IPU. |
 | `app/ios/Runner/AppDelegate.swift` | Memasang `CarBridge` pada enjin Flutter (`didInitializeImplicitFlutterEngine`). |
 | `app/ios/Runner/Info.plist` | Konfigurasi adegan `CPTemplateApplicationSceneSessionRoleApplication` dan `UIApplicationSupportsMultipleScenes = true`. |
 | `app/test/features/navigation/carplay_channel_test.dart` | Kontrak nama saluran/kaedah Dart <-> Kotlin <-> Swift. |
@@ -20,6 +20,25 @@ Had semasa (susulan): peta tidak dilukis pada skrin CarPlay (hanya panel templat
 memerlukan lapisan MapLibre native pada `CPWindow`. Adegan CarPlay juga mengandaikan enjin Flutter
 sudah hidup; jika CarPlay disambung ketika app tidak berjalan, skrin kereta memaparkan
 "Buka FGMaps pada iPhone" sehingga telefon melancarkan app.
+
+## Carian suara, Berdekatan dan waktu solat (Android Auto dan CarPlay)
+
+Kedua-dua platform berkongsi satu saluran dan satu pintu carian di Dart (`car_places.dart`):
+
+- **Carian** (`search`): teks atau suara pemandu melalui penghala arahan FG AI, jadi "kedai gunting
+  terdekat", "farmasi", "balik rumah" dan "bawa saya ke KLCC" difahami (bukan nama tempat sahaja).
+  Setiap baris dihantar siap dipaparkan: `subtitle` = "jarak · kawasan".
+- **Berdekatan** (`nearbyCategories`, `nearby`): senarai kategori (minyak, makan, surau, tandas, ATM,
+  farmasi, pengecas EV... semua kategori carian) dan tempat terdekat bagi satu kategori. Enam kategori
+  pertama ialah yang dipaparkan ketika memandu (had hos Android Auto); selebihnya bila kereta berhenti.
+- **Waktu solat** (`prayerLine` dalam `session`): "Asar 16:28" pada skrin browse/cruise; tiada semasa
+  navigasi supaya tidak bersaing dengan manuver. Tanpa baki masa supaya skrin tidak dikemas kini tiap minit.
+- Titik asal laluan ialah kedudukan navigasi/cruise jika ada, jika tidak GPS peranti (kereta yang baru
+  berhenti tidak mempunyai cruise).
+
+Had hos yang dipatuhi: `NavigationTemplate` Android Auto membenarkan paling banyak 2 tindakan bertajuk
+(semasa navigasi "Berdekatan" hanya ikon); senarai dipotong mengikut `ConstraintManager`;
+`CPListTemplate.maximumItemCount` pada CarPlay.
 
 ## Senarai semak entitlement (Apple Developer)
 

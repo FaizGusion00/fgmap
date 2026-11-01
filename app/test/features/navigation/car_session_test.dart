@@ -140,4 +140,38 @@ void main() {
     expect(carFormatDistance(1500), '1.5 km');
     expect(carFormatDistance(12000), '12 km');
   });
+
+  group('waktu solat di skrin kereta', () {
+    test('browse dan cruise membawa waktu solat seterusnya', () {
+      final browse = mapCarSession(
+        navigating: false,
+        cruising: false,
+        prayerLine: 'Asar 16:28',
+      );
+      expect(browse.toMap()['prayerLine'], 'Asar 16:28');
+      final cruise = mapCarSession(
+        navigating: false,
+        cruising: true,
+        pose: pose,
+        prayerLine: 'Asar 16:28',
+      );
+      expect(cruise.toMap()['prayerLine'], 'Asar 16:28');
+    });
+
+    test('navigasi tidak membawanya: tidak bersaing dengan manuver', () {
+      final nav = mapCarSession(
+        navigating: true,
+        cruising: false,
+        pose: pose,
+        navigationRoute: route,
+        prayerLine: 'Asar 16:28',
+      );
+      expect(nav.toMap()['prayerLine'], isNull);
+    });
+
+    test('tanpa Waktu Azan: tiada baris', () {
+      final snap = mapCarSession(navigating: false, cruising: false);
+      expect(snap.toMap()['prayerLine'], isNull);
+    });
+  });
 }

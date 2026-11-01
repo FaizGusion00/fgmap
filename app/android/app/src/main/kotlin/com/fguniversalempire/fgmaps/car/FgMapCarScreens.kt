@@ -3,7 +3,9 @@ package com.fguniversalempire.fgmaps.car
 import android.content.Intent
 import androidx.car.app.AppManager
 import androidx.car.app.CarContext
+import androidx.car.app.CarToast
 import androidx.car.app.Screen
+import androidx.car.app.constraints.ConstraintManager
 import androidx.car.app.Session
 import androidx.car.app.model.Action
 import androidx.car.app.model.ActionStrip
@@ -13,6 +15,7 @@ import androidx.car.app.model.CarIcon
 import androidx.car.app.model.CarText
 import androidx.car.app.model.Distance
 import androidx.car.app.model.ItemList
+import androidx.car.app.model.ListTemplate
 import androidx.car.app.model.Row
 import androidx.car.app.model.Template
 import androidx.car.app.navigation.model.MessageInfo
@@ -104,12 +107,8 @@ class FgMapNavScreen(
                 routing(session)?.let { builder.setNavigationInfo(it) }
                 estimate(session)?.let { builder.setDestinationTravelEstimate(it) }
             }
-            "cruise" -> builder.setNavigationInfo(
-                MessageInfo.Builder(cruiseMessage(session)).build(),
-            )
-            else -> builder.setNavigationInfo(
-                MessageInfo.Builder(browseMessage(session)).build(),
-            )
+            "cruise" -> builder.setNavigationInfo(cruiseMessage(session))
+            else -> builder.setNavigationInfo(browseMessage(session))
         }
         return builder.build()
     }
@@ -128,17 +127,25 @@ class FgMapNavScreen(
         .build()
 
     private fun actions(mode: String): ActionStrip {
+        // NavigationTemplate membenarkan paling banyak 2 tindakan bertajuk: semasa navigasi
+        // (Cari + Tamat) "Berdekatan" hanya ikon; selainnya (Cari + Berdekatan) kedua-duanya bertajuk.
+        val navigating = mode == "navigating"
         val search = Action.Builder()
             .setIcon(icon(R.drawable.ic_car_search))
-            .setTitle("Cari")
+            .setTitle(CarStrings.search)
             .setOnClickListener { screenManager.push(FgMapSearchScreen(carContext)) }
             .build()
-        val strip = ActionStrip.Builder().addAction(search)
-        if (mode == "navigating") {
+        val nearby = Action.Builder()
+            .setIcon(icon(R.drawable.ic_car_nearby))
+            .apply { if (!navigating) setTitle(CarStrings.nearby) }
+            .setOnClickListener { screenManager.push(FgMapNearbyScreen(carContext)) }
+            .build()
+        val strip = ActionStrip.Builder().addAction(search).addAction(nearby)
+        if (navigating) {
             strip.addAction(
                 Action.Builder()
                     .setIcon(icon(R.drawable.ic_car_close))
-                    .setTitle("Tamat")
+                    .setTitle(CarStrings.end)
                     .setOnClickListener { CarBridge.endNavigation() }
                     .build(),
             )
@@ -209,14 +216,22 @@ class FgMapNavScreen(
             Distance.create(meters, Distance.UNIT_METERS)
         }
 
-    private fun browseMessage(session: Map<String, Any?>): String {
-        val aqi = session["airAqi"] as? String
-        return if (!aqi.isNullOrBlank()) aqi else "FGMaps"
+    /** Browse: waktu solat seterusnya, dengan IPU di bawahnya jika ada. */
+    private fun browseMessage(session: Map<String, Any?>): MessageInfo {
+        val prayer = (session["prayerLine"] as? String)?.takeIf { it.isNotBlank() }
+        val aqi = (session["airAqi"] as? String)?.takeIf { it.isNotBlank() }
+        val info = MessageInfo.Builder(prayer ?: aqi ?: "FGMaps")
+        if (prayer != null && aqi != null) info.setText(aqi)
+        return info.build()
     }
 
-    private fun cruiseMessage(session: Map<String, Any?>): String {
-        val weather = session["weatherAlert"] as? String
-        return if (!weather.isNullOrBlank()) weather else "Memandu bebas"
+    /** Cruise: amaran cuaca didahulukan (keselamatan); waktu solat di bawahnya atau sebagai tajuk. */
+    private fun cruiseMessage(session: Map<String, Any?>): MessageInfo {
+        val weather = (session["weatherAlert"] as? String)?.takeIf { it.isNotBlank() }
+        val prayer = (session["prayerLine"] as? String)?.takeIf { it.isNotBlank() }
+        val info = MessageInfo.Builder(weather ?: prayer ?: CarStrings.cruise)
+        if (weather != null && prayer != null) info.setText(prayer)
+        return info.build()
     }
 
     /** kamera > cuaca > R&R (Dart sudah menapis alongCue bila kamera ada). */
@@ -284,41 +299,61 @@ class FgMapNavScreen(
     }
 }
 
+/** Had baris senarai yang dibenarkan hos pada masa ini (lebih rendah ketika memandu). */
+internal fun listLimit(context: CarContext): Int = try {
+    context.getCarService(ConstraintManager::class.java)
+        .getContentLimit(ConstraintManager.CONTENT_LIMIT_TYPE_LIST)
+} catch (_: Throwable) {
+    6
+}
+
+/** Baris tempat: nama, dan "jarak · kawasan" di bawahnya. Klik memulakan laluan ke sana. */
+private fun placeRows(
+    context: CarContext,
+    screen: Screen,
+    places: List<CarPlace>,
+): ItemList {
+    val list = ItemList.Builder()
+    if (places.isEmpty()) {
+        list.setNoItemsMessage(CarStrings.noResults)
+        return list.build()
+    }
+    for (place in places.take(listLimit(context))) {
+        val row = Row.Builder().setTitle(place.name.ifBlank { CarStrings.place })
+        if (place.subtitle.isNotBlank()) row.addText(place.subtitle)
+        list.addItem(
+            row.setOnClickListener {
+                CarBridge.openPlace(place) { error ->
+                    if (error == null) {
+                        screen.screenManager.popToRoot()
+                    } else {
+                        // Kekal pada senarai supaya pemandu boleh cuba tempat lain.
+                        CarToast.makeText(context, CarStrings.cannotStart, CarToast.LENGTH_LONG).show()
+                    }
+                }
+            }.build(),
+        )
+    }
+    return list.build()
+}
+
 class FgMapSearchScreen(carContext: CarContext) : Screen(carContext) {
     private var items: ItemList = ItemList.Builder()
-        .setNoItemsMessage("Taip destinasi")
+        .setNoItemsMessage(CarStrings.typeDestination)
         .build()
-    private var hint = "Cari destinasi"
+    private var hint = CarStrings.searchHint
 
     override fun onGetTemplate(): Template {
         return SearchTemplate.Builder(object : SearchTemplate.SearchCallback {
             override fun onSearchTextChanged(searchText: String) {}
 
             override fun onSearchSubmitted(searchText: String) {
-                hint = "Mencari…"
+                hint = CarStrings.searching
                 invalidate()
+                // Teks atau suara: "kedai gunting terdekat", "balik rumah" atau nama tempat.
                 CarBridge.search(searchText) { places ->
-                    val list = ItemList.Builder()
-                    if (places.isEmpty()) {
-                        list.setNoItemsMessage("Tiada hasil")
-                    } else {
-                        for (place in places) {
-                            val row = Row.Builder()
-                                .setTitle(place.name.ifBlank { "Tempat" })
-                            if (place.subtitle.isNotBlank()) row.addText(place.subtitle)
-                            list.addItem(
-                                row
-                                    .setOnClickListener {
-                                        CarBridge.openPlace(place) { _ ->
-                                            screenManager.pop()
-                                        }
-                                    }
-                                    .build(),
-                            )
-                        }
-                    }
-                    items = list.build()
-                    hint = "Cari destinasi"
+                    items = placeRows(carContext, this@FgMapSearchScreen, places)
+                    hint = CarStrings.searchHint
                     invalidate()
                 }
             }
@@ -328,5 +363,69 @@ class FgMapSearchScreen(carContext: CarContext) : Screen(carContext) {
             .setItemList(items)
             .setShowKeyboardByDefault(true)
             .build()
+    }
+}
+
+/**
+ * "Berdekatan": kategori yang paling kerap dicari pemandu (minyak, makan, surau, tandas, ATM, farmasi,
+ * pengecas EV...). Satu ketukan, tanpa menaip. Ketika memandu hos hanya membenarkan beberapa baris
+ * (enam yang pertama ialah yang paling penting); selebihnya muncul bila kereta berhenti.
+ */
+class FgMapNearbyScreen(carContext: CarContext) : Screen(carContext) {
+    private var categories: List<CarCategory>? = null
+
+    init {
+        CarBridge.categories { rows ->
+            categories = rows
+            invalidate()
+        }
+    }
+
+    override fun onGetTemplate(): Template {
+        val rows = categories
+        val builder = ListTemplate.Builder()
+            .setTitle(CarStrings.nearby)
+            .setHeaderAction(Action.BACK)
+        if (rows == null) return builder.setLoading(true).build()
+        val list = ItemList.Builder()
+        if (rows.isEmpty()) {
+            list.setNoItemsMessage(CarStrings.noResults)
+        }
+        for (category in rows.take(listLimit(carContext))) {
+            list.addItem(
+                Row.Builder()
+                    .setTitle(category.label)
+                    .setBrowsable(true)
+                    .setOnClickListener {
+                        screenManager.push(FgMapPlacesScreen(carContext, category))
+                    }
+                    .build(),
+            )
+        }
+        return builder.setSingleList(list.build()).build()
+    }
+}
+
+/** Tempat terdekat bagi satu kategori, tersusun ikut jarak. */
+class FgMapPlacesScreen(
+    carContext: CarContext,
+    private val category: CarCategory,
+) : Screen(carContext) {
+    private var places: List<CarPlace>? = null
+
+    init {
+        CarBridge.nearby(category.id) { rows ->
+            places = rows
+            invalidate()
+        }
+    }
+
+    override fun onGetTemplate(): Template {
+        val rows = places
+        val builder = ListTemplate.Builder()
+            .setTitle(category.label)
+            .setHeaderAction(Action.BACK)
+        if (rows == null) return builder.setLoading(true).build()
+        return builder.setSingleList(placeRows(carContext, this, rows)).build()
     }
 }

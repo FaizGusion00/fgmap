@@ -73,14 +73,15 @@ final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegat
       renderNavigation(template, session)
     } else {
       finishNavigation()
-      placeholder.show(mode == "cruise" ? CarText.cruise : CarText.browse)
+      placeholder.show(CarText.idleText(mode: mode, session: session))
       configureBrowse(template)
     }
   }
 
   private func configureBrowse(_ template: CPMapTemplate) {
     template.leadingNavigationBarButtons = [
-      CPBarButton(title: CarText.search) { [weak self] _ in self?.pushSearch() }
+      CPBarButton(title: CarText.search) { [weak self] _ in self?.pushSearch() },
+      CPBarButton(title: CarText.nearby) { [weak self] _ in self?.pushNearby() },
     ]
     template.trailingNavigationBarButtons = []
     let recenter = CPMapButton { _ in CarBridge.shared.recenter() }
@@ -125,7 +126,7 @@ final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegat
         timeRemaining: remainingS
       ),
       for: trip,
-      with: .normal
+      with: .default
     )
 
     // ETA jam dinding dipaparkan sebagai butang (tidak interaktif) di sebelah kiri.
@@ -184,6 +185,70 @@ final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegat
     search.delegate = self
     interfaceController?.pushTemplate(search, animated: true, completion: nil)
   }
+
+  // MARK: - Berdekatan
+
+  /// Kategori yang paling kerap dicari pemandu (minyak, makan, surau...). Satu ketukan, tanpa menaip.
+  private func pushNearby() {
+    guard CarBridge.shared.ready else { return }
+    let list = CPListTemplate(title: CarText.nearby, sections: [])
+    list.emptyViewTitleVariants = [CarText.searching]
+    interfaceController?.pushTemplate(list, animated: true, completion: nil)
+    CarBridge.shared.categories { [weak self, weak list] categories in
+      DispatchQueue.main.async {
+        guard let self, let list else { return }
+        if categories.isEmpty { list.emptyViewTitleVariants = [CarText.noResults] }
+        let items = categories.prefix(CPListTemplate.maximumItemCount).map { category in
+          let item = CPListItem(
+            text: category.label, detailText: nil,
+            image: CarCategorySymbol.image(for: category.id),
+            accessoryImage: nil, accessoryType: .disclosureIndicator)
+          item.handler = { [weak self] _, completion in
+            self?.pushPlaces(for: category)
+            completion()
+          }
+          return item
+        }
+        list.updateSections([CPListSection(items: items)])
+      }
+    }
+  }
+
+  /// Tempat terdekat bagi satu kategori, tersusun ikut jarak. Ketik untuk mula navigasi ke sana.
+  private func pushPlaces(for category: CarCategory) {
+    let list = CPListTemplate(title: category.label, sections: [])
+    list.emptyViewTitleVariants = [CarText.searching]
+    interfaceController?.pushTemplate(list, animated: true, completion: nil)
+    CarBridge.shared.nearby(category.id) { [weak self, weak list] places in
+      DispatchQueue.main.async {
+        guard let self, let list else { return }
+        if places.isEmpty { list.emptyViewTitleVariants = [CarText.noResults] }
+        let items = places.prefix(CPListTemplate.maximumItemCount).map { place in
+          let item = CPListItem(
+            text: place.name.isEmpty ? CarText.place : place.name,
+            detailText: place.subtitle.isEmpty ? nil : place.subtitle)
+          item.handler = { [weak self] _, completion in
+            self?.open(place)
+            completion()
+          }
+          return item
+        }
+        list.updateSections([CPListSection(items: items)])
+      }
+    }
+  }
+
+  private func open(_ place: CarPlace) {
+    CarBridge.shared.openPlace(place) { [weak self] error in
+      DispatchQueue.main.async {
+        if error == nil {
+          self?.interfaceController?.popToRootTemplate(animated: true, completion: nil)
+        } else {
+          self?.placeholder.show(CarText.cannotOpen)
+        }
+      }
+    }
+  }
 }
 
 // MARK: - CPMapTemplateDelegate
@@ -211,7 +276,7 @@ extension CarPlaySceneDelegate: CPSearchTemplateDelegate {
     CarBridge.shared.search(query) { places in
       DispatchQueue.main.async {
         completionHandler(
-          places.prefix(8).map { place in
+          places.prefix(CPListTemplate.maximumItemCount).map { place in
             let item = CPListItem(text: place.name, detailText: place.subtitle)
             item.userInfo = place
             return item
@@ -291,6 +356,34 @@ enum CarManeuverSymbol {
   }
 }
 
+enum CarCategorySymbol {
+  /// Id kategori Flutter (`NearbyCategory.name`) -> simbol SF. Sandaran: penanda lokasi.
+  static func image(for id: String) -> UIImage? {
+    let name: String
+    switch id {
+    case "fuel": name = "fuelpump.fill"
+    case "food": name = "fork.knife"
+    case "mosque": name = "moon.stars.fill"
+    case "toilets": name = "figure.2"
+    case "atm", "bank": name = "banknote.fill"
+    case "pharmacy", "clinic", "hospital": name = "cross.case.fill"
+    case "evCharging": name = "bolt.car.fill"
+    case "parking": name = "parkingsign"
+    case "hotel": name = "bed.double.fill"
+    case "barber": name = "scissors"
+    case "carWash": name = "drop.fill"
+    case "workshop", "tyres": name = "wrench.and.screwdriver.fill"
+    case "convenience", "supermarket", "mall": name = "cart.fill"
+    case "laundry": name = "tshirt.fill"
+    case "police": name = "shield.fill"
+    case "postOffice": name = "envelope.fill"
+    case "trainStation": name = "tram.fill"
+    default: name = "mappin.circle.fill"
+    }
+    return UIImage(systemName: name) ?? UIImage(systemName: "mappin.circle.fill")
+  }
+}
+
 /// Teks UI minimum (BM jika bahasa peranti Melayu, selainnya Inggeris).
 enum CarText {
   private static var malay: Bool {
@@ -298,12 +391,31 @@ enum CarText {
   }
 
   static var search: String { malay ? "Cari" : "Search" }
+  static var nearby: String { malay ? "Berdekatan" : "Nearby" }
+  static var searching: String { malay ? "Mencari…" : "Searching…" }
+  static var noResults: String {
+    malay ? "Tiada hasil. Semak sambungan internet." : "No results. Check your internet connection."
+  }
+  static var place: String { malay ? "Tempat" : "Place" }
   static var end: String { malay ? "Tamat" : "End" }
   static var follow: String { malay ? "Ikut laluan" : "Follow route" }
   static var openPhone: String { malay ? "Buka FGMaps pada iPhone" : "Open FGMaps on your iPhone" }
   static var browse: String { "FGMaps" }
   static var cruise: String { malay ? "Mod pemanduan" : "Driving mode" }
   static var cannotOpen: String { malay ? "Tidak dapat mulakan laluan" : "Couldn't start the route" }
+
+  /// Skrin kereta ketika tidak bernavigasi: waktu solat seterusnya, IPU di bawahnya, atau nama app.
+  static func idleText(mode: String, session: [String: Any]) -> String {
+    let prayer = (session["prayerLine"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+    let aqi = (session["airAqi"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+    if mode == "cruise" {
+      let weather = (session["weatherAlert"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+      return [weather ?? prayer ?? cruise, weather != nil ? prayer : nil]
+        .compactMap { $0 }.joined(separator: "\n")
+    }
+    return [prayer ?? aqi ?? browse, prayer != nil ? aqi : nil].compactMap { $0 }.joined(
+      separator: "\n")
+  }
 
   static func clock(_ date: Date) -> String {
     let formatter = DateFormatter()

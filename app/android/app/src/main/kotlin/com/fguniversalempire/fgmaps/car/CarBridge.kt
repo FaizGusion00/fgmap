@@ -40,12 +40,48 @@ object CarBridge {
     }
 
     fun search(query: String, callback: (List<CarPlace>) -> Unit) {
+        places("search", mapOf("query" to query), callback)
+    }
+
+    /** Senarai kategori "Berdekatan" (id + nama dalam bahasa peranti), tersusun ikut keperluan pemandu. */
+    fun categories(callback: (List<CarCategory>) -> Unit) {
         val ch = channel
         if (ch == null) {
             callback(emptyList())
             return
         }
-        ch.invokeMethod("search", mapOf("query" to query), object : MethodChannel.Result {
+        ch.invokeMethod("nearbyCategories", null, object : MethodChannel.Result {
+            override fun success(result: Any?) {
+                val rows = result as? List<*> ?: emptyList<Any>()
+                callback(rows.mapNotNull { row ->
+                    val map = row as? Map<*, *> ?: return@mapNotNull null
+                    val id = map["id"]?.toString() ?: return@mapNotNull null
+                    CarCategory(id = id, label = map["label"]?.toString().orEmpty())
+                })
+            }
+
+            override fun error(code: String, message: String?, details: Any?) = callback(emptyList())
+
+            override fun notImplemented() = callback(emptyList())
+        })
+    }
+
+    /** Tempat terdekat bagi satu kategori; `subtitle` sudah mengandungi jarak dan kawasan. */
+    fun nearby(categoryId: String, callback: (List<CarPlace>) -> Unit) {
+        places("nearby", mapOf("category" to categoryId), callback)
+    }
+
+    private fun places(
+        method: String,
+        arguments: Map<String, Any?>,
+        callback: (List<CarPlace>) -> Unit,
+    ) {
+        val ch = channel
+        if (ch == null) {
+            callback(emptyList())
+            return
+        }
+        ch.invokeMethod(method, arguments, object : MethodChannel.Result {
             override fun success(result: Any?) {
                 val rows = result as? List<*> ?: emptyList<Any>()
                 callback(rows.mapNotNull { row ->
@@ -115,4 +151,9 @@ data class CarPlace(
     val subtitle: String,
     val lat: Double,
     val lng: Double,
+)
+
+data class CarCategory(
+    val id: String,
+    val label: String,
 )

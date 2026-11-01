@@ -31,6 +31,7 @@ class CarSessionSnapshot {
     this.weatherAlert,
     this.alongCue,
     this.airAqi,
+    this.prayerLine,
   });
 
   final CarDriveMode mode;
@@ -68,6 +69,10 @@ class CarSessionSnapshot {
 
   /// IPU ringkas dalam mod browse sahaja, cth. "IPU 42 · Baik".
   final String? airAqi;
+
+  /// Waktu solat seterusnya, cth. "Asar 16:28" (browse dan cruise; hilang semasa navigasi supaya
+  /// tidak bersaing dengan manuver). Hanya bila Waktu Azan dihidupkan.
+  final String? prayerLine;
 
   bool get hasRoute => mode == CarDriveMode.navigating && route.length >= 2;
 
@@ -112,6 +117,7 @@ class CarSessionSnapshot {
       'alongCue': alongCue,
       'driveAlert': driveAlert,
       'airAqi': airAqi,
+      'prayerLine': prayerLine,
     };
   }
 }
@@ -141,6 +147,7 @@ CarSessionSnapshot mapCarSession({
   String? weatherAlert,
   String? alongCue,
   String? airAqi,
+  String? prayerLine,
 }) {
   final mode = navigating
       ? CarDriveMode.navigating
@@ -188,6 +195,7 @@ CarSessionSnapshot mapCarSession({
       styleKey: styleKey,
       // Cruise: cuaca sahaja (tiada laluan → tiada kamera/R&R).
       weatherAlert: weatherAlert,
+      prayerLine: prayerLine,
     );
   }
   return CarSessionSnapshot(
@@ -197,6 +205,7 @@ CarSessionSnapshot mapCarSession({
     style: style,
     styleKey: styleKey,
     airAqi: airAqi,
+    prayerLine: prayerLine,
   );
 }
 
