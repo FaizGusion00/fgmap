@@ -512,7 +512,7 @@ List<Place> sortNearby(
   List<Place> places,
   GeoPoint center, {
   Set<Place> unnamed = const {},
-  int maxResults = 25,
+  int maxResults = 40,
 }) {
   final scored = [
     for (final p in places)

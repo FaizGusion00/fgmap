@@ -8,6 +8,7 @@ import '../../../core/config/app_config.dart';
 import '../../../core/network/dio_provider.dart';
 import '../data/local_basemap.dart';
 import '../data/offline_engine_host.dart';
+import '../data/offline_map_store.dart';
 import '../../search/data/offline_places_db.dart';
 import '../data/offline_map_installer.dart';
 import '../domain/offline_models.dart';
@@ -112,7 +113,13 @@ class OfflineMapController extends Notifier<OfflineMapState> {
   /// Kegagalan semakan dipaparkan jika belum ada pek; pek yang telah dipasang kekal boleh digunakan.
   Future<void> refresh({bool checkRemote = true}) async {
     if (state.busy) return;
-    final store = ref.read(offlineMapStoreProvider);
+    final OfflineMapStore store;
+    try {
+      store = ref.read(offlineMapStoreProvider);
+    } on Object {
+      // Ujian/persekitaran tanpa override storan: petunjuk carian offline kekal tersembunyi.
+      return;
+    }
     final installed = await store.readInstalled();
     if (!ref.mounted) return;
     state = state.copyWith(installed: () => installed);

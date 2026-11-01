@@ -19,11 +19,22 @@ class OfflineAwareGeocoder implements Geocoder {
     this._online,
     this._offline, {
     this.onlineTimeout = const Duration(seconds: 6),
+    this.enrichBelow = minOnlineBeforeFill,
   });
 
   final Geocoder _online;
   final OfflinePlacesDb _offline;
   final Duration onlineTimeout;
+
+  /// Jika dalam talian memberi kurang daripada ini, tambah padanan offline tanpa pendua.
+  final int enrichBelow;
+
+  /// Ambang lalai: hasil dalam talian jarang (Photon sparse di MY) digabung dengan indeks pek.
+  /// Typeahead memaparkan senarai berguna (~24); isi offline sehingga gabungan cukup padat.
+  static const minOnlineBeforeFill = 20;
+
+  /// Had gabungan dalam talian + offline sebelum ranker UI memotong.
+  static const maxMergedResults = 40;
 
   @override
   Future<List<Place>> search(
@@ -53,7 +64,7 @@ class OfflineAwareGeocoder implements Geocoder {
     }
     final offline = await offlineFuture;
     if (online.isEmpty) return offline;
-    if (online.length >= 8 || offline.isEmpty) return online;
+    if (online.length >= enrichBelow || offline.isEmpty) return online;
     final extra = [
       for (final p in offline)
         if (!online.any(
@@ -64,7 +75,8 @@ class OfflineAwareGeocoder implements Geocoder {
         ))
           p,
     ];
-    return [...online, ...extra.take(8 - online.length)];
+    final room = math.max(0, maxMergedResults - online.length);
+    return [...online, ...extra.take(room)];
   }
 }
 

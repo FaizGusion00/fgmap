@@ -15,6 +15,7 @@ class Place {
     this.osmId,
     this.extentDiagonalM,
     this.countryCode,
+    this.fromOffline = false,
   });
 
   /// Nama utama yang dipaparkan (nama tempat, atau jalan jika tiada nama).
@@ -40,6 +41,10 @@ class Place {
 
   /// Kod negara ISO (huruf besar), cth. `MY`.
   final String? countryCode;
+
+  /// Benar jika hasil ini datang daripada indeks carian offline (pek peta), bukan Photon/Nominatim.
+  /// Tidak termasuk dalam [==] supaya dedupe lokasi kekal berfungsi.
+  final bool fromOffline;
 
   /// Bangunan atau kawasan (bukan titik tunggal): titik [point] ialah pusat, bukan pintu masuk.
   bool get isArea => osmType == 'W' || osmType == 'R';

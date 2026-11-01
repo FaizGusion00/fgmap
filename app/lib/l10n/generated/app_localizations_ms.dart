@@ -374,6 +374,23 @@ class AppLocalizationsMs extends AppLocalizations {
       'Perkhidmatan carian tidak tersedia buat masa ini.';
 
   @override
+  String get searchOfflinePackPrompt =>
+      'Muat turun indeks tempat offline untuk carian Malaysia yang lebih lengkap — tiada suis berasingan.';
+
+  @override
+  String get searchOfflinePackUpdate =>
+      'Kemas kini pek peta offline untuk dapat tempat baharu.';
+
+  @override
+  String get searchOfflinePackAction => 'Peta offline';
+
+  @override
+  String get searchQuickDestinations => 'Pergi sekarang';
+
+  @override
+  String get searchResultOffline => 'Offline';
+
+  @override
   String routeFromTo(String from, String to) {
     return '$from → $to';
   }
@@ -623,7 +640,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get searchCatFood => 'Makan';
 
   @override
-  String get searchCatMosque => 'Masjid';
+  String get searchCatMosque => 'Masjid / surau';
 
   @override
   String get searchCatToilet => 'Tandas';
@@ -633,6 +650,9 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get searchCatHospital => 'Hospital';
+
+  @override
+  String get searchCategories => 'Berhampiran dari lokasi anda';
 
   @override
   String get placeKindShopping => 'Beli-belah';
@@ -1367,9 +1387,6 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get splashTagline => 'Navigasi komuniti Malaysia';
-
-  @override
-  String get searchCategories => 'Cari berhampiran';
 
   @override
   String get reportTitle => 'Laporkan di sini';

@@ -16,8 +16,10 @@ import '../data/nearby_search.dart';
 import '../domain/nearby_category.dart';
 import '../../saved_places/data/saved_places_controller.dart';
 import '../../saved_places/domain/saved_place.dart';
+import '../../saved_places/presentation/assign_place_flow.dart';
 import '../../saved_places/presentation/save_place_sheet.dart';
 import '../domain/place_ranker.dart';
+import 'offline_places_prompt.dart';
 import 'place_search_controller.dart';
 import 'search_history_controller.dart';
 import '../../../core/utils/haptics.dart';
@@ -416,6 +418,7 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
                   child: _ResultsList(
                     state: search,
                     history: history,
+                    near: widget.near,
                     userLocation: widget.userLocation,
                     showSaved: widget.assign == null,
                     onPick: _pick,
@@ -496,6 +499,7 @@ class _ResultsList extends StatelessWidget {
   const _ResultsList({
     required this.state,
     required this.history,
+    required this.near,
     required this.userLocation,
     required this.showSaved,
     required this.onPick,
@@ -506,6 +510,7 @@ class _ResultsList extends StatelessWidget {
 
   final PlaceSearchState state;
   final List<Place> history;
+  final GeoPoint? near;
   final GeoPoint? userLocation;
   final bool showSaved;
   final ValueChanged<Place> onPick;
@@ -517,70 +522,10 @@ class _ResultsList extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
-    final Widget body = switch (state.status) {
-      SearchStatus.idle => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (showSaved) _SavedSection(onPick: onPick),
-          _CategoryChips(onPick: onCategory),
-          if (history.isEmpty)
-            _Message(icon: Icons.search_rounded, text: l10n.searchPrompt)
-          else
-            Column(
-              children: [
-                ListTile(
-                  title: Text(l10n.searchHistory),
-                  trailing: TextButton(
-                    onPressed: onClearHistory,
-                    child: Text(l10n.searchClearHistory),
-                  ),
-                ),
-                for (final (i, place) in history.indexed)
-                  FadeSlideIn(
-                    key: ValueKey(
-                      'history-${place.point.lat}-${place.point.lng}',
-                    ),
-                    index: i,
-                    child: ListTile(
-                      leading: _PlaceIcon(icon: _iconFor(place.category)),
-                      title: Text(
-                        place.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      subtitle: place.subtitle.isEmpty
-                          ? null
-                          : Text(
-                              place.subtitle,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                      trailing: showSaved ? _FavoriteStar(place: place) : null,
-                      onTap: () => onPick(place),
-                    ),
-                  ),
-              ],
-            ),
-        ],
-      ),
-      SearchStatus.loading => const _ResultsSkeleton(),
-      SearchStatus.empty => _Message(
-        icon: Icons.search_off_rounded,
-        text: state.nearby != null
-            ? l10n.searchNoNearby(state.query)
-            : l10n.searchNoResults(state.query),
-      ),
-      SearchStatus.failed => _Message(
-        icon: Icons.cloud_off_rounded,
-        text: switch (state.failure) {
-          GeocodeFailureKind.network => l10n.searchErrorNetwork,
-          GeocodeFailureKind.rateLimited => l10n.searchErrorRateLimited,
-          GeocodeFailureKind.unavailable => l10n.searchErrorUnavailable,
-          _ => l10n.routeErrorGeneric,
-        },
-        action: TextButton(onPressed: onRetry, child: Text(l10n.routeRetry)),
-      ),
-      SearchStatus.results => Column(
+    // Hasil typeahead: tile terus dalam ListView supaya ~24 padanan kuat ditatal lancar.
+    if (state.status == SearchStatus.results) {
+      return ListView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         children: [
           if (state.cachedAt != null) _SavedBanner(at: state.cachedAt!),
           if (state.refreshing) const _RefiningRibbon(),
@@ -590,10 +535,20 @@ class _ResultsList extends StatelessWidget {
               index: i,
               child: ListTile(
                 leading: _PlaceIcon(icon: _iconFor(place.category)),
-                title: Text(
-                  place.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                title: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        place.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (place.fromOffline) ...[
+                      const SizedBox(width: 8),
+                      const _OfflineBadge(),
+                    ],
+                  ],
                 ),
                 subtitle: _ResultSubtitle(
                   place: place,
@@ -604,12 +559,90 @@ class _ResultsList extends StatelessWidget {
               ),
             ),
         ],
+      );
+    }
+
+    final Widget body = switch (state.status) {
+      SearchStatus.idle => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const OfflinePlacesPromptBanner(),
+          // Chip berdekatan (fuel/food/masjid/hospital) menonjol — satu ketukan dari GPS.
+          _CategoryChips(onPick: onCategory),
+          if (showSaved)
+            _QuickDestinations(
+              history: history,
+              near: near,
+              userLocation: userLocation,
+              onPick: onPick,
+              onClearHistory: onClearHistory,
+            ),
+          if (history.isEmpty)
+            _Message(icon: Icons.search_rounded, text: l10n.searchPrompt),
+        ],
       ),
+      SearchStatus.loading => const _ResultsSkeleton(),
+      SearchStatus.empty => Column(
+        children: [
+          const OfflinePlacesPromptBanner(),
+          _Message(
+            icon: Icons.search_off_rounded,
+            text: state.nearby != null
+                ? l10n.searchNoNearby(state.query)
+                : l10n.searchNoResults(state.query),
+          ),
+        ],
+      ),
+      SearchStatus.failed => Column(
+        children: [
+          const OfflinePlacesPromptBanner(),
+          _Message(
+            icon: Icons.cloud_off_rounded,
+            text: switch (state.failure) {
+              GeocodeFailureKind.network => l10n.searchErrorNetwork,
+              GeocodeFailureKind.rateLimited => l10n.searchErrorRateLimited,
+              GeocodeFailureKind.unavailable => l10n.searchErrorUnavailable,
+              _ => l10n.routeErrorGeneric,
+            },
+            action: TextButton(onPressed: onRetry, child: Text(l10n.routeRetry)),
+          ),
+        ],
+      ),
+      SearchStatus.results => const SizedBox.shrink(),
     };
 
     return ListView(
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       children: [body],
+    );
+  }
+}
+
+/// Lencana kecil "Offline" pada hasil daripada indeks pek.
+class _OfflineBadge extends StatelessWidget {
+  const _OfflineBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    return Semantics(
+      label: l10n.searchResultOffline,
+      child: Container(
+        key: const ValueKey('result-offline-badge'),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.secondaryContainer,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Text(
+          l10n.searchResultOffline,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: theme.colorScheme.onSecondaryContainer,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
     );
   }
 }
@@ -643,57 +676,188 @@ class _FavoriteStar extends ConsumerWidget {
   }
 }
 
-/// Rumah, Kerja dan kegemaran di bahagian atas perancang (keadaan awal).
-class _SavedSection extends ConsumerWidget {
-  const _SavedSection({required this.onPick});
+/// Satu ketukan: Rumah, Kerja, tempat terkini (dan kegemaran) di atas papan kekunci hasil.
+class _QuickDestinations extends ConsumerWidget {
+  const _QuickDestinations({
+    required this.history,
+    required this.near,
+    required this.userLocation,
+    required this.onPick,
+    required this.onClearHistory,
+  });
 
+  final List<Place> history;
+  final GeoPoint? near;
+  final GeoPoint? userLocation;
   final ValueChanged<Place> onPick;
+  final VoidCallback onClearHistory;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final saved = ref.watch(savedPlacesControllerProvider);
-    if (saved.isEmpty) return const SizedBox.shrink();
+    SavedPlace? byId(String id) {
+      for (final s in saved) {
+        if (s.id == id) return s;
+      }
+      return null;
+    }
+
+    final home = byId(SavedPlace.homeId);
+    final work = byId(SavedPlace.workId);
+    final favorites = [
+      for (final s in saved)
+        if (s.kind == SavedKind.favorite) s,
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
           child: Text(
-            l10n.savedSection,
+            l10n.searchQuickDestinations,
             style: theme.textTheme.labelLarge?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
         ),
-        for (final item in saved)
-          ListTile(
-            key: ValueKey('saved-${item.id}'),
-            leading: _PlaceIcon(icon: savedKindIcon(item.kind)),
-            title: Text(
-              item.kind == SavedKind.favorite
-                  ? item.place.name
-                  : savedKindLabel(l10n, item.kind),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            subtitle: Text(
-              item.kind == SavedKind.favorite
-                  ? item.place.subtitle
-                  : item.place.name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            trailing: IconButton(
-              tooltip: l10n.savedRemove,
-              icon: const Icon(Icons.close_rounded),
-              onPressed: () => ref
-                  .read(savedPlacesControllerProvider.notifier)
-                  .remove(item.id),
-            ),
-            onTap: () => onPick(item.place),
+        ListTile(
+          key: const ValueKey('saved-home'),
+          leading: const _PlaceIcon(icon: Icons.home_rounded),
+          title: Text(l10n.savedHome),
+          subtitle: Text(
+            home?.place.name ?? l10n.savedNotSet,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
+          trailing: home == null
+              ? null
+              : IconButton(
+                  tooltip: l10n.savedRemove,
+                  icon: const Icon(Icons.close_rounded),
+                  onPressed: () => ref
+                      .read(savedPlacesControllerProvider.notifier)
+                      .remove(SavedPlace.homeId),
+                ),
+          onTap: () {
+            if (home != null) {
+              onPick(home.place);
+              return;
+            }
+            unawaited(
+              assignSavedPlace(
+                context,
+                ref,
+                SavedKind.home,
+                near: near,
+                userLocation: userLocation,
+              ),
+            );
+          },
+        ),
+        ListTile(
+          key: const ValueKey('saved-work'),
+          leading: const _PlaceIcon(icon: Icons.work_rounded),
+          title: Text(l10n.savedWork),
+          subtitle: Text(
+            work?.place.name ?? l10n.savedNotSet,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          trailing: work == null
+              ? null
+              : IconButton(
+                  tooltip: l10n.savedRemove,
+                  icon: const Icon(Icons.close_rounded),
+                  onPressed: () => ref
+                      .read(savedPlacesControllerProvider.notifier)
+                      .remove(SavedPlace.workId),
+                ),
+          onTap: () {
+            if (work != null) {
+              onPick(work.place);
+              return;
+            }
+            unawaited(
+              assignSavedPlace(
+                context,
+                ref,
+                SavedKind.work,
+                near: near,
+                userLocation: userLocation,
+              ),
+            );
+          },
+        ),
+        if (favorites.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Text(
+              l10n.savedSection,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          for (final item in favorites)
+            ListTile(
+              key: ValueKey('saved-${item.id}'),
+              leading: _PlaceIcon(icon: savedKindIcon(item.kind)),
+              title: Text(
+                item.place.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              subtitle: item.place.subtitle.isEmpty
+                  ? null
+                  : Text(
+                      item.place.subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+              trailing: IconButton(
+                tooltip: l10n.savedRemove,
+                icon: const Icon(Icons.close_rounded),
+                onPressed: () => ref
+                    .read(savedPlacesControllerProvider.notifier)
+                    .remove(item.id),
+              ),
+              onTap: () => onPick(item.place),
+            ),
+        ],
+        if (history.isNotEmpty) ...[
+          ListTile(
+            title: Text(l10n.searchHistory),
+            trailing: TextButton(
+              onPressed: onClearHistory,
+              child: Text(l10n.searchClearHistory),
+            ),
+          ),
+          for (final (i, place) in history.indexed)
+            FadeSlideIn(
+              key: ValueKey('history-${place.point.lat}-${place.point.lng}'),
+              index: i,
+              child: ListTile(
+                leading: _PlaceIcon(icon: _iconFor(place.category)),
+                title: Text(
+                  place.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: place.subtitle.isEmpty
+                    ? null
+                    : Text(
+                        place.subtitle,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                trailing: _FavoriteStar(place: place),
+                onTap: () => onPick(place),
+              ),
+            ),
+        ],
         const Divider(height: 24),
       ],
     );
@@ -856,7 +1020,8 @@ class _PlaceIcon extends StatelessWidget {
   }
 }
 
-/// Pintasan kategori berhampiran (minyak, makan, masjid, ...). Mengetuk mengisi medan carian.
+/// Pintasan kategori berhampiran (minyak, makan, masjid/surau, hospital, …).
+/// Empat kategori utama lebih menonjol (FilledChip); lain ActionChip.
 class _CategoryChips extends StatelessWidget {
   const _CategoryChips({required this.onPick});
 
@@ -867,7 +1032,8 @@ class _CategoryChips extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final easy = EasyModeScope.of(context);
-    final items = [
+    // Utama dahulu: fuel / food / mosque / hospital (GPS → Overpass + offline).
+    final primary = [
       (
         Icons.local_gas_station_rounded,
         l10n.searchCatFuel,
@@ -875,18 +1041,57 @@ class _CategoryChips extends StatelessWidget {
       ),
       (Icons.restaurant_rounded, l10n.searchCatFood, NearbyCategory.food),
       (Icons.mosque_rounded, l10n.searchCatMosque, NearbyCategory.mosque),
-      (Icons.wc_rounded, l10n.searchCatToilet, NearbyCategory.toilets),
-      (
-        Icons.local_parking_rounded,
-        l10n.searchCatParking,
-        NearbyCategory.parking,
-      ),
       (
         Icons.local_hospital_rounded,
         l10n.searchCatHospital,
         NearbyCategory.hospital,
       ),
     ];
+    final secondary = [
+      (Icons.wc_rounded, l10n.searchCatToilet, NearbyCategory.toilets),
+      (
+        Icons.local_parking_rounded,
+        l10n.searchCatParking,
+        NearbyCategory.parking,
+      ),
+    ];
+    Widget chip({
+      required IconData icon,
+      required String label,
+      required NearbyCategory category,
+      required bool filled,
+    }) {
+      final avatar = Icon(
+        icon,
+        size: easy ? 24 : 18,
+        color: filled
+            ? theme.colorScheme.onSecondaryContainer
+            : theme.colorScheme.primary,
+      );
+      final pad = easy
+          ? const EdgeInsets.symmetric(horizontal: 10, vertical: 10)
+          : null;
+      final style = easy ? theme.textTheme.titleMedium : null;
+      if (filled) {
+        return FilterChip(
+          selected: true,
+          showCheckmark: false,
+          avatar: avatar,
+          label: Text(label),
+          labelStyle: style,
+          padding: pad,
+          onSelected: (_) => onPick(category, label),
+        );
+      }
+      return ActionChip(
+        avatar: avatar,
+        label: Text(label),
+        labelStyle: style,
+        padding: pad,
+        onPressed: () => onPick(category, label),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.only(top: 12),
       child: Column(
@@ -896,8 +1101,9 @@ class _CategoryChips extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
               l10n.searchCategories,
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: theme.colorScheme.onSurface,
               ),
             ),
           ),
@@ -908,23 +1114,19 @@ class _CategoryChips extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children: [
-                // Ikon + teks sentiasa (bukan ikon sahaja); Mod mudah: lebih besar lagi.
-                for (final item in items)
-                  ActionChip(
-                    avatar: Icon(
-                      item.$1,
-                      size: easy ? 24 : 18,
-                      color: theme.colorScheme.primary,
-                    ),
-                    label: Text(item.$2),
-                    labelStyle: easy ? theme.textTheme.titleMedium : null,
-                    padding: easy
-                        ? const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 10,
-                          )
-                        : null,
-                    onPressed: () => onPick(item.$3, item.$2),
+                for (final item in primary)
+                  chip(
+                    icon: item.$1,
+                    label: item.$2,
+                    category: item.$3,
+                    filled: true,
+                  ),
+                for (final item in secondary)
+                  chip(
+                    icon: item.$1,
+                    label: item.$2,
+                    category: item.$3,
+                    filled: false,
                   ),
               ],
             ),
@@ -947,7 +1149,7 @@ class _ResultsSkeleton extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
         child: Column(
           children: [
-            for (var i = 0; i < 5; i++)
+            for (var i = 0; i < 8; i++)
               const Padding(
                 padding: EdgeInsets.only(bottom: 16),
                 child: Row(

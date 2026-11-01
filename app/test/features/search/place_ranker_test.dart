@@ -156,6 +156,7 @@ void main() {
           _place('Kedai $i', GeoPoint(3.0 + i * 0.01, 101.0), value: 'cafe'),
       ];
       expect(_ranker.rank(many, 'kedai', maxResults: 10), hasLength(10));
+      expect(_ranker.rank(many, 'kedai'), hasLength(24));
     });
   });
 }

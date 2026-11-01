@@ -36,8 +36,11 @@ Ukuran 2026-11-01, laluan KL→Ipoh (203 km):
      Kegagalan memasang indeks **tidak** menggagalkan pek laluan. Pek laluan versi sama tidak dimuat
      turun semula bila hanya indeks yang baharu.
    - **Carian (`geocoderProvider`):** Photon → Nominatim seperti dahulu. Indeks offline berjalan serentak
-     dan digunakan bila rangkaian gagal atau tamat masa (6 s). Bila dalam talian memberi kurang 8 hasil,
-     padanan offline yang tiada pendua ditambah di hujung.
+     dan digunakan bila rangkaian gagal atau tamat masa (6 s). Bila dalam talian memberi kurang 12 hasil,
+     padanan offline yang tiada pendua ditambah di hujung. Google Places/Maps **ditolak** untuk
+     dump/scrape/API pukal (ToS melarang pangkalan tempat saingan; bukan hanya isu kos).
+     Liputan diperkaya melalui tag OSM lebih luas + Overture Places (CDLA) / CSV berkurasi dalam
+     `tools/places/extra/` pada rebuild pek (lihat `tools/places/README.md`).
    - **Berdekatan:** Overpass → indeks offline → Nominatim.
 
 2. **Tol daripada dataset, bukan Overpass.**

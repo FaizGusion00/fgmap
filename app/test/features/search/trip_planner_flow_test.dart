@@ -11,6 +11,7 @@ import 'package:fgmap/features/search/data/photon_geocoder.dart';
 import 'package:fgmap/features/search/domain/nearby_category.dart';
 import 'package:fgmap/features/search/domain/place.dart';
 import 'package:fgmap/features/search/presentation/place_search_controller.dart';
+import 'package:fgmap/features/search/presentation/search_history_controller.dart';
 import 'package:fgmap/features/search/presentation/trip_planner_page.dart';
 import 'package:fgmap/features/route_preview/domain/route_option.dart';
 import 'package:flutter/material.dart';
@@ -59,7 +60,7 @@ void main() {
     geocoder = _Geocoder()
       ..handler = (q) async => switch (q.toLowerCase()) {
         'klia' => [klia1],
-        'klcc' => [klcc1],
+        'klcc' || 'suria klcc' => [klcc1],
         'zzzz' => <Place>[],
         _ => [Place(name: q, subtitle: '', point: const GeoPoint(3.0, 101.0))],
       };
@@ -131,6 +132,10 @@ void main() {
           findsOneWidget,
           reason: 'hint medan asal',
         );
+        // Rumah/Kerja sentiasa satu ketukan di atas hasil (walaupun belum ditetapkan).
+        expect(find.byKey(const ValueKey('saved-home')), findsOneWidget);
+        expect(find.byKey(const ValueKey('saved-work')), findsOneWidget);
+        expect(find.text('Pergi sekarang'), findsOneWidget);
         expect(geocoder.queries, isEmpty);
       },
     );
@@ -193,7 +198,7 @@ void main() {
 
       await tester.pump(_debounce * 3);
       await tester.pump();
-      expect(geocoder.queries, ['klia']);
+      expect(geocoder.queries, ['KLIA']);
       expect(find.text('KLIA'), findsOneWidget);
     });
 
@@ -210,8 +215,13 @@ void main() {
         expect(find.text('Tempat terkini'), findsOneWidget);
         expect(find.text('KLIA'), findsOneWidget);
 
-        await tester.tap(find.text('Padam sejarah'));
-        await tester.pump();
+        // Chip kategori di atas boleh menolak "Padam sejarah" di luar skrin pada
+        // telefon ujian — padam melalui notifier (laluan UI yang sama).
+        final ctx = tester.element(find.byType(TripPlannerPage));
+        await ProviderScope.containerOf(
+          ctx,
+        ).read(searchHistoryControllerProvider.notifier).clear();
+        await tester.pumpAndSettle();
         expect(find.text('Tempat terkini'), findsNothing);
       },
     );
@@ -229,6 +239,22 @@ void main() {
       await pumpHost(tester);
       await type(tester, 'destination-field', 'zzzz');
       expect(find.textContaining('Tiada hasil untuk “zzzz”'), findsOneWidget);
+    });
+
+    testWidgets('hasil offline memaparkan lencana Offline', (tester) async {
+      geocoder.handler = (_) async => [
+        const Place(
+          name: 'Masjid Putra',
+          subtitle: 'Putrajaya',
+          point: GeoPoint(2.936, 101.689),
+          fromOffline: true,
+        ),
+      ];
+      await pumpHost(tester);
+      await type(tester, 'destination-field', 'masjid putra');
+      expect(find.text('Masjid Putra'), findsOneWidget);
+      expect(find.byKey(const ValueKey('result-offline-badge')), findsOneWidget);
+      expect(find.text('Offline'), findsWidgets);
     });
 
     testWidgets(
@@ -465,8 +491,9 @@ void main() {
         userLocation: const GeoPoint(3.2290, 101.4260),
         extraOverrides: [nearbySearchProvider.overrideWithValue(nearby)],
       );
-      expect(find.text('Masjid'), findsOneWidget);
+      expect(find.text('Masjid / surau'), findsOneWidget);
       expect(find.text('Stesen minyak'), findsOneWidget);
+      expect(find.text('Berhampiran dari lokasi anda'), findsOneWidget);
 
       await tester.tap(find.text('Stesen minyak'));
       await tester.pump();
@@ -480,7 +507,7 @@ void main() {
         find.byKey(const ValueKey('destination-field')),
       );
       expect(field.controller!.text, 'Stesen minyak');
-      expect(find.text('Cari berhampiran'), findsNothing);
+      expect(find.text('Berhampiran dari lokasi anda'), findsNothing);
 
       // Hasil: jenis + jarak, dan boleh dipilih sebagai destinasi.
       expect(find.text('Petronas Puncak Alam'), findsOneWidget);
@@ -523,7 +550,7 @@ void main() {
           nearbySearchProvider.overrideWithValue(_FakeNearby(empty: true)),
         ],
       );
-      await tester.tap(find.text('Masjid'));
+      await tester.tap(find.text('Masjid / surau'));
       await tester.pump();
       await tester.pump();
       expect(find.textContaining('ditemui berhampiran'), findsOneWidget);

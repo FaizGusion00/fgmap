@@ -716,6 +716,36 @@ abstract class AppLocalizations {
   /// **'Perkhidmatan carian tidak tersedia buat masa ini.'**
   String get searchErrorUnavailable;
 
+  /// No description provided for @searchOfflinePackPrompt.
+  ///
+  /// In ms, this message translates to:
+  /// **'Muat turun indeks tempat offline untuk carian Malaysia yang lebih lengkap — tiada suis berasingan.'**
+  String get searchOfflinePackPrompt;
+
+  /// No description provided for @searchOfflinePackUpdate.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kemas kini pek peta offline untuk dapat tempat baharu.'**
+  String get searchOfflinePackUpdate;
+
+  /// No description provided for @searchOfflinePackAction.
+  ///
+  /// In ms, this message translates to:
+  /// **'Peta offline'**
+  String get searchOfflinePackAction;
+
+  /// No description provided for @searchQuickDestinations.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pergi sekarang'**
+  String get searchQuickDestinations;
+
+  /// No description provided for @searchResultOffline.
+  ///
+  /// In ms, this message translates to:
+  /// **'Offline'**
+  String get searchResultOffline;
+
   /// No description provided for @routeFromTo.
   ///
   /// In ms, this message translates to:
@@ -1169,7 +1199,7 @@ abstract class AppLocalizations {
   /// No description provided for @searchCatMosque.
   ///
   /// In ms, this message translates to:
-  /// **'Masjid'**
+  /// **'Masjid / surau'**
   String get searchCatMosque;
 
   /// No description provided for @searchCatToilet.
@@ -1189,6 +1219,12 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'Hospital'**
   String get searchCatHospital;
+
+  /// No description provided for @searchCategories.
+  ///
+  /// In ms, this message translates to:
+  /// **'Berhampiran dari lokasi anda'**
+  String get searchCategories;
 
   /// No description provided for @placeKindShopping.
   ///
@@ -2521,12 +2557,6 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'Navigasi komuniti Malaysia'**
   String get splashTagline;
-
-  /// No description provided for @searchCategories.
-  ///
-  /// In ms, this message translates to:
-  /// **'Cari berhampiran'**
-  String get searchCategories;
 
   /// No description provided for @reportTitle.
   ///

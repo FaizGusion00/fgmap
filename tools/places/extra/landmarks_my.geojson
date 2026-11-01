@@ -1,0 +1,160 @@
+{
+  "type": "FeatureCollection",
+  "attribution": "Curated FGMaps landmark aliases (public names / OSM); not Google Places",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [101.7116, 3.1579] },
+      "properties": {
+        "name": "Suria KLCC",
+        "alt": "KLCC Suria KLCC Petronas Twin Towers Menara Berkembar Petronas",
+        "kind": "shop",
+        "area": "Kuala Lumpur",
+        "rank": 90
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [101.7117, 3.1578] },
+      "properties": {
+        "name": "Petronas Twin Towers",
+        "alt": "KLCC Menara Berkembar Petronas Twin Towers",
+        "kind": "tourism",
+        "area": "Kuala Lumpur",
+        "rank": 95
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [101.7189, 3.1491] },
+      "properties": {
+        "name": "Pavilion Kuala Lumpur",
+        "alt": "Pavilion KL Pavilion Bukit Bintang",
+        "kind": "shop",
+        "area": "Kuala Lumpur",
+        "rank": 88
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [101.6775, 3.1174] },
+      "properties": {
+        "name": "Mid Valley Megamall",
+        "alt": "Mid Valley Midvalley The Gardens Mall",
+        "kind": "shop",
+        "area": "Kuala Lumpur",
+        "rank": 85
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [101.6156, 3.1509] },
+      "properties": {
+        "name": "1 Utama",
+        "alt": "One Utama 1 Utama Bandar Utama",
+        "kind": "shop",
+        "area": "Petaling Jaya",
+        "rank": 85
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [101.6063, 3.0724] },
+      "properties": {
+        "name": "Sunway Pyramid",
+        "alt": "Sunway Pyramid Mall Bandar Sunway",
+        "kind": "shop",
+        "area": "Subang Jaya",
+        "rank": 85
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [101.6860, 3.1340] },
+      "properties": {
+        "name": "KL Sentral",
+        "alt": "Kuala Lumpur Sentral KL Sentral Stesen Sentral",
+        "kind": "transport",
+        "area": "Kuala Lumpur",
+        "rank": 92
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [101.4980, 3.0650] },
+      "properties": {
+        "name": "UiTM Shah Alam",
+        "alt": "UiTM Universiti Teknologi MARA Shah Alam",
+        "kind": "education",
+        "area": "Shah Alam",
+        "rank": 80
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [101.6530, 3.1209] },
+      "properties": {
+        "name": "Universiti Malaya",
+        "alt": "UM Universiti Malaya University of Malaya",
+        "kind": "education",
+        "area": "Kuala Lumpur",
+        "rank": 82
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [101.6990, 3.1390] },
+      "properties": {
+        "name": "Hospital Kuala Lumpur",
+        "alt": "HKL Hospital KL General Hospital Kuala Lumpur",
+        "kind": "hospital",
+        "area": "Kuala Lumpur",
+        "rank": 88
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [101.6869, 2.7456] },
+      "properties": {
+        "name": "KLIA",
+        "alt": "Kuala Lumpur International Airport KLIA 1",
+        "kind": "transport",
+        "area": "Sepang",
+        "rank": 95
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [101.7019, 2.7433] },
+      "properties": {
+        "name": "KLIA2",
+        "alt": "KLIA 2 klia2",
+        "kind": "transport",
+        "area": "Sepang",
+        "rank": 90
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [101.6841, 3.2379] },
+      "properties": {
+        "name": "Batu Caves",
+        "alt": "Batu Caves Temple Gua Batu",
+        "kind": "tourism",
+        "area": "Gombak",
+        "rank": 90
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [101.7925, 3.4236] },
+      "properties": {
+        "name": "Genting Highlands",
+        "alt": "Genting Genting Highland Resort World Genting",
+        "kind": "tourism",
+        "area": "Pahang",
+        "rank": 88
+      }
+    }
+  ]
+}

@@ -136,7 +136,7 @@ void main() {
 
     test('Photon cukup hasil: fallback tidak dipanggil', () async {
       final many = [
-        for (var i = 0; i < 5; i++)
+        for (var i = 0; i < 10; i++)
           Place(name: 'P$i', subtitle: '', point: GeoPoint(3, 101 + i * 0.01)),
       ];
       final p = _Fake(results: many);

@@ -14,6 +14,8 @@ on:
       - ".github/workflows/tiles.yml"
       - "tools/tiles/VERSIONS"
       - "tools/places/build_places.py"
+      - "tools/places/import_overture.py"
+      - "tools/places/extra/**"
       - "tools/basemap/**"
   schedule:
     - cron: "0 19 * * 0" # Ahad 19:00 UTC = Isnin 03:00 MYT
