@@ -157,7 +157,7 @@ void main() {
 
     test('tepi laluan cerah jelas pada jalan peta cerah (bukan putih)', () {
       const lightRoad = Color(0xFFE8ECF2);
-      final p = FgPalette.light;
+      const p = FgPalette.light;
       expect(p.routeCasing, isNot(const Color(0xFFFFFFFF)));
       expect(contrastRatio(p.routeCasing, lightRoad), greaterThanOrEqualTo(6));
       expect(

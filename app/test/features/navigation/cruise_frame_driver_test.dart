@@ -1,5 +1,4 @@
 import 'package:fgmap/core/utils/geo.dart';
-import 'package:fgmap/features/map/presentation/map_view.dart';
 import 'package:fgmap/features/navigation/domain/camera_planner.dart';
 import 'package:fgmap/features/navigation/presentation/cruise_frame_driver.dart';
 import 'package:fgmap/features/navigation/presentation/navigation_frame_driver.dart';

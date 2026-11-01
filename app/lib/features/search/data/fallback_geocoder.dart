@@ -56,8 +56,9 @@ class FallbackGeocoder implements Geocoder {
     }
     if (primaryResults.length >= enrichBelow) return primaryResults;
     if (query.trim().length < _minFallbackChars) {
-      if (primaryFailure != null && primaryResults.isEmpty)
+      if (primaryFailure != null && primaryResults.isEmpty) {
         throw primaryFailure;
+      }
       return primaryResults;
     }
 
@@ -73,8 +74,9 @@ class FallbackGeocoder implements Geocoder {
     } on GeocodeFailure {
       // Photon gagal DAN fallback gagal: laporkan kegagalan Photon (sebab asal). Photon berjaya tetapi
       // kosong: kosong ialah jawapan yang jujur. Photon ada sedikit hasil: kekalkan itu.
-      if (primaryFailure != null && primaryResults.isEmpty)
+      if (primaryFailure != null && primaryResults.isEmpty) {
         throw primaryFailure;
+      }
       return primaryResults;
     }
   }

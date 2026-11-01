@@ -69,8 +69,7 @@ enum _Stage { far, near, now }
 /// Memutuskan bila dan apa yang diumumkan. Kelas tulen: diberi kemajuan, ia memulangkan senarai
 /// pengumuman baharu (kosong pada kebanyakan fix). Setiap peringkat bagi setiap manuver hanya sekali.
 class AnnouncementPlanner {
-  AnnouncementPlanner({required this.route, required InstructionText text})
-    : _text = text;
+  AnnouncementPlanner({required this.route, required this._text});
 
   final NavRoute route;
   InstructionText _text;
