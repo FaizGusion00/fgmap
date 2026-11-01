@@ -10,7 +10,7 @@ daripada **pek berjadual** yang dimuat turun sekali, sama aliran dengan peta off
 | --- | --- | --- | --- |
 | Asas | Ekstrak Geofabrik MY–SG–BN (`tiles.yml`) → `build_places.py` | OSM ODbL | Mingguan (cron tiles) + setiap push ke skrip / `extra/` |
 | Tag OSM lebih luas | Kedai bernama, leisure, pejabat, `landuse=residential` bernama | ODbL | Sama dengan asas |
-| Overture Maps Places | `import_overture.py` → `extra/overture_my.geojson` | [CDLA Permissive 2.0](https://cdla.dev/permissive-2-0/) | Bulanan (mengikut keluaran Overture) |
+| Overture Maps Places | `import_overture.py` → `extra/overture_my.geojson.gz` | [CDLA Permissive 2.0](https://cdla.dev/permissive-2-0/) | **Automatik** bulanan (`.github/workflows/places-overture.yml`) |
 | Landmark alias MY | `extra/landmarks_my.geojson` (KLCC, Pavilion, UiTM, …) | Nama awam / OSM | Bila alias baharu diperlukan |
 | Open data MY | data.gov.my / OpenData negeri (hospital, IPT, …) | CC BY / lesen portal — **semak setiap dataset** | Bulanan; lihat `SOURCES.md` |
 | Tambahan berkurasi | GeoJSON/JSON/CSV dalam `tools/places/extra/` | Dikawal pemilik (mestilah boleh diedarkan semula) | Bila-bila; diserap pada publish tiles seterusnya |
@@ -27,34 +27,35 @@ pangkalan tempat saingan daripada data mereka.
 
 Liputan offline = OSM (ODbL) + Overture (CDLA) + CSV/GeoJSON berkurasi pemilik yang sah untuk diedarkan.
 
-## Import bulanan Overture (Malaysia)
+## Import bulanan Overture (automatik — tiada langkah tempatan untuk APK)
 
-Keperluan: Python 3.10+, `pip install duckdb`, rangkaian (S3 awam Overture).
+**Binaan APK / release app tidak memerlukan** menjalankan `import_overture.py` di laptop.
+Workflow GitHub menguruskannya; pek offline datang daripada Release `tiles` selepas merge.
 
-1. Pilih id release semasa dari [Overture release notes](https://docs.overturemaps.org/release-schedule/)
-   (cth. `2025-10-22.0`).
-2. Eksport bbox MY–SG–BN ke `extra/`:
+| Cara | Bila |
+| --- | --- |
+| Cron | `.github/workflows/places-overture.yml` — **1hb setiap bulan 04:17 UTC** (selepas workflow digabung ke `main`) |
+| Manual | GitHub → **Actions** → **places-overture** → **Run workflow** (pilihan: `release`, `limit` ujian) |
 
-```bash
-python3 tools/places/import_overture.py \
-  --release 2025-10-22.0 \
-  --out tools/places/extra/overture_my.geojson
-```
+Aliran automatik:
 
-3. (Pilihan) Letak CSV/GeoJSON berkurasi sendiri dalam `tools/places/extra/` — lihat format di bawah.
-4. Commit fail `extra/` (dan skrip jika berubah), push ke `main` **atau** jalankan
-   Actions → **tiles** → *Run workflow*. `tiles.yml` sudah memantau `tools/places/extra/**`
-   dan `build_places.py`; `build_places.py` memuatkan semua `.geojson` / `.json` / `.csv` dalam
-   `extra/` secara automatik.
-5. Selepas Release `tiles` dikemas kini, penguji muat turun/kemas kini pek dalam app
-   (Settings → Peta offline).
+1. `import_overture.py --release latest` (STAC) → `tools/places/extra/overture_my.geojson.gz` + `.meta.json`.
+2. Jika hash berbeza daripada `main`: bot membuka PR `cursor/overture-places-YYYYMM` (tiada PR kosong).
+3. Selepas PR digabung ke `main`, `tiles.yml` (path `tools/places/extra/**`) membina semula indeks places ke Release `tiles`.
+4. Dalam app: Settings → **Peta offline** → kemas kini pek.
 
-Ujian kecil (had baris):
+Larian tempatan (pilihan / debug sahaja):
 
 ```bash
-python3 tools/places/import_overture.py --release 2025-10-22.0 --limit 500 \
-  --out /tmp/overture_smoke.geojson
+pip install duckdb
+python3 tools/places/import_overture.py --release latest \
+  --out tools/places/extra/overture_my.geojson.gz
+# ujian kecil:
+python3 tools/places/import_overture.py --release latest --limit 500 \
+  --out /tmp/overture_smoke.geojson.gz
 ```
+
+`build_places.py` memuatkan `extra/*.{geojson,geojson.gz,json,csv}` (abaikan `*.meta.json`).
 
 ### Lesen & atribusi Overture
 

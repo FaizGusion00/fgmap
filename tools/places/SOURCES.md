@@ -7,7 +7,7 @@ dalam app, dan **bukan** Google Places/Maps (ToS melarang dump/scrape untuk pang
 
 | Sumber | Apa | Lesen (semak semula sebelum import) | Cara |
 | --- | --- | --- | --- |
-| [Overture Maps Places](https://docs.overturemaps.org/) | POI MY bbox | CDLA Permissive 2.0 | `import_overture.py` → `extra/overture_my.geojson` (bulanan) |
+| [Overture Maps Places](https://docs.overturemaps.org/) | POI MY bbox | CDLA Permissive 2.0 | Workflow `places-overture.yml` → `extra/overture_my.geojson.gz` (cron 1hb + manual) |
 | Curated landmarks FGMaps | Alias KLCC / Pavilion / UiTM / … | Nama awam; koordinat kasar OSM | `extra/landmarks_my.geojson` (dikemas kini bila perlu) |
 | CSV/GeoJSON pemilik | POI sah milik/izin | Mestilah boleh diedarkan semula | Letak `extra/*.csv` atau `*.geojson` |
 | [data.gov.my](https://data.gov.my/) | Dataset kerajaan yang dilabel terbuka | Biasanya CC BY / Open Data MY — **baca lesen setiap dataset** | Eksport CSV → `extra/`; dokumentasikan URL + tarikh dalam commit |
@@ -31,11 +31,13 @@ Jika lesen kabur, **langkau** sumber itu. Jangan commit data berlesen terhad ke 
 
 ## Segar bulanan
 
-1. Jalankan Overture (lihat `README.md`).
-2. Semak data.gov.my / OpenData negeri untuk dataset baharu yang CC BY; ganti CSV dalam `extra/`.
+1. **Overture:** biarkan `.github/workflows/places-overture.yml` (cron 1hb UTC) atau
+   Actions → **places-overture** → Run workflow. Bot PR hanya jika hash berubah; selepas merge,
+   `tiles.yml` membina pek. **APK tidak bergantung pada import tempatan.**
+2. Semak data.gov.my / OpenData negeri untuk dataset baharu yang CC BY; ganti CSV dalam `extra/`
+   hanya jika lesen jelas (langkau KKM/petrol rasmi tanpa lesen terbuka).
 3. Kemas kini `landmarks_my.geojson` jika alias baharu diperlukan.
-4. Commit `extra/` → push `main` **atau** Actions → **tiles** → Run workflow.
-5. Dalam app: Settings → Peta offline → kemas kini pek.
+4. Dalam app: Settings → Peta offline → kemas kini pek.
 
 ## Atribusi
 
