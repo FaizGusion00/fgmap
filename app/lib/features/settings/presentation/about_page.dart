@@ -8,8 +8,9 @@ final appPackageInfoProvider = FutureProvider<PackageInfo>(
   (ref) => PackageInfo.fromPlatform(),
 );
 
-/// Versi yang diterangkan oleh kad "Baharu dalam versi" (bukan versi binaan yang sedang berjalan).
-const aboutWhatsNewVersion = '1.2.1';
+/// Versi yang diterangkan oleh kad "Baharu dalam versi". Mesti sama dengan `version:` dalam pubspec.yaml;
+/// `about_page_test.dart` gagal jika berbeza.
+const aboutWhatsNewVersion = '1.3.0';
 
 class AboutPage extends ConsumerWidget {
   const AboutPage({super.key});
@@ -135,6 +136,7 @@ class AboutPage extends ConsumerWidget {
                           l10n.aboutNew3,
                           l10n.aboutNew4,
                           l10n.aboutNew5,
+                          l10n.aboutNew6,
                         ])
                           Padding(
                             padding: const EdgeInsets.only(bottom: 6),

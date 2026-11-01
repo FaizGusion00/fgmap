@@ -1908,23 +1908,27 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get aboutNew1 =>
-      'Dibaiki: app tertutup sendiri sebaik dibuka pada sesetengah telefon Android';
+      'FG AI lebih faham ayat harian dan bahasa pasar. Cari 23 jenis tempat (farmasi, kedai gunting, ATM, hotel dan lagi) dengan kad jarak dan butang Pergi';
 
   @override
   String get aboutNew2 =>
-      'Kompas kiblat sebenar dengan sensor telefon, hijau apabila tepat';
+      'FG AI jawab soalan terkini dari web percuma: berita, kadar tukaran BNM dan harga minyak. Boleh dimatikan dalam Tetapan';
 
   @override
   String get aboutNew3 =>
-      'Skrin utama lebih kemas: pintasan, waktu solat dan alat';
+      'FG AI boleh menekan butang dalam app untuk anda. Mod Lite kurangkan animasi dan bangunan 3D pada telefon yang perlahan';
 
   @override
   String get aboutNew4 =>
-      'R&R dan stesen minyak sepanjang laluan kini muncul, lebih pantas';
+      'Kotak lorong dan anak panah arah di peta semasa memandu';
 
   @override
   String get aboutNew5 =>
-      'Ikon cuaca berwarna dan beranimasi; azan di latar dengan satu ketukan';
+      'Android Auto: butang Berdekatan, carian suara dalam ayat biasa, waktu solat dan lorong sebenar';
+
+  @override
+  String get aboutNew6 =>
+      'Carian tempat di Malaysia lebih tepat dan lebih laju';
 
   @override
   String get alongRouteTitle => 'Sepanjang laluan';

@@ -1909,23 +1909,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutNew1 =>
-      'Fixed: the app closing by itself right after opening on some Android phones';
+      'FG AI understands everyday and slang Malay better. Find 23 kinds of places (pharmacy, barber, ATM, hotel and more) with distance cards and a Go button';
 
   @override
   String get aboutNew2 =>
-      'A real Qibla compass using the phone’s sensor, green when you face it';
+      'FG AI answers up-to-date questions from the free web: news, BNM exchange rates and fuel prices. You can turn it off in Settings';
 
   @override
   String get aboutNew3 =>
-      'A tidier home screen: shortcuts, prayer time and tools';
+      'FG AI can tap buttons in the app for you. Lite Mode reduces animations and 3D buildings on slower phones';
 
   @override
   String get aboutNew4 =>
-      'R&R and fuel stops along the route now show up, and faster';
+      'A lane box and direction arrows on the map while driving';
 
   @override
   String get aboutNew5 =>
-      'Colorful animated weather icons; azan in the background with one tap';
+      'Android Auto: a Nearby button, voice search in plain sentences, prayer time and real lanes';
+
+  @override
+  String get aboutNew6 =>
+      'Place search in Malaysia is more accurate and faster';
 
   @override
   String get alongRouteTitle => 'Along the route';

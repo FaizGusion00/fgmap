@@ -3389,32 +3389,38 @@ abstract class AppLocalizations {
   /// No description provided for @aboutNew1.
   ///
   /// In ms, this message translates to:
-  /// **'Dibaiki: app tertutup sendiri sebaik dibuka pada sesetengah telefon Android'**
+  /// **'FG AI lebih faham ayat harian dan bahasa pasar. Cari 23 jenis tempat (farmasi, kedai gunting, ATM, hotel dan lagi) dengan kad jarak dan butang Pergi'**
   String get aboutNew1;
 
   /// No description provided for @aboutNew2.
   ///
   /// In ms, this message translates to:
-  /// **'Kompas kiblat sebenar dengan sensor telefon, hijau apabila tepat'**
+  /// **'FG AI jawab soalan terkini dari web percuma: berita, kadar tukaran BNM dan harga minyak. Boleh dimatikan dalam Tetapan'**
   String get aboutNew2;
 
   /// No description provided for @aboutNew3.
   ///
   /// In ms, this message translates to:
-  /// **'Skrin utama lebih kemas: pintasan, waktu solat dan alat'**
+  /// **'FG AI boleh menekan butang dalam app untuk anda. Mod Lite kurangkan animasi dan bangunan 3D pada telefon yang perlahan'**
   String get aboutNew3;
 
   /// No description provided for @aboutNew4.
   ///
   /// In ms, this message translates to:
-  /// **'R&R dan stesen minyak sepanjang laluan kini muncul, lebih pantas'**
+  /// **'Kotak lorong dan anak panah arah di peta semasa memandu'**
   String get aboutNew4;
 
   /// No description provided for @aboutNew5.
   ///
   /// In ms, this message translates to:
-  /// **'Ikon cuaca berwarna dan beranimasi; azan di latar dengan satu ketukan'**
+  /// **'Android Auto: butang Berdekatan, carian suara dalam ayat biasa, waktu solat dan lorong sebenar'**
   String get aboutNew5;
+
+  /// No description provided for @aboutNew6.
+  ///
+  /// In ms, this message translates to:
+  /// **'Carian tempat di Malaysia lebih tepat dan lebih laju'**
+  String get aboutNew6;
 
   /// No description provided for @alongRouteTitle.
   ///

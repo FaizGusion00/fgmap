@@ -1,5 +1,7 @@
 import 'package:fgmap/core/theme/app_theme.dart';
 import 'package:fgmap/features/settings/presentation/about_page.dart';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -36,8 +38,12 @@ void main() {
       find.byKey(const ValueKey('about-whats-new')),
       300,
     );
-    expect(find.text('Baharu dalam versi 1.2.1'), findsOneWidget);
-    expect(find.textContaining('app tertutup sendiri'), findsOneWidget);
+    expect(find.text('Baharu dalam versi 1.3.0'), findsOneWidget);
+    expect(find.textContaining('FG AI lebih faham'), findsOneWidget);
+    expect(
+      find.textContaining('Android Auto: butang Berdekatan'),
+      findsOneWidget,
+    );
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('about-attribution')),
       300,
@@ -47,5 +53,19 @@ void main() {
     expect(find.textContaining('data.gov.my'), findsOneWidget);
     expect(find.textContaining('WaktuSolat'), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  test('kad "Baharu" menerangkan versi dalam pubspec.yaml', () {
+    final line = File(
+      'pubspec.yaml',
+    ).readAsLinesSync().firstWhere((l) => l.startsWith('version:'));
+    final name = line.substring('version:'.length).trim().split('+').first;
+    expect(
+      aboutWhatsNewVersion,
+      name,
+      reason:
+          'Naikkan versi di pubspec.yaml dan tulis kad "Baharu" (aboutNew*) '
+          'bersama-sama supaya About tidak menerangkan versi lama.',
+    );
   });
 }
