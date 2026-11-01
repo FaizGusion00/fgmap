@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../data/muslim_ai_settings.dart';
 import '../domain/local_llm.dart';
+import 'ai_model_sheet.dart';
 import 'assistant_controller.dart';
 import 'muslim_terms_sheet.dart';
 
@@ -34,7 +35,8 @@ class AssistantSettingsSection extends ConsumerWidget {
           title: Text(l10n.assistantSettingsTitle),
           subtitle: Text(
             ready
-                ? l10n.assistantSettingsReady
+                ? '${l10n.assistantSettingsModel(ref.watch(selectedAiModelProvider).name)}\n'
+                      '${l10n.assistantSettingsReady}'
                 : downloading
                 ? l10n.assistantDownloading(
                     (state.downloadProgress * 100).round(),
@@ -69,6 +71,13 @@ class AssistantSettingsSection extends ConsumerWidget {
             icon: const Icon(Icons.delete_outline_rounded),
             label: Text(l10n.assistantDeleteModel),
           ),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          key: const ValueKey('assistant-settings-models'),
+          onPressed: () => unawaited(showAiModelSheet(context)),
+          icon: const Icon(Icons.memory_rounded),
+          label: Text(l10n.aiModelsManage),
+        ),
         const SizedBox(height: 16),
         const Divider(height: 1),
         const SizedBox(height: 8),

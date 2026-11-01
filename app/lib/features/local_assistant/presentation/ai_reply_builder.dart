@@ -116,6 +116,25 @@ class AiReplyBuilder {
     ChatKind.ping => l10n.aiPing,
   });
 
+  /// Ringkasan Wikipedia ("Tajuk — petikan", mungkin dipotong dengan "…"): tajuk tebal, ayat penuh
+  /// sahaja, dan sumber di hujung.
+  AssistantMessage topic(String summary) {
+    final dash = summary.indexOf(' — ');
+    final title = dash > 0 ? summary.substring(0, dash).trim() : null;
+    var body = (dash > 0 ? summary.substring(dash + 3) : summary).trim();
+    if (body.endsWith('…')) {
+      final end = body.lastIndexOf(RegExp(r'[.!?]\s'));
+      if (end > 80) body = body.substring(0, end + 1);
+    }
+    final b = StringBuffer();
+    if (title != null && title.isNotEmpty) b.write('**$title**\n\n');
+    b
+      ..write(body)
+      ..write('\n\n')
+      ..write(l10n.aiWikiSource);
+    return _reply(b.toString());
+  }
+
   AssistantMessage capabilities({bool offlineFocused = false}) =>
       _reply(offlineFocused ? l10n.aiCapabilitiesOffline : l10n.aiCapabilities);
 

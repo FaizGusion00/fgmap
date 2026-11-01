@@ -29,6 +29,35 @@ void main() {
     },
   );
 
+  test(
+    'jawapan templat app (identiti) tidak dimainkan semula: model tidak menyalinnya',
+    () {
+      final h = compactHistory([
+        _u('Hi bro who are you?'),
+        const AssistantMessage(
+          role: AssistantRole.assistant,
+          text: "I'm FG AI, the smart assistant in FGMaps",
+          local: true,
+        ),
+        _u('Explain photosynthesis'),
+        _a('Plants turn light into sugar.'),
+      ]);
+      expect(h.map((m) => m.text), [
+        'Explain photosynthesis',
+        'Plants turn light into sugar.',
+      ]);
+      // Tanda kekal selepas disimpan dan dibaca semula.
+      final back = AssistantMessage.fromJson(
+        const AssistantMessage(
+          role: AssistantRole.assistant,
+          text: 'x',
+          local: true,
+        ).toJson(),
+      );
+      expect(back!.local, isTrue);
+    },
+  );
+
   test('jawapan sebenar vs sisa sebelum panggilan alat', () {
     expect(hasSubstantiveAnswer('.'), isFalse);
     expect(hasSubstantiveAnswer('Let me check'), isFalse);

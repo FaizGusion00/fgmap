@@ -1,5 +1,9 @@
 import 'package:fgmap/core/storage/preferences.dart';
 import 'package:fgmap/features/local_assistant/data/chat_history_store.dart';
+import 'package:fgmap/features/local_assistant/data/edge_ai_runtime.dart';
+import 'package:fgmap/features/local_assistant/data/wikipedia_client.dart';
+import 'package:fgmap/features/local_assistant/domain/assistant_models.dart';
+import 'package:dio/dio.dart';
 import 'package:fgmap/features/local_assistant/presentation/ai_chat_page.dart';
 import 'package:fgmap/features/local_assistant/presentation/assistant_controller.dart';
 import 'package:flutter/material.dart';
@@ -22,6 +26,7 @@ void main() {
     FakeLlm llm, {
     AiMode mode = AiMode.fg,
     Locale locale = const Locale('en'),
+    WikipediaClient? wiki,
   }) async {
     usePhoneSurface(tester, size: const Size(390, 860));
     reduceMotion(tester);
@@ -32,6 +37,7 @@ void main() {
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         localLlmRuntimeProvider.overrideWithValue(llm),
+        wikipediaClientProvider.overrideWithValue(wiki ?? _FakeWiki(const {})),
       ],
     );
     await tester.pumpAndSettle();
@@ -69,6 +75,119 @@ void main() {
       expect(llm.lastUserText, isNull, reason: 'model tidak dipanggil');
       expect(find.textContaining('Kuala Kedah'), findsNothing);
       expect(find.text('Start navigation'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'soalan topik dijawab daripada Wikipedia; tiada perkenalan diri berulang',
+    (tester) async {
+      final llm = FakeLlm(reply: "Hi bro, I'm FG AI");
+      await pump(
+        tester,
+        llm,
+        wiki: _FakeWiki(const {
+          'palestine':
+              'Palestine — Palestine is a geographic region in West Asia. '
+              'It is sometimes considered to include Israel and the '
+              'Palestinian territories.',
+        }),
+      );
+      await send(tester, 'Hi bro who are you?');
+      await send(tester, 'So well wanna ask you about Palestine');
+      expect(
+        find.textContaining('geographic region in West Asia'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Source: Wikipedia'), findsOneWidget);
+      expect(
+        llm.lastUserText,
+        isNull,
+        reason: 'fakta daripada Wikipedia, bukan model',
+      );
+    },
+  );
+
+  testWidgets('tiada rencana/internet: model menjawab, tanpa sejarah templat', (
+    tester,
+  ) async {
+    final llm = FakeLlm(
+      reply: 'Love is a deep feeling of care and attachment.',
+    );
+    await pump(tester, llm);
+    await send(tester, 'Hi bro who are you?');
+    await send(tester, 'Can you tell me the idea about love');
+    expect(llm.lastUserText, 'Can you tell me the idea about love');
+    expect(
+      compactHistory(llm.lastHistory).where((m) => m.text.contains('FG AI')),
+      isEmpty,
+      reason: 'jawapan identiti tidak dihantar kepada model sebagai contoh',
+    );
+    expect(find.textContaining('deep feeling'), findsOneWidget);
+  });
+
+  testWidgets(
+    'pilih model: 5 pilihan 3 tahap; muat turun & guna, tukar, padam',
+    (tester) async {
+      final llm = FakeLlm();
+      await pump(tester, llm);
+      await tester.tap(find.byKey(const ValueKey('ai-models')));
+      await tester.pumpAndSettle();
+      expect(find.text('AI models on this phone'), findsOneWidget);
+      expect(find.text('Basic · fast and light'), findsOneWidget);
+        for (final m in aiModelOptions) {
+        await tester.scrollUntilVisible(
+          find.byKey(ValueKey('ai-model-${m.id}')),
+          200,
+          scrollable: find.byType(Scrollable).last,
+        );
+        expect(find.text(m.name), findsOneWidget, reason: m.name);
+      }
+
+      // Gemma 4 E2B: muat turun terus menjadikannya model yang digunakan.
+      final e2b = aiModelOptions.firstWhere((m) => m.name == 'Gemma 4 E2B');
+      final dl = find.byKey(ValueKey('ai-model-download-${e2b.id}'));
+      await tester.scrollUntilVisible(
+        dl,
+        200,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.tap(dl);
+      await tester.pumpAndSettle();
+      expect(llm.downloads, [e2b.id]);
+      expect(llm.selected, e2b.id);
+      expect(
+        find.descendant(
+          of: find.byKey(ValueKey('ai-model-${e2b.id}')),
+          matching: find.text('In use'),
+        ),
+        findsOneWidget,
+      );
+
+      // Tukar semula ke model asas yang sudah ada (tiada muat turun).
+      final basic = defaultAiModel;
+      final use = find.byKey(ValueKey('ai-model-use-${basic.id}'));
+      await tester.scrollUntilVisible(
+        use,
+        -200,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.tap(use);
+      await tester.pumpAndSettle();
+      expect(llm.selected, basic.id);
+      expect(llm.downloads, [e2b.id]);
+
+      // Padam Gemma 4 E2B (dengan pengesahan).
+      final del = find.byKey(ValueKey('ai-model-delete-${e2b.id}'));
+      await tester.scrollUntilVisible(
+        del,
+        200,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.tap(del);
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+      await tester.pumpAndSettle();
+      expect(llm.models, isNot(contains(e2b.id)));
     },
   );
 
@@ -152,4 +271,14 @@ void main() {
     expect(find.byKey(const ValueKey('muslim-enable')), findsOneWidget);
     expect(find.byKey(const ValueKey('ai-input')), findsNothing);
   });
+}
+
+class _FakeWiki extends WikipediaClient {
+  _FakeWiki(this.pages) : super(Dio());
+
+  final Map<String, String> pages;
+
+  @override
+  Future<String?> summary(String query, {String lang = 'ms'}) async =>
+      lang == 'en' ? pages[query.toLowerCase()] : null;
 }

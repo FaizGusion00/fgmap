@@ -5,12 +5,19 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/utils/log.dart';
 import '../domain/assistant_message.dart';
+import '../domain/assistant_models.dart';
 import '../domain/assistant_tools.dart';
 import '../domain/local_llm.dart';
 import '../domain/reply_cleaner.dart';
 
-/// Status percubaan GPU, disimpan supaya laluan GPU yang merosakkan app tidak dicuba lagi.
+/// Status percubaan GPU, disimpan supaya laluan GPU yang merosakkan app tidak dicuba lagi. Setiap
+/// model ada kunci sendiri (GPU yang lulus untuk model kecil mungkin gagal untuk model 4B); model
+/// lalai mengekalkan kunci lama supaya keputusan sedia ada tidak hilang.
 const assistantGpuPrefsKey = 'assistant.llm.gpu';
+
+String gpuPrefsKeyFor(AiModelOption m) => m.id == defaultAiModel.id
+    ? assistantGpuPrefsKey
+    : '$assistantGpuPrefsKey.${m.id}';
 
 /// Runtime sebenar melalui flutter_edge_ai + LiteRT-LM.
 ///
@@ -34,33 +41,67 @@ class EdgeAiLlmRuntime implements LocalLlmRuntime {
   Timer? _idle;
   Future<InferenceChat>? _opening;
 
-  /// Konteks model (token). Kecil = kurang memori; cukup untuk arahan + alat + beberapa pusingan.
-  static const contextTokens = 1536;
+  /// Model yang sedang dimuat dalam RAM (mungkin berbeza daripada yang dipilih selepas ditukar).
+  AiModelOption? _loaded;
 
-  /// Bila anggaran konteks melebihi ini, sesi dimulakan semula dengan sejarah ringkas.
-  static const _sessionBudget = 1050;
+  /// Bila anggaran konteks melebihi bahagian ini daripada konteks model, sesi dimulakan semula
+  /// dengan sejarah ringkas.
+  int get _sessionBudget => (_selected.contextTokens * 0.68).round();
   static const idleRelease = Duration(minutes: 3);
 
-  @override
-  Future<bool> isInstalled() =>
-      FlutterEdgeAi.isModelInstalled(assistantModelId);
+  AiModelOption get _selected => aiModelById(_prefs.getString(aiModelPrefsKey));
 
   @override
-  Future<void> download({void Function(double progress)? onProgress}) async {
+  String get selectedModelId => _selected.id;
+
+  @override
+  Future<void> selectModel(String id) async {
+    final next = aiModelById(id);
+    if (next.id == _selected.id && _loaded?.id == next.id) return;
+    await release();
+    await _prefs.setString(aiModelPrefsKey, next.id);
+  }
+
+  @override
+  Future<Set<String>> installedModelIds() async => {
+    for (final m in aiModelOptions)
+      if (await FlutterEdgeAi.isModelInstalled(m.id)) m.id,
+  };
+
+  @override
+  Future<bool> isInstalled() => FlutterEdgeAi.isModelInstalled(_selected.id);
+
+  /// Pasang (atau, jika fail sudah ada, hanya aktifkan: `install()` idempoten) model [m] sebagai
+  /// model aktif flutter_edge_ai.
+  Future<void> _install(
+    AiModelOption m, {
+    void Function(double progress)? onProgress,
+  }) async {
     await FlutterEdgeAi.installModel(
-          modelType: ModelType.qwen3,
+          modelType: m.modelType,
           fileType: ModelFileType.litertlm,
         )
-        .fromNetwork(assistantModelUrl)
+        .fromNetwork(m.url)
         .withProgress((p) => onProgress?.call((p / 100.0).clamp(0.0, 1.0)))
         .install();
   }
 
   @override
-  Future<void> delete() async {
-    await release();
-    if (await isInstalled()) {
-      await FlutterEdgeAi.uninstallModel(assistantModelId);
+  Future<void> download({
+    String? id,
+    void Function(double progress)? onProgress,
+  }) async {
+    final m = aiModelById(id ?? _selected.id);
+    await selectModel(m.id);
+    await _install(m, onProgress: onProgress);
+  }
+
+  @override
+  Future<void> delete({String? id}) async {
+    final m = aiModelById(id ?? _selected.id);
+    if (_loaded?.id == m.id || m.id == _selected.id) await release();
+    if (await FlutterEdgeAi.isModelInstalled(m.id)) {
+      await FlutterEdgeAi.uninstallModel(m.id);
     }
   }
 
@@ -77,29 +118,36 @@ class EdgeAiLlmRuntime implements LocalLlmRuntime {
 
   Future<InferenceModel> _loadModel() async {
     final watch = Stopwatch()..start();
-    final gpu = _prefs.getString(assistantGpuPrefsKey);
+    final m = _selected;
+    // Pastikan model yang DIPILIH ialah model aktif enjin (tiada muat turun jika fail sudah ada).
+    await _install(m);
+    _loaded = m;
+    final key = gpuPrefsKeyFor(m);
+    final gpu = _prefs.getString(key);
     if (gpu == null || gpu == 'ok') {
-      if (gpu == null) await _prefs.setString(assistantGpuPrefsKey, 'trying');
+      if (gpu == null) await _prefs.setString(key, 'trying');
       try {
         final model = await FlutterEdgeAi.getActiveModel(
-          maxTokens: contextTokens,
+          maxTokens: m.contextTokens,
           preferredBackend: PreferredBackend.gpu,
         );
-        logDiag('AI: model GPU dimuat dalam ${watch.elapsedMilliseconds} ms');
+        logDiag(
+          'AI: ${m.name} GPU dimuat dalam ${watch.elapsedMilliseconds} ms',
+        );
         return model;
       } on Object catch (e) {
-        logDiag('AI: GPU tidak tersedia ($e); guna CPU');
-        await _prefs.setString(assistantGpuPrefsKey, 'failed');
+        logDiag('AI: GPU tidak tersedia untuk ${m.name} ($e); guna CPU');
+        await _prefs.setString(key, 'failed');
       }
     } else if (gpu == 'trying') {
       // Percubaan lalu tidak pernah selesai (app mati semasa memuat GPU).
-      await _prefs.setString(assistantGpuPrefsKey, 'failed');
+      await _prefs.setString(key, 'failed');
     }
     final model = await FlutterEdgeAi.getActiveModel(
-      maxTokens: contextTokens,
+      maxTokens: m.contextTokens,
       preferredBackend: PreferredBackend.cpu,
     );
-    logDiag('AI: model CPU dimuat dalam ${watch.elapsedMilliseconds} ms');
+    logDiag('AI: ${m.name} CPU dimuat dalam ${watch.elapsedMilliseconds} ms');
     return model;
   }
 
@@ -110,15 +158,16 @@ class EdgeAiLlmRuntime implements LocalLlmRuntime {
       try {
         if (_chat != null) await release();
         final model = _model ??= await _loadModel();
+        final m = _loaded ?? _selected;
         final chat = await model.createChat(
           temperature: 0.3,
           topK: 40,
           topP: 0.9,
-          maxOutputTokens: 320,
+          maxOutputTokens: m.maxOutputTokens,
           tools: llmAssistantTools(),
           supportsFunctionCalls: true,
           enableThinking: false,
-          modelType: ModelType.qwen3,
+          modelType: m.modelType,
           toolChoice: ToolChoice.auto,
           systemInstruction: system,
         );
@@ -126,7 +175,7 @@ class EdgeAiLlmRuntime implements LocalLlmRuntime {
         _system = system;
         _sessionKey = null;
         _fresh = true;
-        _estimatedTokens = _approxTokens(system) + 320;
+        _estimatedTokens = _approxTokens(system) + m.maxOutputTokens;
         return chat;
       } finally {
         _opening = null;
@@ -174,7 +223,7 @@ class EdgeAiLlmRuntime implements LocalLlmRuntime {
       _sessionKey = sessionKey;
       _estimatedTokens =
           _approxTokens(system) +
-          320 +
+          _selected.maxOutputTokens +
           replay.fold(0, (sum, m) => sum + _approxTokens(m.text));
     }
     await chat.addQueryChunk(Message.text(text: userText, isUser: true));
@@ -219,8 +268,9 @@ class EdgeAiLlmRuntime implements LocalLlmRuntime {
     }
     final reply = cleanReply(buf.toString());
     _estimatedTokens += _approxTokens(reply);
-    if (_prefs.getString(assistantGpuPrefsKey) == 'trying') {
-      await _prefs.setString(assistantGpuPrefsKey, 'ok');
+    final gpuKey = gpuPrefsKeyFor(_loaded ?? _selected);
+    if (_prefs.getString(gpuKey) == 'trying') {
+      await _prefs.setString(gpuKey, 'ok');
     }
     logDiag(
       'AI: token pertama ${firstTokenMs ?? -1} ms, jumlah '
@@ -241,6 +291,7 @@ class EdgeAiLlmRuntime implements LocalLlmRuntime {
     _chat = null;
     _system = null;
     _sessionKey = null;
+    _loaded = null;
     final model = _model;
     _model = null;
     if (model != null && !model.isClosed) {
@@ -260,13 +311,15 @@ bool hasSubstantiveAnswer(String raw) {
 
 /// Sejarah ringkas untuk sesi baharu: 2 pusingan terakhir; jawapan dipotong ke 200 aksara.
 ///
-/// Kad arahan daripada penghala (laluan, tempat: jawapan dengan butang tindakan) dibuang bersama
-/// soalannya: model kecil menyalin kad itu sebagai jawapan kepada soalan seterusnya.
+/// Jawapan yang dijana app (templat penghala, kad laluan/tempat, Wikipedia) dibuang bersama
+/// soalannya: model kecil menyalinnya sebagai jawapan kepada soalan seterusnya (cth. memperkenalkan
+/// diri semula bila ditanya tentang Palestin).
 List<AssistantMessage> compactHistory(List<AssistantMessage> history) {
   final turns = <AssistantMessage>[];
   for (final m in history) {
     if (m.role == AssistantRole.system || m.text.trim().isEmpty) continue;
-    if (m.role == AssistantRole.assistant && m.actions.isNotEmpty) {
+    if (m.role == AssistantRole.assistant &&
+        (m.local || m.actions.isNotEmpty)) {
       if (turns.isNotEmpty && turns.last.role == AssistantRole.user) {
         turns.removeLast();
       }

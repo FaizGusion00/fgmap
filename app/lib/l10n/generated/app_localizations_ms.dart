@@ -2943,4 +2943,96 @@ class AppLocalizationsMs extends AppLocalizations {
   @override
   String get aiPing =>
       'Ya, saya di sini. Tanya apa sahaja, contohnya \"laluan ke Ipoh\", \"cuaca di Kuantan\", \"masjid terdekat\" atau soalan umum.';
+
+  @override
+  String get aiWikiSource => 'Sumber: Wikipedia';
+
+  @override
+  String get aiModelsTitle => 'Model AI pada telefon';
+
+  @override
+  String get aiModelsIntro =>
+      'Pilih satu model untuk FG AI. Model yang lebih besar lebih pintar dan lebih fasih, tetapi muat turunnya lebih besar, perlukan lebih RAM dan menjawab lebih perlahan. Hanya model yang digunakan dimuat ke memori; yang lain boleh kekal untuk ditukar bila-bila masa.';
+
+  @override
+  String get aiModelsManage => 'Pilih model AI';
+
+  @override
+  String get aiModelTierBasic => 'Asas · pantas dan ringan';
+
+  @override
+  String get aiModelTierMedium => 'Sederhana · seimbang';
+
+  @override
+  String get aiModelTierHigh => 'Tinggi · paling pintar';
+
+  @override
+  String aiModelRam(String gb) {
+    return 'RAM $gb GB ke atas';
+  }
+
+  @override
+  String get aiModelInUse => 'Sedang digunakan';
+
+  @override
+  String get aiModelDownloaded => 'Dimuat turun';
+
+  @override
+  String get aiModelUse => 'Guna';
+
+  @override
+  String get aiModelDownload => 'Muat turun';
+
+  @override
+  String get aiModelDownloadUse => 'Muat turun & guna';
+
+  @override
+  String get aiModelDelete => 'Padam';
+
+  @override
+  String aiModelDeleteTitle(String name) {
+    return 'Padam $name?';
+  }
+
+  @override
+  String get aiModelDeleteBody =>
+      'Fail model dibuang dari telefon. Anda boleh memuat turunnya semula bila-bila masa.';
+
+  @override
+  String aiModelSwitched(String name) {
+    return 'FG AI kini menggunakan $name.';
+  }
+
+  @override
+  String get aiModelBusy => 'Tunggu muat turun semasa selesai dahulu.';
+
+  @override
+  String get aiModelDescQwen3 =>
+      'Paling ringan dan pantas. Sesuai untuk telefon lama dan soalan ringkas.';
+
+  @override
+  String get aiModelDescQwen35Small =>
+      'Asas yang lebih baharu: lebih fasih dalam BM dan BI, masih ringan.';
+
+  @override
+  String get aiModelDescGemma4E2b =>
+      'Seimbang: jawapan jauh lebih bijak dan tepat, sesuai untuk kebanyakan telefon moden.';
+
+  @override
+  String get aiModelDescQwen35Big =>
+      'Penaakulan kuat untuk soalan sukar, matematik dan penjelasan panjang.';
+
+  @override
+  String get aiModelDescGemma4E4b =>
+      'Paling pintar dan fasih. Untuk telefon mewah dengan RAM besar.';
+
+  @override
+  String assistantDownloadBodyModel(String name, String size) {
+    return '$name ($size). Berjalan pada telefon anda; tiada kunci awan. Wi‑Fi disyorkan.';
+  }
+
+  @override
+  String assistantSettingsModel(String name) {
+    return 'Model: $name';
+  }
 }

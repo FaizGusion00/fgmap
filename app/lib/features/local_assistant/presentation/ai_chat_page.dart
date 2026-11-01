@@ -23,6 +23,10 @@ import 'widgets/smooth_reveal.dart';
 import 'widgets/sources_section.dart';
 import 'widgets/typing_indicator.dart';
 import 'widgets/ai_motion.dart';
+import '../../offline_maps/presentation/offline_maps_sheet.dart'
+    show formatBytes;
+import '../domain/assistant_models.dart';
+import 'ai_model_sheet.dart';
 
 /// Buka halaman penuh FG AI atau FGMuslim AI (dua AI berasingan, masing-masing dengan senarai sembang).
 Future<void> showAiPage(BuildContext context, AiMode mode) =>
@@ -274,6 +278,8 @@ class _AiChatPageState extends ConsumerState<AiChatPage> {
         footer: needsModel
             ? _DownloadCard(
                 error: state.error,
+                model: ref.watch(selectedAiModelProvider),
+                onChoose: () => unawaited(showAiModelSheet(context)),
                 onDownload: () => unawaited(
                   ref
                       .read(assistantControllerProvider.notifier)
@@ -353,6 +359,13 @@ class _AiChatPageState extends ConsumerState<AiChatPage> {
           ],
         ),
         actions: [
+          if (!_isMuslim)
+            IconButton(
+              key: const ValueKey('ai-models'),
+              tooltip: l10n.aiModelsManage,
+              onPressed: () => unawaited(showAiModelSheet(context)),
+              icon: const Icon(Icons.memory_rounded),
+            ),
           IconButton(
             key: const ValueKey('ai-new-chat'),
             tooltip: l10n.aiNewChat,
@@ -1267,9 +1280,16 @@ class _FadeIn extends StatelessWidget {
 }
 
 class _DownloadCard extends StatelessWidget {
-  const _DownloadCard({required this.onDownload, this.error});
+  const _DownloadCard({
+    required this.onDownload,
+    required this.onChoose,
+    required this.model,
+    this.error,
+  });
 
   final VoidCallback onDownload;
+  final VoidCallback onChoose;
+  final AiModelOption model;
   final String? error;
 
   @override
@@ -1304,7 +1324,7 @@ class _DownloadCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            '${l10n.assistantDownloadBody}\n${l10n.aiNeedModel}',
+            '${l10n.assistantDownloadBodyModel(model.name, formatBytes(model.sizeBytes))}\n${l10n.aiNeedModel}',
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
               height: 1.4,
@@ -1320,11 +1340,23 @@ class _DownloadCard extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 12),
-          FilledButton.tonalIcon(
-            key: const ValueKey('assistant-download'),
-            onPressed: onDownload,
-            icon: const Icon(Icons.download_rounded),
-            label: Text(l10n.assistantDownloadAction),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              FilledButton.tonalIcon(
+                key: const ValueKey('assistant-download'),
+                onPressed: onDownload,
+                icon: const Icon(Icons.download_rounded),
+                label: Text(l10n.assistantDownloadAction),
+              ),
+              TextButton.icon(
+                key: const ValueKey('assistant-choose-model'),
+                onPressed: onChoose,
+                icon: const Icon(Icons.tune_rounded),
+                label: Text(l10n.aiModelsManage),
+              ),
+            ],
           ),
         ],
       ),

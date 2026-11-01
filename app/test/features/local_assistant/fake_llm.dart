@@ -1,4 +1,5 @@
 import 'package:fgmap/features/local_assistant/domain/assistant_message.dart';
+import 'package:fgmap/features/local_assistant/domain/assistant_models.dart';
 import 'package:fgmap/features/local_assistant/domain/local_llm.dart';
 
 /// Model palsu untuk ujian: jawapan tetap, merekod mesej terakhir, boleh mengalirkan teks.
@@ -12,17 +13,37 @@ class FakeLlm implements LocalLlmRuntime {
   List<AssistantMessage> lastHistory = const [];
   int warmUps = 0;
 
-  @override
-  Future<bool> isInstalled() async => installed;
+  /// Model yang dimuat turun (nama fail). [installed] = model lalai ada.
+  late final Set<String> models = {if (installed) defaultAiModel.id};
+  String selected = defaultAiModel.id;
+  final List<String> downloads = [];
 
   @override
-  Future<void> download({void Function(double progress)? onProgress}) async {
+  String get selectedModelId => selected;
+
+  @override
+  Future<void> selectModel(String id) async => selected = id;
+
+  @override
+  Future<Set<String>> installedModelIds() async => {...models};
+
+  @override
+  Future<bool> isInstalled() async => models.contains(selected);
+
+  @override
+  Future<void> download({
+    String? id,
+    void Function(double progress)? onProgress,
+  }) async {
+    final target = id ?? selected;
+    downloads.add(target);
     onProgress?.call(1);
-    installed = true;
+    models.add(target);
+    selected = target;
   }
 
   @override
-  Future<void> delete() async => installed = false;
+  Future<void> delete({String? id}) async => models.remove(id ?? selected);
 
   @override
   Future<void> warmUp({required String system}) async => warmUps++;

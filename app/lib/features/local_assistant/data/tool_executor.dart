@@ -467,22 +467,25 @@ class AssistantToolExecutor {
         .stations(query: query.trim(), region: reg);
     if (stations.isEmpty) return {'ok': false, 'error': 'not_found'};
     final track = stations.first;
-    await _ref.read(playerControllerProvider.notifier).playTrack(track);
+    // TIDAK ditunggu: play() just_audio hanya selesai bila main balik BERHENTI, jadi AI akan
+    // "Working on it" sehingga stesen ditutup. Ralat main balik dipaparkan oleh pemain mini.
+    unawaited(_ref.read(playerControllerProvider.notifier).playTrack(track));
     return {'ok': true, 'title': track.title, 'artist': track.artist};
   }
 
+  /// [query] kosong ("play a music") = lagu popular Audius.
   Future<Map<String, Object?>> _playMusic(String? query) async {
-    if (query == null || query.trim().isEmpty) {
-      return {'ok': false, 'error': 'missing_query'};
-    }
-    final tracks = await _ref
-        .read(audiusRepositoryProvider)
-        .search(query.trim());
+    final q = query?.trim() ?? '';
+    final repo = _ref.read(audiusRepositoryProvider);
+    final tracks = q.isEmpty ? await repo.trending() : await repo.search(q);
     if (tracks.isEmpty) return {'ok': false, 'error': 'not_found'};
     final track = tracks.first;
-    await _ref
-        .read(playerControllerProvider.notifier)
-        .playTrack(track, queue: tracks.take(20).toList());
+    // Lihat _playRadio: play() selesai hanya bila lagu berhenti.
+    unawaited(
+      _ref
+          .read(playerControllerProvider.notifier)
+          .playTrack(track, queue: tracks.take(20).toList()),
+    );
     return {'ok': true, 'title': track.title, 'artist': track.artist};
   }
 

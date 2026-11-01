@@ -5148,6 +5148,156 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'Ya, saya di sini. Tanya apa sahaja, contohnya \"laluan ke Ipoh\", \"cuaca di Kuantan\", \"masjid terdekat\" atau soalan umum.'**
   String get aiPing;
+
+  /// No description provided for @aiWikiSource.
+  ///
+  /// In ms, this message translates to:
+  /// **'Sumber: Wikipedia'**
+  String get aiWikiSource;
+
+  /// No description provided for @aiModelsTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Model AI pada telefon'**
+  String get aiModelsTitle;
+
+  /// No description provided for @aiModelsIntro.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pilih satu model untuk FG AI. Model yang lebih besar lebih pintar dan lebih fasih, tetapi muat turunnya lebih besar, perlukan lebih RAM dan menjawab lebih perlahan. Hanya model yang digunakan dimuat ke memori; yang lain boleh kekal untuk ditukar bila-bila masa.'**
+  String get aiModelsIntro;
+
+  /// No description provided for @aiModelsManage.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pilih model AI'**
+  String get aiModelsManage;
+
+  /// No description provided for @aiModelTierBasic.
+  ///
+  /// In ms, this message translates to:
+  /// **'Asas · pantas dan ringan'**
+  String get aiModelTierBasic;
+
+  /// No description provided for @aiModelTierMedium.
+  ///
+  /// In ms, this message translates to:
+  /// **'Sederhana · seimbang'**
+  String get aiModelTierMedium;
+
+  /// No description provided for @aiModelTierHigh.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tinggi · paling pintar'**
+  String get aiModelTierHigh;
+
+  /// No description provided for @aiModelRam.
+  ///
+  /// In ms, this message translates to:
+  /// **'RAM {gb} GB ke atas'**
+  String aiModelRam(String gb);
+
+  /// No description provided for @aiModelInUse.
+  ///
+  /// In ms, this message translates to:
+  /// **'Sedang digunakan'**
+  String get aiModelInUse;
+
+  /// No description provided for @aiModelDownloaded.
+  ///
+  /// In ms, this message translates to:
+  /// **'Dimuat turun'**
+  String get aiModelDownloaded;
+
+  /// No description provided for @aiModelUse.
+  ///
+  /// In ms, this message translates to:
+  /// **'Guna'**
+  String get aiModelUse;
+
+  /// No description provided for @aiModelDownload.
+  ///
+  /// In ms, this message translates to:
+  /// **'Muat turun'**
+  String get aiModelDownload;
+
+  /// No description provided for @aiModelDownloadUse.
+  ///
+  /// In ms, this message translates to:
+  /// **'Muat turun & guna'**
+  String get aiModelDownloadUse;
+
+  /// No description provided for @aiModelDelete.
+  ///
+  /// In ms, this message translates to:
+  /// **'Padam'**
+  String get aiModelDelete;
+
+  /// No description provided for @aiModelDeleteTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Padam {name}?'**
+  String aiModelDeleteTitle(String name);
+
+  /// No description provided for @aiModelDeleteBody.
+  ///
+  /// In ms, this message translates to:
+  /// **'Fail model dibuang dari telefon. Anda boleh memuat turunnya semula bila-bila masa.'**
+  String get aiModelDeleteBody;
+
+  /// No description provided for @aiModelSwitched.
+  ///
+  /// In ms, this message translates to:
+  /// **'FG AI kini menggunakan {name}.'**
+  String aiModelSwitched(String name);
+
+  /// No description provided for @aiModelBusy.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tunggu muat turun semasa selesai dahulu.'**
+  String get aiModelBusy;
+
+  /// No description provided for @aiModelDescQwen3.
+  ///
+  /// In ms, this message translates to:
+  /// **'Paling ringan dan pantas. Sesuai untuk telefon lama dan soalan ringkas.'**
+  String get aiModelDescQwen3;
+
+  /// No description provided for @aiModelDescQwen35Small.
+  ///
+  /// In ms, this message translates to:
+  /// **'Asas yang lebih baharu: lebih fasih dalam BM dan BI, masih ringan.'**
+  String get aiModelDescQwen35Small;
+
+  /// No description provided for @aiModelDescGemma4E2b.
+  ///
+  /// In ms, this message translates to:
+  /// **'Seimbang: jawapan jauh lebih bijak dan tepat, sesuai untuk kebanyakan telefon moden.'**
+  String get aiModelDescGemma4E2b;
+
+  /// No description provided for @aiModelDescQwen35Big.
+  ///
+  /// In ms, this message translates to:
+  /// **'Penaakulan kuat untuk soalan sukar, matematik dan penjelasan panjang.'**
+  String get aiModelDescQwen35Big;
+
+  /// No description provided for @aiModelDescGemma4E4b.
+  ///
+  /// In ms, this message translates to:
+  /// **'Paling pintar dan fasih. Untuk telefon mewah dengan RAM besar.'**
+  String get aiModelDescGemma4E4b;
+
+  /// No description provided for @assistantDownloadBodyModel.
+  ///
+  /// In ms, this message translates to:
+  /// **'{name} ({size}). Berjalan pada telefon anda; tiada kunci awan. Wi‑Fi disyorkan.'**
+  String assistantDownloadBodyModel(String name, String size);
+
+  /// No description provided for @assistantSettingsModel.
+  ///
+  /// In ms, this message translates to:
+  /// **'Model: {name}'**
+  String assistantSettingsModel(String name);
 }
 
 class _AppLocalizationsDelegate

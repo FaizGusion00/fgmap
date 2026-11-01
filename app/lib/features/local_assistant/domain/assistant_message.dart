@@ -10,6 +10,7 @@ class AssistantMessage {
     this.sources = const [],
     this.actions = const [],
     this.notice,
+    this.local = false,
   });
 
   final AssistantRole role;
@@ -25,10 +26,15 @@ class AssistantMessage {
   /// Nota tetap di atas jawapan (penafian, had kadar). Dipaparkan dalam bahasa UI semasa.
   final AnswerNotice? notice;
 
+  /// Jawapan dijana oleh app (templat penghala, Wikipedia), bukan oleh model. Tidak dimainkan semula
+  /// kepada model: model kecil menyalin jawapan lama sebagai jawapan soalan baharu.
+  final bool local;
+
   AssistantMessage copyWith({
     String? text,
     List<AnswerSource>? sources,
     List<AssistantAction>? actions,
+    bool? local,
   }) => AssistantMessage(
     role: role,
     text: text ?? this.text,
@@ -36,6 +42,7 @@ class AssistantMessage {
     sources: sources ?? this.sources,
     actions: actions ?? this.actions,
     notice: notice,
+    local: local ?? this.local,
   );
 
   Map<String, Object?> toJson() => {
@@ -45,6 +52,7 @@ class AssistantMessage {
     if (sources.isNotEmpty) 'sources': [for (final s in sources) s.toJson()],
     if (actions.isNotEmpty) 'actions': [for (final a in actions) a.toJson()],
     if (notice != null) 'notice': notice!.name,
+    if (local) 'local': true,
   };
 
   static AssistantMessage? fromJson(Object? raw) {
@@ -79,6 +87,7 @@ class AssistantMessage {
           ? [for (final e in actionsRaw) ?AssistantAction.fromJson(e)]
           : const [],
       notice: notice,
+      local: raw['local'] == true,
     );
   }
 }

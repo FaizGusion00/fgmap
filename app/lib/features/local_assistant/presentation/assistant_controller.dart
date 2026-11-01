@@ -12,6 +12,7 @@ import '../data/chat_history_store.dart';
 import '../data/edge_ai_runtime.dart';
 import '../data/tool_executor.dart';
 import '../domain/assistant_message.dart';
+import '../domain/assistant_models.dart';
 import '../domain/assistant_tools.dart';
 import '../domain/intent_router.dart';
 import '../domain/local_llm.dart';
@@ -85,44 +86,60 @@ class AssistantController extends AiChatController {
     }
   }
 
-  Future<void> downloadModel() async {
+  /// Muat turun model [id] (lalai: yang dipilih) dan gunakannya.
+  Future<void> downloadModel({String? id}) async {
+    final runtime = ref.read(localLlmRuntimeProvider);
+    final target = id ?? runtime.selectedModelId;
     state = state.copyWith(
       modelStatus: AssistantModelStatus.downloading,
       downloadProgress: 0,
+      downloadingModelId: target,
       clearError: true,
     );
     try {
-      await ref
-          .read(localLlmRuntimeProvider)
-          .download(
-            onProgress: (p) {
-              if (!ref.mounted) return;
-              state = state.copyWith(downloadProgress: p);
-            },
-          );
+      await runtime.download(
+        id: target,
+        onProgress: (p) {
+          if (!ref.mounted) return;
+          state = state.copyWith(downloadProgress: p);
+        },
+      );
       if (!ref.mounted) return;
       state = state.copyWith(
         modelStatus: AssistantModelStatus.ready,
         downloadProgress: 1,
+        clearDownloading: true,
       );
     } on Object catch (e) {
       if (!ref.mounted) return;
       state = state.copyWith(
         modelStatus: AssistantModelStatus.error,
         error: e.toString(),
+        clearDownloading: true,
       );
     }
+    ref
+      ..invalidate(installedAiModelsProvider)
+      ..invalidate(selectedAiModelProvider);
   }
 
-  Future<void> deleteModel() async {
+  /// Gunakan model [id] yang sudah dimuat turun (satu model sahaja digunakan pada satu masa).
+  Future<void> selectModel(String id) async {
+    if (state.busy) return;
+    final runtime = ref.read(localLlmRuntimeProvider);
+    await runtime.selectModel(id);
+    if (!ref.mounted) return;
+    ref.invalidate(selectedAiModelProvider);
+    await _refreshInstalled();
+  }
+
+  /// Padam model [id] (lalai: yang dipilih) dari telefon.
+  Future<void> deleteModel({String? id}) async {
     try {
-      await ref.read(localLlmRuntimeProvider).delete();
+      await ref.read(localLlmRuntimeProvider).delete(id: id);
       if (!ref.mounted) return;
-      state = state.copyWith(
-        modelStatus: AssistantModelStatus.missing,
-        downloadProgress: 0,
-        clearError: true,
-      );
+      ref.invalidate(installedAiModelsProvider);
+      await _refreshInstalled();
     } on Object catch (e) {
       if (!ref.mounted) return;
       state = state.copyWith(error: e.toString());
@@ -149,10 +166,18 @@ class AssistantController extends AiChatController {
     try {
       final hasRoute = ref.read(routePreviewControllerProvider) is RouteReady;
       final intent = parseIntent(trimmed, hasRoute: hasRoute);
-      if (intent != null) {
-        reply = await _handle(intent, replies, l10n);
+      if (intent is TopicIntent) {
+        reply = await _topic(intent.topic, trimmed, prior, replies, l10n);
+      } else if (intent != null) {
+        // Jawapan app (bukan model): ditanda supaya tidak dimainkan semula kepada model.
+        // Had masa: satu pelayan yang tergantung tidak boleh membiarkan "Working on it" selamanya.
+        reply = (await _handle(
+          intent,
+          replies,
+          l10n,
+        ).timeout(const Duration(seconds: 25))).copyWith(local: true);
       } else if (!state.modelReady) {
-        reply = replies.text(l10n.aiNeedModel);
+        reply = replies.text(l10n.aiNeedModel).copyWith(local: true);
       } else {
         reply = await _askModel(trimmed, prior, replies, l10n);
       }
@@ -174,6 +199,29 @@ class AssistantController extends AiChatController {
   }
 
   AssistantToolExecutor get _tools => ref.read(assistantToolExecutorProvider);
+
+  /// Soalan topik ("tell me about Palestine"): fakta daripada Wikipedia (bahasa soalan, kemudian
+  /// Inggeris). Tanpa internet atau tiada rencana: model menjawab daripada pengetahuannya.
+  Future<AssistantMessage> _topic(
+    String topic,
+    String text,
+    List<AssistantMessage> prior,
+    AiReplyBuilder replies,
+    AppLocalizations l10n,
+  ) async {
+    final malay = l10n.localeName.startsWith('ms');
+    for (final lang in [if (malay) 'ms', 'en']) {
+      final r = await _tools.run('wikipedia_summary', {
+        'query': topic,
+        'lang': lang,
+      });
+      if (r['ok'] == true && r['summary'] is String) {
+        return replies.topic(r['summary']! as String).copyWith(local: true);
+      }
+    }
+    if (state.modelReady) return _askModel(text, prior, replies, l10n);
+    return replies.text(l10n.aiNeedModel).copyWith(local: true);
+  }
 
   Future<AssistantMessage> _handle(
     AssistantIntent intent,
@@ -234,6 +282,12 @@ class AssistantController extends AiChatController {
         return replies.currentLocation(await _tools.currentLocation());
       case ChatIntent(:final kind):
         return replies.chat(kind);
+      case TopicIntent(:final topic):
+        // Dikendalikan dalam send() (perlukan model sebagai sandaran); di sini hanya untuk lengkap.
+        final r = await _tools.run('wikipedia_summary', {'query': topic});
+        return r['ok'] == true && r['summary'] is String
+            ? replies.topic(r['summary']! as String)
+            : replies.text(l10n.aiUnavailable);
       case CapabilitiesIntent(:final offlineFocused):
         return replies.capabilities(offlineFocused: offlineFocused);
       case WeatherIntent(:final place):
@@ -363,6 +417,16 @@ Map<String, Object?> clipToolMap(Map<String, Object?> result, {int max = 900}) {
           : e.value,
   };
 }
+
+/// Model yang dipilih untuk FG AI (lihat `aiModelOptions`).
+final selectedAiModelProvider = Provider<AiModelOption>(
+  (ref) => aiModelById(ref.read(localLlmRuntimeProvider).selectedModelId),
+);
+
+/// Model yang sudah dimuat turun pada telefon.
+final installedAiModelsProvider = FutureProvider<Set<String>>(
+  (ref) => ref.read(localLlmRuntimeProvider).installedModelIds(),
+);
 
 final assistantControllerProvider =
     NotifierProvider<AssistantController, AssistantUiState>(

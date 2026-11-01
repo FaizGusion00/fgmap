@@ -2940,4 +2940,96 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get aiPing =>
       'Yes, I\'m here. Ask me anything, for example \"route to Ipoh\", \"weather in Kuantan\", \"nearest mosque\" or a general question.';
+
+  @override
+  String get aiWikiSource => 'Source: Wikipedia';
+
+  @override
+  String get aiModelsTitle => 'AI models on this phone';
+
+  @override
+  String get aiModelsIntro =>
+      'Pick one model for FG AI. Bigger models are smarter and more fluent, but download more, need more RAM and reply more slowly. Only the model in use is loaded into memory; the others can stay downloaded so you can switch any time.';
+
+  @override
+  String get aiModelsManage => 'Choose AI model';
+
+  @override
+  String get aiModelTierBasic => 'Basic · fast and light';
+
+  @override
+  String get aiModelTierMedium => 'Medium · balanced';
+
+  @override
+  String get aiModelTierHigh => 'High · smartest';
+
+  @override
+  String aiModelRam(String gb) {
+    return '$gb GB RAM or more';
+  }
+
+  @override
+  String get aiModelInUse => 'In use';
+
+  @override
+  String get aiModelDownloaded => 'Downloaded';
+
+  @override
+  String get aiModelUse => 'Use';
+
+  @override
+  String get aiModelDownload => 'Download';
+
+  @override
+  String get aiModelDownloadUse => 'Download & use';
+
+  @override
+  String get aiModelDelete => 'Delete';
+
+  @override
+  String aiModelDeleteTitle(String name) {
+    return 'Delete $name?';
+  }
+
+  @override
+  String get aiModelDeleteBody =>
+      'The model file is removed from this phone. You can download it again any time.';
+
+  @override
+  String aiModelSwitched(String name) {
+    return 'FG AI now uses $name.';
+  }
+
+  @override
+  String get aiModelBusy => 'Wait for the current download to finish first.';
+
+  @override
+  String get aiModelDescQwen3 =>
+      'Lightest and fastest. Good for older phones and short questions.';
+
+  @override
+  String get aiModelDescQwen35Small =>
+      'Newer basic model: more fluent in Malay and English, still light.';
+
+  @override
+  String get aiModelDescGemma4E2b =>
+      'Balanced: much smarter, more accurate answers; suits most modern phones.';
+
+  @override
+  String get aiModelDescQwen35Big =>
+      'Strong reasoning for hard questions, maths and longer explanations.';
+
+  @override
+  String get aiModelDescGemma4E4b =>
+      'Smartest and most fluent. For flagship phones with plenty of RAM.';
+
+  @override
+  String assistantDownloadBodyModel(String name, String size) {
+    return '$name ($size). Runs on your phone; no cloud key. Wi‑Fi recommended.';
+  }
+
+  @override
+  String assistantSettingsModel(String name) {
+    return 'Model: $name';
+  }
 }

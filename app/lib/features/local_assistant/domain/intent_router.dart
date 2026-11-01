@@ -83,6 +83,14 @@ class ChatIntent extends AssistantIntent {
   final ChatKind kind;
 }
 
+/// "Tell me about Palestine", "apa itu durian", "who is Albert Einstein": dijawab daripada ringkasan
+/// Wikipedia (fakta sebenar), dengan model sebagai sandaran bila tiada internet atau tiada rencana.
+class TopicIntent extends AssistantIntent {
+  const TopicIntent(this.topic);
+
+  final String topic;
+}
+
 /// "What can I ask offline?", "apa boleh tanya" — FAQ ciri, tanpa skema alat.
 class CapabilitiesIntent extends AssistantIntent {
   const CapabilitiesIntent({this.offlineFocused = false});
@@ -405,7 +413,12 @@ AssistantIntent? parseIntent(String text, {bool hasRoute = false}) {
   ).firstMatch(t);
   if (music != null) {
     final q = music.group(1)!.trim();
-    if (q.isNotEmpty) return PlayMusicIntent(q);
+    // "play a music", "mainkan lagu", "pasang apa-apa lagu": tiada lagu tertentu -> lagu popular.
+    final generic = RegExp(
+      r'^(?:a|an|some|any|satu|sebuah)?\s*(?:music|musik|muzik|song|songs|lagu|something|anything|sesuatu|apa\s*apa(?:\s+(?:lagu|muzik))?)(?:\s+(?:please|pls|la|lah|for\s+me|untuk\s+saya))?$',
+    );
+    if (q.isEmpty || generic.hasMatch(q)) return const PlayMusicIntent('');
+    return PlayMusicIntent(q);
   }
 
   final nearby = _nearbyCategory(t);
@@ -422,7 +435,44 @@ AssistantIntent? parseIntent(String text, {bool hasRoute = false}) {
     }
   }
 
+  final topic = topicOf(t);
+  if (topic != null) return TopicIntent(topic);
+
   return null;
+}
+
+final _topicAbout = RegExp(
+  r'\b(?:tell|teach|explain|ask|know|learn|share|talk|hear|read|idea|ideas|info|information|cerita(?:kan)?|terang(?:kan)?|jelas(?:kan)?|tanya|tahu|belajar|bincang|maklumat|huraikan)\b.*?\b(?:about|regarding|pasal|tentang|mengenai|berkenaan)\s+(.+)$',
+);
+
+final _topicWhat = RegExp(
+  r'^(?:(?:what|who)\s+(?:is|was|are|were)|(?:apa(?:kah)?\s+(?:itu|maksud|erti))|(?:siapa(?:kah)?(?:\s+itu)?)|(?:explain|define|terangkan|jelaskan|huraikan))\s+(.+)$',
+);
+
+/// Kata yang bukan topik ensiklopedia: diri sendiri, masa sekarang, perkara perjalanan (penghala),
+/// atau soalan nasihat/perbandingan ("best way to…", "cara…") yang lebih sesuai dijawab model.
+final _notTopic = RegExp(
+  r'^(?:you|u|me|it|this|that|yourself|awak|kamu|anda|saya|aku|dia|ini|itu)$|\b(?:my|your|our|saya|aku|awak|kamu|time|date|today|now|masa|jam|pukul|tarikh|hari\s+ini|sekarang|route|routes|toll|tolls|traffic|laluan|tol|jalan\s+sesak|eta|best|way|ways|how|why|should|difference|between|cara|kenapa|mengapa|bagaimana|patut|beza|terbaik)\b',
+);
+
+/// Topik ensiklopedia dalam mesej (sudah dinormalkan), atau null.
+String? topicOf(String t) {
+  final m = _topicAbout.firstMatch(t) ?? _topicWhat.firstMatch(t);
+  if (m == null) return null;
+  var topic = m.group(1)!.trim();
+  topic = topic
+      .replaceFirst(
+        RegExp(
+          r'\s+(?:please|pls|plz|la|lah|sikit|a\s+bit|for\s+me|kepada\s+saya|kat\s+saya|briefly|ringkas)$',
+        ),
+        '',
+      )
+      .replaceFirst(RegExp(r'^(?:the|a|an)\s+'), '')
+      .trim();
+  if (topic.length < 2 || topic.length > 60) return null;
+  if (topic.split(' ').length > 6) return null;
+  if (_notTopic.hasMatch(topic)) return null;
+  return topic;
 }
 
 final _searchVerb = RegExp(
@@ -432,7 +482,7 @@ final _searchVerb = RegExp(
 /// "my current location", "lokasi saya", "where am i", "cari lokasi semasa".
 bool _isCurrentLocationQuery(String t) {
   if (RegExp(
-    r'^(?:where\s+am\s+i|wheres\s+my\s+location|what(?:s|\s+is)\s+my\s+(?:current\s+)?(?:location|position)|lokasi\s+(?:saya|aku|semasa)|mana\s+(?:saya|aku)\s+sekarang|kedudukan\s+(?:saya|aku|semasa))$',
+    r'^(?:hey\s+|hi\s+|bro\s+)?(?:where\s+(?:am\s+i|are\s+we|i\s+am)(?:\s+(?:now|right\s+now|currently|at\s+the\s+moment))?|wheres\s+my\s+location|what(?:s|\s+is)\s+my\s+(?:current\s+)?(?:location|position|address)|(?:my\s+)?(?:current\s+)?location\s+(?:now|please)|lokasi\s+(?:saya|aku|semasa)(?:\s+sekarang)?|(?:kat|di|dekat)?\s*mana\s+(?:saya|aku|kita)(?:\s+sekarang)?|(?:saya|aku|kita)\s+(?:kat|di|dekat|berada\s+di)\s+mana(?:\s+(?:sekarang|ni|ini))?|(?:saya|aku)\s+sekarang\s+(?:kat|di|dekat)\s+mana|tanya\s+(?:dekat|kat|di)\s+mana\s+sekarang|kedudukan\s+(?:saya|aku|semasa))$',
   ).hasMatch(t)) {
     return true;
   }

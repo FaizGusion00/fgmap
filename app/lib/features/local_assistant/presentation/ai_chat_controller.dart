@@ -32,6 +32,7 @@ class AssistantUiState {
   const AssistantUiState({
     this.modelStatus = AssistantModelStatus.missing,
     this.downloadProgress = 0,
+    this.downloadingModelId,
     this.conversations = const [],
     this.current,
     this.messages = const [],
@@ -44,6 +45,9 @@ class AssistantUiState {
 
   final AssistantModelStatus modelStatus;
   final double downloadProgress;
+
+  /// Model yang sedang dimuat turun (nama fail), atau null.
+  final String? downloadingModelId;
   final List<ConversationMeta> conversations;
 
   /// Null = sembang baharu yang belum ada mesej.
@@ -64,6 +68,8 @@ class AssistantUiState {
   AssistantUiState copyWith({
     AssistantModelStatus? modelStatus,
     double? downloadProgress,
+    String? downloadingModelId,
+    bool clearDownloading = false,
     List<ConversationMeta>? conversations,
     ConversationMeta? current,
     bool clearCurrent = false,
@@ -78,6 +84,9 @@ class AssistantUiState {
   }) => AssistantUiState(
     modelStatus: modelStatus ?? this.modelStatus,
     downloadProgress: downloadProgress ?? this.downloadProgress,
+    downloadingModelId: clearDownloading
+        ? null
+        : (downloadingModelId ?? this.downloadingModelId),
     conversations: conversations ?? this.conversations,
     current: clearCurrent ? null : (current ?? this.current),
     messages: messages ?? this.messages,

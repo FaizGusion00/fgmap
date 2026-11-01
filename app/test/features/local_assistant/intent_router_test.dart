@@ -1,3 +1,4 @@
+import 'package:fgmap/features/local_assistant/data/wikipedia_client.dart';
 import 'package:fgmap/features/local_assistant/domain/intent_router.dart';
 import 'package:fgmap/features/route_preview/domain/route_preference.dart';
 import 'package:fgmap/features/search/domain/nearby_category.dart';
@@ -172,7 +173,8 @@ void main() {
 
     test('soalan umum pergi ke model', () {
       expect(parseIntent('Explain tolls in Malaysia'), isNull);
-      expect(parseIntent('apa itu sabar?'), isNull);
+      // Topik satu perkataan: Wikipedia dahulu, model sebagai sandaran.
+      expect(parseIntent('apa itu sabar?'), isA<TopicIntent>());
       expect(parseIntent('what is the best way to learn english'), isNull);
     });
   });
@@ -236,6 +238,79 @@ void main() {
       expect(kind('hi, route to Ipoh'), isNull);
       expect(kind('hello world program in python'), isNull);
       expect(parseIntent('route to Kuala Kedah'), isA<RouteIntent>());
+    });
+  });
+
+  group('topik ensiklopedia (Wikipedia, model sebagai sandaran)', () {
+    String? topic(String t) => switch (parseIntent(t)) {
+      TopicIntent(:final topic) => topic,
+      _ => null,
+    };
+
+    test('pelbagai cara bertanya tentang topik', () {
+      expect(topic('So well wanna ask you about Palestine'), 'palestine');
+      expect(topic('Can you tell me the idea about love'), 'love');
+      expect(topic('Who is Albert Einstein'), 'albert einstein');
+      expect(topic('what is a durian?'), 'durian');
+      expect(topic('apa itu durian'), 'durian');
+      expect(
+        topic('siapa perdana menteri malaysia'),
+        'perdana menteri malaysia',
+      );
+      expect(topic('cerita pasal sejarah Melaka sikit'), 'sejarah melaka');
+    });
+
+    test('bukan topik: diri, masa, perjalanan, identiti', () {
+      expect(topic('what is the time'), isNull);
+      expect(topic('tell me about yourself'), isNull);
+      expect(topic('tell me about the route'), isNull);
+      expect(parseIntent('who are you'), isA<ChatIntent>());
+      expect(parseIntent('weather in Kuantan'), isA<WeatherIntent>());
+    });
+  });
+
+  group('lokasi, muzik umum dan Wikipedia', () {
+    test('pelbagai cara bertanya lokasi semasa', () {
+      for (final t in [
+        'Where am i now',
+        'where am I right now?',
+        'where are we',
+        'saya kat mana sekarang',
+        'kat mana saya',
+        'lokasi saya sekarang',
+        'aku dekat mana ni',
+      ]) {
+        expect(parseIntent(t), isA<CurrentLocationIntent>(), reason: t);
+      }
+    });
+
+    test('"play a music" = lagu popular (tiada carian "a music")', () {
+      for (final t in [
+        'Play a music',
+        'play music',
+        'play a song',
+        'mainkan lagu',
+        'pasang muzik',
+      ]) {
+        final i = parseIntent(t);
+        expect(i, isA<PlayMusicIntent>(), reason: t);
+        expect((i! as PlayMusicIntent).query, '', reason: t);
+      }
+      expect(
+        (parseIntent('play Siti Nurhaliza')! as PlayMusicIntent).query,
+        'siti nurhaliza',
+      );
+    });
+
+    test('tajuk Wikipedia paling hampir dipilih', () {
+      expect(
+        bestTitleMatch('palestin', [
+          (key: 'Ira_J._Palestin', title: 'Ira J. Palestin'),
+          (key: 'Palestine', title: 'Palestine'),
+          (key: 'Palestinians', title: 'Palestinians'),
+        ]),
+        'Palestine',
+      );
     });
   });
 }
