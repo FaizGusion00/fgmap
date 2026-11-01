@@ -68,3 +68,5 @@ Punca yang ditemui:
 - Corak ayat penghala perlu dikembangkan mengikut cara pengguna sebenar bercakap; ujian
   `intent_router_test.dart` ialah senarai rujukan.
 - Kelajuan GPU berbeza antara telefon; laluan CPU kekal sebagai sandaran selamat.
+- Ujian telefon susulan (2026-11-01) menemui corak ayat bersahaja yang terlepas, ralat yang salah dilabel "luar talian"
+  dan gema model: lihat ADR 0016.

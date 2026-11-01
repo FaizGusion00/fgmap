@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/network/connectivity_probe.dart';
 import '../../../core/storage/preferences.dart';
 import '../../../core/utils/log.dart';
 import '../../../l10n/generated/app_localizations.dart';
@@ -158,8 +159,10 @@ class AssistantController extends AiChatController {
       }
     } on Object catch (e) {
       logDiag('FG AI gagal: $e');
-      final offline = networkErrorCode(e);
-      reply = replies.text(offline != null ? l10n.aiOfflineTool : l10n.aiError);
+      final code = networkErrorCode(e, online: await _linkUp());
+      reply = replies.text(
+        code != null ? replies.failure({'error': code}) : l10n.aiError,
+      );
     }
     if (!ref.mounted) return;
     final all = [...state.messages, reply];
@@ -175,6 +178,14 @@ class AssistantController extends AiChatController {
 
   AssistantToolExecutor get _tools => ref.read(assistantToolExecutorProvider);
 
+  Future<bool> _linkUp() async {
+    try {
+      return await ref.read(onlineProbeProvider)();
+    } on Object {
+      return true;
+    }
+  }
+
   Future<AssistantMessage> _handle(
     AssistantIntent intent,
     AiReplyBuilder replies,
@@ -189,6 +200,24 @@ class AssistantController extends AiChatController {
         );
         if (r['ok'] == true) _lastDestination = r['destination'] as String?;
         return replies.route(r, query: destination);
+      case RouteFollowUpIntent(:final autoStart):
+        // "how do i get there / do that / tell me how": guna laluan yang sudah ada, atau destinasi terakhir.
+        final preview = ref.read(routePreviewControllerProvider);
+        if (preview is RouteReady) {
+          if (autoStart) {
+            ref.read(aiMapRequestProvider.notifier).startNavigation();
+            return replies.text(l10n.aiNavStarting);
+          }
+          return replies.text(l10n.aiRouteReadyHint);
+        }
+        if (ref.read(navigationControllerProvider).isActive) {
+          return replies.text(l10n.aiNavStarting);
+        }
+        final last = _lastDestination;
+        if (last == null) return replies.text(l10n.aiAskDestination);
+        final r = await _tools.planRoute(last, start: autoStart);
+        if (r['ok'] == true) _lastDestination = r['destination'] as String?;
+        return replies.route(r, query: last);
       case StartNavigationIntent():
         if (ref.read(routePreviewControllerProvider) is! RouteReady) {
           return replies.text(
@@ -314,6 +343,10 @@ class AssistantController extends AiChatController {
     // Lapisan kedua: runtime sudah cleanReply, tetapi pastikan setiap laluan (ujian palsu,
     // model yang mencetak skema, sisa streaming) tidak membocorkan markup alat.
     final cleaned = cleanReply(raw);
+    // Model kecil mengulang ayat pengguna atau memberi salam yang tidak diminta: ganti dengan panduan ringkas.
+    if (cleaned.isNotEmpty && isEchoReply(cleaned, text)) {
+      return replies.text(l10n.aiNotUnderstood);
+    }
     final body = cleaned.length > 2000
         ? '${cleaned.substring(0, 1999)}…'
         : cleaned;

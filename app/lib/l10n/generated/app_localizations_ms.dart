@@ -2469,7 +2469,53 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get aiRouteFailed =>
-      'Laluan tidak dapat dikira sekarang. Semak sambungan, atau muat turun peta offline untuk laluan tanpa internet.';
+      'Laluan tidak dapat dikira sekarang. Sila cuba lagi sebentar lagi.';
+
+  @override
+  String get aiBusy =>
+      'Perkhidmatan carian dan laluan sedang sibuk. Cuba lagi sebentar lagi.';
+
+  @override
+  String get aiServiceDown =>
+      'Perkhidmatan dalam talian tidak menjawab sekarang. Cuba lagi sebentar, atau muat turun pek peta offline supaya saya boleh rancang laluan tanpanya.';
+
+  @override
+  String get aiSlow =>
+      'Sambungan anda nampak perlahan atau tidak stabil, jadi saya tak dapat siapkan. Sila cuba lagi.';
+
+  @override
+  String aiOfflineNotFound(String place) {
+    return 'Anda sedang luar talian, jadi saya hanya boleh cari \"$place\" dalam peta offline dan tiada padanan. Carian offline perlukan pek peta Malaysia (Peta offline). Cuba ejaan lain, atau sambung ke internet.';
+  }
+
+  @override
+  String get aiOfflinePackNeeded =>
+      'Anda luar talian dan pek peta offline belum dipasang, jadi saya tak dapat rancang laluan itu. Muat turun pek Malaysia dalam Peta offline semasa ada internet.';
+
+  @override
+  String get aiOfflineEngine =>
+      'Enjin laluan offline tak dapat mengira laluan itu. Cuba lagi, atau muat turun semula pek peta offline.';
+
+  @override
+  String aiNoDrivableRoute(String place) {
+    return 'Saya jumpa $place, tetapi tiada laluan boleh dipandu ke sana dari lokasi anda. Semak sama ada itu tempat yang betul.';
+  }
+
+  @override
+  String get aiSearchFailed =>
+      'Saya tak dapat cari tempat itu sekarang. Sila cuba lagi.';
+
+  @override
+  String get aiAskDestination =>
+      'Anda nak ke mana? Cakap contohnya \"Bawa saya ke KLCC\" atau \"Navigate to Masjid Negara\".';
+
+  @override
+  String get aiRouteReadyHint =>
+      'Laluan sudah ada pada peta. Cakap \"start now\" atau tekan Mula untuk mula memandu.';
+
+  @override
+  String get aiNotUnderstood =>
+      'Saya kurang faham. Saya boleh rancang laluan (\"Laluan ke KLCC\"), cari tempat berdekatan, beritahu lokasi anda, serta kiblat dan waktu solat. Cuba salah satu.';
 
   @override
   String get aiNoLocation =>
@@ -2477,7 +2523,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get aiOfflineTool =>
-      'Itu perlukan internet. Anda sedang luar talian — cuba lagi bila online, atau tanya sesuatu yang berfungsi pada telefon (laluan dengan peta offline, kiblat, waktu solat).';
+      'Itu perlukan internet dan anda sedang luar talian. Saya masih boleh beri lokasi GPS, kiblat, waktu solat dan laluan jika anda sudah muat turun pek peta offline. Cuba lagi bila online.';
 
   @override
   String get aiRouteCleared => 'Laluan dipadam.';

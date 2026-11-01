@@ -42,6 +42,15 @@ class CancelRouteIntent extends AssistantIntent {
   const CancelRouteIntent();
 }
 
+/// "How do I get there?", "how do i do that", "tell me how", "bawa saya ke sana": susulan tanpa destinasi baharu.
+/// Pengawal memakai destinasi terakhir dalam sembang (atau bertanya "ke mana?" jika tiada).
+class RouteFollowUpIntent extends AssistantIntent {
+  const RouteFollowUpIntent({this.autoStart = false});
+
+  /// "take me there", "navigate there": terus mula, bukan sekadar pratonton.
+  final bool autoStart;
+}
+
 /// "Stesen minyak terdekat", "nearest mosque".
 class NearbyIntent extends AssistantIntent {
   const NearbyIntent(this.category);
@@ -224,6 +233,131 @@ bool looksEnglish(String text) {
   return words.any(t.contains);
 }
 
+/// Kata fungsi (bukan nama tempat: "masjid", "minyak", "tandas" dikecualikan kerana muncul dalam nama tempat
+/// pada ayat Inggeris) untuk menilai bahasa jawapan.
+const _malayFunctionWords = {
+  'ke',
+  'saya',
+  'aku',
+  'nak',
+  'cari',
+  'mana',
+  'tolong',
+  'boleh',
+  'tak',
+  'tidak',
+  'bawa',
+  'hantar',
+  'kat',
+  'dekat',
+  'dan',
+  'yang',
+  'untuk',
+  'berapa',
+  'kenapa',
+  'macam',
+  'jom',
+  'elak',
+  'apa',
+  'bila',
+  'sekarang',
+  'tanpa',
+  'pergi',
+  'mula',
+  'ini',
+  'itu',
+  'laluan',
+  'jalan',
+  'cuaca',
+  'waktu',
+  'terdekat',
+  'dari',
+  'dengan',
+  'lokasi',
+  'beritahu',
+  'bagitahu',
+  'tunjuk',
+  'awak',
+  'kamu',
+  'sana',
+  'situ',
+  'ada',
+  'lah',
+  'kot',
+};
+
+const _englishFunctionWords = {
+  'the',
+  'to',
+  'is',
+  'what',
+  'how',
+  'where',
+  'me',
+  'my',
+  'route',
+  'please',
+  'can',
+  'could',
+  'you',
+  'i',
+  'im',
+  'near',
+  'nearest',
+  'find',
+  'start',
+  'now',
+  'and',
+  'of',
+  'are',
+  'why',
+  'when',
+  'who',
+  'tell',
+  'about',
+  'play',
+  'go',
+  'going',
+  'heading',
+  'do',
+  'get',
+  'there',
+  'that',
+  'this',
+  'current',
+  'location',
+  'want',
+  'need',
+  'take',
+  'show',
+  'navigate',
+  'with',
+  'for',
+  'from',
+  'it',
+  'in',
+  'on',
+  'at',
+  'am',
+  'will',
+  'would',
+  'should',
+};
+
+/// Bahasa jawapan untuk [text]: skor kata fungsi Melayu vs Inggeris. Nama tempat ("masjid", "ke" dalam nama)
+/// tidak menjadikan ayat Inggeris sebagai Melayu. Seri/tiada petunjuk -> ikut bahasa UI ([uiMalay]).
+bool replyIsMalay(String text, {required bool uiMalay}) {
+  final words = normalizeCommand(text).split(' ');
+  var malay = 0;
+  var english = 0;
+  for (final w in words) {
+    if (_malayFunctionWords.contains(w)) malay++;
+    if (_englishFunctionWords.contains(w)) english++;
+  }
+  if (malay == english) return uiMalay;
+  return malay > english;
+}
+
 const _prefPatterns = <RoutePreference, String>{
   RoutePreference.noTolls:
       r'(?:no|without|avoid(?:ing)?|skip)\s+tolls?|toll[ -]?free|tanpa\s+tol|elak(?:kan)?\s+tol|bebas\s+tol|tak\s+(?:nak\s+)?(?:lalu\s+)?tol|x\s+nak\s+tol',
@@ -294,7 +428,7 @@ final _routeVerbs = <({RegExp re, bool autoStart})>[
   ),
   (
     re: RegExp(
-      r'\b(?:route|routes|directions?|go|head(?:ing)?|how\s+(?:do\s+i|to)\s+get|show\s+(?:me\s+)?(?:the\s+)?(?:route|way))\s+(?:me\s+)?(?:to|towards)\s+(.+)',
+      r'\b(?:route|routes|directions?|go|going|head(?:ing)?|driving|travell?ing|walking|riding|how\s+(?:do\s+i|to|can\s+i|should\s+i)\s+(?:get|go|drive|reach)|show\s+(?:me\s+)?(?:the\s+)?(?:route|way))\s+(?:me\s+)?(?:to|towards)\s+(.+)',
     ),
     autoStart: false,
   ),
@@ -318,24 +452,31 @@ final _alongWords = RegExp(
 /// Kenal pasti arahan peta dalam [text]. Null = biar model menjawab.
 /// [hasRoute]: pratonton laluan sedang dipaparkan (untuk "start", "tanpa tol").
 AssistantIntent? parseIntent(String text, {bool hasRoute = false}) {
-  final t = normalizeCommand(text);
-  if (t.isEmpty) return null;
+  final raw = normalizeCommand(text);
+  if (raw.isEmpty) return null;
 
   if (RegExp(
     r'^(?:cancel|stop|end|clear|batal(?:kan)?|henti(?:kan)?|tamat(?:kan)?|padam)\s*(?:the\s+)?(?:route|navigation|nav|laluan|navigasi|perjalanan)?$',
-  ).hasMatch(t)) {
+  ).hasMatch(raw)) {
     return hasRoute ? const CancelRouteIntent() : null;
   }
 
-  final chat = _chatIntent(t);
+  final chat = _chatIntent(raw);
   if (chat != null) return chat;
 
-  final capabilities = _capabilitiesIntent(t);
+  final capabilities = _capabilitiesIntent(raw);
   if (capabilities != null) return capabilities;
+
+  // Selebihnya dipadankan selepas pembungkus sopan dibuang ("can you tell me ...", "please", "im heading to ...").
+  final t = stripPoliteness(raw);
+  if (t.isEmpty) return null;
 
   if (_isCurrentLocationQuery(t)) {
     return const CurrentLocationIntent();
   }
+
+  final followUp = _followUpIntent(t);
+  if (followUp != null) return followUp;
 
   final pref = _preferenceIn(t);
   final startNow = _startNow.hasMatch(t);
@@ -429,8 +570,9 @@ final _searchVerb = RegExp(
   r'^(?:please\s+|tolong\s+)?(?:find|search(?:\s+for)?|look\s+for|locate|cari(?:kan)?|where\s+is|wheres|di\s+mana(?:kah)?|kat\s+mana|mana)\s+(.+)',
 );
 
-/// "my current location", "lokasi saya", "where am i", "cari lokasi semasa".
+/// "my current location", "lokasi saya", "where am i", "cari lokasi semasa", "tell me where are my current location".
 bool _isCurrentLocationQuery(String t) {
+  if (_currentLocationLoose.hasMatch(t)) return true;
   if (RegExp(
     r'^(?:where\s+am\s+i|wheres\s+my\s+location|what(?:s|\s+is)\s+my\s+(?:current\s+)?(?:location|position)|lokasi\s+(?:saya|aku|semasa)|mana\s+(?:saya|aku)\s+sekarang|kedudukan\s+(?:saya|aku|semasa))$',
   ).hasMatch(t)) {
@@ -442,6 +584,78 @@ bool _isCurrentLocationQuery(String t) {
     return true;
   }
   return _isCurrentLocationPhrase(t);
+}
+
+/// Bentuk bersahaja selepas pembungkus sopan dibuang: "where are my current location", "tell me my location",
+/// "whats my location now", "saya kat mana sekarang", "kat mana saya ni".
+final _currentLocationLoose = RegExp(
+  r'^(?:where\s+(?:am\s+i|i\s+am|are\s+we|we\s+are|exactly\s+am\s+i)(?:\s+(?:now|right\s+now|currently|at))?|where\s+(?:is|are)\s+(?:my|our)\s+(?:current\s+)?(?:location|position)|(?:tell|show|give|send)\s+me\s+(?:my|our|the)\s+(?:current\s+)?(?:location|position|address|coordinates)|(?:what(?:s|\s+is)|whats)\s+(?:my|our|the)\s+(?:current\s+)?(?:location|position|address|coordinates)|(?:my\s+)?current\s+(?:location|position)|(?:saya|aku|sy)\s+(?:kat|di|dekat)\s+mana|(?:kat|di|dekat)\s+mana\s+(?:saya|aku|sy)|lokasi\s+(?:saya|aku|semasa)|(?:beritahu|bagitahu|tunjuk(?:kan)?)\s+(?:saya\s+|aku\s+)?lokasi(?:\s+(?:saya|aku|semasa))?)(?:\s+(?:now|please|sekarang|ni|ini|here|semasa|currently))*$',
+);
+
+/// Pembungkus sopan/pengenalan di hadapan arahan sebenar. Dibuang berulang (maks 4 kali):
+/// "can you please tell me where am i" -> "where am i"; "im heading to klcc" -> "go to klcc".
+final _politeRewrites = <(RegExp, String)>[
+  (RegExp(r'^(?:hey|hi|hello|hai|ok|okay|so|um|uh|ya|yo|btw|and|but)\s+'), ''),
+  (
+    RegExp(
+      r'^(?:can|could|would|will)\s+(?:you|u|ya)\s+(?:please\s+|pls\s+|kindly\s+)?(?:(?:help|assist)\s+me\s+(?:to\s+|with\s+)?|tell\s+me\s+|show\s+me\s+|let\s+me\s+know\s+|give\s+me\s+)?',
+    ),
+    '',
+  ),
+  (
+    RegExp(
+      r'^(?:please|pls|plz|kindly|tolong|boleh\s+tak|boleh\s+tolong|boleh)\s+',
+    ),
+    '',
+  ),
+  (
+    RegExp(
+      r'^(?:i|we)\s+(?:really\s+)?(?:want|need|wanna|would\s+like|d\s+like|nak|mahu|hendak)\s+(?:to\s+)?',
+    ),
+    '',
+  ),
+  (RegExp(r'^(?:saya|aku|sy|kami)\s+(?:nak|mahu|hendak)\s+'), ''),
+  (
+    RegExp(
+      r'^(?:im|i\s+am|ill|i\s+will|we\s+are|were)\s+(?:currently\s+|now\s+)?(?:heading|going|driving|travell?ing|walking|riding|on\s+my\s+way)\s+(?:to|towards)\s+',
+    ),
+    'go to ',
+  ),
+  (
+    RegExp(
+      r'^(?:i|we)\s+(?:am\s+|are\s+)?(?:wanna|gonna|going\s+to)\s+(?:go|drive|head)\s+(?:to|towards)\s+',
+    ),
+    'go to ',
+  ),
+];
+
+/// Buang pembungkus sopan supaya corak berjangkar (`^...$`) berfungsi pada ayat bersahaja.
+@visibleForTesting
+String stripPoliteness(String normalized) {
+  var t = normalized.trim();
+  for (var i = 0; i < 4; i++) {
+    final before = t;
+    for (final (re, rewrite) in _politeRewrites) {
+      t = t.replaceFirst(re, rewrite).trim();
+    }
+    if (t == before) break;
+  }
+  return t;
+}
+
+/// Susulan tanpa destinasi: "how do i get there", "how do i do that", "tell me how", "bawa saya ke sana".
+RouteFollowUpIntent? _followUpIntent(String t) {
+  if (RegExp(
+    r'^(?:(?:take|bring|guide|drive)\s+me\s+(?:there|to\s+(?:it|that\s+place|the\s+place))|navigate\s+(?:there|to\s+(?:it|that))|go\s+there|lets\s+go\s+there|bawa\s+(?:saya|aku)\s+(?:ke\s+)?(?:sana|situ)|hantar\s+(?:saya|aku)\s+(?:ke\s+)?(?:sana|situ)|jom\s+(?:ke\s+)?(?:sana|situ)|pergi\s+(?:ke\s+)?(?:sana|situ))$',
+  ).hasMatch(t)) {
+    return const RouteFollowUpIntent(autoStart: true);
+  }
+  if (RegExp(
+    r'^(?:(?:tell\s+me\s+)?how(?:\s+(?:do\s+i|can\s+i|should\s+i|to|do\s+we))?(?:\s+(?:get|go|reach|drive|do|get\s+to|go\s+to)(?:\s+(?:there|it|that|this|here))?)?|(?:show|give)\s+me\s+(?:the\s+)?(?:route|way|directions?)(?:\s+there)?|(?:route|directions?)\s+(?:there|please)|directions?|macam\s+mana(?:\s+(?:nak|saya\s+nak))?(?:\s+(?:pergi|ke\s+sana|ke\s+situ|buat(?:\s+(?:tu|itu|macam\s+tu)))?)?|camne(?:\s+nak)?(?:\s+pergi)?|tunjuk(?:kan)?\s+(?:jalan|laluan)(?:\s+ke\s+(?:sana|situ))?)(?:\s+(?:please|pls|ya|ok|okay|lah|la))*$',
+  ).hasMatch(t)) {
+    return const RouteFollowUpIntent();
+  }
+  return null;
 }
 
 bool _isCurrentLocationPhrase(String q) {
@@ -519,11 +733,25 @@ final _destinationNoise = <RegExp>[
   RegExp(r'\b(?:route|laluan|the\s+route|the\s+way)\b$'),
 ];
 
+final _destinationQuestionTail = RegExp(
+  r'\s+(?:(?:can|could|would|will|do|did)\s+(?:you|u)\b|how\s+(?:do\s+i|do\s+we|to|can\s+i|should\s+i)\b|how$|tell\s+me\b|show\s+me\b|let\s+me\s+know\b|help\s+me\b|macam\s+mana\b|bagaimana\b|camne\b|cmne\b|boleh\s+(?:tak|tolong|awak|bagitahu)\b|tolong\s+(?:bagitahu|tunjuk|beritahu)\b).*$',
+);
+
 /// Buang kata pilihan/masa daripada nama destinasi ("klcc tanpa tol sekarang" -> "klcc").
 String? _cleanDestination(String raw) {
   var d = raw;
   final via = RegExp(r'\s(?:via|melalui|lalu)\s').firstMatch(d);
   if (via != null) d = d.substring(0, via.start);
+  // Ekor soalan/sopan selepas nama tempat: "masjid x can you tell me how", "klcc macam mana", "ipoh boleh tak".
+  d = d
+      .replaceFirst(_destinationQuestionTail, '')
+      .replaceFirst(
+        RegExp(
+          r'\s+(?:how|ya|yah|eh|lah|la|kan|kot|please|pls|ok|okay|thanks|tq)$',
+        ),
+        '',
+      )
+      .trim();
   for (final re in _destinationNoise) {
     d = d.replaceAll(re, ' ');
   }

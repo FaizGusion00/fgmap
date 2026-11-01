@@ -58,17 +58,29 @@ class AiReplyBuilder {
     _ => l10n.aiReasonRecommended,
   };
 
-  /// Kegagalan alat dalam ayat biasa.
-  String failure(Map<String, Object?> r, {String? query}) =>
-      switch (r['error']) {
-        'not_found' when query != null => l10n.aiPlaceNotFound(query),
-        'not_found' => l10n.aiNothingFound,
-        'no_location' => l10n.aiNoLocation,
-        'offline' || 'network' => l10n.aiOfflineTool,
-        'no_route' => l10n.aiNeedRoute,
-        'route_failed' || 'route_timeout' => l10n.aiRouteFailed,
-        _ => l10n.aiUnavailable,
-      };
+  /// Kegagalan alat dalam ayat biasa. Setiap kod ada mesej tersendiri supaya pengguna tahu SEBAB sebenar
+  /// (luar talian / pelayan sibuk / lambat / tempat tak jumpa / tiada laluan), bukan satu "semak sambungan".
+  String failure(Map<String, Object?> r, {String? query}) {
+    final place = (r['destination'] ?? r['query'] ?? query)?.toString();
+    return switch (r['error']) {
+      'not_found' when place != null => l10n.aiPlaceNotFound(place),
+      'not_found' => l10n.aiNothingFound,
+      'offline_not_found' when place != null => l10n.aiOfflineNotFound(place),
+      'offline_not_found' => l10n.aiOfflineTool,
+      'no_location' => l10n.aiNoLocation,
+      'offline' || 'network' => l10n.aiOfflineTool,
+      'busy' => l10n.aiBusy,
+      'service_down' => l10n.aiServiceDown,
+      'slow' || 'route_timeout' => l10n.aiSlow,
+      'offline_pack_needed' => l10n.aiOfflinePackNeeded,
+      'offline_engine' => l10n.aiOfflineEngine,
+      'no_drivable_route' when place != null => l10n.aiNoDrivableRoute(place),
+      'no_drivable_route' || 'route_failed' => l10n.aiRouteFailed,
+      'search_failed' => l10n.aiSearchFailed,
+      'no_route' => l10n.aiNeedRoute,
+      _ => l10n.aiUnavailable,
+    };
+  }
 
   AssistantMessage route(Map<String, Object?> r, {String? query}) {
     if (r['ok'] != true) return _reply(failure(r, query: query));

@@ -209,7 +209,7 @@ abstract class AiChatController extends Notifier<AssistantUiState> {
   /// Bahasa jawapan: bahasa mesej jika jelas, jika tidak bahasa UI.
   @protected
   AppLocalizations replyL10n(String text, {required bool uiMalay}) {
-    final malay = looksMalay(text) || (uiMalay && !looksEnglish(text));
+    final malay = replyIsMalay(text, uiMalay: uiMalay);
     return lookupAppLocalizations(Locale(malay ? 'ms' : 'en'));
   }
 }

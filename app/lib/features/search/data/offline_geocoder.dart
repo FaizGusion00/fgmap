@@ -20,11 +20,16 @@ class OfflineAwareGeocoder implements Geocoder {
     this._offline, {
     this.onlineTimeout = const Duration(seconds: 6),
     this.enrichBelow = minOnlineBeforeFill,
+    this.isOnline,
   });
 
   final Geocoder _online;
   final OfflinePlacesDb _offline;
   final Duration onlineTimeout;
+
+  /// Semakan pautan rangkaian. Jika memulangkan false (mod pesawat / tiada isyarat), carian dalam talian
+  /// dilangkau terus: hasil datang daripada indeks offline serta-merta, tanpa menunggu tamat masa.
+  final Future<bool> Function()? isOnline;
 
   /// Jika dalam talian memberi kurang daripada ini, tambah padanan offline tanpa pendua.
   final int enrichBelow;
@@ -47,6 +52,11 @@ class OfflineAwareGeocoder implements Geocoder {
         .search(query, near: near)
         .then((rows) => [for (final r in rows) r.toPlace()])
         .catchError((Object _) => const <Place>[]);
+    if (isOnline != null && !await isOnline!()) {
+      final offline = await offlineFuture;
+      if (offline.isNotEmpty) return offline;
+      throw const GeocodeFailure(GeocodeFailureKind.network, 'tiada sambungan');
+    }
     List<Place> online;
     try {
       online = await _online

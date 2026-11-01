@@ -238,4 +238,82 @@ void main() {
       expect(parseIntent('route to Kuala Kedah'), isA<RouteIntent>());
     });
   });
+
+  group('ayat bersahaja daripada ujian telefon pemilik', () {
+    test('lokasi semasa dengan pembungkus sopan (bukan gema model)', () {
+      for (final t in [
+        'Can you tell me where are my current location?',
+        'Please tell me my current location',
+        'can you please tell me my current location',
+        'could you tell me where i am',
+        'tell me my location',
+        'whats my location now',
+        'where are my current location',
+        'tolong beritahu lokasi saya',
+        'saya kat mana sekarang',
+        'kat mana saya ni',
+      ]) {
+        expect(parseIntent(t), isA<CurrentLocationIntent>(), reason: t);
+      }
+    });
+
+    test('"im heading to X can you tell me how" -> destinasi bersih', () {
+      for (final t in [
+        'Im heading to masjid attaufiqiah can you tell me how?',
+        'Im heading to masjid attaufiqiah, how do i do that?',
+        'im going to masjid attaufiqiah can you show me the way',
+        'I want to go to Masjid At-Taufiqiah please tell me how',
+        'saya nak pergi ke masjid attaufiqiah macam mana',
+      ]) {
+        final r = parseIntent(t);
+        expect(r, isA<RouteIntent>(), reason: t);
+        expect(
+          (r! as RouteIntent).destination,
+          anyOf('masjid attaufiqiah', 'masjid at-taufiqiah'),
+          reason: t,
+        );
+      }
+    });
+
+    test('tail soalan tidak memakan nama destinasi lain', () {
+      expect(
+        (parseIntent('navigate to Pavilion KL can you start now')!
+                as RouteIntent)
+            .destination,
+        'pavilion kl',
+      );
+      expect(
+        (parseIntent('can you take me to klcc?')! as RouteIntent).destination,
+        'klcc',
+      );
+    });
+
+    test('susulan tanpa destinasi ("how do i do that")', () {
+      for (final t in [
+        'how do i do that?',
+        'how do i get there',
+        'tell me how',
+        'how',
+        'can you tell me how to get there',
+        'macam mana nak pergi',
+        'show me the route',
+      ]) {
+        expect(parseIntent(t), isA<RouteFollowUpIntent>(), reason: t);
+      }
+      for (final t in [
+        'take me there',
+        'navigate there',
+        'bawa saya ke sana',
+      ]) {
+        final r = parseIntent(t);
+        expect(r, isA<RouteFollowUpIntent>(), reason: t);
+        expect((r! as RouteFollowUpIntent).autoStart, isTrue, reason: t);
+      }
+    });
+
+    test('soalan umum "how ..." tetap ke model', () {
+      expect(parseIntent('how does inflation work'), isNull);
+      expect(parseIntent('what is the best way to learn english'), isNull);
+    });
+  });
 }

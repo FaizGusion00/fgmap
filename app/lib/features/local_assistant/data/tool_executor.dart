@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/location/location_service.dart';
+import '../../../core/network/connectivity_probe.dart';
 import '../../../core/utils/geo.dart';
 import '../../air_quality/domain/air_quality.dart';
 import '../../air_quality/presentation/air_quality_controller.dart';
@@ -24,12 +25,15 @@ import '../../qibla/domain/qibla.dart';
 import '../../route_preview/domain/route_option.dart';
 import '../../route_preview/domain/route_preference.dart';
 import '../../route_preview/domain/route_scoring.dart';
+import '../../route_preview/domain/routing_failure.dart';
 import '../../route_preview/domain/toll.dart';
 import '../../route_preview/presentation/route_preview_controller.dart';
 import '../../search/data/nearby_search.dart';
 import '../../search/data/photon_geocoder.dart';
 import '../../search/domain/nearby_category.dart';
 import '../../search/domain/place.dart';
+import '../../search/domain/place_query_expand.dart';
+import '../../search/domain/place_ranker.dart';
 import '../../weather/data/open_meteo_client.dart';
 import '../../weather/domain/weather_codes.dart';
 import '../domain/assistant_tools.dart';
@@ -106,36 +110,82 @@ class AssistantToolExecutor {
     };
   }
 
+  Future<bool> _online() => _ref.read(onlineProbeProvider)();
+
+  /// Cari [query] dengan varian ejaan ("attaufiqiah" -> "at taufiqiah") dan SATU ulangan untuk ralat sementara.
+  /// Hasil disusun [PlaceRanker] (nama + jarak) dan bukan sekadar yang pertama daripada pelayan.
+  /// Ralat tidak ditelan: dipulangkan supaya pemanggil memberi mesej yang betul (luar talian / sibuk / perlahan).
+  Future<({List<Place> places, Object? error})> _findPlaces(
+    String query,
+    GeoPoint? near, {
+    required bool online,
+  }) async {
+    final geocoder = _ref.read(geocoderProvider);
+    for (final variant in placeQueryVariants(query)) {
+      for (var attempt = 0; ; attempt++) {
+        try {
+          final found = await geocoder.search(variant, near: near);
+          if (found.isEmpty) break; // cuba varian seterusnya
+          return (
+            places: const PlaceRanker().rank(
+              found,
+              variant,
+              near: near,
+              maxResults: 8,
+            ),
+            error: null,
+          );
+        } on Object catch (e) {
+          if (online && attempt == 0 && isTransientNetworkError(e)) {
+            await Future<void>.delayed(const Duration(milliseconds: 700));
+            continue;
+          }
+          return (places: const <Place>[], error: e);
+        }
+      }
+    }
+    return (places: const <Place>[], error: null);
+  }
+
   Future<Map<String, Object?>> searchPlace(String? query) async {
     if (query == null || query.trim().isEmpty) {
       return {'ok': false, 'error': 'missing_query'};
     }
-    try {
-      final near = await _gps();
-      final places = await _ref
-          .read(geocoderProvider)
-          .search(query.trim(), near: near);
-      if (places.isEmpty) return {'ok': false, 'error': 'not_found'};
-      final top = places.take(5).toList();
+    final q = query.trim();
+    final near = await _gps();
+    final online = await _online();
+    final found = await _findPlaces(q, near, online: online);
+    final error = found.error;
+    if (error != null) {
       return {
-        'ok': true,
-        'places': [
-          for (final p in top)
-            {
-              'name': p.name,
-              'subtitle': p.subtitle,
-              'lat': p.point.lat,
-              'lng': p.point.lng,
-              if (near != null)
-                'distance_km': double.parse(
-                  (distanceMeters(near, p.point) / 1000).toStringAsFixed(1),
-                ),
-            },
-        ],
+        'ok': false,
+        'error': networkErrorCode(error, online: online) ?? 'search_failed',
+        'query': q,
       };
-    } on Object catch (e) {
-      return {'ok': false, 'error': networkErrorCode(e) ?? e.toString()};
     }
+    if (found.places.isEmpty) {
+      return {
+        'ok': false,
+        'error': online ? 'not_found' : 'offline_not_found',
+        'query': q,
+      };
+    }
+    return {
+      'ok': true,
+      'places': [
+        for (final p in found.places.take(5))
+          {
+            'name': p.name,
+            'subtitle': p.subtitle,
+            'lat': p.point.lat,
+            'lng': p.point.lng,
+            if (near != null)
+              'distance_km': double.parse(
+                (distanceMeters(near, p.point) / 1000).toStringAsFixed(1),
+              ),
+          },
+      ],
+    };
   }
 
   /// Rancang laluan ke [query] dan pilih pilihan yang sepadan dengan [preference]. Dengan [start],
@@ -148,12 +198,26 @@ class AssistantToolExecutor {
     if (query == null || query.trim().isEmpty) {
       return {'ok': false, 'error': 'missing_query'};
     }
+    final q = query.trim();
     final near = await _gps();
-    final places = await _ref
-        .read(geocoderProvider)
-        .search(query.trim(), near: near);
-    if (places.isEmpty) return {'ok': false, 'error': 'not_found'};
-    final place = places.first;
+    final online = await _online();
+    final found = await _findPlaces(q, near, online: online);
+    final error = found.error;
+    if (error != null) {
+      return {
+        'ok': false,
+        'error': networkErrorCode(error, online: online) ?? 'search_failed',
+        'query': q,
+      };
+    }
+    if (found.places.isEmpty) {
+      return {
+        'ok': false,
+        'error': online ? 'not_found' : 'offline_not_found',
+        'query': q,
+      };
+    }
+    final place = found.places.first;
     await _ref
         .read(routePreviewControllerProvider.notifier)
         .planTo(place.point, destinationLabel: place.name);
@@ -164,14 +228,14 @@ class AssistantToolExecutor {
       waitForTolls: preference == RoutePreference.cheapest,
     );
     if (ready == null) {
-      final state = _ref.read(routePreviewControllerProvider);
       return {
         'ok': false,
-        'error': state is RouteLocationUnavailable
-            ? 'no_location'
-            : state is RouteFailed
-            ? 'route_failed'
-            : 'route_timeout',
+        'error': routeFailureCode(
+          _ref.read(routePreviewControllerProvider),
+          online: await _online(),
+        ),
+        'destination': place.name,
+        'query': q,
       };
     }
     var choice = chooseRoute(ready.options, preference, tolls: ready.tolls);
@@ -309,13 +373,14 @@ class AssistantToolExecutor {
       if (next is RouteReady && done(next)) complete.complete(next);
       if (failed(next)) complete.complete(null);
     }, fireImmediately: true);
+    // Pemasa boleh dibatalkan (bukan Future.delayed): tidak tertinggal 15 s selepas laluan siap.
+    final firstDeadline = Completer<void>();
+    final deadlineTimer = Timer(const Duration(seconds: 15), () {
+      if (!firstDeadline.isCompleted) firstDeadline.complete();
+    });
     try {
       // Laluan pertama: sehingga 15 s (pelayan awam, atau enjin offline).
-      await Future.any([
-        first.future,
-        complete.future,
-        Future<void>.delayed(const Duration(seconds: 15)),
-      ]);
+      await Future.any([first.future, complete.future, firstDeadline.future]);
       if (_ref.read(routePreviewControllerProvider) is! RouteReady) return null;
       return await complete.future.timeout(
         const Duration(seconds: 8),
@@ -325,6 +390,7 @@ class AssistantToolExecutor {
         },
       );
     } finally {
+      deadlineTimer.cancel();
       sub.close();
     }
   }
@@ -628,34 +694,83 @@ final assistantToolExecutorProvider = Provider(
   (ref) => AssistantToolExecutor(ref),
 );
 
-/// Kod ralat stabil untuk kegagalan rangkaian (dipaparkan sebagai mesej luar talian).
-String? networkErrorCode(Object e) {
-  if (e is GeocodeFailure) {
-    return switch (e.kind) {
-      GeocodeFailureKind.network => 'offline',
-      GeocodeFailureKind.unavailable ||
-      GeocodeFailureKind.rateLimited => 'offline',
-      GeocodeFailureKind.generic => null,
-    };
-  }
+/// Kegagalan sementara yang wajar diulang sekali (rangkaian terputus-putus, pelayan sibuk, tamat masa).
+bool isTransientNetworkError(Object e) {
+  if (e is GeocodeFailure) return e.kind != GeocodeFailureKind.generic;
+  if (e is TimeoutException || e is SocketException) return true;
   if (e is DioException) {
+    final code = e.response?.statusCode;
+    if (code == 429 || (code != null && code >= 500)) return true;
     return switch (e.type) {
       DioExceptionType.connectionTimeout ||
       DioExceptionType.connectionError ||
       DioExceptionType.sendTimeout ||
-      DioExceptionType.receiveTimeout => 'offline',
-      DioExceptionType.unknown when e.error is SocketException => 'offline',
+      DioExceptionType.receiveTimeout => true,
+      DioExceptionType.unknown => e.error is SocketException,
+      _ => false,
+    };
+  }
+  return false;
+}
+
+/// Kod ralat stabil untuk kegagalan rangkaian/pelayan. [online] ialah keadaan pautan sebenar peranti
+/// (`onlineProbeProvider`): tanpa pautan -> 'offline'; ada pautan tetapi sambungan gagal/tamat masa -> 'slow';
+/// HTTP 429 -> 'busy'; 5xx -> 'service_down'. Null = bukan ralat rangkaian (ralat lain).
+/// [online] null (tidak diketahui) menganggap sambungan terputus sebagai 'offline'.
+String? networkErrorCode(Object e, {bool? online}) {
+  String linkDown() => online == true ? 'slow' : 'offline';
+  if (e is GeocodeFailure) {
+    return switch (e.kind) {
+      GeocodeFailureKind.network => linkDown(),
+      GeocodeFailureKind.rateLimited => 'busy',
+      GeocodeFailureKind.unavailable => 'service_down',
+      GeocodeFailureKind.generic => null,
+    };
+  }
+  if (e is RoutingFailure) return _routingKindCode(e.kind, online: online);
+  if (e is TimeoutException) return linkDown();
+  if (e is DioException) {
+    final code = e.response?.statusCode;
+    if (code == 429) return 'busy';
+    if (code != null && code >= 500) return 'service_down';
+    return switch (e.type) {
+      DioExceptionType.connectionTimeout ||
+      DioExceptionType.connectionError ||
+      DioExceptionType.sendTimeout ||
+      DioExceptionType.receiveTimeout => linkDown(),
+      DioExceptionType.unknown when e.error is SocketException => linkDown(),
       _ => null,
     };
   }
-  if (e is SocketException) return 'offline';
+  if (e is SocketException) return linkDown();
   final text = e.toString().toLowerCase();
   if (text.contains('socketexception') ||
       text.contains('failed host lookup') ||
       text.contains('network is unreachable') ||
       text.contains('connection refused') ||
       text.contains('connection reset')) {
-    return 'offline';
+    return linkDown();
   }
   return null;
+}
+
+String _routingKindCode(RoutingFailureKind kind, {bool? online}) =>
+    switch (kind) {
+      RoutingFailureKind.noRoute => 'no_drivable_route',
+      RoutingFailureKind.rateLimited => 'busy',
+      RoutingFailureKind.unavailable => 'service_down',
+      RoutingFailureKind.timeout ||
+      RoutingFailureKind.network => online == true ? 'slow' : 'offline',
+      RoutingFailureKind.offlineRequired => 'offline_pack_needed',
+      RoutingFailureKind.offlineEngine => 'offline_engine',
+      RoutingFailureKind.invalidRequest ||
+      RoutingFailureKind.generic => 'route_failed',
+    };
+
+/// Kod ralat sebenar untuk pratonton laluan yang tidak siap: setiap jenis kegagalan ada mesej tersendiri
+/// (bukan semua "semak sambungan"). [RouteIdle]/lain-lain = tiada keputusan dalam masa yang diberi.
+String routeFailureCode(RoutePreviewState state, {bool? online}) {
+  if (state is RouteLocationUnavailable) return 'no_location';
+  if (state is RouteFailed) return _routingKindCode(state.kind, online: online);
+  return 'route_timeout';
 }

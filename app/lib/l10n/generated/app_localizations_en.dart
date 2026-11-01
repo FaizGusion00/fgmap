@@ -2467,7 +2467,53 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiRouteFailed =>
-      'I couldn\'t calculate a route right now. Check your connection, or download offline maps for routing without internet.';
+      'I couldn\'t calculate a route right now. Please try again in a moment.';
+
+  @override
+  String get aiBusy =>
+      'The search and routing service is busy right now. Please try again in a moment.';
+
+  @override
+  String get aiServiceDown =>
+      'The online service isn\'t responding right now. Try again shortly, or download the offline map pack so I can plan routes without it.';
+
+  @override
+  String get aiSlow =>
+      'Your connection looks slow or unstable, so I couldn\'t finish that. Please try again.';
+
+  @override
+  String aiOfflineNotFound(String place) {
+    return 'You\'re offline, so I could only look for \"$place\" in the offline map and found nothing. Offline search needs the Malaysia offline map pack (Offline maps). Try another spelling, or connect to the internet.';
+  }
+
+  @override
+  String get aiOfflinePackNeeded =>
+      'You\'re offline and the offline map pack isn\'t installed, so I can\'t plan that route. Download the Malaysia pack in Offline maps while you have internet.';
+
+  @override
+  String get aiOfflineEngine =>
+      'The offline routing engine couldn\'t calculate that route. Try again, or re-download the offline map pack.';
+
+  @override
+  String aiNoDrivableRoute(String place) {
+    return 'I found $place, but there\'s no drivable route to it from where you are. Check that it\'s the right place.';
+  }
+
+  @override
+  String get aiSearchFailed =>
+      'I couldn\'t search for that place right now. Please try again.';
+
+  @override
+  String get aiAskDestination =>
+      'Where would you like to go? Say for example \"Take me to KLCC\" or \"Navigate to Masjid Negara\".';
+
+  @override
+  String get aiRouteReadyHint =>
+      'Your route is already on the map. Say \"start now\" or tap Start to begin navigating.';
+
+  @override
+  String get aiNotUnderstood =>
+      'I didn\'t quite get that. I can plan routes (\"Route to KLCC\"), find places nearby, tell you where you are, and give qibla and prayer times. Try one of those.';
 
   @override
   String get aiNoLocation =>
@@ -2475,7 +2521,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiOfflineTool =>
-      'That needs an internet connection. You\'re offline right now — try again when you\'re back online, or ask something that works on-device (routes with offline maps, qibla, prayer times).';
+      'That needs an internet connection and you\'re offline right now. I can still give your GPS location, qibla, prayer times and routes if you\'ve downloaded the offline map pack. Try again when you\'re back online.';
 
   @override
   String get aiRouteCleared => 'Route cleared.';

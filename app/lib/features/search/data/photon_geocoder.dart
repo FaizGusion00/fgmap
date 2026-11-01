@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/app_config.dart';
+import '../../../core/network/connectivity_probe.dart';
 import '../../../core/network/dio_provider.dart';
 import '../../../core/network/response_text.dart';
 import '../../../core/utils/geo.dart';
@@ -251,5 +252,6 @@ final geocoderProvider = Provider<Geocoder>((ref) {
       NominatimGeocoder(dio, AppConfig.nominatimUrl),
     ),
     ref.watch(offlinePlacesDbProvider),
+    isOnline: ref.watch(onlineProbeProvider),
   );
 });

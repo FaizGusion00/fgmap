@@ -6,6 +6,7 @@ import 'package:fgmap/features/search/data/photon_geocoder.dart';
 import 'package:fgmap/features/search/domain/nearby_category.dart';
 import 'package:fgmap/features/search/domain/offline_place.dart';
 import 'package:fgmap/features/search/domain/place.dart';
+import 'package:fgmap/features/search/domain/place_query_expand.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 const _kl = GeoPoint(3.139, 101.687);
@@ -163,29 +164,35 @@ void main() {
     expect(out.last.fromOffline, isTrue);
   });
 
-  test('ambang gabungan 20: hasil dalam talian jarang digabung offline', () async {
-    final online = [
-      for (var i = 0; i < 8; i++)
-        Place(
-          name: 'Spot Online $i',
-          subtitle: '',
-          point: GeoPoint(3.14 + i * 0.01, 101.68),
-        ),
-    ];
-    final offline = [
-      for (var i = 0; i < 20; i++)
-        _row(
-          'Spot Offline $i',
-          rank: 40 - i,
-          point: GeoPoint(3.20 + i * 0.01, 101.70),
-        ),
-    ];
-    final g = OfflineAwareGeocoder(_Online(results: online), _FakeDb(offline));
-    final out = await g.search('spot', near: _kl);
-    expect(out.length, 28);
-    expect(out.take(8).every((p) => !p.fromOffline), isTrue);
-    expect(out.skip(8).every((p) => p.fromOffline), isTrue);
-  });
+  test(
+    'ambang gabungan 20: hasil dalam talian jarang digabung offline',
+    () async {
+      final online = [
+        for (var i = 0; i < 8; i++)
+          Place(
+            name: 'Spot Online $i',
+            subtitle: '',
+            point: GeoPoint(3.14 + i * 0.01, 101.68),
+          ),
+      ];
+      final offline = [
+        for (var i = 0; i < 20; i++)
+          _row(
+            'Spot Offline $i',
+            rank: 40 - i,
+            point: GeoPoint(3.20 + i * 0.01, 101.70),
+          ),
+      ];
+      final g = OfflineAwareGeocoder(
+        _Online(results: online),
+        _FakeDb(offline),
+      );
+      final out = await g.search('spot', near: _kl);
+      expect(out.length, 28);
+      expect(out.take(8).every((p) => !p.fromOffline), isTrue);
+      expect(out.skip(8).every((p) => p.fromOffline), isTrue);
+    },
+  );
 
   test('ambang 20: dalam talian cukup tidak digabung', () async {
     final online = [
@@ -231,5 +238,49 @@ void main() {
     ).search(NearbyCategory.fuel, _kl, fallbackName: 'Stesen minyak');
     expect(r.places.map((p) => p.name), ['Stesen minyak', 'Petronas Jauh']);
     expect(r.places.first.category, 'fuel');
+  });
+
+  group('ejaan kata sandang Arab dirapatkan (attaufiqiah)', () {
+    test('ftsMatchQuery juga memadan token berasingan "at" + "taufiqiah"', () {
+      expect(
+        ftsMatchQuery('masjid attaufiqiah'),
+        '(masjid* OR mosque*) (attaufiqiah* OR (at* AND taufiqiah*))',
+      );
+      // Ejaan bersempang sudah padan tanpa varian tambahan.
+      expect(
+        ftsMatchQuery('masjid at-taufiqiah'),
+        '(masjid* OR mosque*) at* taufiqiah*',
+      );
+      expect(
+        ftsMatchQuery('masjid assyifa'),
+        '(masjid* OR mosque*) (assyifa* OR (as* AND syifa*))',
+      );
+      // Kata pendek / tanpa awalan tidak dipecahkan.
+      expect(ftsMatchQuery('atas'), 'atas*');
+      expect(ftsMatchQuery('alam'), 'alam*');
+    });
+
+    test(
+      'padanan longgar (OR) untuk sandaran bila semua perkataan tidak padan',
+      () {
+        expect(
+          ftsMatchQuery('masjid taufiqiah kuala', loose: true),
+          '(masjid* OR mosque*) OR taufiqiah* OR kuala*',
+        );
+      },
+    );
+
+    test('placeQueryVariants menjana ejaan alternatif, asal dahulu', () {
+      expect(placeQueryVariants('masjid attaufiqiah'), [
+        'masjid attaufiqiah',
+        'masjid at taufiqiah',
+        'masjid at-taufiqiah',
+      ]);
+      expect(placeQueryVariants('klcc'), ['klcc']);
+      expect(placeQueryVariants('  '), isEmpty);
+      expect(splitArabicArticle('alhidayah'), ('al', 'hidayah'));
+      expect(splitArabicArticle('asyraf'), ('asy', 'raf'));
+      expect(splitArabicArticle('atas'), isNull);
+    });
   });
 }
