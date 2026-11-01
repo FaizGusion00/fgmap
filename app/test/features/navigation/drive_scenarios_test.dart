@@ -255,7 +255,7 @@ void main() {
         expect(weak, isTrue);
         expect(lostAnnounced, 1);
         final truth = r.progress.last.alongM + 25 * 40;
-        final pose = r.session.poseAt(r.clock.now);
+        final pose = r.session.poseAt(r.clock.now)!;
         expect(
           pose.alongM,
           closeTo(truth, 120),

@@ -459,7 +459,10 @@ class NavigationSession {
   }
 
   /// Pose kenderaan pada [now] untuk bingkai kamera.
-  VehiclePose poseAt(DateTime now) => vehicle.poseAt(now);
+  /// Null sehingga fix pertama diterima: tiada kedudukan untuk diikuti kamera (dahulu (0,0), jadi
+  /// kamera masuk navigasi terbang ke laut sebelum GPS sampai).
+  VehiclePose? poseAt(DateTime now) =>
+      vehicle.hasPosition ? vehicle.poseAt(now) : null;
 
   NavProgress _buildProgress({
     required FilteredFix fix,

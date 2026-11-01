@@ -61,7 +61,7 @@ void main() {
         }
         driver.step(elapsed);
         // Kereta 3D dilukis di skrin; kedudukan geografinya sentiasa daripada model kenderaan.
-        final pose = session.poseAt(clock.now);
+        final pose = session.poseAt(clock.now)!;
         frames.add((
           cam: camera.moveToCalls.last,
           car: VehicleMarker(point: pose.point, bearing: pose.bearing),

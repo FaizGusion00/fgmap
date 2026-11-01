@@ -605,6 +605,41 @@ void main() {
       },
     );
 
+    test(
+      '"can you browse the internet? find latest new": terus berita utama, tanpa tanya topik',
+      () {
+        for (final t in [
+          'Can you browse the internet? Find latest new',
+          'can you browse the internet',
+          'boleh tak browse internet cari berita terkini',
+          'please go online and find the latest news',
+          'find latest news',
+          'berita terkini',
+        ]) {
+          final w = web(t);
+          expect(
+            (w.kind, w.query, w.explicit),
+            (WebKind.news, '', true),
+            reason: t,
+          );
+        }
+        expect(
+          web(
+            'could you search the internet for latest news about banjir',
+          ).query,
+          'banjir',
+        );
+        expect(
+          web('can you search online for iphone 17 price').query,
+          'iphone 17 price',
+        );
+        expect(
+          parseIntent('new car price list'),
+          isNot(isA<WebSearchIntent>()),
+        );
+      },
+    );
+
     test('soalan fakta semasa: carian automatik (bukan eksplisit)', () {
       for (final t in [
         'siapa perdana menteri malaysia sekarang',

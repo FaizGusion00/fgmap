@@ -48,6 +48,9 @@ class CameraSituation {
     required this.distanceToNextM,
     required this.nextKind,
     this.mode = NavCameraMode.auto,
+    this.followingGapM,
+    this.sinceTurnM,
+    this.lastKind,
   });
 
   final double speedMps;
@@ -56,6 +59,14 @@ class CameraSituation {
   final double? distanceToNextM;
   final ManeuverKind? nextKind;
   final NavCameraMode mode;
+
+  /// Jarak dari manuver seterusnya ke manuver selepasnya (belokan berangkai); null jika tiada.
+  final double? followingGapM;
+
+  /// Jarak dilalui sejak manuver terakhir yang baru dilepasi, dan jenisnya: kamera kekal dekat
+  /// sebentar selepas belok (tidak terus zum keluar di tengah simpang).
+  final double? sinceTurnM;
+  final ManeuverKind? lastKind;
 }
 
 /// Sasaran zum dan condongan untuk satu situasi (sebelum pelicinan).
@@ -98,9 +109,13 @@ double zoomForSpeed(double speedMps) {
 /// Seberapa hampir (0..1) manuver seterusnya, dalam MASA ke manuver (bukan jarak) supaya lebuh
 /// raya dan bandar mendapat peralihan yang sama terasa: 1 dalam <= 5 s, 0 dalam >= 16 s
 /// (tetingkap lebih awal daripada sebelumnya supaya bulatan/simpang jelas sebelum sampai).
-double maneuverProximity(double distanceM, double speedMps) {
+double maneuverProximity(
+  double distanceM,
+  double speedMps, {
+  double farS = 16,
+}) {
   final t = distanceM / math.max(speedMps, 4.0);
-  return 1 - _smoothstep(5, 16, t);
+  return 1 - _smoothstep(5, farS, t);
 }
 
 /// Memilih zum dan condongan. Fungsi tulen dan deterministik.
@@ -112,27 +127,81 @@ CameraTarget planCamera(CameraSituation s) {
   final speed = s.speedMps;
   var zoom = zoomForSpeed(speed);
   final cruiseTilt = _lerp(52, 60, (speed / 25).clamp(0.0, 1.0));
+  final distance = s.distanceToNextM;
+  final kind = s.nextKind;
+
+  // Lebuh raya tanpa simpang dekat: zum keluar sedikit lagi untuk melihat jauh ke hadapan.
+  final motorway = speed > 22 && (distance == null || distance > 2000);
+  if (motorway) zoom -= 0.3;
 
   if (s.mode == NavCameraMode.flat) {
     return CameraTarget(zoom: zoom - 0.2, tilt: 0);
   }
-
-  final distance = s.distanceToNextM;
-  final kind = s.nextKind;
-  if (s.mode == NavCameraMode.tilted || distance == null || kind == null) {
+  if (s.mode == NavCameraMode.tilted) {
     return CameraTarget(zoom: zoom, tilt: cruiseTilt);
   }
 
-  var p = maneuverProximity(distance, speed);
-  // Persimpangan kompleks: zum masuk juga mengikut jarak mutlak (~80 m) supaya
-  // pendekatan perlahan masih mendapat pandangan jelas.
-  if (_complexJunction(kind) && distance <= 80) {
-    p = math.max(p, 1 - _smoothstep(20, 80, distance));
+  // Manuver di hadapan.
+  var p = 0.0;
+  var boost = 0.0;
+  var turnTilt = cruiseTilt;
+  if (distance != null && kind != null) {
+    // Keluar lebuh raya pada kelajuan tinggi: bersedia lebih awal (~24 s, bukan 16 s).
+    final early = _exitKind(kind) && speed > 18;
+    p = maneuverProximity(distance, speed, farS: early ? 24 : 16);
+    // Belokan bandar: juga mengikut jarak mutlak, supaya simpang jelas walau perlahan.
+    if (_turnKind(kind)) {
+      p = math.max(p, 0.85 * (1 - _smoothstep(60, 200, distance)));
+    }
+    // Persimpangan kompleks: zum masuk juga mengikut jarak mutlak (~80 m) supaya
+    // pendekatan perlahan masih mendapat pandangan jelas.
+    if (_complexJunction(kind) && distance <= 80) {
+      p = math.max(p, 1 - _smoothstep(20, 80, distance));
+    }
+    // Belokan berangkai (belok kiri, 120 m kemudian belok kanan): kekal dekat sepanjang rangkaian.
+    final gap = s.followingGapM;
+    if (gap != null && gap < 250 && distance < 200) p = math.max(p, 0.9);
+    (boost, turnTilt) = _maneuverCamera(kind);
   }
-  final (boost, turnTilt) = _maneuverCamera(kind);
+
+  // Baru selepas belok: pegang pandangan belokan ~25 m, kemudian lepaskan perlahan hingga ~70 m.
+  final since = s.sinceTurnM;
+  final last = s.lastKind;
+  if (since != null && last != null && since >= 0) {
+    final hold = 1 - _smoothstep(25, 70, since);
+    final (lastBoost, lastTilt) = _maneuverCamera(last);
+    if (hold * lastBoost > p * boost) {
+      p = hold;
+      boost = lastBoost;
+      turnTilt = lastTilt;
+    }
+  }
+
+  if (p <= 0) return CameraTarget(zoom: zoom, tilt: cruiseTilt);
   zoom = math.min(19.2, zoom + p * boost);
   return CameraTarget(zoom: zoom, tilt: _lerp(cruiseTilt, turnTilt, p));
 }
+
+bool _exitKind(ManeuverKind kind) => switch (kind) {
+  ManeuverKind.exitLeft ||
+  ManeuverKind.exitRight ||
+  ManeuverKind.rampLeft ||
+  ManeuverKind.rampRight ||
+  ManeuverKind.rampStraight ||
+  ManeuverKind.keepLeft ||
+  ManeuverKind.keepRight => true,
+  _ => false,
+};
+
+bool _turnKind(ManeuverKind kind) => switch (kind) {
+  ManeuverKind.left ||
+  ManeuverKind.right ||
+  ManeuverKind.sharpLeft ||
+  ManeuverKind.sharpRight ||
+  ManeuverKind.uTurn ||
+  ManeuverKind.roundabout => true,
+  _ => false,
+};
 
 bool _complexJunction(ManeuverKind kind) => switch (kind) {
   ManeuverKind.roundabout ||
@@ -303,6 +372,33 @@ class CameraRig {
   double _smoothedSpeed = 0;
   bool _speedPrimed = false;
   double _entryElapsed = 0;
+  bool _entryPrimed = false;
+  double _entryRemainingPx = 0;
+
+  /// Jarak skrin (piksel) antara pusat kamera peralihan dan pusat navigasi sebenar; 0 selepas tiba.
+  /// Kereta 3D (dilukis pada titik skrin tetap) hanya patut muncul bila ini kecil: jika tidak, jalan
+  /// masih meluncur di bawahnya.
+  double get entryRemainingPx => entryProgress >= 1 ? 0 : _entryRemainingPx;
+
+  /// Tempoh peralihan masuk yang sesuai: lompatan jauh atau perubahan zum besar mendapat masa lebih,
+  /// tetapi tidak pernah lebih 2.2 s (pemandu mahu mula). Jarak diukur dalam piksel pada zum akhir.
+  static Duration entryDurationFor({
+    required CameraPose from,
+    required GeoPoint vehicle,
+    required double speedMps,
+    required double viewportHeightPx,
+  }) {
+    final goalZoom = zoomForSpeed(speedMps);
+    final px =
+        distanceMeters(from.center, vehicle) /
+        metersPerPixel(goalZoom, vehicle.lat);
+    final h = viewportHeightPx > 0 ? viewportHeightPx : 800;
+    final s =
+        0.9 +
+        0.22 * (math.log(1 + px / h) / math.ln2) +
+        0.12 * (from.zoom - goalZoom).abs();
+    return Duration(milliseconds: (s.clamp(0.9, 2.2) * 1000).round());
+  }
 
   /// Kelajuan dilicinkan (pemalar masa ~3 s) sebelum menentukan zum, supaya zum tidak bergoyang
   /// mengikut turun naik kelajuan kecil.
@@ -338,6 +434,9 @@ class CameraRig {
     double screenOffset = carScreenOffset,
     double groundScale = 1,
     double yawRateDeg = 0,
+    double? followingGapM,
+    double? sinceTurnM,
+    ManeuverKind? lastKind,
   }) {
     final safeDt = dt.clamp(0.0, 0.25);
 
@@ -362,6 +461,9 @@ class CameraRig {
         distanceToNextM: distanceToNextM,
         nextKind: nextKind,
         mode: mode,
+        followingGapM: followingGapM,
+        sinceTurnM: sinceTurnM,
+        lastKind: lastKind,
       ),
     );
 
@@ -373,11 +475,26 @@ class CameraRig {
           20.0,
         );
 
+    // Peralihan masuk: peredam bermula TEPAT pada sasaran navigasi, dan pose yang dihantar ialah
+    // interpolasi dari pandangan sebelumnya ke sasaran itu (pusat, zum, condongan, arah serentak).
+    // Dahulu hanya pusat yang dilerp 1.4 s sementara zum (1 tahap/s) dan condongan (24 darjah/s)
+    // terus mengejar ~2 s lagi selepas kereta muncul: jalan meluncur dan bergoyang di bawahnya.
+    if (!_entryPrimed) {
+      _entryPrimed = true;
+      if (entryDuration > Duration.zero) {
+        _zoom.snap(goalZoom);
+        _tilt.snap(target.tilt);
+        _bearing.snap(vehicleBearing);
+      }
+    }
+
     final k = responsiveness;
     // Had kelajuan perubahan: zum 1.0 tahap/saat, condongan 24 darjah/saat. Peredam sahaja tidak
     // cukup apabila sasaran melompat (selepas bulatan, tilt sasaran melonjak dari 12 ke 56).
     // Perubahan besar (masuk navigasi, pusatkan semula) dibenarkan lebih pantas.
-    final zoomSpeed = (_zoom.value - goalZoom).abs() > 1.5 ? 4.0 : 1.0;
+    // Lancar dari 1 tahap/s (perubahan kecil) hingga 4 tahap/s (besar), tanpa "siku" pada 1.5 tahap.
+    final zoomSpeed =
+        1.0 + ((_zoom.value - goalZoom).abs() - 0.5).clamp(0.0, 3.0);
     _zoom.update(goalZoom, 0.9 / k, safeDt, maxSpeed: zoomSpeed * k);
     _tilt.update(target.tilt, 0.9 / k, safeDt, maxSpeed: 24.0 * k);
     // Di selekoh / dekat manuver: ikut arah kenderaan lebih rapat supaya kereta 3D dan AA
@@ -408,6 +525,13 @@ class CameraRig {
     final bearing = normalizeBearing(_bearing.value);
     final navCenter = destinationPoint(vehicle, bearing, offsetM);
 
+    final navPose = CameraPose(
+      center: navCenter,
+      zoom: _zoom.value,
+      tilt: _tilt.value.clamp(0.0, 60.0),
+      bearing: bearing,
+    );
+
     // Peralihan masuk: dari pandangan peta sebelumnya terbang ke kenderaan.
     _entryElapsed += safeDt;
     final entryT = entryDuration == Duration.zero
@@ -416,19 +540,45 @@ class CameraRig {
             0.0,
             1.0,
           );
-    final eased = 1 - math.pow(1 - entryT, 3).toDouble();
-    final center = entryT >= 1
-        ? navCenter
-        : GeoPoint(
-            _lerp(_entry.center.lat, navCenter.lat, eased),
-            _lerp(_entry.center.lng, navCenter.lng, eased),
-          );
+    if (entryT >= 1) return navPose;
+    return _entryPose(navPose, entryT, viewportHeightPx);
+  }
 
+  /// Pose peralihan pada [t] (0..1): mudah-masuk-mudah-keluar (bermula dan tiba tanpa sentakan). Bila
+  /// kenderaan jauh dari pandangan sebelumnya, kamera zum keluar sedikit di pertengahan (seperti
+  /// "flyTo") supaya pergerakan di skrin tidak terlalu laju.
+  CameraPose _entryPose(CameraPose nav, double t, double viewportHeightPx) {
+    final e = t < 0.5
+        ? 4 * t * t * t
+        : 1 - math.pow(-2 * t + 2, 3).toDouble() / 2;
+    final from = _entry;
+    final lowZoom = math.min(from.zoom, nav.zoom);
+    final h = viewportHeightPx > 0 ? viewportHeightPx : 800;
+    final px =
+        distanceMeters(from.center, nav.center) /
+        metersPerPixel(lowZoom, nav.center.lat);
+    final bump = (math.log(px / (h * 1.2)) / math.ln2).clamp(0.0, 4.0);
+    final zoom =
+        _lerp(from.zoom, nav.zoom, e) - bump * math.sin(math.pi * e) * 0.8;
+    // Pusat bergerak supaya jarak SKRIN yang tinggal susut sekata walaupun zum masuk: bila zum naik,
+    // pusat sudah hampir tiba (dalam meter) sebelum zum selesai. Tanpa ini, 10% terakhir peralihan
+    // dari ikhtisar laluan (zum 11) ke zum memandu (18) ialah ribuan piksel jalan yang meluru.
+    final zoomGain = math.max(0.0, zoom - from.zoom);
+    final u = 1 - (1 - e) * math.pow(2, -zoomGain).toDouble();
+    final center = GeoPoint(
+      _lerp(from.center.lat, nav.center.lat, u),
+      _lerp(from.center.lng, nav.center.lng, u),
+    );
+    _entryRemainingPx =
+        distanceMeters(center, nav.center) /
+        metersPerPixel(zoom, nav.center.lat);
     return CameraPose(
       center: center,
-      zoom: _zoom.value,
-      tilt: _tilt.value.clamp(0.0, 60.0),
-      bearing: bearing,
+      zoom: zoom,
+      tilt: _lerp(from.tilt, nav.tilt, e).clamp(0.0, 60.0),
+      bearing: normalizeBearing(
+        from.bearing + angleDelta(from.bearing, nav.bearing) * e,
+      ),
     );
   }
 }

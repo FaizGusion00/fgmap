@@ -1409,6 +1409,14 @@ class _MapScreenState extends ConsumerState<MapScreen>
               nav.progress?.distanceToNextM,
             )
           : null,
+      navManeuverArrow: navigating && nav.route != null
+          ? maneuverArrowFor(
+              nav.route!,
+              nav.progress?.next,
+              nav.progress?.distanceToNextM,
+              routeVersion: nav.routeVersion,
+            )
+          : null,
       poiPins: navigating,
       navAlong: navigating ? _driver?.routeAlong : null,
       // Pemandu menyimpang dan laluan baharu sedang dikira: garisan lama dipudarkan.

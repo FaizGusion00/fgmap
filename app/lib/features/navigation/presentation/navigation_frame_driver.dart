@@ -153,8 +153,13 @@ class NavigationFrameDriver {
   bool _measuring = false;
   bool _disposed = false;
   double _groundScale = 1;
+  double _groundScaleTarget = 1;
   bool _hasResidual = false;
   double _resX = 0, _resY = 0;
+  double _resTargetX = 0, _resTargetY = 0;
+  double _carOpacity = 0;
+  NavManeuver? _lastNext;
+  NavManeuver? _passed;
 
   /// Pengali ofset tanah yang dipelajari daripada ukuran (1 = model tepat). Untuk diagnostik dan ujian.
   double get groundScale => _groundScale;
@@ -226,6 +231,8 @@ class NavigationFrameDriver {
     _sentBearings.clear();
     _hasResidual = false;
     _resX = _resY = 0;
+    _resTargetX = _resTargetY = 0;
+    _carOpacity = 0;
     _lastInteraction = null;
     // Peta mungkin telah digerakkan pengguna: pose "terakhir dihantar" tidak lagi menggambarkannya.
     _sentCamera = null;
@@ -320,13 +327,32 @@ class NavigationFrameDriver {
       responsiveness: reduceMotion ? 2 : 1,
       entryDuration: reduceMotion
           ? Duration.zero
-          : const Duration(milliseconds: 1400),
+          : CameraRig.entryDurationFor(
+              from: entry,
+              vehicle: pose.point,
+              speedMps: pose.speedMps,
+              viewportHeightPx: viewportHeight(),
+            ),
     );
 
     final p = progress();
     final next = p?.next;
     final distanceToNext = (next != null && pose.onRoute)
         ? (next.startM - pose.alongM).clamp(0.0, double.infinity)
+        : null;
+    // Manuver yang baru dilepasi (untuk "pegang zum selepas belok").
+    if (next != null && _lastNext != null && next.index != _lastNext!.index) {
+      // Indeks berundur = laluan baharu (kira semula): manuver lama tiada kaitan lagi.
+      _passed = next.index > _lastNext!.index ? _lastNext : null;
+    }
+    if (next != null) _lastNext = next;
+    final passed = _passed;
+    final sinceTurn = passed != null && pose.onRoute
+        ? pose.alongM - passed.startM
+        : null;
+    final following = p?.following;
+    final followingGap = next != null && following != null
+        ? following.startM - next.startM
         : null;
 
     // Unjuran ke hadapan sepanjang latensi kamera native (lihat medan _yawRate).
@@ -377,6 +403,9 @@ class NavigationFrameDriver {
       screenOffset: screenOffset(),
       groundScale: _groundScale,
       yawRateDeg: _yawRate.abs(),
+      followingGapM: pose.onRoute ? followingGap : null,
+      sinceTurnM: sinceTurn,
+      lastKind: pose.onRoute ? passed?.kind : null,
     );
     if (!_sameCamera(_sentCamera, target) ||
         ++_cameraSkipped >= _heartbeatFrames) {
@@ -391,7 +420,13 @@ class NavigationFrameDriver {
     // muncul perlahan menjelang akhir. Selepas itu lapisan peta disembunyikan; kedua-duanya terletak di
     // titik skrin yang sama.
     final progressIn = rig.entryProgress;
-    final opacity = ((progressIn - 0.8) / 0.2).clamp(0.0, 1.0);
+    // Kereta 3D muncul bila kamera BENAR-BENAR hampir tiba (jalan tidak lagi meluncur di bawahnya),
+    // dan tidak pernah malap semula dalam peralihan yang sama.
+    final arriving =
+        (1 - rig.entryRemainingPx / 24).clamp(0.0, 1.0) *
+        ((progressIn - 0.55) / 0.3).clamp(0.0, 1.0);
+    _carOpacity = progressIn >= 1 ? 1 : math.max(_carOpacity, arriving);
+    final opacity = _carOpacity;
     // Arah kamera yang sedang dipaparkan = yang dihantar [latency] saat lalu.
     final nowS = elapsed.inMicroseconds / 1e6;
     _sentBearings.add((nowS, target.bearing));
@@ -411,6 +446,12 @@ class NavigationFrameDriver {
     ).clamp(-80.0, 80.0);
     final yaw = smoothCarYaw(_yaw, yawGoal, dt);
     _yaw = yaw;
+    // Ukuran kedudukan sebenar digunakan beransur-ansur (bukan langkah 10-20 px setiap ukuran).
+    final ease = 1 - math.exp(-dt / 0.25);
+    _resX += (_resTargetX - _resX) * ease;
+    _resY += (_resTargetY - _resY) * ease;
+    _groundScale +=
+        (_groundScaleTarget - _groundScale) * (1 - math.exp(-dt / 0.6));
     final placement = CarPlacement(
       yawDeg: yaw,
       tiltDeg: target.tilt,
@@ -462,8 +503,12 @@ class NavigationFrameDriver {
     final wantedY = 0.5 + rig.screenOffset;
     final resY = fy - wantedY;
     final resX = fx - 0.5;
-    _resY = _hasResidual ? _resY + (resY - _resY) * 0.4 : resY;
-    _resX = _hasResidual ? _resX + (resX - _resX) * 0.4 : resX;
+    _resTargetY = _hasResidual
+        ? _resTargetY + (resY - _resTargetY) * 0.4
+        : resY;
+    _resTargetX = _hasResidual
+        ? _resTargetX + (resX - _resTargetX) * 0.4
+        : resX;
     _hasResidual = true;
 
     // Laras kamera perlahan-lahan supaya kenderaan sampai ke kedudukan yang dirancang. Zon mati kecil
@@ -473,7 +518,12 @@ class NavigationFrameDriver {
       final ratio = actual > 0.02
           ? (rig.screenOffset / actual).clamp(0.6, 1.8)
           : 1.8;
-      _groundScale = (_groundScale * (1 + 0.15 * (ratio - 1))).clamp(0.5, 3.0);
+      // Berasaskan skala SEMASA (yang diukur), bukan sasaran: tiada pengumpulan berlebihan semasa
+      // skala masih mengejar sasaran lalu.
+      _groundScaleTarget = (_groundScale * (1 + 0.15 * (ratio - 1))).clamp(
+        0.5,
+        3.0,
+      );
     }
   }
 

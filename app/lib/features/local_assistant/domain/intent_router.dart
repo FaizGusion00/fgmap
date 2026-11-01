@@ -389,7 +389,8 @@ AssistantIntent? parseIntent(
 
   // Permintaan internet yang jelas (pautan, "cari online", berita, kadar tukaran, harga minyak)
   // didahulukan: jika tidak, "berita terkini banjir" dibaca sebagai carian TEMPAT bernama "banjir".
-  final web = strongWebIntent(raw, text);
+  // Dinilai selepas pembuka sopan dibuang: "can you browse the internet? find latest news".
+  final web = strongWebIntent(stripPoliteness(raw), text);
   if (web != null) return web;
 
   // "Buka cuaca", "tunjuk kiblat": ejen membuka skrin itu sendiri (bukan jawapan dalam sembang).
@@ -790,10 +791,28 @@ AssistantIntent? _parseCore(String raw, ConversationContext ctx) {
 final _url = RegExp(r'https://[^\s<>"]+');
 
 final _explicitWeb = RegExp(
-  r'^(?:tolong\s+|please\s+|boleh\s+)?(?:cari(?:kan)?|search|google|semak|check|look\s*up|browse)\s+(?:(?:di|kat|dekat|dalam|on|the|in)\s+)*(?:internet|online|web|google|dalam\s+talian)\b\s*(?:(?:untuk|for|about|pasal|tentang|mengenai)\s+)?(.*)$|^(.+?)\s+(?:(?:di|kat|dekat|on|in)\s+)?(?:internet|online|google)$|^google\s+(.+)$',
+  r'^(?:tolong\s+|please\s+|boleh\s+)?(?:cari(?:kan)?|search|google|semak|check|look\s*up|browse|surf|go|layari|layar|guna|use)\s+(?:(?:di|kat|dekat|dalam|on|the|in|to)\s+)*(?:internet|online|web|google|dalam\s+talian)\b\s*(?:(?:and|then|dan|lepas\s+tu|untuk|for|about|pasal|tentang|mengenai)\s+)?(.*)$|^(.+?)\s+(?:(?:di|kat|dekat|on|in)\s+)?(?:internet|online|google)$|^google\s+(.+)$',
 );
 
-final _news = RegExp(r'\b(?:berita|news|headlines?|tajuk\s+utama|breaking)\b');
+final _news = RegExp(
+  r'\b(?:berita|news|headlines?|tajuk\s+utama|breaking)\b|\b(?:latest|terkini|recent|todays?)\s+new(?=$|\s+(?:about|on|from|in|for|pasal|tentang))',
+);
+
+/// Topik berita tanpa kata berita/arahan ("cari berita terkini banjir" -> "banjir"). Kosong bermaksud
+/// berita utama Malaysia.
+String _newsTopic(String q) => q
+    .replaceAll(
+      RegExp(r'\b(?:latest|terkini|recent|todays?)\s+new(?=$|\s)'),
+      ' ',
+    )
+    .replaceAll(
+      RegExp(
+        r'\b(?:berita|news|headlines?|tajuk\s+utama|breaking|terkini|latest|terbaru|recent|top|today|todays|hari\s+ini|tentang|pasal|mengenai|about|on|apa|what|s|is|the|any|ada|tak|ke|find|cari(?:kan)?|search|browse|get|show|give|tell|me|saya|aku|some|untuk|for|please|tolong|internet|online|web|in|di|dalam|from)\b',
+      ),
+      ' ',
+    )
+    .replaceAll(RegExp(r'\s+'), ' ')
+    .trim();
 
 final _fuelPrice = RegExp(
   r'\bharga\s+(?:minyak|petrol|ron\s*9[57]|diesel)\b|\b(?:fuel|petrol|ron\s*9[57]|diesel)\s+prices?\b|\bberapa\s+(?:harga\s+)?(?:ron\s*9[57]|diesel)\b',
@@ -893,29 +912,20 @@ WebSearchIntent? strongWebIntent(String t, String original) {
                 explicitMatch.group(3) ??
                 '')
             .trim();
-    if (q.isNotEmpty) {
-      return WebSearchIntent(
-        q,
-        kind: _news.hasMatch(q) ? WebKind.news : WebKind.general,
-        explicit: true,
-      );
+    // "Can you browse the internet?" tanpa topik, atau dengan permintaan berita: berita utama.
+    if (q.isEmpty || _news.hasMatch(q)) {
+      return WebSearchIntent(_newsTopic(q), kind: WebKind.news, explicit: true);
     }
-  }
-  if (_news.hasMatch(t)) {
-    final q = t
-        .replaceAll(
-          RegExp(
-            r'\b(?:berita|news|headlines?|tajuk\s+utama|breaking|terkini|latest|terbaru|today|hari\s+ini|tentang|pasal|mengenai|about|on|apa|what|s|is|the|any|ada|tak|ke)\b',
-          ),
-          ' ',
-        )
-        .replaceAll(RegExp(r'\s+'), ' ')
-        .trim();
     return WebSearchIntent(
-      q.isEmpty ? 'Malaysia' : q,
-      kind: WebKind.news,
+      q.replaceFirst(
+        RegExp(r'^(?:find|cari(?:kan)?|search(?:\s+for)?)\s+'),
+        '',
+      ),
       explicit: true,
     );
+  }
+  if (_news.hasMatch(t)) {
+    return WebSearchIntent(_newsTopic(t), kind: WebKind.news, explicit: true);
   }
   return null;
 }

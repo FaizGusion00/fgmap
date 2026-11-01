@@ -73,7 +73,7 @@ void main() {
       expect(last.tilt, greaterThan(40));
       expect(last.zoom, greaterThan(15));
       // Pusat kamera di hadapan kenderaan (kenderaan di bahagian bawah skrin).
-      final car = session.poseAt(clock.now).point;
+      final car = session.poseAt(clock.now)!.point;
       expect(distanceMeters(car, last.center), greaterThan(10));
     },
   );
@@ -211,7 +211,7 @@ void main() {
     for (var i = 0; i < 300; i++) {
       clock.advance(const Duration(milliseconds: 16));
       driver.step(t(16 * i));
-      cars.add(session.poseAt(clock.now).point);
+      cars.add(session.poseAt(clock.now)!.point);
     }
     var maxCarStep = 0.0;
     var maxCamStep = 0.0;
@@ -584,7 +584,7 @@ void main() {
 
         await run(d, 40);
         // Awal-awal: kamera masih tersasar, tetapi kereta sudah di atas kedudukan sebenar.
-        final early = real(session.poseAt(clock.now).point)!;
+        final early = real(session.poseAt(clock.now)!.point)!;
         expect(d.car.value!.anchorY, closeTo(early.dy / height, 0.04));
         expect(
           early.dy / height,
@@ -594,7 +594,7 @@ void main() {
 
         await run(d, 1500);
         // Kamera dilaras sehingga kenderaan benar-benar berada pada ~69% skrin.
-        final late = real(session.poseAt(clock.now).point)!;
+        final late = real(session.poseAt(clock.now)!.point)!;
         expect(late.dy / height, closeTo(0.5 + carScreenOffset, 0.05));
         expect(d.groundScale, greaterThan(1.4));
         expect(d.groundScale, lessThanOrEqualTo(3.0));

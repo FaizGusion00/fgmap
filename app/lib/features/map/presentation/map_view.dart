@@ -152,6 +152,7 @@ class MapViewConfig {
     this.showCompass = true,
     this.vehicleKind = VehicleKind.car,
     this.navTurnLabel,
+    this.navManeuverArrow,
     this.poiPins = false,
     this.reports = const [],
     this.onUserGesture,
@@ -199,6 +200,9 @@ class MapViewConfig {
   /// Nama jalan yang akan dimasuki pada belokan seterusnya, dilukis di atas laluan pada titik belok
   /// supaya pemandu nampak "belok ke jalan mana" pada peta. Null = tiada.
   final NavTurnLabel? navTurnLabel;
+
+  /// Anak panah putih di peta pada belokan seterusnya (warna berbeza daripada laluan). Null = tiada.
+  final NavManeuverArrow? navManeuverArrow;
 
   /// Pin tempat berwarna (stesen minyak, makan, kedai ...) menggantikan ikon POI gaya asal; hanya
   /// semasa navigasi.

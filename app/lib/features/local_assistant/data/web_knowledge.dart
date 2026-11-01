@@ -75,13 +75,17 @@ class WebKnowledge {
     return parseInstantAnswer(responseText(r.data) ?? '');
   }
 
-  /// Tajuk berita terkini (Malaysia) untuk [query], terbaharu dahulu.
+  /// Tajuk berita terkini (Malaysia) untuk [query], terbaharu dahulu. [query] kosong: berita utama
+  /// Malaysia (suapan "top stories", bukan carian perkataan "Malaysia").
   Future<List<WebSnippet>> news(String query, {required bool malay}) async {
     final lang = malay ? 'ms' : 'en';
+    final q = query.trim();
     final r = await _dio.get<Object>(
-      AppConfig.googleNewsRssUrl,
+      q.isEmpty
+          ? topNewsUrl(AppConfig.googleNewsRssUrl)
+          : AppConfig.googleNewsRssUrl,
       queryParameters: {
-        'q': query,
+        if (q.isNotEmpty) 'q': q,
         'hl': '$lang-MY',
         'gl': 'MY',
         'ceid': 'MY:$lang',
@@ -146,6 +150,13 @@ class WebKnowledge {
   /// Carian gabungan untuk soalan umum/berita: berita + DDG + Wikipedia serentak, setiap satu dalam
   /// [sourceBudget]. Tertib hasil: jawapan terus DDG, berita terkini, kemudian ensiklopedia.
   Future<WebSearchResult> search(String query, {required bool malay}) async {
+    if (query.trim().isEmpty) {
+      final top = await news(
+        '',
+        malay: malay,
+      ).timeout(sourceBudget).catchError((Object _) => const <WebSnippet>[]);
+      return WebSearchResult(top.take(5).toList(), failed: top.isEmpty);
+    }
     var failures = 0;
     Future<List<WebSnippet>> safe(Future<List<WebSnippet>> f) => f
         .timeout(sourceBudget + const Duration(seconds: 1))
@@ -180,6 +191,10 @@ class WebSearchResult {
   /// Semua sumber gagal (biasanya tiada internet), bukan sekadar tiada hasil.
   final bool failed;
 }
+
+/// Suapan berita utama daripada URL carian RSS (`…/rss/search` -> `…/rss`).
+String topNewsUrl(String searchUrl) =>
+    searchUrl.replaceFirst(RegExp(r'/search/?$'), '');
 
 /// Hanya `https://` ke hos awam: pautan ke rangkaian setempat atau alamat dalaman ditolak.
 bool isSafePublicUrl(Uri uri) {

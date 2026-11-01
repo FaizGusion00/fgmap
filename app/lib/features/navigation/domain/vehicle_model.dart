@@ -149,6 +149,7 @@ class VehicleModel {
     _hasFree = true;
   }
 
+  /// Pose pada [now]. Sebelum fix pertama ia ialah (0,0): semak [hasPosition] dahulu.
   VehiclePose poseAt(DateTime now) {
     final anchor = _anchorTime;
     if (anchor == null) {

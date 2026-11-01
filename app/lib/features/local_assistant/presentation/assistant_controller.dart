@@ -860,7 +860,9 @@ class AssistantController extends AiChatController {
     final snippets = found.snippets.take(5).toList();
     if (snippets.isEmpty) {
       if (found.failed || !await _linkUp()) return offline();
-      return replies.text(l10n.aiWebNothing(query)).copyWith(local: true);
+      return replies
+          .text(l10n.aiWebNothing(query.isEmpty ? 'Malaysia' : query))
+          .copyWith(local: true);
     }
     if (state.modelReady && intent.kind != WebKind.news) {
       return _askModel(text, prior, replies, l10n, web: snippets);
@@ -869,7 +871,7 @@ class AssistantController extends AiChatController {
         .webResults(
           snippets,
           title: intent.kind == WebKind.news
-              ? l10n.aiWebNewsTitle(query)
+              ? l10n.aiWebNewsTitle(query.isEmpty ? 'Malaysia' : query)
               : l10n.aiWebResultsTitle(query),
         )
         .copyWith(local: true);

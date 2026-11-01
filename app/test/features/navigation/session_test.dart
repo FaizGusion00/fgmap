@@ -294,7 +294,7 @@ void main() {
           final u = session.onFix(f)!;
           if (i >= 4) {
             expect(u.progress.status, NavStatus.offRoute);
-            final pose = session.poseAt(clock.now);
+            final pose = session.poseAt(clock.now)!;
             expect(pose.onRoute, isTrue, reason: 'soft hold kekal onRoute');
             expect(
               distanceMeters(pose.point, route.displayPointAt(pose.alongM)),
@@ -340,7 +340,7 @@ void main() {
         final alongBefore = session.progress!.alongM;
         clock.advance(const Duration(milliseconds: 500));
         final live = session.refreshLive();
-        expect(session.poseAt(clock.now).onRoute, isTrue);
+        expect(session.poseAt(clock.now)!.onRoute, isTrue);
         // Sama ada kemas kini dikembalikan atau jarak sudah cukup hampir, along tidak mundur.
         expect(session.progress!.alongM, greaterThanOrEqualTo(alongBefore));
         if (live != null) {
@@ -380,7 +380,7 @@ void main() {
         clock.now = f.timestamp!;
         session.onFix(f);
       }
-      final pose = session.poseAt(clock.now);
+      final pose = session.poseAt(clock.now)!;
       expect(pose.onRoute, isFalse, reason: 'hard leave selepas awaiting');
     });
   });
@@ -414,7 +414,7 @@ void main() {
         expect(session.tick(), isEmpty);
 
         // Kenderaan diunjur sepanjang laluan semasa senyap.
-        final pose = session.poseAt(clock.now);
+        final pose = session.poseAt(clock.now)!;
         expect(pose.alongM, greaterThan(session.progress!.alongM + 100));
 
         // Fix kembali pada 600 m (selepas terowong).

@@ -53,11 +53,11 @@ void main() {
     test('fix tiba 1 s lewat: kenderaan diunjur dari masa ukuran', () {
       final clock = FakeClock(t0);
       final onTime = driveTo(clock, 300);
-      final onTimeAlong = onTime.poseAt(clock.now).alongM;
+      final onTimeAlong = onTime.poseAt(clock.now)!.alongM;
 
       final lateClock = FakeClock(t0);
       final late = driveTo(lateClock, 300, latency: const Duration(seconds: 1));
-      final lateAlong = late.poseAt(lateClock.now).alongM;
+      final lateAlong = late.poseAt(lateClock.now)!.alongM;
 
       // 1 s x 14 m/s di hadapan berbanding fix yang tiba serta-merta.
       expect(lateAlong - onTimeAlong, closeTo(14, 3));
@@ -68,7 +68,7 @@ void main() {
       () {
         final clock = FakeClock(t0);
         final onTime = driveTo(clock, 300);
-        final onTimeAlong = onTime.poseAt(clock.now).alongM;
+        final onTimeAlong = onTime.poseAt(clock.now)!.alongM;
 
         final lateClock = FakeClock(t0);
         final late = driveTo(
@@ -77,7 +77,7 @@ void main() {
           latency: const Duration(seconds: 6),
         );
         expect(
-          late.poseAt(lateClock.now).alongM - onTimeAlong,
+          late.poseAt(lateClock.now)!.alongM - onTimeAlong,
           closeTo(14 * 2.5, 4),
         );
       },
@@ -101,7 +101,7 @@ void main() {
           clock.advance(const Duration(milliseconds: 100));
           final update = session.refreshLive();
           if (update != null && update.progress.next!.index == 2) {
-            switchedAlong = session.poseAt(clock.now).alongM;
+            switchedAlong = session.poseAt(clock.now)!.alongM;
             break;
           }
         }

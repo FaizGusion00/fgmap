@@ -42,6 +42,10 @@ const _destLayer = 'fg-destination';
 const _chevronSource = 'fg-route-chevron-src';
 const _chevronLayer = 'fg-route-chevrons';
 const _chevronImage = 'fg-chevron';
+const _maneuverSource = 'fg-maneuver-src';
+const _maneuverCasingLayer = 'fg-maneuver-casing';
+const _maneuverLayer = 'fg-maneuver';
+const _maneuverHeadLayer = 'fg-maneuver-head';
 const _turnLabelSource = 'fg-turn-label-src';
 const _turnLabelLayer = 'fg-turn-label';
 const _poiPinLayer = 'fg-poi-pins';
@@ -99,6 +103,7 @@ class _MapLibreViewState extends State<MapLibreView> {
   NavRouteLine? _chevronNav;
   int? _chevronFirst;
   NavTurnLabel? _sentTurnLabel;
+  NavManeuverArrow? _sentManeuver;
   bool? _sentPoiPins;
 
   // Pemangkasan laluan navigasi. `line-gradient` memangkas bahagian yang telah dilalui tanpa menjana
@@ -303,6 +308,9 @@ class _MapLibreViewState extends State<MapLibreView> {
       _vehicleLayer,
       _turnLabelLayer,
       _poiPinLayer,
+      _maneuverHeadLayer,
+      _maneuverLayer,
+      _maneuverCasingLayer,
       _chevronLayer,
       _reportLayer,
       _destLayer,
@@ -318,6 +326,7 @@ class _MapLibreViewState extends State<MapLibreView> {
     for (final source in [
       _vehicleSource,
       _turnLabelSource,
+      _maneuverSource,
       _chevronSource,
       _reportSource,
       _destSource,
@@ -335,6 +344,7 @@ class _MapLibreViewState extends State<MapLibreView> {
     await c.addGeoJsonSource(_reportSource, _emptyCollection);
     await c.addGeoJsonSource(_chevronSource, _emptyCollection);
     await c.addGeoJsonSource(_turnLabelSource, _emptyCollection);
+    await c.addGeoJsonSource(_maneuverSource, _emptyCollection);
     // Sumber baharu kosong: tiada apa yang dihantar lagi.
     _sentAlt = const [];
     _sentMain = const [];
@@ -347,6 +357,7 @@ class _MapLibreViewState extends State<MapLibreView> {
     _chevronNav = null;
     _chevronFirst = null;
     _sentTurnLabel = null;
+    _sentManeuver = null;
     _sentPoiPins = null;
 
     // Urutan penting: alternatif di bawah, kemudian tepi laluan utama, laluan utama, sambungan akhir,
@@ -366,6 +377,7 @@ class _MapLibreViewState extends State<MapLibreView> {
     );
     await _addMainLayers(c, colors);
     await _addChevronLayer(c);
+    await _addManeuverLayers(c);
     await c.addLineLayer(
       _legSource,
       _legLayer,
@@ -493,6 +505,116 @@ class _MapLibreViewState extends State<MapLibreView> {
     } on Object catch (e) {
       logDiag('Lapisan pin tempat gagal: $e');
     }
+  }
+
+  /// Anak panah belokan: garisan putih bertepi gelap di atas laluan biru, dengan kepala segi tiga.
+  /// Lebar mengikut zum supaya kekal jelas dari pandangan bandar hingga dekat simpang.
+  Future<void> _addManeuverLayers(MapLibreMapController c) async {
+    const width = [
+      'interpolate',
+      ['linear'],
+      ['zoom'],
+      14,
+      4,
+      17,
+      8,
+      19,
+      13,
+    ];
+    try {
+      await c.addLineLayer(
+        _maneuverSource,
+        _maneuverCasingLayer,
+        const LineLayerProperties(
+          lineColor: '#0B2A55',
+          lineWidth: [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            14,
+            7,
+            17,
+            12,
+            19,
+            18,
+          ],
+          lineCap: 'round',
+          lineJoin: 'round',
+        ),
+        filter: [
+          '==',
+          ['geometry-type'],
+          'LineString',
+        ],
+        belowLayerId: _labelAnchor,
+        enableInteraction: false,
+      );
+      await c.addLineLayer(
+        _maneuverSource,
+        _maneuverLayer,
+        const LineLayerProperties(
+          lineColor: '#FFFFFF',
+          lineWidth: width,
+          lineCap: 'butt',
+          lineJoin: 'round',
+        ),
+        filter: [
+          '==',
+          ['geometry-type'],
+          'LineString',
+        ],
+        belowLayerId: _labelAnchor,
+        enableInteraction: false,
+      );
+      await c.addFillLayer(
+        _maneuverSource,
+        _maneuverHeadLayer,
+        const FillLayerProperties(
+          fillColor: '#FFFFFF',
+          fillOutlineColor: '#0B2A55',
+        ),
+        filter: [
+          '==',
+          ['geometry-type'],
+          'Polygon',
+        ],
+        belowLayerId: _labelAnchor,
+        enableInteraction: false,
+      );
+    } on Object catch (e) {
+      logDiag('Lapisan anak panah belokan gagal: $e');
+    }
+  }
+
+  static Map<String, Object?> _maneuverFeatures(NavManeuverArrow? a) {
+    if (a == null) return _emptyCollection;
+    return {
+      'type': 'FeatureCollection',
+      'features': [
+        {
+          'type': 'Feature',
+          'properties': <String, Object?>{},
+          'geometry': {
+            'type': 'LineString',
+            'coordinates': [
+              for (final p in a.line) [p.lng, p.lat],
+            ],
+          },
+        },
+        {
+          'type': 'Feature',
+          'properties': <String, Object?>{},
+          'geometry': {
+            'type': 'Polygon',
+            'coordinates': [
+              [
+                for (final p in [...a.head, a.head.first]) [p.lng, p.lat],
+              ],
+            ],
+          },
+        },
+      ],
+    };
   }
 
   /// Nama jalan yang akan dimasuki, pada titik belok.
@@ -913,6 +1035,13 @@ class _MapLibreViewState extends State<MapLibreView> {
       await c.setGeoJsonSource(
         _turnLabelSource,
         _turnLabelFeature(cfg.navTurnLabel),
+      );
+    }
+    if (_sentManeuver != cfg.navManeuverArrow) {
+      _sentManeuver = cfg.navManeuverArrow;
+      await c.setGeoJsonSource(
+        _maneuverSource,
+        _maneuverFeatures(cfg.navManeuverArrow),
       );
     }
     if (_sentPoiPins != cfg.poiPins) {

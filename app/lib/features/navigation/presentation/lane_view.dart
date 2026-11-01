@@ -243,9 +243,11 @@ class LaneArrowArt {
       ..strokeJoin = StrokeJoin.round;
     final dimFill = Paint()..color = dimStroke.color;
 
-    // Tangkai penuh hanya jika ada arah lurus; jika tidak, pendek hingga titik belok.
+    // Tangkai penuh hanya jika ada arah lurus; jika tidak, hingga titik belok. Belokan bermula
+    // lewat (58% tinggi) supaya tangkai panjang dan lengkung luas, seperti anak panah di jalan
+    // sebenar; dahulu 42% dan cabang dihadkan sepertiga lorong, jadi anak panah kelihatan terbantut.
     final hasThrough = arrows.contains(LaneArrow.through);
-    final turnY = -h * (hasThrough ? 0.5 : 0.42);
+    final turnY = -h * (hasThrough ? 0.5 : 0.58);
     final from = Offset(0, turnY);
 
     // Hujung setiap cabang dikira dahulu supaya seluruh anak panah boleh dipusatkan dalam lorong.
@@ -259,11 +261,14 @@ class LaneArrowArt {
       }
       final rad = deg * math.pi / 180;
       final sin = math.sin(rad);
-      var len = h * 0.42;
+      var len = h * 0.45;
       if (sin.abs() > 0.01) len = math.min(len, maxReach / sin.abs());
+      // Belok 90 darjah: hujung naik sedikit di atas titik belok, jadi cabang ialah lengkung suku
+      // bulatan yang lembut, bukan siku tajam.
+      final rise = deg.abs() > 60 && deg.abs() < 100 ? len * 0.55 : 0.0;
       ends[a] = Offset(
         sin * len,
-        turnY - math.cos(rad) * len * (deg.abs() > 100 ? 1 : 0.9),
+        turnY - math.cos(rad) * len * (deg.abs() > 100 ? 1 : 0.9) - rise,
       );
     }
     final uReach = arrows.contains(LaneArrow.reverse) ? h * 0.2 * 2 : 0.0;
@@ -303,7 +308,8 @@ class LaneArrowArt {
   ) {
     final rad = deg * math.pi / 180;
     final dir = Offset(math.sin(rad), -math.cos(rad));
-    final headLen = t * 2.6;
+    // Kepala tidak pernah melebihi 45% cabang: selebihnya batang yang kelihatan.
+    final headLen = math.min(t * 2.8, (to - from).distance * 0.45);
     final shaftEnd = to - dir * (headLen * 0.9);
     final path = Path()..moveTo(from.dx, from.dy);
     if (deg == 0) {
@@ -311,8 +317,8 @@ class LaneArrowArt {
     } else {
       // Keluar menegak dari tangkai dan berakhir tepat mengikut arah kepala anak panah.
       final dist = (shaftEnd - from).distance;
-      final c1 = from + Offset(0, -dist * 0.55);
-      final c2 = shaftEnd - dir * (dist * 0.45);
+      final c1 = from + Offset(0, -dist * 0.6);
+      final c2 = shaftEnd - dir * (dist * 0.4);
       path.cubicTo(c1.dx, c1.dy, c2.dx, c2.dy, shaftEnd.dx, shaftEnd.dy);
     }
     canvas.drawPath(path, stroke);
@@ -446,8 +452,8 @@ class _LanePainter extends CustomPainter {
         canvas,
         lane.arrows,
         arrowH,
-        laneW * 0.12,
-        laneW * 0.34,
+        laneW * 0.11,
+        laneW * 0.6,
         lane.recommended
             ? palette.arrowOnHighlight
             : (plan.hasHighlight ? palette.arrowDim : palette.arrow),

@@ -212,31 +212,20 @@ class EdgeAiLlmRuntime implements LocalLlmRuntime {
         sessionKey != null &&
         sessionKey == _sessionKey &&
         _estimatedTokens + _approxTokens(userText) < _sessionBudget;
+    var prompt = userText;
     if (!continuing) {
-      // Perbualan lain atau konteks hampir penuh: sesi baharu dengan sejarah RINGKAS sahaja. Jawapan
-      // lama dipotong supaya model tidak menyalin semula ayatnya.
-      final replay = <Message>[];
-      for (final m in compactHistory(history)) {
-        replay.add(
-          Message.text(text: m.text, isUser: m.role == AssistantRole.user),
-        );
-      }
-      if (!_fresh) {
-        await chat.clearHistory(replayHistory: replay);
-      } else {
-        for (final m in replay) {
-          await chat.addQueryChunk(m);
-        }
-      }
+      // Perbualan lain atau konteks hampir penuh: sesi baharu dengan sejarah RINGKAS sahaja, dalam
+      // SATU blok berlabel di depan soalan. Model .litertlm menerima teks mentah tanpa peranan; jika
+      // mesej lama disuap satu-satu, jawapan lama AI kelihatan seperti teks pengguna dan model
+      // menyambungnya (cth. petua tidur diulang selepas "find latest news").
+      if (!_fresh) await chat.clearHistory();
+      prompt = replayPrompt(history, userText);
       _sessionKey = sessionKey;
-      _estimatedTokens =
-          _approxTokens(system) +
-          _activeModel.maxOutputTokens +
-          replay.fold(0, (sum, m) => sum + _approxTokens(m.text));
+      _estimatedTokens = _approxTokens(system) + _activeModel.maxOutputTokens;
     }
-    await chat.addQueryChunk(Message.text(text: userText, isUser: true));
+    await chat.addQueryChunk(Message.text(text: prompt, isUser: true));
     _fresh = false;
-    _estimatedTokens += _approxTokens(userText);
+    _estimatedTokens += _approxTokens(prompt);
 
     final buf = StringBuffer();
     int? firstTokenMs;
@@ -312,9 +301,35 @@ class EdgeAiLlmRuntime implements LocalLlmRuntime {
 
 /// Teks yang sudah menjadi jawapan (bukan sisa sebelum panggilan alat seperti "." atau "Let me
 /// check"): sekurang-kurangnya satu ayat penuh.
+///
+/// Teks yang berakhir dengan soalan balas ("What topic are you interested in?") BUKAN jawapan: model
+/// sepatutnya terus memanggil alat (cth. web_search) dan panggilan itu tidak boleh dibatalkan.
 bool hasSubstantiveAnswer(String raw) {
   final t = cleanReply(raw);
+  if (RegExp(r'\?\s*$').hasMatch(t)) return false;
   return t.length >= 40 && RegExp(r'[.!?。]\s*$|[.!?]\s').hasMatch(t);
+}
+
+/// Mesej pengguna untuk sesi baharu: [compactHistory] sebagai konteks berlabel, kemudian soalan.
+/// Jawapan lama AI dipendekkan lagi (120 aksara) supaya model tidak menyalin atau menyambungnya.
+String replayPrompt(List<AssistantMessage> history, String userText) {
+  final turns = compactHistory(history);
+  if (turns.isEmpty) return userText;
+  final b = StringBuffer(
+    'Earlier in this chat (context only; do not repeat, continue or restate it):\n',
+  );
+  for (final m in turns) {
+    if (m.role == AssistantRole.user) {
+      b.writeln('User: ${m.text.trim()}');
+    } else {
+      final t = m.text.trim();
+      b.writeln('FG AI: ${t.length > 120 ? '${t.substring(0, 119)}…' : t}');
+    }
+  }
+  b
+    ..writeln()
+    ..write('Now answer only this: $userText');
+  return b.toString();
 }
 
 /// Sejarah ringkas untuk sesi baharu: 2 pusingan terakhir; jawapan dipotong ke 200 aksara.

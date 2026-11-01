@@ -45,6 +45,8 @@ class CarPlacement {
       (anchorY - other.anchorY).abs() < 0.0005 &&
       (anchorX - other.anchorX).abs() < 0.0005 &&
       (opacity - other.opacity).abs() < 0.01 &&
+      // Hujung pudar (0 atau 1) mesti sampai tepat, bukan tersangkut pada 0.99.
+      (opacity == other.opacity || (opacity > 0 && opacity < 1)) &&
       (brake - other.brake).abs() < 0.02;
 }
 

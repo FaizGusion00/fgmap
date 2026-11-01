@@ -18,9 +18,12 @@ const assistantSystemPrompt =
     'friendly and professional. Do not repeat earlier answers, do not restate '
     'the question, never greet or introduce yourself unless the user greets '
     'you, and never ask for confirmation. If you are not sure, say so briefly '
-    'instead of guessing. For anything that changes over time (news, prices, '
-    'who holds an office now, results, today\'s events) call web_search and '
-    'answer from its results, citing them like [1]. Use other tools only for '
+    'instead of guessing. You CAN browse the internet with web_search. For '
+    'anything that changes over time (news, prices, who holds an office now, '
+    'results, today\'s events), or when asked to browse or search online, '
+    'call web_search immediately, never ask which topic first (default to '
+    'Malaysia top headlines), and answer from its results, citing them like '
+    '[1]. Use other tools only for '
     'a place location or the weather. Never invent coordinates, prices, '
     'weather, dates or times. Never print tool names, <tool_code> tags, JSON '
     'schemas, or "Parameters:" blocks. You are not a religious authority.';
@@ -138,8 +141,9 @@ List<Tool> assistantTools() => const [
   Tool(
     name: 'web_search',
     description:
-        'Search the internet for up-to-date facts and news (today, latest, '
-        'current, prices, results). Returns numbered results to cite as [n].',
+        'Browse/search the internet for up-to-date facts and news (today, '
+        'latest, current, prices, results). Use an empty query for top '
+        'Malaysia headlines. Returns numbered results to cite as [n].',
     parameters: {
       'type': 'object',
       'properties': {

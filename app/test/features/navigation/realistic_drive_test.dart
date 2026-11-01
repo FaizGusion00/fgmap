@@ -201,7 +201,9 @@ _Result runDrive({
     while (next < arrivals.length && arrivals[next].$1 <= t) {
       session.onFix(arrivals[next++].$2);
     }
+    // Tiada pose sebelum fix pertama tiba (latensi ketibaan).
     final pose = session.poseAt(clock.now);
+    if (pose == null) continue;
     poses.add(pose);
     if (t < 4) continue;
     final s = truth.sAt(t);

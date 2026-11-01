@@ -67,5 +67,35 @@ void main() {
       ),
       isTrue,
     );
+    // Soalan balas bukan jawapan: panggilan web_search selepasnya mesti dijalankan.
+    expect(
+      hasSubstantiveAnswer(
+        'I can certainly browse the internet for you. What specific topics '
+        'are you interested in?',
+      ),
+      isFalse,
+    );
   });
+
+  test(
+    'sesi baharu: sejarah dalam SATU blok berlabel, jawapan lama dipendekkan',
+    () {
+      final tips = 'Here are a few general tips for better sleep: ${'x' * 300}';
+      final p = replayPrompt([
+        _u('How to sleep better?'),
+        _a(tips),
+      ], 'Can you browse the internet? Find latest new');
+      expect(p, startsWith('Earlier in this chat (context only'));
+      expect(p, contains('User: How to sleep better?'));
+      expect(p, contains('FG AI: Here are a few general tips'));
+      expect(p, isNot(contains('x' * 150)));
+      expect(
+        p,
+        endsWith(
+          'Now answer only this: Can you browse the internet? Find latest new',
+        ),
+      );
+      expect(replayPrompt(const [], 'Hi'), 'Hi');
+    },
+  );
 }

@@ -70,6 +70,13 @@ void main() {
     expect(s.source, 'contoh.my');
   });
 
+  test('berita utama: URL carian RSS ditukar ke suapan utama', () {
+    expect(
+      topNewsUrl('https://news.google.com/rss/search'),
+      'https://news.google.com/rss',
+    );
+  });
+
   test('pautan: hanya HTTPS ke hos awam', () {
     expect(isSafePublicUrl(Uri.parse('https://www.bernama.com/x')), isTrue);
     for (final u in [

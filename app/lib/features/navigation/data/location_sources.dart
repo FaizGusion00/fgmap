@@ -20,8 +20,32 @@ class DeviceLocationSource implements NavLocationSource {
 
   final LocationService _service;
 
+  /// Fix terakhir peta (jika segar dan tepat) dihantar DAHULU: aliran GPS navigasi bermula sejuk dan
+  /// fix pertamanya boleh mengambil beberapa saat. Tanpa ini kamera masuk navigasi tiada kenderaan
+  /// untuk diikuti dan menunggu (atau, dahulu, terbang ke 0,0).
   @override
-  Stream<LocationFix> fixes() => _service.navigationFixes();
+  Stream<LocationFix> fixes() async* {
+    LocationFix? seed;
+    try {
+      seed = await _service.lastKnownFix().timeout(
+        const Duration(milliseconds: 400),
+      );
+    } on Object {
+      seed = null;
+    }
+    if (seed != null && isUsableSeed(seed, DateTime.now())) yield seed;
+    yield* _service.navigationFixes();
+  }
+
+  /// Benih yang selamat: tepat (<= 35 m, sama seperti penapis fix) dan berumur <= 10 s.
+  @visibleForTesting
+  static bool isUsableSeed(LocationFix fix, DateTime now) {
+    final accuracy = fix.accuracyMeters;
+    final time = fix.timestamp;
+    if (accuracy == null || accuracy > 35 || time == null) return false;
+    final age = now.difference(time);
+    return !age.isNegative && age <= const Duration(seconds: 10);
+  }
 
   @override
   bool get isSimulated => false;
