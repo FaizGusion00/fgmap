@@ -1,7 +1,6 @@
 import 'package:fgmap/core/storage/preferences.dart';
 import 'package:fgmap/features/offline_maps/domain/offline_models.dart';
 import 'package:fgmap/features/offline_maps/presentation/offline_map_controller.dart';
-import 'package:fgmap/features/route_preview/data/route_planner.dart';
 import 'package:fgmap/features/search/presentation/offline_places_prompt.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
