@@ -378,16 +378,15 @@ class _BannerContent extends StatelessWidget {
         : (text.cardDetail(following!) ?? text.cardStreet(following!));
     final ready = distanceM <= readyWithinM && !maneuver.isArrival;
     final getReady = distanceM <= getReadyWithinM && !maneuver.isArrival;
-    // Kotak lorong besar hanya dalam potret: pada telefon mendatar (~390 px tinggi) ia akan menelan
-    // pandangan jalan, jadi mendatar kekal dengan jalur/ayat lorong ringkas.
-    final lanePanel =
-        !metrics.landscape &&
-        LanePanel.shows(
-          maneuver,
-          distanceM: distanceM,
-          speedMps: speedMps,
-          motorcycle: motorcycle,
-        );
+    // Kotak lorong/simpang dalam kedua-dua orientasi. Mendatar (~390 px tinggi): versi padat (kira-kira
+    // seperlima tinggi skrin) dan baris "Kemudian" disembunyikan semasa ia dipaparkan, supaya kad tidak
+    // menelan pandangan jalan.
+    final lanePanel = LanePanel.shows(
+      maneuver,
+      distanceM: distanceM,
+      speedMps: speedMps,
+      motorcycle: motorcycle,
+    );
 
     final exitNo = maneuver.roundaboutExit;
     final glyphLabel =
@@ -527,8 +526,13 @@ class _BannerContent extends StatelessWidget {
             background: colors.background,
             foreground: colors.foreground,
             junction: junction,
+            height: metrics.landscape
+                ? (MediaQuery.sizeOf(context).height * 0.2).clamp(60.0, 92.0)
+                : 124,
           ),
-        if (following != null && thenGapM != null)
+        if (following != null &&
+            thenGapM != null &&
+            !(lanePanel && metrics.landscape))
           ColoredBox(
             color: Colors.black.withValues(alpha: 0.22),
             child: Padding(

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Tanda FGMaps untuk latar cerah (dokumen, laman web, cetakan): laluan biru laut, anak panah teal gelap. -->
+  <defs>
+    <linearGradient id="teal" gradientUnits="userSpaceOnUse" x1="560" y1="108" x2="840" y2="428">
+      <stop offset="0" stop-color="#19D3B8"/>
+      <stop offset="1" stop-color="#0E9F8A"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(512 512) scale(.84) translate(-563 -497)">
+    <path d="M372 800V418a150 150 0 0 1 150-150h70" fill="none" stroke="#173B78" stroke-width="136" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M372 540H530" fill="none" stroke="#173B78" stroke-width="136" stroke-linecap="round"/>
+    <path d="M560 108 840 268 560 428 616 268Z" fill="url(#teal)" stroke="url(#teal)" stroke-width="36" stroke-linejoin="round"/>
+    <circle cx="372" cy="800" r="104" fill="#173B78"/>
+    <circle cx="372" cy="800" r="46" fill="#4F8BFF"/>
+  </g>
+</svg>

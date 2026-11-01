@@ -108,5 +108,39 @@ void main() {
         expect(src, contains('"$m"'), reason: m);
       }
     });
+
+    test('Android Auto sahaja: carState (keterlihatan + mod malam kereta)', () {
+      // Dua hala: Kotlin melapor perubahan, Dart bertanya keadaan semasa semasa dicipta.
+      expect(kotlin.readAsStringSync(), contains('"carState"'));
+      final hub = File(
+        'lib/features/navigation/presentation/car_session_hub.dart',
+      ).readAsStringSync();
+      expect(hub, contains("case 'carState'"));
+      expect(hub, contains("invokeMethod<Object?>('carState')"));
+    });
+
+    test('kunci kenderaan/ketibaan dihantar Dart dan dibaca Kotlin', () {
+      const keys = [
+        'vehicleLat',
+        'vehicleLng',
+        'vehicleBearing',
+        'rerouting',
+        'arrived',
+        'destination',
+      ];
+      final map = mapCarSession(navigating: true, cruising: false).toMap();
+      final kotlinSrc = [
+        File(
+          'android/app/src/main/kotlin/com/fguniversalempire/fgmaps/car/CarMapSurface.kt',
+        ).readAsStringSync(),
+        File(
+          'android/app/src/main/kotlin/com/fguniversalempire/fgmaps/car/FgMapCarScreens.kt',
+        ).readAsStringSync(),
+      ].join('\n');
+      for (final key in keys) {
+        expect(map.containsKey(key), isTrue, reason: key);
+        expect(kotlinSrc, contains('"$key"'), reason: key);
+      }
+    });
   });
 }

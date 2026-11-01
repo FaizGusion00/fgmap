@@ -20,6 +20,15 @@ object CarBridge {
 
     var onSession: ((Map<String, Any?>) -> Unit)? = null
 
+    /** Permukaan peta kereta sedang dipaparkan, dan mod malam kereta ([CarContext.isDarkMode]). */
+    @Volatile
+    var carVisible: Boolean = false
+        private set
+
+    @Volatile
+    var carDark: Boolean = false
+        private set
+
     private var channel: MethodChannel? = null
 
     fun attach(messenger: BinaryMessenger) {
@@ -27,16 +36,63 @@ object CarBridge {
         channel = method
         ready = true
         method.setMethodCallHandler { call, result ->
-            if (call.method == "session") {
-                @Suppress("UNCHECKED_CAST")
-                val map = (call.arguments as? Map<String, Any?>) ?: emptyMap()
-                session = map
-                onSession?.invoke(map)
-                result.success(null)
-            } else {
-                result.notImplemented()
+            when (call.method) {
+                "session" -> {
+                    @Suppress("UNCHECKED_CAST")
+                    val incoming = (call.arguments as? Map<String, Any?>) ?: emptyMap()
+                    val map = withStickyKeys(incoming, session)
+                    session = map
+                    // Ralat skrin kereta tidak boleh menjatuhkan app telefon (benang utama).
+                    try {
+                        onSession?.invoke(map)
+                    } catch (_: Throwable) {
+                    }
+                    result.success(null)
+                }
+                // Dart bertanya keadaan semasa (enjin Flutter boleh bermula selepas kereta bersambung).
+                "carState" -> result.success(carStateMap())
+                else -> result.notImplemented()
             }
         }
+    }
+
+    /**
+     * Lapor keterlihatan permukaan dan mod malam kereta kepada Dart: pam kamera kereta hanya berjalan
+     * bila skrin kereta kelihatan, dan gaya peta mengikut siang/malam kereta.
+     */
+    fun reportCar(visible: Boolean = carVisible, dark: Boolean = carDark) {
+        if (visible == carVisible && dark == carDark) return
+        carVisible = visible
+        carDark = dark
+        try {
+            channel?.invokeMethod("carState", carStateMap())
+        } catch (_: Throwable) {
+        }
+    }
+
+    private fun carStateMap(): Map<String, Any?> = mapOf("visible" to carVisible, "dark" to carDark)
+
+    /**
+     * Dart menghantar geometri laluan dan badan gaya hanya bila berubah. Salinan terakhir dibawa ke
+     * hadapan supaya [session] sentiasa lengkap: permukaan kereta yang dicipta semula (skrin kereta
+     * dimatikan/dihidupkan, tukar app di kepala unit) atau gaya yang dimuat semula (siang/malam)
+     * dahulu kehilangan garisan laluan, malah peta kosong, sehingga laluan atau gaya berubah lagi.
+     */
+    internal fun withStickyKeys(
+        incoming: Map<String, Any?>,
+        previous: Map<String, Any?>,
+    ): Map<String, Any?> {
+        val keepRoute = !incoming.containsKey("route") &&
+            previous.containsKey("route") &&
+            incoming["routeVersion"] == previous["routeVersion"]
+        val keepStyle = !incoming.containsKey("style") &&
+            previous.containsKey("style") &&
+            incoming["styleKey"] == previous["styleKey"]
+        if (!keepRoute && !keepStyle) return incoming
+        val merged = HashMap(incoming)
+        if (keepRoute) merged["route"] = previous["route"]
+        if (keepStyle) merged["style"] = previous["style"]
+        return merged
     }
 
     fun search(query: String, callback: (List<CarPlace>) -> Unit) {

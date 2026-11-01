@@ -1,9 +1,13 @@
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart';
 
 import '../../../core/utils/geo.dart';
 import 'camera_planner.dart';
 import 'lane_plan.dart';
+import 'nav_route.dart';
 import 'speed_bubble_data.dart';
+import 'vehicle_model.dart';
 
 /// Mod yang dikongsi telefon dan Android Auto. Hanya satu yang memiliki kamera.
 enum CarDriveMode { browse, cruise, navigating }
@@ -55,12 +59,23 @@ List<CarLane> carLanesFor(LanePlan? plan) => plan == null || plan.estimated
           ),
       ];
 
+/// Kedudukan kenderaan (atau pengguna dalam browse) untuk penanda di peta kereta. [bearing] null =
+/// arah tidak diketahui (titik, bukan anak panah).
+@immutable
+class CarVehicle {
+  const CarVehicle(this.point, [this.bearing]);
+
+  final GeoPoint point;
+  final double? bearing;
+}
+
 /// Gambar sesi untuk hos kereta. Laluan hanya ada semasa navigasi.
 @immutable
 class CarSessionSnapshot {
   const CarSessionSnapshot({
     required this.mode,
     this.pose,
+    this.vehicle,
     this.speed = const SpeedBubbleData(speedMps: 0),
     this.route = const [],
     this.routeVersion = 0,
@@ -82,10 +97,19 @@ class CarSessionSnapshot {
     this.prayerLine,
     this.lanes = const [],
     this.laneHint,
+    this.rerouting = false,
+    this.arrived = false,
+    this.destination,
   });
 
   final CarDriveMode mode;
+
+  /// Kamera skrin kereta. Semasa memandu pusatnya ialah kenderaan ([CarCamera]); hos kereta
+  /// meletakkan kenderaan di kawasan stabil skrinnya dengan padding.
   final CameraPose? pose;
+
+  /// Penanda kenderaan / pengguna di peta kereta; null sebelum fix GPS pertama.
+  final CarVehicle? vehicle;
   final SpeedBubbleData speed;
 
   /// Kosong dalam browse dan cruise. Geometri laluan hanya semasa navigasi.
@@ -131,6 +155,15 @@ class CarSessionSnapshot {
   /// anggaran kerana ia hanya menyebut sisi.
   final String? laneHint;
 
+  /// Laluan sedang dikira semula: hos kereta menunjukkan "memuatkan", bukan manuver lapuk.
+  final bool rerouting;
+
+  /// Sudah tiba (telefon menunjukkan kad ketibaan): hos kereta menunjukkan mesej ketibaan.
+  final bool arrived;
+
+  /// Nama destinasi (untuk mesej ketibaan); null untuk titik pada peta.
+  final String? destination;
+
   bool get hasRoute => mode == CarDriveMode.navigating && route.length >= 2;
 
   /// Satu isyarat pemanduan: kamera > cuaca > R&R.
@@ -141,6 +174,7 @@ class CarSessionSnapshot {
     bool includeStyle = true,
   }) {
     final pose = this.pose;
+    final vehicle = this.vehicle;
     final limit = speed.showLimit ? speed.limitKmh : null;
     return {
       'mode': mode.name,
@@ -150,6 +184,9 @@ class CarSessionSnapshot {
       'bearing': pose?.bearing,
       'zoom': pose?.zoom,
       'tilt': pose?.tilt,
+      'vehicleLat': vehicle?.point.lat,
+      'vehicleLng': vehicle?.point.lng,
+      'vehicleBearing': vehicle?.bearing,
       'speedMps': speed.speedMps,
       'speedKmh': speed.kmh,
       'limitKmh': limit,
@@ -177,6 +214,9 @@ class CarSessionSnapshot {
       'prayerLine': prayerLine,
       'lanes': [for (final l in lanes) l.toMap()],
       'laneHint': laneHint,
+      'rerouting': rerouting,
+      'arrived': arrived,
+      'destination': destination,
     };
   }
 }
@@ -186,6 +226,7 @@ CarSessionSnapshot mapCarSession({
   required bool navigating,
   required bool cruising,
   CameraPose? pose,
+  CarVehicle? vehicle,
   double speedMps = 0,
   int? limitKmh,
   bool overspeed = false,
@@ -209,6 +250,9 @@ CarSessionSnapshot mapCarSession({
   String? prayerLine,
   List<CarLane> lanes = const [],
   String? laneHint,
+  bool rerouting = false,
+  bool arrived = false,
+  String? destination,
 }) {
   final mode = navigating
       ? CarDriveMode.navigating
@@ -226,6 +270,7 @@ CarSessionSnapshot mapCarSession({
     return CarSessionSnapshot(
       mode: mode,
       pose: pose,
+      vehicle: vehicle,
       speed: speed,
       route: navigationRoute,
       routeVersion: routeVersion,
@@ -243,14 +288,19 @@ CarSessionSnapshot mapCarSession({
       cameraAlert: cameraAlert,
       weatherAlert: weatherAlert,
       alongCue: along,
-      lanes: lanes,
-      laneHint: laneHint,
+      // Selepas tiba tiada manuver/lorong lagi untuk diikut.
+      lanes: arrived ? const [] : lanes,
+      laneHint: arrived ? null : laneHint,
+      rerouting: rerouting && !arrived,
+      arrived: arrived,
+      destination: destination,
     );
   }
   if (mode == CarDriveMode.cruise) {
     return CarSessionSnapshot(
       mode: mode,
       pose: pose,
+      vehicle: vehicle,
       speed: speed,
       following: following,
       dark: dark,
@@ -261,8 +311,12 @@ CarSessionSnapshot mapCarSession({
       prayerLine: prayerLine,
     );
   }
+  // Browse: peta kereta di lokasi pengguna (tanpa ini MapLibre kekal pada 0,0 di Teluk Guinea
+  // sehingga kereta mula bergerak).
   return CarSessionSnapshot(
     mode: CarDriveMode.browse,
+    pose: pose,
+    vehicle: vehicle,
     following: true,
     dark: dark,
     style: style,
@@ -270,6 +324,140 @@ CarSessionSnapshot mapCarSession({
     airAqi: airAqi,
     prayerLine: prayerLine,
   );
+}
+
+/// Pandangan browse di skrin kereta: atas ke bawah menghadap utara, zum kejiranan.
+CameraPose carBrowsePose(GeoPoint point) =>
+    CameraPose(center: point, zoom: 15.5, tilt: 0, bearing: 0);
+
+/// Kamera skrin kereta (Android Auto), berasingan daripada kamera telefon.
+///
+/// Dahulu skrin kereta menyalin pose kamera telefon. Pose itu (1) dikira untuk paparan telefon (pusat
+/// di hadapan kenderaan mengikut tinggi skrin telefon, bukan skrin kereta), (2) berhenti sebaik
+/// telefon dikunci kerana ticker bingkai tidak berjalan di latar, dan (3) membeku apabila peta
+/// telefon digerakkan. Kamera ini memakai [CameraRig]/[planCamera] yang sama (zum pintar: belokan
+/// berangkai, pegang zum sejurus selepas belok) tetapi berpusat TEPAT pada kenderaan; hos kereta
+/// meletakkan kenderaan di kawasan stabil skrinnya dengan padding kamera.
+class CarCamera {
+  CameraRig? _rig;
+  DateTime? _last;
+  bool? _navigating;
+  NavCameraMode? _mode;
+  double? _prevBearing;
+  double _yawRate = 0;
+  NavManeuver? _lastNext;
+  NavManeuver? _passed;
+
+  /// Tinggi rujukan [viewportZoomAdjust] (tiada pelarasan): Dart tidak tahu tinggi skrin kereta.
+  static const viewportHeightPx = 640.0;
+
+  /// Jurang lebih lama daripada ini (kereta terputus, app dibunuh) = mula semula tanpa pelicinan.
+  static const _gap = Duration(seconds: 3);
+
+  void reset() {
+    _rig = null;
+    _last = null;
+    _navigating = null;
+    _mode = null;
+    _prevBearing = null;
+    _yawRate = 0;
+    _lastNext = null;
+    _passed = null;
+  }
+
+  /// Satu sampel kamera pada [now]. [next]/[following] ialah manuver seterusnya dan selepasnya
+  /// (navigasi sahaja); free-ride sentiasa 2D seperti telefon.
+  CameraPose step({
+    required DateTime now,
+    required VehiclePose vehicle,
+    required bool navigating,
+    NavManeuver? next,
+    NavManeuver? following,
+    NavCameraMode mode = NavCameraMode.auto,
+  }) {
+    final camMode = navigating ? mode : NavCameraMode.flat;
+    final last = _last;
+    if (last == null ||
+        _navigating != navigating ||
+        _mode != camMode ||
+        now.isBefore(last) ||
+        now.difference(last) > _gap) {
+      reset();
+    }
+    final dt = last == null || _rig == null
+        ? 0.0
+        : (now.difference(last).inMicroseconds / 1e6).clamp(0.0, 0.25);
+    _last = now;
+    _navigating = navigating;
+    _mode = camMode;
+
+    final onRoute = navigating && vehicle.onRoute;
+    // Manuver yang baru dilepasi (untuk "pegang zum selepas belok"), sama seperti pemacu telefon.
+    final lastNext = _lastNext;
+    if (next != null && lastNext != null && next.index != lastNext.index) {
+      // Indeks berundur = laluan baharu (kira semula): manuver lama tiada kaitan lagi.
+      _passed = next.index > lastNext.index ? lastNext : null;
+    }
+    if (next != null) _lastNext = next;
+    final passed = _passed;
+    final distanceToNext = next != null && onRoute
+        ? (next.startM - vehicle.alongM).clamp(0.0, double.infinity)
+        : null;
+    final followingGap = next != null && following != null && onRoute
+        ? following.startM - next.startM
+        : null;
+    final sinceTurn = passed != null && onRoute
+        ? vehicle.alongM - passed.startM
+        : null;
+
+    final previousBearing = _prevBearing;
+    if (previousBearing != null && dt > 0) {
+      final rate = (angleDelta(previousBearing, vehicle.bearing) / dt).clamp(
+        -120.0,
+        120.0,
+      );
+      _yawRate += (rate - _yawRate) * (1 - math.exp(-dt / 0.15));
+    }
+    _prevBearing = vehicle.bearing;
+
+    final rig = _rig ??= () {
+      final start = planCamera(
+        CameraSituation(
+          speedMps: vehicle.speedMps,
+          distanceToNextM: distanceToNext,
+          nextKind: onRoute ? next?.kind : null,
+          mode: camMode,
+          followingGapM: followingGap,
+        ),
+      );
+      return CameraRig(
+        entry: CameraPose(
+          center: vehicle.point,
+          zoom: start.zoom,
+          tilt: start.tilt,
+          bearing: vehicle.bearing,
+        ),
+        // Tiada peralihan masuk: skrin kereta tidak pernah menunjukkan pandangan lain dahulu.
+        entryDuration: Duration.zero,
+      );
+    }();
+    return rig.step(
+      dt: dt,
+      vehicle: vehicle.point,
+      vehicleBearing: vehicle.bearing,
+      speedMps: vehicle.speedMps,
+      distanceToNextM: distanceToNext,
+      nextKind: onRoute ? next?.kind : null,
+      viewportHeightPx: viewportHeightPx,
+      mode: camMode,
+      // Pusat = kenderaan; ofset skrin dibuat oleh padding di hos kereta.
+      screenOffset: 0,
+      yawRateDeg: _yawRate.abs(),
+      followingGapM: followingGap,
+      sinceTurnM: sinceTurn,
+      lastKind: onRoute ? passed?.kind : null,
+    );
+  }
 }
 
 /// Jarak ringkas untuk skrin kereta (tanpa l10n penuh).

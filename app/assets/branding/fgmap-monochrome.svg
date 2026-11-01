@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!--
+    Tanda satu warna: ikon bertema Android 13+ (kanvas 108 dp, skala sama dengan latar depan adaptif)
+    dan ikon iOS 18 berwarna (tinted). Titik mula menjadi cincin supaya kekal jelas tanpa warna kedua.
+    Ikon notifikasi ialah salinan vektornya: android/app/src/main/res/drawable/ic_stat_fgmaps.xml.
+  -->
+  <g transform="translate(512 512) scale(.6) translate(-563 -497)" fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M372 696V418a150 150 0 0 1 150-150h70" stroke-width="136"/>
+    <path d="M372 540H530" stroke-width="136"/>
+    <path d="M560 108 840 268 560 428 616 268Z" fill="#FFFFFF" stroke-width="36"/>
+    <circle cx="372" cy="800" r="75" stroke-width="58"/>
+  </g>
+</svg>

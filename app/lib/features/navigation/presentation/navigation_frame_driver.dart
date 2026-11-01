@@ -4,6 +4,8 @@ import 'package:flutter/widgets.dart' show EdgeInsets, Offset;
 import 'package:flutter/foundation.dart' show ValueNotifier;
 
 import '../../../core/utils/geo.dart';
+import '../../../core/utils/log.dart';
+import '../../map/presentation/map_frame_pump.dart';
 import '../../map/presentation/map_view.dart';
 import '../domain/camera_planner.dart';
 import '../domain/nav_route.dart';
@@ -496,6 +498,17 @@ class NavigationFrameDriver {
     if (rig == null || height <= 0) return;
     final fy = p.dy / height;
     final fx = (width == null || width <= 0) ? 0.5 : p.dx / width;
+    if (MapFramePump.diagnostics) {
+      final sent = _sentCamera;
+      logDiag(
+        'FGDIAG kereta: skrin ${p.dx.toStringAsFixed(0)},${p.dy.toStringAsFixed(0)} '
+        'dalam ${width?.toStringAsFixed(0)}x${height.toStringAsFixed(0)} '
+        '(fy ${fy.toStringAsFixed(3)} mahu ${(0.5 + rig.screenOffset).toStringAsFixed(3)}), '
+        'skala ${_groundScale.toStringAsFixed(2)}, zum ${sent?.zoom.toStringAsFixed(2)}, '
+        'condong ${sent?.tilt.toStringAsFixed(1)}, peta ${camera.pose?.zoom.toStringAsFixed(2)}/'
+        '${camera.pose?.tilt.toStringAsFixed(1)}',
+      );
+    }
     // Di luar paparan atau mustahil: abaikan.
     if (!fy.isFinite || !fx.isFinite || fy < 0.3 || fy > 0.98) return;
     if ((fx - 0.5).abs() > 0.4) return;

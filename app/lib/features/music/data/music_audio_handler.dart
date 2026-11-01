@@ -104,6 +104,8 @@ class AudioServiceStarter {
                   'com.fguniversalempire.fgmaps.channel.music',
               androidNotificationChannelName: 'Muzik',
               androidNotificationOngoing: true,
+              // Ikon kecil satu warna (logo F-laluan), bukan ikon pelancar berwarna.
+              androidNotificationIcon: 'drawable/ic_stat_fgmaps',
               androidStopForegroundOnPause: true,
             ),
           );

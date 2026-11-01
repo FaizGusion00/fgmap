@@ -19,8 +19,9 @@ dalam OSM.
   menyebut **sisi** dan ditanda "Anggaran lorong" pada kotak; ia tidak mengaku tahu bilangan lorong.
 - Kotak muncul pada jarak mengikut kelajuan dan kenderaan (`laneViewWithinM`: kereta 200-500 m,
   motosikal 260-650 m). Pada jarak lebih jauh (hingga 700 m) hanya jalur kecil atau ayat.
-- Potret sahaja. Mendatar (~390 px tinggi) kekal dengan jalur/ayat ringkas supaya jalan di hadapan
-  tidak terlindung.
+- Potret dan mendatar. Mendatar (~390 px tinggi) mendapat kotak padat (~20% tinggi skrin, 60-92 px) dan
+  baris "Kemudian" disembunyikan semasa kotak dipaparkan, supaya kad tidak menelan pandangan jalan
+  (2026-11-02; dahulu potret sahaja).
 - Dalam lorong yang disyorkan hanya arah yang sebenarnya disyorkan menyala (`LaneSlot.highlighted`);
   "lurus" dalam lorong "lurus + kanan" dimalapkan.
 - Bulatan: gambar atas ke bawah dengan keluar yang diambil disorot. Valhalla hanya memberi nombor
@@ -54,13 +55,18 @@ dalam OSM.
 - **Anak panah belokan** (`fg-maneuver*`, 2026-11-02): dalam 600 m dari belokan, bahagian laluan 35 m
   sebelum hingga 30 m selepas titik belok (bulatan: seluruh lingkaran) dilukis putih bertepi biru gelap
   dengan kepala segi tiga, supaya selekoh berbeza warna daripada laluan biru. Dihantar sekali setiap
-  manuver.
+  manuver. Peta dikemas kini setiap kali manuver bertukar (dahulu `didUpdateWidget` tidak menghantar
+  semula label/anak panah, jadi anak panah selekoh lama kekal). Manuver seterusnya tidak pernah berundur
+  dalam satu sesi (lead mengecut bila membrek di simpang menyebabkan kad berkelip 3 -> 2 -> 3).
 - **Pin tempat** (hanya semasa navigasi): lapisan `poi` jubin OpenMapTiles untuk sembilan kategori
   (`poi_category.dart`); ikon POI gaya asal (`poi_r1/r7/r20`) disembunyikan supaya tidak bertindih.
 - Sifat lapisan ialah fungsi tulen (`overlay_layer_props.dart`) supaya ungkapan gaya boleh disahkan
   terhadap `@maplibre/maplibre-gl-style-spec`.
 
 ### Kereta
+- Android Auto (2026-11-02) mempunyai kamera sendiri (`CarCamera`, `car_session.dart`) yang memakai
+  `CameraRig`/`planCamera` yang sama seperti telefon dan berjalan walaupun telefon dikunci; peta kereta
+  tidak lagi menyalin pose kamera telefon. Belum diuji pada DHU atau kepala unit.
 - **Android Auto**: hanya lorong **sebenar** dihantar (`carLanesFor`), kerana UI lorong asli kereta
   tiada label anggaran. `Step.addLane` + `setLanesImage` (imej dilukis dalam `CarLanes.kt`); jika apa-apa
   gagal, lorong digugurkan dan manuver kekal. Tanpa data lorong, ayat sisi menjadi `cue`.

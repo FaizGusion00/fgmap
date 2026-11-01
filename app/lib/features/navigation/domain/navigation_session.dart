@@ -404,8 +404,11 @@ class NavigationSession {
     );
 
     var next = route.nextActionable(live + lead);
-    // Selepas manuver terakhir (ketibaan) dilepasi, kekalkan paparan sebelumnya.
-    next ??= p.next;
+    // Selepas manuver terakhir (ketibaan) dilepasi, kekalkan paparan sebelumnya. Lead mengecut bila
+    // kenderaan membrek di simpang; manuver yang sudah ditunjuk tidak pernah diundur.
+    if (next == null || (p.next != null && next.index < p.next!.index)) {
+      next = p.next;
+    }
     final following = next == null ? null : route.actionableAfter(next);
     final remaining = math.max(0.0, route.totalM - live);
 
@@ -471,7 +474,15 @@ class NavigationSession {
     required bool displayOnRoute,
     required double remaining,
   }) {
-    final next = route.nextActionable(_along + leadFor(fix.speedMps));
+    // Manuver seterusnya dikira dari kedudukan LANGSUNG (kenderaan yang dilukis), bukan fix yang
+    // ketinggalan: jika tidak, fix yang tiba sejurus selepas belok membawa kad, anak panah peta dan
+    // kotak simpang kembali ke manuver yang sudah dilalui (3 -> 2 -> 3).
+    final ahead = math.min(math.max(_along, _liveAlong), route.totalM);
+    var next = route.nextActionable(ahead + leadFor(fix.speedMps));
+    // Tidak pernah kembali ke manuver yang sudah ditunjuk lepas (lead fix lebih pendek bila kenderaan
+    // perlahan di simpang); laluan baharu ialah sesi baharu.
+    final shown = _progress?.next;
+    if (next != null && shown != null && next.index < shown.index) next = shown;
     final following = next == null ? null : route.actionableAfter(next);
 
     // Faktor ETA: bandingkan masa sebenar dengan masa anggaran laluan untuk jarak yang sudah dilalui.
@@ -503,7 +514,7 @@ class NavigationSession {
       remainingM: remaining,
       remainingS: route.plannedRemainingTime(_along) * etaFactor,
       next: next,
-      distanceToNextM: next == null ? null : math.max(0, next.startM - _along),
+      distanceToNextM: next == null ? null : math.max(0, next.startM - ahead),
       following: following,
       // Soft hold: status offRoute tetapi kedudukan kekal terpadan supaya kereta 3D / AA tidak ke tepi.
       position: displayOnRoute ? route.displayPointAt(_along) : fix.point,

@@ -21,9 +21,13 @@ import '../../search/domain/place.dart';
 import '../data/navigation_settings.dart';
 import '../domain/camera_planner.dart';
 import '../domain/car_session.dart';
+import '../domain/cruise_motion.dart';
 import '../domain/instruction_text.dart';
 import '../domain/lane_guidance.dart' show laneHintWithinM;
 import '../domain/lane_plan.dart';
+import '../domain/nav_route.dart';
+import '../domain/navigation_session.dart' show NavStatus;
+import '../domain/vehicle_model.dart' show VehiclePose;
 import 'car_places.dart';
 import 'cruise_controller.dart';
 import 'navigation_controller.dart';
@@ -35,24 +39,42 @@ const carSessionChannel = MethodChannel('com.fguniversalempire.fgmaps/car');
 class CarSessionHub {
   CarSessionHub(this.ref) {
     carSessionChannel.setMethodCallHandler(_onCall);
+    unawaited(_pullCarState());
   }
 
   final Ref ref;
 
   /// Carian dan "Berdekatan" untuk skrin kereta (penghala arahan FG AI + carian kategori).
   late final CarPlaces _places = CarPlaces(ref, live: _near);
-  CameraPose? _pose;
-  bool _following = true;
+
+  /// Kamera skrin kereta sendiri (lihat [CarCamera]); pose kamera telefon hanya isyarat kadar.
+  final CarCamera _camera = CarCamera();
+
+  /// Pelicin kedudukan free-ride untuk penanda dan kamera kereta (fix GPS ~1 Hz).
+  final CruiseMotion _cruiseMotion = CruiseMotion();
+  CameraPose? _phonePose;
+
+  /// Lokasi pengguna dalam browse (daripada penjejak peta), supaya peta kereta tidak di 0,0.
+  GeoPoint? _browsePoint;
+
+  /// Permukaan peta Android Auto sedang dipaparkan, dan mod malam kereta (lampu/penderia kereta).
+  bool _carVisible = false;
+  bool? _carDark;
+  Timer? _pump;
+
+  NavRoute? _routeOf;
+  List<GeoPoint> _routePoints = const [];
   int _sentRouteVersion = -1;
   String? _sentStyleKey;
   bool _pushing = false;
   Timer? _throttle;
 
-  void notePose(CameraPose pose, {required bool following}) {
+  /// Pose kamera telefon setiap bingkai (pemacu navigasi/cruise). Hanya menentukan kadar push:
+  /// skrin kereta mengira kameranya sendiri.
+  void notePose(CameraPose pose) {
     final nav = ref.read(navigationControllerProvider);
-    final previous = _pose;
-    _pose = pose;
-    _following = following;
+    final previous = _phonePose;
+    _phonePose = pose;
     // notePose ~60 Hz: 0.5°/bingkai ≈ 30°/s — cukup untuk selekoh bandar.
     // Ambang 2.5° hampir tidak pernah tercapai dan AA kekal pada 200 ms.
     final turning =
@@ -61,6 +83,14 @@ class CarSessionHub {
     final nearTurn = (nav.progress?.distanceToNextM ?? double.infinity) < 80;
     final urgent = nav.rerouting || turning || nearTurn;
     _schedule(urgent ? const Duration(milliseconds: 60) : _defaultThrottle);
+  }
+
+  /// Lokasi pengguna di luar perjalanan (penjejak peta). Push hanya bila beranjak >= 25 m.
+  void noteLocation(GeoPoint point) {
+    final shown = _browsePoint;
+    if (shown != null && distanceMeters(shown, point) < 25) return;
+    _browsePoint = point;
+    publish();
   }
 
   void publish() => _schedule(_defaultThrottle);
@@ -74,6 +104,23 @@ class CarSessionHub {
   }
 
   static const _defaultThrottle = Duration(milliseconds: 200);
+
+  /// Kadar kamera kereta semasa memandu bila permukaan AA kelihatan. Bebas daripada ticker telefon,
+  /// yang berhenti sebaik telefon dikunci atau app ke latar (kes biasa ketika Android Auto).
+  static const _pumpEvery = Duration(milliseconds: 100);
+
+  /// Hidupkan/matikan pam kamera kereta mengikut keadaan semasa.
+  void syncPump() {
+    final want =
+        _carVisible &&
+        (ref.read(navigationControllerProvider).isActive ||
+            ref.read(cruiseControllerProvider).active);
+    if (want == (_pump != null)) return;
+    _pump?.cancel();
+    _pump = want
+        ? Timer.periodic(_pumpEvery, (_) => _schedule(Duration.zero))
+        : null;
+  }
 
   Duration? _pendingDelay;
   bool _dirty = false;
@@ -138,34 +185,37 @@ class CarSessionHub {
     final dark = _dark();
     final loaded = ref.read(mapStyleProvider(dark));
     final style = loaded is AsyncData<ResolvedMapStyle> ? loaded.value : null;
+    if (style == null) _publishWhenStyleReady(dark);
     final navigating = nav.isActive;
-    final maneuver = progress?.next;
+    final arrived = nav.phase == NavPhase.arrived;
+    final maneuver = arrived ? null : progress?.next;
     final language = VoiceLanguage.fromCode(
       WidgetsBinding.instance.platformDispatcher.locale.languageCode,
     );
     final text = maneuver == null
         ? null
         : InstructionText(language).action(maneuver);
-    final pose = navigating || cruise.active
-        ? (_pose ??
-              (progress == null
-                  ? (cruise.point == null
-                        ? null
-                        : CameraPose(
-                            center: cruise.point!,
-                            zoom: 17,
-                            tilt: 55,
-                            bearing: cruise.bearing,
-                          ))
-                  : CameraPose(
-                      center: progress.position,
-                      zoom: 17,
-                      tilt: 55,
-                      bearing: progress.bearing,
-                    )))
-        : null;
     final now = ref.read(navClockProvider)();
     final settings = ref.read(navigationSettingsProvider);
+    final moving = _vehicleAt(nav, cruise, now);
+    final CameraPose? pose;
+    final CarVehicle? vehicle;
+    if (moving != null) {
+      pose = _camera.step(
+        now: now,
+        vehicle: moving,
+        navigating: navigating,
+        next: progress?.next,
+        following: progress?.following,
+        mode: settings.cameraMode,
+      );
+      vehicle = CarVehicle(moving.point, moving.bearing);
+    } else {
+      _camera.reset();
+      final browse = navigating || cruise.active ? null : _browsePoint;
+      pose = browse == null ? null : carBrowsePose(browse);
+      vehicle = browse == null ? null : CarVehicle(browse);
+    }
     final en = language == VoiceLanguage.en;
     // Lorong: gambar lorong asli kereta hanya daripada data sebenar dan dalam jarak yang sama dengan
     // kotak lorong di telefon; ayat sisi ("Guna lorong paling kanan") dalam 700 m.
@@ -187,15 +237,11 @@ class CarSessionHub {
       navigating: navigating,
       cruising: cruise.active,
       pose: pose,
+      vehicle: vehicle,
       speedMps: navigating ? (progress?.speedMps ?? 0) : cruise.speedMps,
       limitKmh: navigating ? nav.currentLimitKmh : cruise.limitKmh,
       overspeed: navigating ? nav.overspeed : cruise.overspeed,
-      // Langkah kasar di lurus, halus di selekoh — muatan AA jauh lebih kecil daripada telefon.
-      navigationRoute:
-          nav.route
-              ?.displayPolyline(stepM: 25, cornerStepM: 8, cornerPadM: 50)
-              .points ??
-          const [],
+      navigationRoute: _routeFor(nav.route),
       routeVersion: nav.routeVersion,
       maneuver: text,
       maneuverKind: maneuver?.kind.name,
@@ -208,7 +254,8 @@ class CarSessionHub {
           : now
                 .add(Duration(seconds: progress.remainingS.round()))
                 .millisecondsSinceEpoch,
-      following: _following,
+      // Kamera kereta sentiasa mengikut kenderaan; pan di skrin kereta diurus oleh hos sendiri,
+      // dan menggerakkan peta telefon tidak lagi membekukan skrin kereta.
       dark: dark,
       style:
           style?.style ??
@@ -223,7 +270,78 @@ class CarSessionHub {
       laneHint: laneHintNear
           ? InstructionText(language).laneHint(maneuver)
           : null,
+      rerouting: nav.rerouting,
+      arrived: arrived,
+      destination: nav.query?.destinationLabel,
     );
+  }
+
+  /// Kenderaan pada [now]: pose model kenderaan navigasi (null sehingga fix GPS pertama; dahulu
+  /// (0,0)), jika tiada, kedudukan kemajuan yang dipulihkan; free-ride daripada [CruiseMotion].
+  VehiclePose? _vehicleAt(
+    NavigationState nav,
+    CruiseState cruise,
+    DateTime now,
+  ) {
+    if (nav.isActive) {
+      _cruiseMotion.reset();
+      final pose = ref.read(navigationControllerProvider.notifier).poseAt(now);
+      if (pose != null) return pose;
+      final progress = nav.progress;
+      if (progress == null) return null;
+      return VehiclePose(
+        point: progress.position,
+        bearing: progress.bearing,
+        speedMps: progress.speedMps,
+        onRoute: progress.status == NavStatus.onRoute,
+        alongM: progress.alongM,
+      );
+    }
+    final fix = cruise.fix;
+    if (!cruise.active || fix == null) {
+      _cruiseMotion.reset();
+      return null;
+    }
+    _cruiseMotion.onFix(
+      point: fix.point,
+      bearing: fix.bearing,
+      speedMps: fix.speedMps,
+      time: fix.time,
+    );
+    final shown = _cruiseMotion.at(now);
+    if (shown == null) return null;
+    return VehiclePose(
+      point: shown.point,
+      bearing: shown.bearing,
+      speedMps: shown.speedMps,
+      onRoute: false,
+      alongM: 0,
+    );
+  }
+
+  /// Garisan laluan untuk kereta, dikira sekali bagi setiap laluan (bukan setiap push 10 Hz).
+  /// Langkah kasar di lurus, halus di selekoh — muatan AA jauh lebih kecil daripada telefon.
+  List<GeoPoint> _routeFor(NavRoute? route) {
+    if (route == null) return const [];
+    if (!identical(route, _routeOf)) {
+      _routeOf = route;
+      _routePoints = route
+          .displayPolyline(stepM: 25, cornerStepM: 8, cornerPadM: 50)
+          .points;
+    }
+    return _routePoints;
+  }
+
+  final Set<bool> _awaitingStyle = {};
+
+  /// Gaya peta belum dimuat (cth. mod malam kereta baru bertukar): push semula sebaik siap, supaya
+  /// skrin kereta tidak kekal pada gaya sandaran walaupun tiada perubahan lain.
+  void _publishWhenStyleReady(bool dark) {
+    if (!_awaitingStyle.add(dark)) return;
+    ref
+        .read(mapStyleProvider(dark).future)
+        .then<void>((_) => publish(), onError: (Object _) {})
+        .whenComplete(() => _awaitingStyle.remove(dark));
   }
 
   /// Waktu solat seterusnya untuk skrin kereta ("Asar 16:28"), hanya jika Waktu Azan dihidupkan.
@@ -293,7 +411,12 @@ class CarSessionHub {
     return 'IPU $ipu · $band';
   }
 
+  /// Mod malam: ikut kereta bila skrin Android Auto kelihatan (lampu/penderia kereta, sama seperti
+  /// templat hos), supaya peta kereta tidak terang menyilaukan pada waktu malam walaupun telefon
+  /// dalam tema cerah. Tanpa kereta, tema telefon.
   bool _dark() {
+    final car = _carDark;
+    if (_carVisible && car != null) return car;
     final mode = ref.read(effectiveThemeModeProvider);
     if (mode == ThemeMode.dark) return true;
     if (mode == ThemeMode.light) return false;
@@ -332,8 +455,34 @@ class CarSessionHub {
       case 'pan':
         _pan?.call();
         return null;
+      case 'carState':
+        // Android Auto sahaja: permukaan peta kelihatan/hilang, atau mod malam kereta bertukar.
+        _applyCarState(call.arguments);
+        return null;
       default:
         throw MissingPluginException(call.method);
+    }
+  }
+
+  void _applyCarState(Object? raw) {
+    if (raw is! Map) return;
+    final visible = raw['visible'] == true;
+    final dark = raw['dark'] is bool ? raw['dark'] as bool : null;
+    if (visible == _carVisible && (dark == null || dark == _carDark)) return;
+    _carVisible = visible;
+    if (dark != null) _carDark = dark;
+    syncPump();
+    flush();
+  }
+
+  /// Keadaan kereta semasa (enjin Flutter mungkin bermula selepas Android Auto bersambung).
+  Future<void> _pullCarState() async {
+    try {
+      _applyCarState(await carSessionChannel.invokeMethod<Object?>('carState'));
+    } on MissingPluginException {
+      // Bukan Android, atau hos kereta belum didaftarkan.
+    } on PlatformException {
+      // Hos belum sedia; Android Auto akan menghantar 'carState' sendiri.
     }
   }
 
@@ -352,6 +501,19 @@ class CarSessionHub {
     return ref.read(cruiseControllerProvider).point;
   }
 
+  /// Arah pergerakan semasa (darjah) untuk asal laluan, seperti perancang telefon (`fix.headingDegrees`):
+  /// tanpanya laluan yang dimulakan dari kereta yang sedang bergerak boleh bermula ke belakang.
+  int? _heading() {
+    final progress = ref.read(navigationControllerProvider).progress;
+    if (progress != null) {
+      return progress.speedMps > 2 ? progress.bearing.round() % 360 : null;
+    }
+    final cruise = ref.read(cruiseControllerProvider);
+    return cruise.active && cruise.speedMps > 2
+        ? cruise.bearing.round() % 360
+        : null;
+  }
+
   /// Merancang dan memulakan sesi navigasi yang sama dengan telefon.
   Future<String?> _openPlace(Place place) async {
     // Kereta berhenti = tiada cruise: guna GPS peranti, bukan hanya kedudukan navigasi.
@@ -360,6 +522,7 @@ class CarSessionHub {
     final query = RouteQuery(
       origin: origin,
       destination: place.point,
+      headingDegrees: _heading(),
       vehicle: ref.read(routeVehicleProvider),
       destinationLabel: place.name,
       alternates: 0,
@@ -383,6 +546,8 @@ class CarSessionHub {
   void dispose() {
     _throttle?.cancel();
     _throttle = null;
+    _pump?.cancel();
+    _pump = null;
     _pendingDelay = null;
     _dirty = false;
   }
@@ -397,12 +562,17 @@ final carSessionHubProvider = Provider<CarSessionHub>((ref) {
         prev.routeVersion != next.routeVersion ||
         prev.phase != next.phase ||
         prev.rerouting != next.rerouting) {
+      hub.syncPump();
       hub.flush();
     } else {
       hub.publish();
     }
   });
-  ref.listen(cruiseControllerProvider, (_, _) => hub.publish());
+  ref.listen(cruiseControllerProvider, (prev, next) {
+    if (prev?.active != next.active) hub.syncPump();
+    hub.publish();
+  });
+  ref.listen(effectiveThemeModeProvider, (_, _) => hub.publish());
   ref.listen(airQualityControllerProvider, (_, _) => hub.publish());
   // Waktu solat seterusnya di skrin kereta: hanya bila waktu seterusnya atau suisnya berubah.
   ref.listen(azanControllerProvider.select((s) => s.upNext), (_, _) {

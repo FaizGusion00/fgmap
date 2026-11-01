@@ -52,12 +52,26 @@ object CarLanes {
 
     private class ParsedLane(val arrows: List<String>, val recommended: Boolean, val highlighted: Set<String>)
 
-    /** Tambah lorong pada [step]; benar jika lorong berjaya ditambah. */
-    fun apply(step: Step.Builder, raw: Any?): Boolean {
+    /**
+     * Imej lorong untuk [raw], atau null jika lorong tidak boleh dilukis. Pemanggil menyimpannya
+     * supaya bitmap tidak dilukis semula pada setiap kemas kini templat.
+     */
+    fun image(raw: Any?): CarIcon? {
+        val lanes = parse(raw)
+        if (lanes.size < 2) return null
+        return try {
+            CarIcon.Builder(IconCompat.createWithBitmap(render(lanes))).build()
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
+    /** Tambah lorong pada [step] dengan [icon] (daripada [image]); benar jika lorong berjaya ditambah. */
+    fun apply(step: Step.Builder, raw: Any?, icon: CarIcon?): Boolean {
+        if (icon == null) return false
         val lanes = parse(raw)
         if (lanes.size < 2) return false
         return try {
-            val image = CarIcon.Builder(IconCompat.createWithBitmap(render(lanes))).build()
             for (lane in lanes) {
                 val builder = Lane.Builder()
                 for (arrow in lane.arrows) {
@@ -70,7 +84,7 @@ object CarLanes {
                 }
                 step.addLane(builder.build())
             }
-            step.setLanesImage(image)
+            step.setLanesImage(icon)
             true
         } catch (_: Throwable) {
             false

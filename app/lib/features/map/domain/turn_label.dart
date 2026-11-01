@@ -117,7 +117,8 @@ NavManeuverArrow? maneuverArrowFor(
   ];
   final end = line.last;
   final bearing = bearingDegrees(line[line.length - 2], end);
-  const headLen = 14.0, halfWidth = 8.0;
+  // Kepala kecil di atas jalan (meter): jelas pada zum memandu tanpa menutup simpang.
+  const headLen = 9.0, halfWidth = 5.5;
   return NavManeuverArrow(
     key: '$routeVersion:${next.index}',
     line: line,

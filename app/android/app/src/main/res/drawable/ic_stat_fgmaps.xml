@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ikon kecil notifikasi FGMaps (satu warna; Android hanya guna saluran alfa). Salinan vektor
+     assets/branding/fgmap-monochrome.svg dalam "ruang tanda": viewport 960 berpusat pada tanda. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="960"
+    android:viewportHeight="960">
+    <group
+        android:translateX="-83"
+        android:translateY="-17">
+        <!-- Laluan: naik dari titik mula, membelok ke kanan. -->
+        <path
+            android:pathData="M372,696 V418 A150,150 0 0 1 522,268 H592"
+            android:strokeColor="#FFFFFFFF"
+            android:strokeWidth="136"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <!-- Lengan tengah huruf F (simpang). -->
+        <path
+            android:pathData="M372,540 H530"
+            android:strokeColor="#FFFFFFFF"
+            android:strokeWidth="136"
+            android:strokeLineCap="round" />
+        <!-- Anak panah arah. -->
+        <path
+            android:pathData="M560,108 L840,268 L560,428 L616,268 Z"
+            android:fillColor="#FFFFFFFF"
+            android:strokeColor="#FFFFFFFF"
+            android:strokeWidth="36"
+            android:strokeLineJoin="round" />
+        <!-- Titik mula sebagai cincin. -->
+        <path
+            android:pathData="M297,800 A75,75 0 1 1 447,800 A75,75 0 1 1 297,800 Z"
+            android:strokeColor="#FFFFFFFF"
+            android:strokeWidth="58" />
+    </group>
+</vector>

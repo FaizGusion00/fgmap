@@ -159,7 +159,8 @@ class LocalNotificationsAzanScheduler implements AzanScheduler {
     tz.setLocalLocation(resolveTimezone(await _timezoneId()));
     await _plugin.initialize(
       settings: const InitializationSettings(
-        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+        // Ikon kecil satu warna (logo F-laluan); ikon pelancar berwarna jadi petak putih di bar status.
+        android: AndroidInitializationSettings('@drawable/ic_stat_fgmaps'),
         iOS: DarwinInitializationSettings(
           requestAlertPermission: false,
           requestBadgePermission: false,

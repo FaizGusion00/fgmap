@@ -111,6 +111,32 @@ void main() {
       },
     );
 
+    test(
+      'membrek di simpang (lead mengecut) tidak membawa banner kembali ke simpang yang dilalui',
+      () {
+        final clock = FakeClock(t0);
+        final session = driveTo(clock, 980);
+        // Pada 14 m/s lead ~9.8 m: banner sudah bertukar ke manuver selepas simpang.
+        var switched = false;
+        for (var ms = 0; ms < 2000 && !switched; ms += 100) {
+          clock.advance(const Duration(milliseconds: 100));
+          session.refreshLive();
+          switched = session.progress!.next!.index == 2;
+        }
+        expect(switched, isTrue);
+        // Fix seterusnya: kenderaan perlahan (2 m/s, lead 3 m) dan masih sebelum titik belok.
+        var second = (980 / 14).floor() + 2;
+        for (var k = 0; k < 4; k++) {
+          clock.advance(const Duration(milliseconds: 300));
+          session.onFix(fixAt(990 + k.toDouble(), second++, speed: 2));
+          expect(session.progress!.next!.index, 2, reason: 'fix $k');
+          clock.advance(const Duration(milliseconds: 300));
+          session.refreshLive();
+          expect(session.progress!.next!.index, 2, reason: 'langsung $k');
+        }
+      },
+    );
+
     test('jarak ke manuver menurun lancar antara dua fix', () {
       final clock = FakeClock(t0);
       final session = driveTo(clock, 500);

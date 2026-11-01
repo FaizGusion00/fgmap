@@ -142,6 +142,7 @@ class _MapLibreViewState extends State<MapLibreView> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     _pixelRatio = MediaQuery.devicePixelRatioOf(context);
+    _recreateOnRotation();
   }
 
   @override
@@ -189,6 +190,11 @@ class _MapLibreViewState extends State<MapLibreView> {
             !identical(old.navRoute, cfg.navRoute) ||
             !_sameLeg(old.finalLeg, cfg.finalLeg) ||
             old.destination != cfg.destination ||
+            // Label jalan dan anak panah belokan bertukar setiap manuver: tanpa ini peta terus
+            // menunjukkan anak panah belokan yang sudah dilalui.
+            old.navTurnLabel != cfg.navTurnLabel ||
+            old.navManeuverArrow != cfg.navManeuverArrow ||
+            old.poiPins != cfg.poiPins ||
             old.colors != cfg.colors)) {
       _enqueue(_pushData);
     }
@@ -206,9 +212,40 @@ class _MapLibreViewState extends State<MapLibreView> {
     if (_activeStyleUrl != _initialStyleUrl) {
       _enqueue(() => controller.setStyle(_activeStyleUrl));
     }
-    widget.config.onReady(
-      _MapLibreCamera(controller, pump: _pump, pixelRatio: () => _pixelRatio),
+    // Peta dicipta semula selepas putaran: pengawal kamera yang sama terus digunakan.
+    if (_cameraAdapter != null) return;
+    final camera = _MapLibreCamera(
+      () => _controller,
+      pump: _pump,
+      pixelRatio: () => _pixelRatio,
     );
+    _cameraAdapter = camera;
+    widget.config.onReady(camera);
+  }
+
+  _MapLibreCamera? _cameraAdapter;
+
+  /// Android: permukaan GL peta native tidak diubah saiz bila telefon diputar. Peta mendatar dilukis
+  /// pada saiz potret dan diregangkan, jadi jalan tidak lagi di bawah kereta 3D (yang dilukis Flutter)
+  /// dan butang. Peta dicipta semula pada orientasi baharu dengan kamera yang sama; overlay dibina
+  /// semula apabila gayanya siap dimuatkan (seperti menukar gaya).
+  Orientation? _orientation;
+  int _mapGeneration = 0;
+  CameraPosition? _carryCamera;
+
+  void _recreateOnRotation() {
+    final orientation = MediaQuery.orientationOf(context);
+    final previous = _orientation;
+    _orientation = orientation;
+    if (previous == null ||
+        previous == orientation ||
+        defaultTargetPlatform != TargetPlatform.android) {
+      return;
+    }
+    _carryCamera = _controller?.cameraPosition ?? _carryCamera;
+    _controller = null;
+    _overlaysReady = false;
+    _mapGeneration++;
   }
 
   @override
@@ -259,6 +296,7 @@ class _MapLibreViewState extends State<MapLibreView> {
   Future<void> _sendCamera(CameraPose pose) async {
     final c = _controller;
     if (c == null) return;
+    await _cameraAdapter?._clearPadding(c);
     await c.moveCamera(
       CameraUpdate.newCameraPosition(
         CameraPosition(
@@ -1054,14 +1092,17 @@ class _MapLibreViewState extends State<MapLibreView> {
   Widget build(BuildContext context) {
     final cfg = widget.config;
     final map = MapLibreMap(
+      key: ValueKey(_mapGeneration),
       // Kekalkan parameter asal; pertukaran gaya dibuat melalui controller.setStyle.
       styleString: _initialStyleUrl,
-      initialCameraPosition: CameraPosition(
-        target: LatLng(cfg.initialCenter.lat, cfg.initialCenter.lng),
-        zoom: cfg.initialZoom,
-        bearing: cfg.initialBearing,
-        tilt: cfg.initialTilt,
-      ),
+      initialCameraPosition:
+          _carryCamera ??
+          CameraPosition(
+            target: LatLng(cfg.initialCenter.lat, cfg.initialCenter.lng),
+            zoom: cfg.initialZoom,
+            bearing: cfg.initialBearing,
+            tilt: cfg.initialTilt,
+          ),
       onMapCreated: _onMapCreated,
       onStyleLoadedCallback: _onStyleLoaded,
       onMapLongClick: (_, latLng) =>
@@ -1105,21 +1146,39 @@ class _MapLibreViewState extends State<MapLibreView> {
 
 class _MapLibreCamera implements MapCameraController {
   _MapLibreCamera(
-    this._controller, {
+    this._current, {
     required this.pump,
     required this.pixelRatio,
   });
 
-  final MapLibreMapController _controller;
+  /// Benar selepas [fitTo] dengan padding. Pada Android padding `newLatLngBounds` KEKAL pada kamera
+  /// dan menganjakkan pusat untuk setiap gerakan seterusnya: selepas pratonton laluan (lembaran besar
+  /// dalam mendatar), kamera navigasi meletakkan kenderaan jauh dari tempat kereta 3D dilukis.
+  bool _padded = false;
+
+  Future<void> _clearPadding(MapLibreMapController c) async {
+    if (!_padded) return;
+    _padded = false;
+    try {
+      await c.updateContentInsets(EdgeInsets.zero);
+    } on Object catch (e) {
+      logDiag('Padding kamera tidak dapat dibuang: $e');
+    }
+  }
+
+  /// Peta semasa. Bukan medan tetap: peta native dicipta semula bila telefon diputar (Android), dan
+  /// pengawal kamera yang dipegang skrin mesti terus menuding ke peta yang hidup.
+  final MapLibreMapController? Function() _current;
+
   final MapFramePump pump;
   final double Function() pixelRatio;
 
   @override
   Future<Offset?> screenPointOf(GeoPoint point) async {
     try {
-      final p = await _controller.toScreenLocation(
-        LatLng(point.lat, point.lng),
-      );
+      final c = _current();
+      if (c == null) return null;
+      final p = await c.toScreenLocation(LatLng(point.lat, point.lng));
       final x = p.x.toDouble(), y = p.y.toDouble();
       if (!x.isFinite || !y.isFinite) return null;
       // Android memulangkan piksel fizikal; iOS memulangkan titik logikal.
@@ -1134,7 +1193,7 @@ class _MapLibreCamera implements MapCameraController {
 
   @override
   CameraPose? get pose {
-    final p = _controller.cameraPosition;
+    final p = _current()?.cameraPosition;
     if (p == null) return null;
     return CameraPose(
       center: GeoPoint(p.target.latitude, p.target.longitude),
@@ -1153,7 +1212,10 @@ class _MapLibreCamera implements MapCameraController {
   @override
   Future<void> animateTo(CameraPose pose) async {
     pump.cancelCamera();
-    await _controller.animateCamera(
+    final c = _current();
+    if (c == null) return;
+    await _clearPadding(c);
+    await c.animateCamera(
       CameraUpdate.newCameraPosition(
         CameraPosition(
           target: LatLng(pose.center.lat, pose.center.lng),
@@ -1171,14 +1233,17 @@ class _MapLibreCamera implements MapCameraController {
 
   @override
   GeoPoint? get center {
-    final target = _controller.cameraPosition?.target;
+    final target = _current()?.cameraPosition?.target;
     return target == null ? null : GeoPoint(target.latitude, target.longitude);
   }
 
   @override
   Future<void> flyTo(GeoPoint target, {double zoom = 15}) async {
     pump.cancelCamera();
-    await _controller.animateCamera(
+    final c = _current();
+    if (c == null) return;
+    await _clearPadding(c);
+    await c.animateCamera(
       CameraUpdate.newLatLngZoom(LatLng(target.lat, target.lng), zoom),
       duration: Motion.emphasized,
     );
@@ -1190,7 +1255,7 @@ class _MapLibreCamera implements MapCameraController {
     final currentZoom = pose?.zoom ?? 11;
     final targetZoom = (currentZoom + amount).clamp(2.0, 20.0).toDouble();
     if (targetZoom == currentZoom) return;
-    await _controller.animateCamera(
+    await _current()?.animateCamera(
       CameraUpdate.zoomBy(targetZoom - currentZoom),
       duration: Motion.normal,
     );
@@ -1214,7 +1279,10 @@ class _MapLibreCamera implements MapCameraController {
       if (p.lng > east) east = p.lng;
     }
 
-    await _controller.animateCamera(
+    final hasPadding =
+        padding.left + padding.top + padding.right + padding.bottom > 0;
+    _padded = _padded || hasPadding;
+    await _current()?.animateCamera(
       CameraUpdate.newLatLngBounds(
         LatLngBounds(
           southwest: LatLng(south, west),

@@ -158,17 +158,24 @@ void main() {
       expect(panel(), findsOneWidget);
     });
 
-    testWidgets('mendatar: tiada kotak besar (jaga pandangan jalan)', (
-      tester,
-    ) async {
-      await pump(
-        tester,
-        ManeuverBanner(progress: progress(next: estimated, distance: 100)),
-        size: const Size(844, 390),
-      );
-      expect(panel(), findsNothing);
-      expect(find.byKey(const ValueKey('lane-hint')), findsOneWidget);
-    });
+    testWidgets(
+      'mendatar: kotak padat juga ada (kad tetap rendah, tanpa baris Kemudian)',
+      (tester) async {
+        await pump(
+          tester,
+          ManeuverBanner(progress: progress(next: estimated, distance: 100)),
+          size: const Size(844, 390),
+        );
+        expect(panel(), findsOneWidget);
+        expect(tester.getSize(panel()).height, lessThanOrEqualTo(92));
+        expect(find.byKey(const ValueKey('lane-hint')), findsOneWidget);
+        // Kad tidak melebihi ~60% tinggi skrin mendatar.
+        expect(
+          tester.getSize(find.byType(ManeuverBanner)).height,
+          lessThan(390 * 0.6),
+        );
+      },
+    );
 
     testWidgets('bulatan: kotak ada tetapi tidak diumumkan dua kali', (
       tester,

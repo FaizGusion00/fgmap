@@ -10,8 +10,8 @@ import '../../map/data/map_style_loader.dart';
 import '../data/splash_controller.dart';
 import 'splash_painter.dart';
 
-/// Splash animasi selepas splash asli (yang berwarna sama): laluan dilukis dari titik mula ke
-/// destinasi, penanda mendarat, nama app muncul. ~1.9 s; ketuk untuk langkau. Dengan Reduce Motion,
+/// Splash animasi selepas splash asli (yang berwarna sama): logo F-laluan dibina — laluan dilukis
+/// dari titik mula, anak panah arah meluncur masuk, nama app muncul. ~1.9 s; ketuk untuk langkau. Dengan Reduce Motion,
 /// logo statik sebentar sahaja. Semasa itu gaya peta dimuat dahulu supaya peta pertama tidak menunggu.
 class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});

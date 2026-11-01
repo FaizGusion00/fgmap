@@ -165,6 +165,40 @@ void main() {
       },
     );
   });
+
+  group('maneuverArrowFor (anak panah belokan di peta)', () {
+    final route = NavRoute(lShapedRoute());
+    final turn = route.maneuvers.firstWhere(
+      (m) => m.kind == ManeuverKind.right,
+    );
+
+    test('mengikut laluan melalui bucu, kepala menghala ke jalan keluar', () {
+      final a = maneuverArrowFor(route, turn, 300)!;
+      final corner = route.pointAt(turn.startM);
+      expect(distanceMeters(a.line.first, corner), closeTo(35, 3));
+      expect(distanceMeters(a.line.last, corner), closeTo(30, 3));
+      // Kepala selepas bucu, ke selatan (jalan keluar).
+      expect(bearingDegrees(a.line.last, a.head.first), closeTo(180, 5));
+      expect(distanceMeters(a.line.last, a.head.first), closeTo(9, 0.5));
+    });
+
+    test(
+      'hanya dalam 600 m; tiada untuk mula/tiba; berubah setiap manuver',
+      () {
+        expect(maneuverArrowFor(route, turn, 900), isNull);
+        expect(maneuverArrowFor(route, route.maneuvers.first, 100), isNull);
+        expect(maneuverArrowFor(route, route.maneuvers.last, 100), isNull);
+        final v1 = maneuverArrowFor(route, turn, 300, routeVersion: 1);
+        final v2 = maneuverArrowFor(route, turn, 100, routeVersion: 2);
+        expect(
+          v1,
+          isNot(v2),
+          reason: 'laluan baharu (kira semula) = anak panah baharu',
+        );
+        expect(v1, maneuverArrowFor(route, turn, 50, routeVersion: 1));
+      },
+    );
+  });
 }
 
 /// Laluan timur 1000 m kemudian selatan 1000 m (garisan yang dilukis).

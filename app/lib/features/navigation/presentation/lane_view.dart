@@ -408,7 +408,8 @@ class _LanePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final n = plan.lanes.length;
     if (n == 0) return;
-    final laneW = math.min(size.width * 0.8 / n, 120.0);
+    // Kotak padat (mendatar): lebar lorong juga dihadkan oleh tinggi, supaya anak panah kekal dalam kotak.
+    final laneW = math.min(math.min(size.width * 0.8 / n, 120.0), size.height);
     final roadW = laneW * n;
     // Jalan rata sepanjang L ke hadapan; kamera condong supaya hujung jauh mengecil.
     final length = size.height * 5.6;

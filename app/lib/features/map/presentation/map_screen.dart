@@ -174,6 +174,8 @@ class _MapScreenState extends ConsumerState<MapScreen>
   void _feedCruise() {
     final location = _tracker.location.value;
     if (location == null || location.stale || !mounted) return;
+    // Peta Android Auto dalam browse dibuka di lokasi pengguna.
+    ref.read(carSessionHubProvider).noteLocation(location.point);
     ref
         .read(cruiseControllerProvider.notifier)
         .noteIdle(
@@ -784,7 +786,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
       clock: ref.read(navClockProvider),
       reduceMotion: MediaQuery.disableAnimationsOf(context),
       onPose: (pose, {required bool following}) =>
-          ref.read(carSessionHubProvider).notePose(pose, following: following),
+          ref.read(carSessionHubProvider).notePose(pose),
     );
     driver.follow.addListener(() {
       if (mounted) setState(() {});
@@ -852,7 +854,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
       clock: ref.read(navClockProvider),
       reduceMotion: MediaQuery.disableAnimationsOf(context),
       onPose: (pose, {required bool following}) =>
-          ref.read(carSessionHubProvider).notePose(pose, following: following),
+          ref.read(carSessionHubProvider).notePose(pose),
     );
     driver.follow.addListener(() {
       if (mounted) setState(() {});
@@ -1243,6 +1245,12 @@ class _MapScreenState extends ConsumerState<MapScreen>
           s.simulated,
           s.rerouting,
           s.routeVersion,
+          // Anak panah belokan dan label nama jalan di peta: hanya bila manuver bertukar atau
+          // melintasi jarak paparannya (bukan setiap kemas kini jarak).
+          s.progress?.next?.index,
+          (s.progress?.distanceToNextM ?? double.infinity) <=
+              maneuverArrowWithinM,
+          (s.progress?.distanceToNextM ?? double.infinity) <= turnLabelWithinM,
         ),
       ),
     );

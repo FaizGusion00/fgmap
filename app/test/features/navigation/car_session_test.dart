@@ -4,6 +4,7 @@ import 'package:fgmap/features/navigation/domain/car_session.dart';
 import 'package:fgmap/features/navigation/domain/instruction_text.dart';
 import 'package:fgmap/features/navigation/domain/lane_plan.dart';
 import 'package:fgmap/features/navigation/domain/nav_route.dart';
+import 'package:fgmap/features/navigation/domain/vehicle_model.dart';
 import 'package:fgmap/features/route_preview/domain/route_option.dart'
     show Lane;
 import 'package:flutter_test/flutter_test.dart';
@@ -316,5 +317,235 @@ void main() {
         'Guna lorong paling kiri',
       );
     });
+  });
+
+  group('kenderaan, ketibaan dan kira semula', () {
+    test('navigasi membawa penanda kenderaan dengan arah', () {
+      final map = mapCarSession(
+        navigating: true,
+        cruising: false,
+        pose: pose,
+        vehicle: const CarVehicle(GeoPoint(3.1, 101.7), 45),
+        navigationRoute: route,
+      ).toMap();
+      expect(map['vehicleLat'], 3.1);
+      expect(map['vehicleLng'], 101.7);
+      expect(map['vehicleBearing'], 45);
+      expect(map['arrived'], isFalse);
+      expect(map['rerouting'], isFalse);
+    });
+
+    test('sebelum fix GPS pertama: tiada pose dan tiada penanda', () {
+      final map = mapCarSession(
+        navigating: true,
+        cruising: false,
+        navigationRoute: route,
+      ).toMap();
+      expect(map['lat'], isNull);
+      expect(map['vehicleLat'], isNull);
+    });
+
+    test('browse di lokasi pengguna: titik tanpa arah, utara ke atas', () {
+      final snap = mapCarSession(
+        navigating: false,
+        cruising: false,
+        pose: carBrowsePose(const GeoPoint(3.15, 101.71)),
+        vehicle: const CarVehicle(GeoPoint(3.15, 101.71)),
+      );
+      final map = snap.toMap();
+      expect(map['lat'], 3.15);
+      expect(map['tilt'], 0);
+      expect(map['bearing'], 0);
+      expect(map['vehicleLat'], 3.15);
+      expect(map['vehicleBearing'], isNull);
+    });
+
+    test(
+      'kira semula dihantar supaya kereta tidak menunjukkan manuver lapuk',
+      () {
+        final snap = mapCarSession(
+          navigating: true,
+          cruising: false,
+          navigationRoute: route,
+          maneuver: 'Belok kanan',
+          rerouting: true,
+        );
+        expect(snap.toMap()['rerouting'], isTrue);
+      },
+    );
+
+    test('tiba: mesej ketibaan, tiada lorong atau kira semula', () {
+      final map = mapCarSession(
+        navigating: true,
+        cruising: false,
+        navigationRoute: route,
+        arrived: true,
+        rerouting: true,
+        destination: 'KLCC',
+        lanes: const [
+          CarLane(['through'], true),
+          CarLane(['right'], false),
+        ],
+        laneHint: 'Guna lorong paling kanan',
+      ).toMap();
+      expect(map['arrived'], isTrue);
+      expect(map['destination'], 'KLCC');
+      expect(map['rerouting'], isFalse);
+      expect(map['lanes'], isEmpty);
+      expect(map['laneHint'], isNull);
+    });
+  });
+
+  group('CarCamera (kamera skrin kereta)', () {
+    final t0 = DateTime(2026, 11, 2, 8);
+    NavManeuver m(int index, ManeuverKind kind, double startM) => NavManeuver(
+      index: index,
+      kind: kind,
+      startM: startM,
+      lengthM: 50,
+      timeS: 5,
+      streetNames: const [],
+    );
+    VehiclePose at(double alongM, {double speed = 8, bool onRoute = true}) =>
+        VehiclePose(
+          point: const GeoPoint(3.1, 101.7),
+          bearing: 30,
+          speedMps: speed,
+          onRoute: onRoute,
+          alongM: alongM,
+        );
+
+    /// [seconds] saat pada 10 Hz; pose terakhir.
+    CameraPose run(
+      CarCamera camera,
+      VehiclePose vehicle, {
+      NavManeuver? next,
+      NavManeuver? following,
+      bool navigating = true,
+      double seconds = 4,
+      DateTime? from,
+    }) {
+      late CameraPose pose;
+      final start = from ?? t0;
+      for (var i = 0; i <= seconds * 10; i++) {
+        pose = camera.step(
+          now: start.add(Duration(milliseconds: 100 * i)),
+          vehicle: vehicle,
+          navigating: navigating,
+          next: next,
+          following: following,
+        );
+      }
+      return pose;
+    }
+
+    test(
+      'berpusat tepat pada kenderaan (hos meletakkannya dengan padding)',
+      () {
+        final pose = CarCamera().step(
+          now: t0,
+          vehicle: at(0),
+          navigating: true,
+          next: m(1, ManeuverKind.right, 2000),
+        );
+        expect(
+          distanceMeters(pose.center, const GeoPoint(3.1, 101.7)),
+          lessThan(0.01),
+        );
+        expect(pose.tilt, greaterThan(40));
+      },
+    );
+
+    test('zum masuk menghampiri belokan', () {
+      final straight = run(
+        CarCamera(),
+        at(0),
+        next: m(1, ManeuverKind.right, 3000),
+      );
+      final turn = run(
+        CarCamera(),
+        at(940),
+        next: m(1, ManeuverKind.right, 1000),
+      );
+      expect(turn.zoom, greaterThan(straight.zoom + 0.5));
+      expect(turn.tilt, lessThan(straight.tilt));
+    });
+
+    test('belokan berangkai (followingGapM): kekal dekat', () {
+      final lone = run(
+        CarCamera(),
+        at(850, speed: 15),
+        next: m(1, ManeuverKind.slightRight, 1000),
+        following: m(2, ManeuverKind.left, 2500),
+      );
+      final chained = run(
+        CarCamera(),
+        at(850, speed: 15),
+        next: m(1, ManeuverKind.slightRight, 1000),
+        following: m(2, ManeuverKind.left, 1100),
+      );
+      expect(chained.zoom, greaterThan(lone.zoom + 0.1));
+    });
+
+    test('pegang zum sejurus selepas belok (sinceTurnM/lastKind)', () {
+      final held = CarCamera();
+      run(held, at(990), next: m(1, ManeuverKind.right, 1000), seconds: 1);
+      final after = run(
+        held,
+        at(1010),
+        next: m(2, ManeuverKind.right, 4000),
+        from: t0.add(const Duration(seconds: 2)),
+      );
+      final fresh = run(
+        CarCamera(),
+        at(1010),
+        next: m(2, ManeuverKind.right, 4000),
+      );
+      expect(after.zoom, greaterThan(fresh.zoom + 0.5));
+    });
+
+    test('laluan baharu (indeks berundur) tidak dikira "baru belok"', () {
+      final camera = CarCamera();
+      run(camera, at(990), next: m(5, ManeuverKind.right, 1000), seconds: 1);
+      final rerouted = run(
+        camera,
+        at(10),
+        next: m(1, ManeuverKind.right, 4000),
+        from: t0.add(const Duration(seconds: 2)),
+      );
+      final fresh = run(
+        CarCamera(),
+        at(10),
+        next: m(1, ManeuverKind.right, 4000),
+      );
+      expect(rerouted.zoom, closeTo(fresh.zoom, 0.05));
+    });
+
+    test('free-ride sentiasa 2D seperti telefon', () {
+      final pose = run(CarCamera(), at(0, onRoute: false), navigating: false);
+      expect(pose.tilt, 0);
+    });
+
+    test(
+      'jurang panjang (kereta bersambung semula): mula semula tanpa sisa',
+      () {
+        final camera = CarCamera();
+        run(camera, at(940), next: m(1, ManeuverKind.right, 1000));
+        final later = camera.step(
+          now: t0.add(const Duration(minutes: 5)),
+          vehicle: at(0),
+          navigating: true,
+          next: m(1, ManeuverKind.right, 3000),
+        );
+        final fresh = CarCamera().step(
+          now: t0,
+          vehicle: at(0),
+          navigating: true,
+          next: m(1, ManeuverKind.right, 3000),
+        );
+        expect(later.zoom, closeTo(fresh.zoom, 1e-9));
+        expect(later.tilt, closeTo(fresh.tilt, 1e-9));
+      },
+    );
   });
 }

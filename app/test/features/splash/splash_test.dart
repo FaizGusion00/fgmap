@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:dio/dio.dart';
@@ -40,26 +41,29 @@ Future<void> _settle(WidgetTester tester) async {
 void main() {
   group('SplashTimeline', () {
     test(
-      'peringkat berurutan: laluan dilukis, kemudian penanda, kemudian nama app',
+      'peringkat berurutan: laluan dilukis, kemudian anak panah, kemudian nama app',
       () {
         const t0 = SplashTimeline(0);
         expect(t0.routeDrawn, 0);
-        expect(t0.pinOpacity, 0);
+        expect(t0.arm, 0);
+        expect(t0.arrowOpacity, 0);
         expect(t0.wordmark, 0);
 
         const mid = SplashTimeline(0.4);
         expect(mid.routeDrawn, inExclusiveRange(0, 1));
-        expect(mid.pinOpacity, 0);
+        expect(mid.arm, inExclusiveRange(0, 1));
+        expect(mid.arrowOpacity, 0);
         expect(mid.startDot, closeTo(1, 0.15));
 
         const late = SplashTimeline(0.72);
         expect(late.routeDrawn, 1);
-        expect(late.pinOpacity, 1);
+        expect(late.arm, 1);
+        expect(late.arrowOpacity, 1);
         expect(late.wordmark, inExclusiveRange(0, 1));
 
         const end = SplashTimeline(1);
         expect(end.routeDrawn, 1);
-        expect(end.pinDrop, closeTo(1, 1e-9));
+        expect(end.arrowIn, closeTo(1, 1e-9));
         expect(end.wordmark, 1);
         expect(end.tagline, 1);
         expect(end.ripple, 1);
@@ -78,24 +82,42 @@ void main() {
 
   group('SplashGeometry', () {
     test(
-      'laluan bermula di titik mula dan berakhir di destinasi (ruang ikon 1024)',
+      'laluan bermula di titik mula, naik, membelok ke kanan dan berakhir di pangkal anak panah',
       () {
         final metric = SplashGeometry.route().computeMetrics().first;
         final start = metric.getTangentForOffset(0)!.position;
-        final end = metric.getTangentForOffset(metric.length)!.position;
+        final end = metric.getTangentForOffset(metric.length)!;
         expect(start, SplashGeometry.start);
-        expect(end.dx, closeTo(756, 0.5));
-        expect(end.dy, closeTo(272, 0.5));
-        expect(metric.length, greaterThan(900));
+        expect(end.position.dx, closeTo(592, 0.5));
+        expect(end.position.dy, closeTo(268, 0.5));
+        // Arah akhir: ke kanan (ke arah anak panah).
+        expect(end.vector.dx, closeTo(1, 1e-3));
+        // Batang 382 + lengkok suku bulatan (r 150) + 70.
+        expect(metric.length, closeTo(382 + math.pi * 75 + 70, 1));
       },
     );
 
-    test('penanda mengelilingi pusatnya dan berada dalam kanvas', () {
-      final bounds = SplashGeometry.pin().getBounds();
-      expect(bounds.contains(SplashGeometry.pinCenter), isTrue);
-      expect(bounds.left, greaterThan(0));
-      expect(bounds.right, lessThan(1024));
-      expect(bounds.bottom, lessThan(1024));
+    test('anak panah mengelilingi pusatnya dan tanda muat dalam ikon 1024', () {
+      final arrow = SplashGeometry.arrow().getBounds();
+      expect(arrow.contains(SplashGeometry.arrowCenter), isTrue);
+      // Sempadan tanda (termasuk separuh lebar garisan dan titik mula) selepas dipetakan ke ruang ikon.
+      final topLeft = SplashGeometry.toIcon(
+        Offset(SplashGeometry.start.dx - 104, arrow.top - 18),
+      );
+      final bottomRight = SplashGeometry.toIcon(
+        Offset(arrow.right + 18, SplashGeometry.start.dy + 104),
+      );
+      for (final v in [
+        topLeft.dx,
+        topLeft.dy,
+        bottomRight.dx,
+        bottomRight.dy,
+      ]) {
+        expect(v, inExclusiveRange(64, 960));
+      }
+      // Tanda berpusat secara mendatar dan menegak dalam ikon.
+      expect((topLeft.dx + bottomRight.dx) / 2, closeTo(512, 1));
+      expect((topLeft.dy + bottomRight.dy) / 2, closeTo(512, 1));
     });
   });
 

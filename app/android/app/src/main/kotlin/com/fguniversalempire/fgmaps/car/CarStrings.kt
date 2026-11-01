@@ -21,4 +21,5 @@ object CarStrings {
     val cruise get() = if (malay) "Memandu bebas" else "Free driving"
     val cannotStart get() = if (malay) "Tidak dapat mulakan laluan" else "Couldn't start the route"
     val place get() = if (malay) "Tempat" else "Place"
+    val arrived get() = if (malay) "Anda telah tiba" else "You have arrived"
 }

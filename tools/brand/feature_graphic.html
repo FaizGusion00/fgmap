@@ -1,0 +1,47 @@
+<!doctype html>
+<!-- Grafik ciri Google Play 1024x500. Dirender oleh tools/brand/build_brand.py (Chrome tanpa kepala). -->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face {
+    font-family: "Jakarta";
+    src: url("../../app/assets/fonts/PlusJakartaSans.ttf");
+    font-weight: 200 800;
+  }
+  html, body { margin: 0; padding: 0; overflow: hidden; }
+  body {
+    width: 1024px; height: 500px; position: relative;
+    font-family: "Jakarta", sans-serif; color: #F7F9FC;
+    background:
+      radial-gradient(circle at 18% 20%, rgba(91,143,232,.35), rgba(91,143,232,0) 55%),
+      linear-gradient(135deg, #1F4C9A 0%, #173B78 50%, #0C1D3F 100%);
+  }
+  /* Tanda besar samar di kanan sebagai hiasan. */
+  .ghost { position: absolute; right: -150px; top: -120px; width: 740px; height: 740px; opacity: .07; }
+  .icon {
+    position: absolute; left: 84px; top: 120px; width: 260px; height: 260px;
+    border-radius: 58px; overflow: hidden;
+    box-shadow: 0 28px 60px rgba(4, 12, 32, .55), 0 0 0 2px rgba(255,255,255,.10);
+  }
+  .icon img { width: 100%; height: 100%; display: block; }
+  .text { position: absolute; left: 404px; top: 132px; }
+  .name { font-size: 104px; font-weight: 800; letter-spacing: -2px; line-height: 1; }
+  .name span { color: #3FF0D2; }
+  .tag { margin-top: 22px; font-size: 34px; font-weight: 600; color: #A9C6F7; }
+  .feat { margin-top: 26px; font-size: 26px; font-weight: 500; color: rgba(247,249,252,.88); }
+  .bar { position: absolute; left: 0; right: 0; bottom: 0; height: 10px;
+         background: linear-gradient(90deg, #19D3B8, #3FF0D2 60%, #2563EB); }
+</style>
+</head>
+<body>
+  <img class="ghost" src="../../app/assets/branding/fgmap-mark.svg" alt="">
+  <div class="icon"><img src="../../app/assets/branding/fgmap-app-icon.svg" alt=""></div>
+  <div class="text">
+    <div class="name">FG<span>Maps</span></div>
+    <div class="tag">Navigasi untuk Malaysia</div>
+    <div class="feat">Offline · Suara BM · Tol &amp; laluan</div>
+  </div>
+  <div class="bar"></div>
+</body>
+</html>
