@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show ValueListenable, ValueNotifier;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/settings/easy_mode_scope.dart';
 import '../../../core/theme/fgmap_theme_extension.dart';
@@ -13,6 +14,7 @@ import '../domain/camera_planner.dart';
 import '../domain/instruction_text.dart';
 import '../domain/nav_route.dart';
 import '../domain/navigation_session.dart';
+import 'junction_provider.dart';
 import 'lane_strip.dart';
 import 'lane_view.dart';
 import 'maneuver_glyph.dart';
@@ -514,10 +516,13 @@ class _BannerContent extends StatelessWidget {
             backgroundColor: onPrimary.withValues(alpha: 0.2),
           ),
         if (lanePanel)
-          LanePanel(
-            maneuver: maneuver,
-            background: colors.background,
-            foreground: colors.foreground,
+          Consumer(
+            builder: (context, ref, _) => LanePanel(
+              maneuver: maneuver,
+              background: colors.background,
+              foreground: colors.foreground,
+              junction: ref.watch(junctionForProvider(maneuver)),
+            ),
           ),
         if (following != null && thenGapM != null)
           ColoredBox(

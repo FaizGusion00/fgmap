@@ -190,6 +190,21 @@ class SpeedLimitService {
     return null;
   }
 
+  /// Respons `trace_attributes` mentah untuk [request] (cth. geometri simpang), daripada sumber
+  /// pertama yang berjaya. Null jika semua gagal.
+  Future<String?> traceRaw(String request, {bool offlineFirst = false}) async {
+    for (final source
+        in offlineFirst ? [_offline, _online] : [_online, _offline]) {
+      try {
+        final body = await source(request);
+        if (body.isNotEmpty) return body;
+      } on Object catch (e) {
+        logDiag('trace_attributes: sumber gagal ($e)');
+      }
+    }
+    return null;
+  }
+
   Future<String> _online(String request) async {
     final response = await _dio.post<Object>(
       _traceUrl,

@@ -1040,6 +1040,30 @@ abstract class AppLocalizations {
   /// **'Anggaran lorong'**
   String get navLaneEstimated;
 
+  /// No description provided for @navJunctionCross.
+  ///
+  /// In ms, this message translates to:
+  /// **'Simpang 4'**
+  String get navJunctionCross;
+
+  /// No description provided for @navJunctionTee.
+  ///
+  /// In ms, this message translates to:
+  /// **'Simpang 3'**
+  String get navJunctionTee;
+
+  /// No description provided for @navJunctionRoundabout.
+  ///
+  /// In ms, this message translates to:
+  /// **'Bulatan · keluar ke-{n}'**
+  String navJunctionRoundabout(int n);
+
+  /// No description provided for @navJunctionSemantics.
+  ///
+  /// In ms, this message translates to:
+  /// **'Gambar simpang: {kind}'**
+  String navJunctionSemantics(String kind);
+
   /// No description provided for @navLaneViewSemantics.
   ///
   /// In ms, this message translates to:

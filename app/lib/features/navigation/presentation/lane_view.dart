@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../core/settings/easy_mode_scope.dart';
 import '../../../core/theme/typography.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../domain/junction.dart';
 import '../domain/lane_guidance.dart';
 import '../domain/lane_plan.dart';
 import '../domain/nav_route.dart';
@@ -23,9 +24,14 @@ class LanePanel extends StatelessWidget {
     required this.background,
     required this.foreground,
     this.height = 124,
+    this.junction,
   });
 
   final NavManeuver maneuver;
+
+  /// Bentuk sebenar simpang (data jalan OSM). Jika ada dan tiada data lorong sebenar, simpang
+  /// dilukis mengikut sudut jalan sebenar menggantikan gambar lorong anggaran.
+  final Junction? junction;
 
   /// Warna kad manuver yang menempatkan kotak ini; latar dan sorotan diterbitkan daripadanya.
   final Color background;
@@ -59,7 +65,22 @@ class LanePanel extends StatelessWidget {
     final String? semantics;
     final Widget art;
     var estimated = false;
-    if (lanes != null) {
+    String? junctionLabel;
+    final j = junction;
+    if (j != null && (lanes == null || lanes.estimated)) {
+      junctionLabel = switch (j.kind) {
+        JunctionKind.cross => l10n.navJunctionCross,
+        JunctionKind.tee => l10n.navJunctionTee,
+        JunctionKind.roundabout => l10n.navJunctionRoundabout(
+          j.roundaboutExit ?? 1,
+        ),
+      };
+      semantics = l10n.navJunctionSemantics(junctionLabel);
+      art = CustomPaint(
+        painter: _JunctionPainter(junction: j, palette: palette),
+        size: Size.infinite,
+      );
+    } else if (lanes != null) {
       final hint = lanes.hint;
       semantics = hint == null
           ? l10n.navLaneViewSemantics(lanes.lanes.length)
@@ -90,6 +111,13 @@ class LanePanel extends StatelessWidget {
                 top: 8,
                 right: 10,
                 child: _EstimateChip(text: l10n.navLaneEstimated),
+              ),
+            // Kiri bawah: jalan masuk sentiasa di tengah bawah, jadi label tidak menutup jalan keluar.
+            if (junctionLabel != null)
+              Positioned(
+                bottom: 8,
+                left: 10,
+                child: _EstimateChip(text: junctionLabel),
               ),
           ],
         ),
@@ -485,6 +513,166 @@ class _LanePainter extends CustomPainter {
   @override
   bool shouldRepaint(_LanePainter old) =>
       old.plan != plan || old.palette != palette;
+}
+
+/// Simpang sebenar dari atas: setiap jalan pada sudut sebenarnya (kelabu), jalan masuk di bawah, dan
+/// laluan kita (biru) dengan anak panah panjang keluar ke jalan yang diambil. Bulatan: gelang sebenar,
+/// laluan mengikut arah lalu lintas (ikut jam) hingga keluar yang diambil, bernombor.
+class _JunctionPainter extends CustomPainter {
+  const _JunctionPainter({required this.junction, required this.palette});
+
+  final Junction junction;
+  final _Palette palette;
+
+  /// Arah skrin untuk sudut relatif [deg] (0 = atas/ke hadapan, 90 = kanan, 180 = bawah).
+  static Offset _dir(double deg) {
+    final r = deg * math.pi / 180;
+    return Offset(math.sin(r), -math.cos(r));
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final h = size.height;
+    final c = Offset(size.width / 2, h * 0.56);
+    final w = h * 0.16; // lebar jalan
+    final len = math.max(size.width, h); // lengan hingga keluar kotak
+    final round = junction.kind == JunctionKind.roundabout;
+    final ringR = round ? h * 0.17 : 0.0;
+
+    Paint stroke(Color color, double width, {StrokeCap cap = StrokeCap.butt}) =>
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = width
+          ..strokeCap = cap
+          ..strokeJoin = StrokeJoin.round;
+
+    final roadPaint = stroke(palette.road, w);
+    final edgePaint = stroke(palette.line.withValues(alpha: 0.5), w + 3);
+
+    // Jalan: tepi nipis dahulu (garis tepi jalan), kemudian badan jalan.
+    final arms = [180.0, junction.exitDeg, ...junction.otherArmsDeg];
+    for (final paint in [edgePaint, roadPaint]) {
+      for (final a in arms) {
+        canvas.drawLine(c + _dir(a) * ringR, c + _dir(a) * len, paint);
+      }
+      if (round) {
+        canvas.drawCircle(c, ringR, paint);
+      } else {
+        canvas.drawCircle(
+          c,
+          paint.strokeWidth * 0.55,
+          Paint()..color = paint.color,
+        );
+      }
+    }
+    if (round) {
+      // Pulau tengah bulatan.
+      canvas.drawCircle(c, ringR - w * 0.5, Paint()..color = palette.backdrop);
+    }
+
+    // Laluan kita: jalur biru di atas jalan.
+    final entryEnd = c + _dir(180) * len;
+    final exitEnd = c + _dir(junction.exitDeg) * len;
+    final route = Path()..moveTo(entryEnd.dx, entryEnd.dy);
+    if (round) {
+      final entryAngle = math.atan2(1, 0);
+      final d = _dir(junction.exitDeg);
+      final exitAngle = math.atan2(d.dy, d.dx);
+      var sweep = exitAngle - entryAngle;
+      while (sweep <= 0.2) {
+        sweep += 2 * math.pi;
+      }
+      final start =
+          c + Offset(math.cos(entryAngle), math.sin(entryAngle)) * ringR;
+      route
+        ..lineTo(start.dx, start.dy)
+        ..arcTo(
+          Rect.fromCircle(center: c, radius: ringR),
+          entryAngle,
+          sweep,
+          false,
+        )
+        ..lineTo(exitEnd.dx, exitEnd.dy);
+    } else {
+      final inP = c + _dir(180) * (w * 0.9);
+      final outP = c + _dir(junction.exitDeg) * (w * 0.9);
+      route
+        ..lineTo(inP.dx, inP.dy)
+        ..quadraticBezierTo(c.dx, c.dy, outP.dx, outP.dy)
+        ..lineTo(exitEnd.dx, exitEnd.dy);
+    }
+    canvas.drawPath(route, stroke(palette.highlight, w * 0.72));
+
+    // Anak panah putih sepanjang laluan, kepala di jalan keluar (jauh dari simpang, jelas).
+    final arrowW = w * 0.22;
+    final tip = c + _dir(junction.exitDeg) * math.min(ringR + w * 2.6, h * 0.5);
+    final metrics = route.computeMetrics().toList();
+    if (metrics.isNotEmpty) {
+      final m = metrics.first;
+      // Panjang laluan hingga hujung anak panah.
+      final exitLen = (exitEnd - tip).distance;
+      final endAt = m.length - exitLen;
+      final startAt = m.length - exitLen - (ringR * 2 + w * 4.2);
+      final shaftEnd = endAt - arrowW * 2.2;
+      if (shaftEnd > startAt) {
+        canvas.drawPath(
+          m.extractPath(math.max(0, startAt), shaftEnd),
+          stroke(palette.arrowOnHighlight, arrowW, cap: StrokeCap.round),
+        );
+      }
+      final t = m.getTangentForOffset(endAt);
+      if (t != null) {
+        final dir = Offset(t.vector.dx, t.vector.dy);
+        final side = Offset(-dir.dy, dir.dx);
+        final headLen = arrowW * 3.0;
+        final base = t.position - dir * headLen;
+        canvas.drawPath(
+          Path()
+            ..moveTo(t.position.dx, t.position.dy)
+            ..lineTo(
+              base.dx + side.dx * headLen * 0.8,
+              base.dy + side.dy * headLen * 0.8,
+            )
+            ..lineTo(
+              base.dx - side.dx * headLen * 0.8,
+              base.dy - side.dy * headLen * 0.8,
+            )
+            ..close(),
+          Paint()..color = palette.arrowOnHighlight,
+        );
+      }
+    }
+
+    // Bulatan: nombor keluar di jalan yang diambil.
+    final n = junction.roundaboutExit;
+    if (round && n != null) {
+      // Di sisi kanan jalan keluar (bukan di hujungnya, yang mungkin di luar kotak).
+      final d = _dir(junction.exitDeg);
+      final p = c + d * (ringR + w * 1.3) + Offset(-d.dy, d.dx) * (w * 1.2);
+      final r = w * 0.55;
+      canvas.drawCircle(p, r, Paint()..color = palette.highlight);
+      canvas.drawCircle(p, r, stroke(palette.arrowOnHighlight, 1.6));
+      final tp = TextPainter(
+        text: TextSpan(
+          text: '$n',
+          style: FgTypography.metricLarge.copyWith(
+            color: palette.arrowOnHighlight,
+            fontSize: r * 1.3,
+            fontWeight: FontWeight.w800,
+            height: 1,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+        textScaler: TextScaler.noScaling,
+      )..layout();
+      tp.paint(canvas, p - Offset(tp.width / 2, tp.height / 2));
+    }
+  }
+
+  @override
+  bool shouldRepaint(_JunctionPainter old) =>
+      old.junction != junction || old.palette != palette;
 }
 
 /// Bulatan dari atas: gelang, jalan masuk di bawah, dan jalan keluar ikut arah lalu lintas (kiri

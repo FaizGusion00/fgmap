@@ -562,6 +562,22 @@ class AppLocalizationsMs extends AppLocalizations {
   String get navLaneEstimated => 'Anggaran lorong';
 
   @override
+  String get navJunctionCross => 'Simpang 4';
+
+  @override
+  String get navJunctionTee => 'Simpang 3';
+
+  @override
+  String navJunctionRoundabout(int n) {
+    return 'Bulatan · keluar ke-$n';
+  }
+
+  @override
+  String navJunctionSemantics(String kind) {
+    return 'Gambar simpang: $kind';
+  }
+
+  @override
   String navLaneViewSemantics(int count) {
     return 'Paparan $count lorong';
   }

@@ -563,6 +563,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navLaneEstimated => 'Estimated lane';
 
   @override
+  String get navJunctionCross => 'Crossroads';
+
+  @override
+  String get navJunctionTee => 'T-junction';
+
+  @override
+  String navJunctionRoundabout(int n) {
+    return 'Roundabout · exit $n';
+  }
+
+  @override
+  String navJunctionSemantics(String kind) {
+    return 'Junction view: $kind';
+  }
+
+  @override
   String navLaneViewSemantics(int count) {
     return 'Lane view, $count lanes';
   }
