@@ -2457,6 +2457,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'I need your location for this. Turn on location and try again.';
 
   @override
+  String get aiOfflineTool =>
+      'That needs an internet connection. You\'re offline right now — try again when you\'re back online, or ask something that works on-device (routes with offline maps, qibla, prayer times).';
+
+  @override
   String get aiRouteCleared => 'Route cleared.';
 
   @override
@@ -2465,12 +2469,33 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get aiNearbyAroundYou => 'Nearby places around you:';
+
+  @override
   String get aiNothingFound => 'I couldn\'t find anything nearby right now.';
 
   @override
   String aiSearchTitle(String query) {
     return 'Here\'s what I found for \"$query\":';
   }
+
+  @override
+  String aiCurrentLocation(String place, String lat, String lng) {
+    return 'You\'re here: $place. Coordinates: $lat, $lng.';
+  }
+
+  @override
+  String aiCurrentLocationCoords(String lat, String lng) {
+    return 'Your GPS position is $lat, $lng. I couldn\'t resolve a place name right now.';
+  }
+
+  @override
+  String get aiCapabilities =>
+      'You can ask me to plan a route, start navigation, find nearby petrol/mosques/food, check weather or air quality, qibla, prayer times, places along your route, or play music/radio. Map commands work without the on-device model.';
+
+  @override
+  String get aiCapabilitiesOffline =>
+      'On-device (offline) features: plan routes if you\'ve downloaded offline maps, qibla direction, and today\'s prayer times. Place search, weather, air quality, music, and Wikipedia need internet. Map commands like \"Route to KLCC\" or \"Where am I\" work without dumping tool lists.';
 
   @override
   String aiWeatherNow(

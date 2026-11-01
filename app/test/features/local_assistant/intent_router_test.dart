@@ -144,6 +144,32 @@ void main() {
       expect((parseIntent('cari Pavilion')! as SearchIntent).query, 'pavilion');
     });
 
+    test('lokasi semasa guna GPS, bukan carian nama tempat', () {
+      expect(
+        parseIntent('Search my current location'),
+        isA<CurrentLocationIntent>(),
+      );
+      expect(parseIntent('where am I'), isA<CurrentLocationIntent>());
+      expect(parseIntent('lokasi saya'), isA<CurrentLocationIntent>());
+      expect(parseIntent('cari lokasi semasa'), isA<CurrentLocationIntent>());
+      expect(parseIntent('my current location'), isA<CurrentLocationIntent>());
+    });
+
+    test('soalan ciri / offline FAQ tidak pergi ke model', () {
+      expect(
+        parseIntent('What can i ask you using your ofline features?'),
+        isA<CapabilitiesIntent>(),
+      );
+      expect(
+        (parseIntent('What can i ask you using your ofline features?')!
+                as CapabilitiesIntent)
+            .offlineFocused,
+        isTrue,
+      );
+      expect(parseIntent('what can you do'), isA<CapabilitiesIntent>());
+      expect(parseIntent('help'), isA<CapabilitiesIntent>());
+    });
+
     test('soalan umum pergi ke model', () {
       expect(parseIntent('Explain tolls in Malaysia'), isNull);
       expect(parseIntent('apa itu sabar?'), isNull);

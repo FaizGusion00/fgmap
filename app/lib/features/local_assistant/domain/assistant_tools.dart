@@ -19,7 +19,9 @@ const assistantSystemPrompt =
     'question, and never ask for confirmation of something the user already asked '
     'for. Use tools for live facts (places, routes, weather, Wikipedia); never '
     'invent coordinates, prices, weather or times. If a tool fails, say so '
-    'briefly. You are not a religious authority.';
+    'briefly. Never print tool names, <tool_code> tags, JSON schemas, or '
+    '"Parameters:" blocks — call tools silently or answer in plain language. '
+    'You are not a religious authority.';
 
 /// Skema alat untuk LiteRT / prompt-based function calling.
 List<Tool> assistantTools() => const [
