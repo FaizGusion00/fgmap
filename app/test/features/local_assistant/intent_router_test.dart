@@ -174,8 +174,7 @@ void main() {
 
     test('soalan umum pergi ke model', () {
       expect(parseIntent('Explain tolls in Malaysia'), isNull);
-      // Topik satu perkataan: Wikipedia dahulu, model sebagai sandaran.
-      expect(parseIntent('apa itu sabar?'), isA<TopicIntent>());
+      expect(parseIntent('apa itu sabar?'), isNull);
       expect(parseIntent('what is the best way to learn english'), isNull);
     });
   });
@@ -248,17 +247,20 @@ void main() {
       _ => null,
     };
 
-    test('pelbagai cara bertanya tentang topik', () {
+    test('permintaan topik jelas dan nama khas -> Wikipedia', () {
       expect(topic('So well wanna ask you about Palestine'), 'palestine');
       expect(topic('Can you tell me the idea about love'), 'love');
-      expect(topic('Who is Albert Einstein'), 'albert einstein');
-      expect(topic('what is a durian?'), 'durian');
-      expect(topic('apa itu durian'), 'durian');
-      expect(
-        topic('siapa perdana menteri malaysia'),
-        'perdana menteri malaysia',
-      );
       expect(topic('cerita pasal sejarah Melaka sikit'), 'sejarah melaka');
+      expect(topic('Who is Albert Einstein'), 'albert einstein');
+      expect(topic('apa itu Proton Saga'), 'proton saga');
+      expect(topic('siapa Tunku Abdul Rahman'), 'tunku abdul rahman');
+    });
+
+    test('soalan bebas huruf kecil -> model (jawab soalan, bukan rencana)', () {
+      expect(topic('what is a durian?'), isNull);
+      expect(topic('apa itu sabar'), isNull);
+      expect(topic('siapa perdana menteri malaysia'), isNull);
+      expect(topic('what is the capital of france'), isNull);
     });
 
     test('bukan topik: diri, masa, perjalanan, identiti', () {
@@ -297,10 +299,7 @@ void main() {
         expect(i, isA<AskSlotIntent>(), reason: t);
         expect((i! as AskSlotIntent).slot, AskSlot.musicQuery, reason: t);
       }
-      expect(
-        (parseIntent('play something')! as PlayMusicIntent).query,
-        '',
-      );
+      expect((parseIntent('play something')! as PlayMusicIntent).query, '');
       expect(
         (parseIntent('play Siti Nurhaliza')! as PlayMusicIntent).query,
         'siti nurhaliza',

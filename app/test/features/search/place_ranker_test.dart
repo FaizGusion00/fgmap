@@ -159,4 +159,39 @@ void main() {
       expect(_ranker.rank(many, 'kedai'), hasLength(24));
     });
   });
+
+  test(
+    'bandar jauh dengan nama tepat mengalahkan kedai berdekatan yang bermula dengan nama itu',
+    () {
+      const kl = GeoPoint(3.139, 101.6869);
+      final ranked = const PlaceRanker().rank(
+        [
+          const Place(
+            name: 'Ipoh Road Yong Tow Foo',
+            subtitle: 'Kuala Lumpur',
+            point: GeoPoint(3.1823, 101.6804),
+            category: 'restaurant',
+            osmKey: 'amenity',
+          ),
+          const Place(
+            name: 'Jalan Ipoh',
+            subtitle: 'Kuala Lumpur',
+            point: GeoPoint(3.2013, 101.6770),
+            category: 'primary',
+            osmKey: 'highway',
+          ),
+          const Place(
+            name: 'Ipoh',
+            subtitle: 'Perak',
+            point: GeoPoint(4.5987, 101.0900),
+            category: 'city',
+            osmKey: 'place',
+          ),
+        ],
+        'ipoh',
+        near: kl,
+      );
+      expect(ranked.first.name, 'Ipoh');
+    },
+  );
 }

@@ -362,7 +362,7 @@ final _routeVerbs = <({RegExp re, bool autoStart})>[
 ];
 
 final _nearbyWords = RegExp(
-  r'\b(?:where\s+(?:can|could|do|should)\s+(?:i|we)\s+(?:find|get|eat|park|pray|refuel|fill|charge|buy)|nak\s+(?:makan|isi\s+minyak|letak\s+kereta|buang\s+air)|lapar|hungry|terkucil|nearest|nearby|near\s+me|closest|around\s+me|terdekat|berdekatan|dekat\s+(?:sini|saya|aku)|sekitar\s+sini|paling\s+dekat)\b',
+  r'\b(?:where\s+(?:can|could|do|should)\s+(?:i|we)\s+(?:find|get|eat|park|pray|refuel|fill|charge|buy)|nak\s+(?:makan|isi\s+minyak|letak\s+kereta|buang\s+air)|lapar|hungry|terkucil|nearest|nearby|near\s+me|closest|around\s+me|terdekat|berdekatan|dekat\s+(?:sini|saya|aku)|dekat(?:\s+(?:je|ja|jer|ni))?$|sekitar\s+sini|paling\s+dekat)\b',
 );
 
 final _alongWords = RegExp(
@@ -387,12 +387,12 @@ AssistantIntent? parseIntent(
   final raw = canonicalizeSlang(normalizeCommand(text));
   if (raw.isEmpty) return null;
 
-  final strict = _restore(_parseCore(raw, ctx));
+  final strict = _restore(_gateTopic(_parseCore(raw, ctx), text));
   if (strict != null) return strict;
 
   final fixed = fuzzyCorrect(raw);
   if (fixed != null) {
-    final second = _restore(_parseCore(fixed, ctx));
+    final second = _restore(_gateTopic(_parseCore(fixed, ctx), text));
     if (second != null) return second;
   }
 
@@ -786,6 +786,30 @@ final _topicWhat = RegExp(
 final _notTopic = RegExp(
   r'^(?:you|u|me|it|this|that|yourself|awak|kamu|anda|saya|aku|dia|ini|itu)$|\b(?:my|your|our|saya|aku|awak|kamu|time|date|today|now|masa|jam|pukul|tarikh|hari\s+ini|sekarang|route|routes|toll|tolls|traffic|laluan|tol|jalan\s+sesak|eta|best|way|ways|how|why|should|difference|between|cara|kenapa|mengapa|bagaimana|patut|beza|terbaik)\b',
 );
+
+/// Wikipedia hanya untuk permintaan topik yang JELAS: "tell me about X" / "cerita pasal X", atau
+/// "who is / what is / apa itu X" bila X ditulis sebagai nama khas ("Who is Albert Einstein",
+/// "What is Palestine"). Soalan bebas ("what is the capital of france", "apa itu sabar?") pergi ke
+/// model, yang menjawab soalan itu sendiri, bukan meringkaskan rencana tentang perkataannya.
+AssistantIntent? _gateTopic(AssistantIntent? intent, String original) {
+  if (intent is! TopicIntent) return intent;
+  final t = canonicalizeSlang(normalizeCommand(original));
+  if (_topicAbout.hasMatch(t)) return intent;
+  return _namedInOriginal(intent.topic, original) ? intent : null;
+}
+
+/// Perkataan pertama [topic] muncul dengan huruf besar dalam teks asal pengguna.
+bool _namedInOriginal(String topic, String original) {
+  final first = topic.split(' ').first;
+  if (first.isEmpty) return false;
+  final m = RegExp(
+    '\\b${RegExp.escape(first)}',
+    caseSensitive: false,
+  ).firstMatch(original);
+  if (m == null) return false;
+  final c = original[m.start];
+  return c != c.toLowerCase() && c == c.toUpperCase();
+}
 
 /// Topik ensiklopedia dalam mesej (sudah dinormalkan), atau null.
 String? topicOf(String t) {

@@ -58,10 +58,13 @@ class PhotonGeocoder implements Geocoder, ReverseGeocoder {
           // Photon hanya menyokong default/en/de/fr/it; "en" memberi nama tempatan jika tiada terjemahan.
           'lang': 'en',
           // Bias lokasi lembut: hasil hampir diutamakan tanpa menyingkirkan yang jauh (bukan `bbox`).
+          // zoom 10, bukan 14: diukur 2026-11-01 dari KL, zoom 14 menyingkirkan bandar jauh sama
+          // sekali ("ipoh" -> "Jalan Ipoh", "kuala terengganu" -> apartmen di KL), manakala zoom 10
+          // memulangkan bandarnya dahulu dan rangkaian berdekatan (Petronas, Mydin) kekal tempatan.
           if (near != null) ...{
             'lat': near.lat,
             'lon': near.lng,
-            'zoom': 14,
+            'zoom': 10,
             'location_bias_scale': 0.35,
           },
         },

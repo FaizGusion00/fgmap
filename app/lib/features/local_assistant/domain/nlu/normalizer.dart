@@ -130,6 +130,33 @@ const _leadersOfG = {
 };
 
 /// Tukar slang kepada bentuk piawai. Input mesti sudah melalui `normalizeCommand` (huruf kecil, tanpa tanda baca).
+/// Kata yang lazim ditulis berganda dengan "2" dalam mesej ("dekat2", "laju2").
+const _reduplicable = {
+  'dekat',
+  'laju',
+  'cepat',
+  'murah',
+  'mahal',
+  'sikit',
+  'betul',
+  'baik',
+  'elok',
+  'besar',
+  'kecil',
+  'kedai',
+  'tempat',
+  'mana',
+  'apa',
+  'sama',
+  'orang',
+  'macam',
+  'nanti',
+  'lagi',
+  'jauh',
+  'sedap',
+  'best',
+};
+
 String canonicalizeSlang(String normalized) {
   final tokens = normalized.split(' ').where((e) => e.isNotEmpty).toList();
   final out = <String>[];
@@ -153,6 +180,13 @@ String canonicalizeSlang(String normalized) {
         continue;
       }
       out.add(w);
+      continue;
+    }
+    // Gandaan tulisan SMS: "dekat2" = "dekat-dekat" -> "dekat". Hanya kata biasa: kod tempat
+    // seperti "ss2" atau "seksyen 2" tidak boleh disentuh.
+    final dup = RegExp(r'^([a-z]+)2$').firstMatch(w);
+    if (dup != null && _reduplicable.contains(dup.group(1))) {
+      out.add(dup.group(1)!);
       continue;
     }
     final rep = slangDictionary[w];

@@ -1,3 +1,4 @@
+import 'package:fgmap/features/local_assistant/domain/intent_router.dart';
 import 'package:fgmap/features/local_assistant/domain/nlu/fuzzy.dart';
 import 'package:fgmap/features/local_assistant/domain/nlu/normalizer.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -50,5 +51,20 @@ void main() {
       expect(fuzzyCorrect('naviagte to klcc'), 'navigate to klcc');
       expect(fuzzyCorrect('navigate to klcc'), isNull);
     });
+  });
+
+  test('gandaan "dekat2" difahami; kod tempat "ss2" tidak disentuh', () {
+    expect(canonicalizeSlang('minyak dekat2 sini'), 'minyak dekat sini');
+    expect(
+      canonicalizeSlang('jalan ss2 petaling jaya'),
+      'jalan ss2 petaling jaya',
+    );
+    for (final t in [
+      'minyak dekat2 sini',
+      'masjid dekat2 sini',
+      'stesen minyak dekat2',
+    ]) {
+      expect(parseIntent(t), isA<NearbyIntent>(), reason: t);
+    }
   });
 }

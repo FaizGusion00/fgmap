@@ -221,6 +221,8 @@ void main() {
         expect(uri.queryParameters['lat'], '3.14');
         expect(uri.queryParameters['lon'], '101.69');
         expect(uri.queryParameters['limit'], '20');
+        // Bias lembut: zoom 14 menyingkirkan bandar jauh ("ipoh" -> "Jalan Ipoh" di KL).
+        expect(uri.queryParameters['zoom'], '10');
       },
     );
 

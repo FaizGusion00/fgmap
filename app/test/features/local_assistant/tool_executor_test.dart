@@ -249,6 +249,26 @@ void main() {
       },
     );
 
+    test('varian yang gagal tidak menghentikan ejaan seterusnya', () async {
+      final g = _VariantGeocoder(
+        match: 'masjid at taufiqiah',
+        place: const Place(
+          name: 'Masjid At-Taufiqiah',
+          subtitle: 'Kuala Terengganu',
+          point: GeoPoint(5.33, 103.14),
+        ),
+        fail: 'masjid attaufiqiah',
+        error: Exception('format ditolak'),
+      );
+      final c = build(geocoder: g, preview: () => _FakeRoutePreview());
+      final r = await c
+          .read(assistantToolExecutorProvider)
+          .planRoute('masjid attaufiqiah');
+      expect(r['ok'], isTrue);
+      expect(r['destination'], 'Masjid At-Taufiqiah');
+      expect(g.queries, ['masjid attaufiqiah', 'masjid at taufiqiah']);
+    });
+
     test(
       'ejaan dirapatkan dicuba berturutan: attaufiqiah -> at taufiqiah',
       () async {
@@ -382,14 +402,22 @@ class _FlakyGeocoder implements Geocoder {
 }
 
 class _VariantGeocoder implements Geocoder {
-  _VariantGeocoder({required this.match, required this.place});
+  _VariantGeocoder({
+    required this.match,
+    required this.place,
+    this.fail,
+    this.error,
+  });
   final String match;
   final Place place;
+  final String? fail;
+  final Object? error;
   final List<String> queries = [];
 
   @override
   Future<List<Place>> search(String query, {GeoPoint? near, cancel}) async {
     queries.add(query);
+    if (fail != null && query == fail) throw error!;
     return query == match ? [place] : const [];
   }
 }

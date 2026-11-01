@@ -125,7 +125,11 @@ class PlaceRanker {
       if (!wantsTransit && isOppositeSide(place.name)) score -= 18;
       if (near != null) {
         final km = distanceMeters(near, place.point) / 1000;
-        score -= 3 * math.log(1 + km / 2) / math.ln2;
+        // Bandar/pekan/negeri ialah destinasi jauh dengan sendirinya: penalti jarak penuh membuat
+        // "Ipoh" (175 km) kalah kepada kedai "Ipoh Road Yong Tow Foo" di KL. Kawasan hanya diberi
+        // sebahagian kecil penalti.
+        final weight = kind == PlaceKind.area ? 0.3 : 1.0;
+        score -= weight * 3 * math.log(1 + km / 2) / math.ln2;
       }
       scored.add(_Scored(i, place, kind, score));
     }

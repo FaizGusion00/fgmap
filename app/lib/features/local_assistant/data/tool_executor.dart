@@ -112,15 +112,17 @@ class AssistantToolExecutor {
 
   Future<bool> _online() => _ref.read(onlineProbeProvider)();
 
-  /// Cari [query] dengan varian ejaan ("attaufiqiah" -> "at taufiqiah") dan SATU ulangan untuk ralat sementara.
-  /// Hasil disusun [PlaceRanker] (nama + jarak) dan bukan sekadar yang pertama daripada pelayan.
-  /// Ralat tidak ditelan: dipulangkan supaya pemanggil memberi mesej yang betul (luar talian / sibuk / perlahan).
+  /// Cari [query] dengan varian ejaan ("attaufiqiah" -> "at taufiqiah") dan SATU ulangan untuk ralat sementara
+  /// pada setiap varian. Varian yang gagal (ralat tetap, atau ulangan sementara yang juga gagal) tidak
+  /// menghentikan ejaan seterusnya. Ralat dikembalikan hanya bila tiada varian yang berjaya, supaya pemanggil
+  /// memberi mesej yang betul (luar talian / sibuk / perlahan). Hasil disusun [PlaceRanker] (nama + jarak).
   Future<({List<Place> places, Object? error})> _findPlaces(
     String query,
     GeoPoint? near, {
     required bool online,
   }) async {
     final geocoder = _ref.read(geocoderProvider);
+    Object? failure;
     for (final variant in placeQueryVariants(query)) {
       for (var attempt = 0; ; attempt++) {
         try {
@@ -140,11 +142,12 @@ class AssistantToolExecutor {
             await Future<void>.delayed(const Duration(milliseconds: 700));
             continue;
           }
-          return (places: const <Place>[], error: e);
+          failure ??= e;
+          break;
         }
       }
     }
-    return (places: const <Place>[], error: null);
+    return (places: const <Place>[], error: failure);
   }
 
   Future<Map<String, Object?>> searchPlace(String? query) async {

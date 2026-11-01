@@ -134,7 +134,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('AI models on this phone'), findsOneWidget);
       expect(find.text('Basic · fast and light'), findsOneWidget);
-        for (final m in aiModelOptions) {
+      for (final m in aiModelOptions) {
         await tester.scrollUntilVisible(
           find.byKey(ValueKey('ai-model-${m.id}')),
           200,

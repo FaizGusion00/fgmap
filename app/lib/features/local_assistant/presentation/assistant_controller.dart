@@ -203,12 +203,22 @@ class AssistantController extends AiChatController {
       if (intent is TopicIntent) {
         reply = await _topic(intent.topic, trimmed, prior, replies, l10n);
       } else if (intent != null) {
-        reply = await _handle(
-          intent,
-          replies,
-          l10n,
-          askModel: () => _askModel(trimmed, prior, replies, l10n),
+        var usedModel = false;
+        reply = await _withDeadline(
+          _handle(
+            intent,
+            replies,
+            l10n,
+            askModel: () {
+              usedModel = true;
+              return _askModel(trimmed, prior, replies, l10n);
+            },
+          ),
+          exempt: () => usedModel,
         );
+        // Jawapan app (templat, kad laluan/tempat), bukan model: ditanda supaya tidak dimainkan
+        // semula kepada model (ia menyalinnya sebagai jawapan soalan seterusnya).
+        if (!usedModel) reply = reply.copyWith(local: true);
       } else if (!state.modelReady) {
         reply = replies.text(l10n.aiNeedModel).copyWith(local: true);
       } else {
@@ -234,6 +244,32 @@ class AssistantController extends AiChatController {
       freshAt: reply.at,
     );
     await persist(all);
+  }
+
+  /// Had masa untuk arahan penghala: pelayan yang tergantung tidak boleh membiarkan "Working on it"
+  /// selamanya. Bila model sedang menjana ([exempt]), tiada had: model besar pada telefon perlahan
+  /// boleh mengambil masa lebih lama dan memotongnya hanya membuang jawapan yang hampir siap.
+  Future<T> _withDeadline<T>(
+    Future<T> work, {
+    required bool Function() exempt,
+    Duration limit = const Duration(seconds: 25),
+  }) {
+    final done = Completer<T>();
+    final timer = Timer(limit, () {
+      if (done.isCompleted || exempt()) return;
+      done.completeError(TimeoutException('FG AI', limit));
+    });
+    work.then(
+      (v) {
+        timer.cancel();
+        if (!done.isCompleted) done.complete(v);
+      },
+      onError: (Object e, StackTrace st) {
+        timer.cancel();
+        if (!done.isCompleted) done.completeError(e, st);
+      },
+    );
+    return done.future;
   }
 
   /// Carian spekulatif ("bagus", "resepi nasi lemak") hanya dipercayai jika nama hasil mengandungi SEMUA perkataan
@@ -320,8 +356,10 @@ class AssistantController extends AiChatController {
     AppLocalizations l10n,
   ) async {
     final malay = l10n.localeName.startsWith('ms');
-    final summary = await _wikiSummary(topic, preferMalay: malay)
-        .timeout(_topicWikiBudget, onTimeout: () => null);
+    final summary = await _wikiSummary(
+      topic,
+      preferMalay: malay,
+    ).timeout(_topicWikiBudget, onTimeout: () => null);
     if (summary != null) {
       return replies.topic(summary).copyWith(local: true);
     }
