@@ -39,6 +39,7 @@ import '../../../core/utils/geo.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../route_preview/data/route_planner.dart' show routeVehicleProvider;
 import '../../route_preview/domain/route_option.dart' show RouteVehicle;
+import '../domain/turn_label.dart';
 import '../../route_preview/domain/route_options_merge.dart';
 import '../../along_route/domain/along_route_category.dart';
 import '../../along_route/domain/along_route_poi.dart';
@@ -59,6 +60,8 @@ import '../../air_quality/presentation/route_haze_banner.dart';
 import '../../local_assistant/data/chat_history_store.dart';
 import '../../local_assistant/presentation/ai_chat_page.dart';
 import '../../local_assistant/presentation/ai_map_bridge.dart';
+import '../../local_assistant/presentation/assistant_controller.dart'
+    show localLlmRuntimeProvider;
 import '../../weather/presentation/weather_page.dart';
 import '../../qibla/presentation/qibla_page.dart';
 import '../../weather/presentation/weather_animated_icon.dart';
@@ -99,6 +102,8 @@ import 'nav_route_line.dart';
 import 'user_location.dart';
 import '../../../core/utils/haptics.dart';
 import '../../../core/utils/log.dart';
+import '../../../core/settings/device_tier.dart';
+import '../../../core/agent/agent_targets.dart';
 
 class MapScreen extends ConsumerStatefulWidget {
   const MapScreen({super.key});
@@ -218,6 +223,10 @@ class _MapScreenState extends ConsumerState<MapScreen>
       if (_ticker?.isActive ?? false) _ticker!.stop();
       if (_cruiseTicker?.isActive ?? false) _cruiseTicker!.stop();
       if (!trip) _tracker.suspend(_Suspend.background);
+      // Model AI pada telefon memegang ratusan MB hingga berbilang GB RAM; tidak perlu di latar.
+      if (ref.exists(localLlmRuntimeProvider)) {
+        unawaited(ref.read(localLlmRuntimeProvider).release());
+      }
     }
     // Pengguna mungkin menukar kebenaran di Tetapan sistem lalu kembali.
     if (state == AppLifecycleState.resumed) {
@@ -760,7 +769,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
       if (mounted) setState(() {});
     });
     _driver = driver;
-    final ticker = createTicker(driver.step);
+    final ticker = createTicker(_frameStep(driver.step));
     _ticker = ticker;
     unawaited(ticker.start());
     setState(() {});
@@ -794,6 +803,19 @@ class _MapScreenState extends ConsumerState<MapScreen>
     if (mounted) setState(() {});
   }
 
+  /// Mod Lite: pemacu bingkai pemanduan pada 30 fps (setiap bingkai kedua), bukan 60/120 fps. Pemacu
+  /// mengira kedudukan daripada masa berlalu, jadi melangkau bingkai tidak memperlahankan pergerakan.
+  void Function(Duration) _frameStep(void Function(Duration) step) {
+    var skip = false;
+    return (elapsed) {
+      if (LiteMode.enabled) {
+        skip = !skip;
+        if (skip) return;
+      }
+      step(elapsed);
+    };
+  }
+
   Future<void> _beginCruise() async {
     final camera = await _camera.future;
     if (!mounted || _cruiseDriver != null) return;
@@ -815,7 +837,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
       if (mounted) setState(() {});
     });
     _cruiseDriver = driver;
-    final ticker = createTicker(driver.step);
+    final ticker = createTicker(_frameStep(driver.step));
     _cruiseTicker = ticker;
     unawaited(ticker.start());
     setState(() {});
@@ -1188,7 +1210,22 @@ class _MapScreenState extends ConsumerState<MapScreen>
     final state = ref.watch(routePreviewControllerProvider);
     final access = ref.watch(locationAccessProvider);
     final controller = ref.read(routePreviewControllerProvider.notifier);
-    final nav = ref.watch(navigationControllerProvider);
+    // Hanya peralihan navigasi (mula, tamat, laluan baharu, reroute) membina semula skrin besar ini.
+    // Kemajuan (4 kali sesaat semasa memandu) dipaparkan oleh HUD dalam Consumer sendiri: memerhati
+    // keseluruhan state di sini membina semula seluruh peta, lembaran dan butang 4 kali sesaat.
+    ref.watch(
+      navigationControllerProvider.select(
+        (s) => (
+          s.phase,
+          s.route,
+          s.query,
+          s.simulated,
+          s.rerouting,
+          s.routeVersion,
+        ),
+      ),
+    );
+    final nav = ref.read(navigationControllerProvider);
     final navSettings = ref.watch(navigationSettingsProvider);
     // Harga minyak hanya diambil (rangkaian) apabila laluan sedia, bukan semasa app dibuka.
     final fuelSettings = ref.watch(fuelSettingsProvider);
@@ -1196,7 +1233,9 @@ class _MapScreenState extends ConsumerState<MapScreen>
         ? ref.watch(effectiveFuelPriceProvider)
         : null;
     final navigating = nav.isActive;
-    final cruising = ref.watch(cruiseControllerProvider).active && !navigating;
+    final cruising =
+        ref.watch(cruiseControllerProvider.select((s) => s.active)) &&
+        !navigating;
     // Kenderaan yang dipilih (kereta/motosikal): sama dengan yang digunakan untuk mengira laluan.
     final vehicle = navigating
         ? (nav.query?.vehicle ?? ref.watch(routeVehicleProvider))
@@ -1363,6 +1402,14 @@ class _MapScreenState extends ConsumerState<MapScreen>
             ]
           : _routeLines(state),
       navRoute: navigating ? _navLineFor(nav) : null,
+      navTurnLabel: navigating && nav.route != null
+          ? turnLabelFor(
+              nav.route!,
+              nav.progress?.next,
+              nav.progress?.distanceToNextM,
+            )
+          : null,
+      poiPins: navigating,
       navAlong: navigating ? _driver?.routeAlong : null,
       // Pemandu menyimpang dan laluan baharu sedang dikira: garisan lama dipudarkan.
       navStale: navigating && nav.rerouting,
@@ -1431,18 +1478,22 @@ class _MapScreenState extends ConsumerState<MapScreen>
                       Row(
                         children: [
                           _GlassIconButton(
+                            agentId: 'map.settings',
                             icon: Icons.tune_rounded,
                             tooltip: l10n.appearanceTooltip,
                             onPressed: () => showSettingsSheet(context),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
-                            child: SearchPill(
-                              label: l10n.searchPillHint,
-                              hint: !_hintDismissed && state is RouteIdle
-                                  ? l10n.mapHintLongPress
-                                  : null,
-                              onTap: _openPlanner,
+                            child: AgentTarget(
+                              id: 'map.search',
+                              child: SearchPill(
+                                label: l10n.searchPillHint,
+                                hint: !_hintDismissed && state is RouteIdle
+                                    ? l10n.mapHintLongPress
+                                    : null,
+                                onTap: _openPlanner,
+                              ),
                             ),
                           ),
                         ],
@@ -1470,10 +1521,14 @@ class _MapScreenState extends ConsumerState<MapScreen>
                       const SizedBox(height: 8),
                       MapToolsRow(
                         leading: state is RouteIdle
-                            ? const AzanTodayPill()
+                            ? const AgentTarget(
+                                id: 'map.prayer',
+                                child: AzanTodayPill(),
+                              )
                             : null,
                         tools: [
                           MapToolSpec(
+                            agentId: 'tool.weather',
                             icon: Icons.wb_cloudy_rounded,
                             label: l10n.weatherOpen,
                             color: const Color(0xFF0284C7),
@@ -1481,6 +1536,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
                                 unawaited(showWeatherPage(context)),
                           ),
                           MapToolSpec(
+                            agentId: 'tool.air',
                             icon: Icons.air_rounded,
                             label: l10n.airQualityOpen,
                             color: const Color(0xFF0D9488),
@@ -1488,18 +1544,21 @@ class _MapScreenState extends ConsumerState<MapScreen>
                                 unawaited(showAirQualitySheet(context)),
                           ),
                           MapToolSpec(
+                            agentId: 'tool.qibla',
                             icon: Icons.explore_rounded,
                             label: l10n.qiblaOpen,
                             color: const Color(0xFFD97706),
                             onPressed: () => unawaited(showQibla(context)),
                           ),
                           MapToolSpec(
+                            agentId: 'tool.music',
                             icon: Icons.music_note_rounded,
                             label: l10n.musicOpen,
                             color: const Color(0xFFDB2777),
                             onPressed: () => unawaited(showMusicSheet(context)),
                           ),
                           MapToolSpec(
+                            agentId: 'tool.offline',
                             icon: Icons.cloud_download_rounded,
                             label: l10n.offlineMapsOpen,
                             color: const Color(0xFF2563EB),
@@ -1567,12 +1626,14 @@ class _MapScreenState extends ConsumerState<MapScreen>
                                   const SizedBox(height: 8),
                                 ],
                                 _GlassIconButton(
+                                  agentId: 'map.sos',
                                   icon: Icons.emergency_rounded,
                                   tooltip: l10n.emergencyTooltip,
                                   onPressed: _openEmergency,
                                 ),
                                 const SizedBox(height: 8),
                                 _GlassIconButton(
+                                  agentId: 'map.report',
                                   icon: Icons.add_alert_rounded,
                                   tooltip: l10n.reportButtonTooltip,
                                   onPressed: _openReport,
@@ -1580,6 +1641,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
                                 const SizedBox(height: 8),
                               ],
                               _GlassIconButton(
+                                agentId: 'map.locate',
                                 icon: Icons.my_location_rounded,
                                 tooltip: l10n.myLocation,
                                 onPressed: _onMyLocationPressed,
@@ -1710,7 +1772,19 @@ class _MapScreenState extends ConsumerState<MapScreen>
                           : 76)
                     : 0,
               ),
-            if (navigating) ..._navigationOverlay(nav, navSettings, azanNow),
+            if (navigating)
+              Positioned.fill(
+                child: Consumer(
+                  builder: (context, liveRef, _) => Stack(
+                    children: _navigationOverlay(
+                      liveRef,
+                      liveRef.watch(navigationControllerProvider),
+                      navSettings,
+                      azanNow,
+                    ),
+                  ),
+                ),
+              ),
             if (!navigating && azanNow != null)
               SafeArea(
                 child: Align(
@@ -1739,10 +1813,20 @@ class _MapScreenState extends ConsumerState<MapScreen>
           alignment: Alignment.bottomLeft,
           child: Padding(
             padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + lift),
-            child: SpeedBubble(
-              speedMps: ref.watch(cruiseControllerProvider).speedMps,
-              limitKmh: ref.watch(cruiseControllerProvider).limitKmh,
-              overspeed: ref.watch(cruiseControllerProvider).overspeed,
+            // Kelajuan berubah pada setiap fix GPS: hanya gelembung ini dibina semula.
+            child: Consumer(
+              builder: (context, liveRef, _) {
+                final c = liveRef.watch(
+                  cruiseControllerProvider.select(
+                    (s) => (s.speedMps, s.limitKmh, s.overspeed),
+                  ),
+                );
+                return SpeedBubble(
+                  speedMps: c.$1,
+                  limitKmh: c.$2,
+                  overspeed: c.$3,
+                );
+              },
             ),
           ),
         ),
@@ -1764,6 +1848,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
   /// Mendatar: kad manuver dan panel di sebelah kiri, butang di sebelah kanan, dan bahagian tengah
   /// dibiarkan kosong supaya kereta dan jalan di hadapan tidak terlindung.
   List<Widget> _navigationOverlay(
+    WidgetRef liveRef,
     NavigationState nav,
     NavigationSettings settings,
     Prayer? azanNow,
@@ -1773,7 +1858,9 @@ class _MapScreenState extends ConsumerState<MapScreen>
     final landscape = media.size.width > media.size.height;
     // Terus daripada tetapan (bukan EasyModeScope): konteks ini berada di atas skop yang dibina
     // oleh skrin ini sendiri.
-    final easy = ref.watch(appPreferencesProvider.select((p) => p.easyMode));
+    final easy = liveRef.watch(
+      appPreferencesProvider.select((p) => p.easyMode),
+    );
     final metrics = NavHudMetrics.forSize(media.size, easy: easy);
     final follow = _driver?.follow.value ?? NavFollow.following;
     final arrived = nav.phase == NavPhase.arrived;
@@ -1786,7 +1873,11 @@ class _MapScreenState extends ConsumerState<MapScreen>
     final nextStopM = arrived ? null : navCtl.nextStopDistanceM;
     final bannerChildren = <Widget>[
       if (progress != null && !arrived)
-        ManeuverBanner(progress: progress, liveAlongM: _driver?.alongM),
+        ManeuverBanner(
+          progress: progress,
+          liveAlongM: _driver?.alongM,
+          motorcycle: nav.query?.vehicle == RouteVehicle.motorcycle,
+        ),
       if (camera != null && !arrived)
         Material(
           key: const ValueKey('camera-alert-banner'),
@@ -2311,7 +2402,11 @@ class _GlassIconButton extends StatelessWidget {
     required this.tooltip,
     required this.onPressed,
     this.loading = false,
+    this.agentId,
   });
+
+  /// Id ejen FG AI (cth. `map.settings`).
+  final String? agentId;
 
   final IconData icon;
   final String tooltip;
@@ -2321,22 +2416,25 @@ class _GlassIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fg = context.fg;
-    return PressScale(
-      child: Material(
-        color: fg.glassSurface,
-        shape: CircleBorder(side: BorderSide(color: fg.glassBorder)),
-        elevation: 2,
-        shadowColor: Colors.black.withValues(alpha: 0.16),
-        child: IconButton(
-          tooltip: tooltip,
-          onPressed: loading ? null : onPressed,
-          icon: loading
-              ? const SizedBox.square(
-                  dimension: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : Icon(icon),
-          color: Theme.of(context).colorScheme.onSurface,
+    return AgentTarget(
+      id: agentId,
+      child: PressScale(
+        child: Material(
+          color: fg.glassSurface,
+          shape: CircleBorder(side: BorderSide(color: fg.glassBorder)),
+          elevation: 2,
+          shadowColor: Colors.black.withValues(alpha: 0.16),
+          child: IconButton(
+            tooltip: tooltip,
+            onPressed: loading ? null : onPressed,
+            icon: loading
+                ? const SizedBox.square(
+                    dimension: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Icon(icon),
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
         ),
       ),
     );
@@ -2413,7 +2511,7 @@ class _MapLoadingState extends State<_MapLoading>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (MediaQuery.disableAnimationsOf(context)) {
+    if (MediaQuery.disableAnimationsOf(context) || LiteMode.enabled) {
       _pulse.stop();
     } else if (!_pulse.isAnimating) {
       _pulse.repeat(reverse: true);

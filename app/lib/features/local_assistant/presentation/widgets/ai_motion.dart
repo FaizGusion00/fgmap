@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import '../../../../core/settings/device_tier.dart';
 
 /// Animasi sembang AI (titik menaip, kilauan, kursor, pendedahan teks) TIDAK mengikut
 /// `MediaQuery.disableAnimations`.
@@ -13,5 +14,6 @@ abstract final class AiMotion {
   @visibleForTesting
   static bool forceStatic = false;
 
-  static bool reduce(BuildContext context) => forceStatic;
+  /// Mod Lite (telefon lemah): animasi AI statik dan teks terus dipaparkan.
+  static bool reduce(BuildContext context) => forceStatic || LiteMode.enabled;
 }

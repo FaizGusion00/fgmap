@@ -22,6 +22,9 @@ enum AiPhase {
   /// Alat sedang berjalan (laluan, carian, cuaca...).
   working,
 
+  /// FG AI sedang mencari maklumat terkini di internet.
+  browsing,
+
   /// FGMuslim: mencari dalam teks klasik.
   searching,
 }

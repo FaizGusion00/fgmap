@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/agent/agent_targets.dart';
 import '../../../core/settings/easy_mode_scope.dart';
 import '../../../core/theme/fgmap_theme_extension.dart';
 import '../../../core/widgets/press_scale.dart';
@@ -12,7 +13,11 @@ class MapToolSpec {
     required this.label,
     required this.color,
     required this.onPressed,
+    this.agentId,
   });
+
+  /// Id untuk ejen FG AI (cth. `tool.weather`), supaya ia boleh menekan alat ini.
+  final String? agentId;
 
   final IconData icon;
 
@@ -180,6 +185,10 @@ class _ToolButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return AgentTarget(id: spec.agentId, child: _button(context));
+  }
+
+  Widget _button(BuildContext context) {
     return PressScale(
       child: Tooltip(
         message: spec.label,
@@ -237,37 +246,47 @@ class _OverflowButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    return PopupMenuButton<int>(
-      key: const ValueKey('tool-rail-more'),
-      tooltip: l10n.mapToolsMore,
-      padding: EdgeInsets.zero,
-      position: PopupMenuPosition.under,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      onSelected: (i) => tools[i].onPressed(),
-      itemBuilder: (context) => [
-        for (var i = 0; i < tools.length; i++)
-          PopupMenuItem<int>(
-            value: i,
-            child: Row(
-              children: [
-                Icon(tools[i].icon, color: tools[i].color, size: 22),
-                const SizedBox(width: 12),
-                Text(tools[i].label),
-              ],
+    // Ejen membuka menu ini untuk mencapai alat yang tersembunyi (`tool.more`), kemudian menekan
+    // item `menu.<id>`.
+    return AgentTarget(
+      id: 'tool.more',
+      child: PopupMenuButton<int>(
+        key: const ValueKey('tool-rail-more'),
+        tooltip: l10n.mapToolsMore,
+        padding: EdgeInsets.zero,
+        position: PopupMenuPosition.under,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        onSelected: (i) => tools[i].onPressed(),
+        itemBuilder: (context) => [
+          for (var i = 0; i < tools.length; i++)
+            PopupMenuItem<int>(
+              value: i,
+              child: AgentTarget(
+                id: tools[i].agentId == null
+                    ? null
+                    : 'menu.${tools[i].agentId}',
+                child: Row(
+                  children: [
+                    Icon(tools[i].icon, color: tools[i].color, size: 22),
+                    const SizedBox(width: 12),
+                    Text(tools[i].label),
+                  ],
+                ),
+              ),
             ),
-          ),
-      ],
-      child: SizedBox.square(
-        dimension: size,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.08),
-          ),
-          child: Icon(
-            Icons.more_horiz_rounded,
-            size: easy ? 26 : size * 0.56,
-            color: theme.colorScheme.onSurfaceVariant,
+        ],
+        child: SizedBox.square(
+          dimension: size,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.08),
+            ),
+            child: Icon(
+              Icons.more_horiz_rounded,
+              size: easy ? 26 : size * 0.56,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
       ),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../route_preview/domain/route_option.dart';
 import '../domain/lane_guidance.dart';
+import '../domain/lane_plan.dart';
 import '../domain/nav_route.dart';
 
 /// Panduan lorong di bawah arahan pada kad manuver.
@@ -18,12 +19,17 @@ class LaneGuidance extends StatelessWidget {
     required this.distanceM,
     required this.color,
     this.compact = false,
+    this.showStrip = true,
   });
 
   final NavManeuver maneuver;
   final double distanceM;
   final Color color;
   final bool compact;
+
+  /// Palsu apabila kotak lorong besar sudah dipaparkan: hanya ayat ("Guna lorong paling kanan")
+  /// dikekalkan supaya lorong tidak dilukis dua kali.
+  final bool showStrip;
 
   /// Benar jika ada sesuatu untuk ditunjukkan bagi [maneuver] pada [distanceM].
   static bool shows(NavManeuver maneuver, double distanceM) {
@@ -36,11 +42,23 @@ class LaneGuidance extends StatelessWidget {
     if (!shows(maneuver, distanceM)) return const SizedBox.shrink();
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    if (maneuver.lanes.isNotEmpty) {
+    final plan = lanePlanFor(maneuver);
+    if (maneuver.lanes.isNotEmpty && plan != null && showStrip) {
       return _LaneStrip(lanes: maneuver.lanes, color: color, compact: compact);
     }
-    final side = laneSideFor(maneuver)!;
-    final text = side == LaneSide.left ? l10n.navLaneLeft : l10n.navLaneRight;
+    final hint = plan?.hint;
+    final side = laneSideFor(maneuver);
+    final String? text;
+    if (hint != null) {
+      text = laneHintText(l10n, hint);
+    } else if (maneuver.lanes.isEmpty && side != null) {
+      text = side == LaneSide.left
+          ? l10n.navLaneLeftmost
+          : l10n.navLaneRightmost;
+    } else {
+      text = null;
+    }
+    if (text == null) return const SizedBox.shrink();
     return Padding(
       key: const ValueKey('lane-hint'),
       padding: const EdgeInsets.only(top: 4),
@@ -48,18 +66,22 @@ class LaneGuidance extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            side == LaneSide.left
+            (side ?? LaneSide.right) == LaneSide.left
                 ? Icons.subdirectory_arrow_left_rounded
                 : Icons.subdirectory_arrow_right_rounded,
             size: compact ? 16 : 18,
             color: color,
           ),
           const SizedBox(width: 6),
-          Text(
-            text,
-            style: theme.textTheme.labelLarge?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w700,
+          Flexible(
+            child: Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: color,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],
@@ -67,6 +89,21 @@ class LaneGuidance extends StatelessWidget {
     );
   }
 }
+
+/// Ayat petunjuk lorong ("Guna lorong paling kanan") daripada [hint].
+String laneHintText(AppLocalizations l10n, LaneHint hint) =>
+    switch (hint.kind) {
+      LaneHintKind.rightmost =>
+        hint.count == 1
+            ? l10n.navLaneRightmost
+            : l10n.navLaneRightmostN(hint.count),
+      LaneHintKind.leftmost =>
+        hint.count == 1
+            ? l10n.navLaneLeftmost
+            : l10n.navLaneLeftmostN(hint.count),
+      LaneHintKind.nthFromLeft => l10n.navLaneNthFromLeft(hint.count),
+      LaneHintKind.nthFromRight => l10n.navLaneNthFromRight(hint.count),
+    };
 
 class _LaneStrip extends StatelessWidget {
   const _LaneStrip({

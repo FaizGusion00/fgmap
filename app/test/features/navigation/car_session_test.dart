@@ -1,6 +1,11 @@
 import 'package:fgmap/core/utils/geo.dart';
 import 'package:fgmap/features/navigation/domain/camera_planner.dart';
 import 'package:fgmap/features/navigation/domain/car_session.dart';
+import 'package:fgmap/features/navigation/domain/instruction_text.dart';
+import 'package:fgmap/features/navigation/domain/lane_plan.dart';
+import 'package:fgmap/features/navigation/domain/nav_route.dart';
+import 'package:fgmap/features/route_preview/domain/route_option.dart'
+    show Lane;
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -172,6 +177,144 @@ void main() {
     test('tanpa Waktu Azan: tiada baris', () {
       final snap = mapCarSession(navigating: false, cruising: false);
       expect(snap.toMap()['prayerLine'], isNull);
+    });
+  });
+
+  group('lorong di skrin kereta', () {
+    final realPlan = lanePlanFor(
+      const NavManeuver(
+        index: 1,
+        kind: ManeuverKind.right,
+        startM: 0,
+        lengthM: 100,
+        timeS: 10,
+        streetNames: [],
+        lanes: [
+          Lane(directions: Lane.through),
+          Lane(directions: Lane.through | Lane.right, valid: Lane.right),
+        ],
+      ),
+    );
+
+    test(
+      'data sebenar dihantar: anak panah kiri ke kanan dan lorong disyorkan',
+      () {
+        final lanes = carLanesFor(realPlan);
+        expect(lanes, hasLength(2));
+        expect(lanes[0].arrows, ['through']);
+        expect(lanes[0].recommended, isFalse);
+        expect(lanes[1].arrows, ['through', 'right']);
+        expect(lanes[1].recommended, isTrue);
+      },
+    );
+
+    test(
+      'anggaran tidak pernah dihantar: UI lorong kereta tiada label anggaran',
+      () {
+        final estimated = lanePlanFor(
+          const NavManeuver(
+            index: 1,
+            kind: ManeuverKind.right,
+            startM: 0,
+            lengthM: 100,
+            timeS: 10,
+            streetNames: [],
+          ),
+        );
+        expect(estimated!.estimated, isTrue);
+        expect(carLanesFor(estimated), isEmpty);
+        expect(carLanesFor(null), isEmpty);
+      },
+    );
+
+    test('navigasi membawa lorong dan ayat; browse/cruise tidak', () {
+      final nav = mapCarSession(
+        navigating: true,
+        cruising: false,
+        pose: pose,
+        navigationRoute: route,
+        lanes: carLanesFor(realPlan),
+        laneHint: 'Guna lorong paling kanan',
+      );
+      final map = nav.toMap();
+      expect(map['laneHint'], 'Guna lorong paling kanan');
+      expect((map['lanes'] as List).first, {
+        'arrows': ['through'],
+        'recommended': false,
+        'highlighted': <String>[],
+      });
+      for (final cruising in [false, true]) {
+        final other = mapCarSession(
+          navigating: false,
+          cruising: cruising,
+          pose: pose,
+          lanes: carLanesFor(realPlan),
+          laneHint: 'Guna lorong paling kanan',
+        );
+        expect(other.toMap()['lanes'], isEmpty);
+        expect(other.toMap()['laneHint'], isNull);
+      }
+    });
+
+    test('ayat sisi BM dan EN daripada InstructionText', () {
+      const ms = InstructionText(VoiceLanguage.ms);
+      const en = InstructionText(VoiceLanguage.en);
+      NavManeuver of(ManeuverKind k, {List<Lane> lanes = const []}) =>
+          NavManeuver(
+            index: 1,
+            kind: k,
+            startM: 0,
+            lengthM: 1,
+            timeS: 1,
+            streetNames: const [],
+            lanes: lanes,
+          );
+      expect(ms.laneHint(of(ManeuverKind.right)), 'Guna lorong paling kanan');
+      expect(en.laneHint(of(ManeuverKind.left)), 'Use the leftmost lane');
+      expect(ms.laneHint(of(ManeuverKind.straight)), isNull);
+      final two = of(
+        ManeuverKind.right,
+        lanes: const [
+          Lane(directions: Lane.through),
+          Lane(directions: Lane.right, valid: Lane.right, active: Lane.right),
+          Lane(directions: Lane.right, valid: Lane.right),
+        ],
+      );
+      expect(ms.laneHint(two), 'Guna 2 lorong paling kanan');
+      expect(en.laneHint(two), 'Use the 2 rightmost lanes');
+      final middle = of(
+        ManeuverKind.slightRight,
+        lanes: [
+          for (var i = 0; i < 5; i++)
+            Lane(directions: Lane.through, valid: i == 1 ? Lane.through : 0),
+        ],
+      );
+      expect(ms.laneHint(middle), 'Guna lorong ke-2 dari kiri');
+      expect(en.laneHint(middle), 'Use lane 2 from the left');
+      // Data lorong ada tetapi tiada sorotan: tiada ayat palsu daripada sisi manuver.
+      final unknown = of(
+        ManeuverKind.right,
+        lanes: const [
+          Lane(directions: Lane.through),
+          Lane(directions: Lane.right),
+        ],
+      );
+      expect(ms.laneHint(unknown), isNull);
+      // Bulatan keluar 1: tiada pelan, jatuh kepada sisi bulatan.
+      expect(
+        ms.laneHint(
+          NavManeuver(
+            index: 1,
+            kind: ManeuverKind.roundabout,
+            startM: 0,
+            lengthM: 1,
+            timeS: 1,
+            streetNames: const [],
+            roundaboutExit: 1,
+          ),
+        ),
+        'Guna lorong paling kiri',
+      );
     });
   });
 }

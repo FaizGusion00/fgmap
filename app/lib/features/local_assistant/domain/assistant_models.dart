@@ -69,6 +69,7 @@ const aiModelOptions = <AiModelOption>[
     minRamGb: 6,
     modelType: ModelType.gemma4,
     url: '$_hf/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm',
+    maxOutputTokens: 600,
   ),
   AiModelOption(
     id: 'Qwen3.5-4B_mixed_int4.litertlm',
@@ -78,6 +79,7 @@ const aiModelOptions = <AiModelOption>[
     minRamGb: 8,
     modelType: ModelType.qwen35,
     url: '$_hf/Qwen3.5-4B/resolve/main/Qwen3.5-4B_mixed_int4.litertlm',
+    maxOutputTokens: 600,
   ),
   AiModelOption(
     id: 'gemma-4-E4B-it.litertlm',
@@ -87,6 +89,7 @@ const aiModelOptions = <AiModelOption>[
     minRamGb: 8,
     modelType: ModelType.gemma4,
     url: '$_hf/gemma-4-E4B-it-litert-lm/resolve/main/gemma-4-E4B-it.litertlm',
+    maxOutputTokens: 600,
   ),
 ];
 
@@ -95,6 +98,22 @@ AiModelOption get defaultAiModel => aiModelOptions.first;
 
 /// Kunci tetapan model yang dipilih (nama fail).
 const aiModelPrefsKey = 'assistant.model.id';
+
+/// Model yang disyorkan untuk telefon dengan [ramGb] RAM: model paling pintar yang muat dengan selesa.
+/// Tidak diketahui (0) = asas.
+AiModelOption recommendedAiModel(double ramGb) {
+  String name;
+  if (ramGb >= 7.5) {
+    name = 'Gemma 4 E4B';
+  } else if (ramGb >= 5.5) {
+    name = 'Gemma 4 E2B';
+  } else if (ramGb >= 3.7) {
+    name = 'Qwen3.5 0.8B';
+  } else {
+    return defaultAiModel;
+  }
+  return aiModelOptions.firstWhere((m) => m.name == name);
+}
 
 AiModelOption aiModelById(String? id) =>
     aiModelOptions.where((m) => m.id == id).firstOrNull ?? defaultAiModel;

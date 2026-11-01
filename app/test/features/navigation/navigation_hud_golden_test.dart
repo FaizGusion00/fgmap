@@ -8,6 +8,8 @@ import 'package:fgmap/features/navigation/domain/nav_route.dart';
 import 'package:fgmap/features/navigation/domain/navigation_session.dart';
 import 'package:fgmap/features/navigation/presentation/navigation_controller.dart';
 import 'package:fgmap/features/navigation/presentation/navigation_hud.dart';
+import 'package:fgmap/features/route_preview/domain/route_option.dart'
+    show Lane;
 import 'package:fgmap/features/speed_limits/domain/speed_limits.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -20,6 +22,7 @@ NavManeuver maneuver(
   double startM, {
   List<String> streets = const [],
   int? exit,
+  List<Lane> lanes = const [],
 }) => NavManeuver(
   index: index,
   kind: kind,
@@ -28,6 +31,7 @@ NavManeuver maneuver(
   timeS: 40,
   streetNames: streets,
   roundaboutExit: exit,
+  lanes: lanes,
 );
 
 NavProgress progress({
@@ -173,6 +177,46 @@ void main() {
           speed: 8,
         ),
         rerouting: true,
+      ),
+      false,
+    ),
+    // Tiada data lorong (kebiasaan di Malaysia): kotak anggaran ditanda jelas.
+    'lane_estimated': (
+      stateFor(
+        progress(
+          next: maneuver(
+            6,
+            ManeuverKind.right,
+            1450,
+            streets: ['Persiaran Bestari'],
+          ),
+          distance: 130,
+          speed: 13.9,
+        ),
+      ),
+      false,
+    ),
+    // Data lorong sebenar (turn:lanes): tiga lorong, dua disorot.
+    'lane_real': (
+      stateFor(
+        progress(
+          next: maneuver(
+            7,
+            ManeuverKind.slightRight,
+            1450,
+            streets: ['Jalan Tun Razak'],
+            lanes: const [
+              Lane(directions: Lane.through),
+              Lane(
+                directions: Lane.through | Lane.slightRight,
+                active: Lane.slightRight,
+              ),
+              Lane(directions: Lane.slightRight, active: Lane.slightRight),
+            ],
+          ),
+          distance: 220,
+          speed: 16.7,
+        ),
       ),
       false,
     ),

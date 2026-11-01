@@ -29,6 +29,7 @@ import '../../saved_places/presentation/save_place_sheet.dart';
 import '../../search/presentation/search_history_controller.dart';
 import '../../trip_history/presentation/trip_history_page.dart';
 import 'about_page.dart';
+import '../../../core/settings/device_tier.dart';
 
 /// Membuka halaman Tetapan (skrin penuh). Nama lama dikekalkan supaya panggilan sedia ada tidak berubah.
 Future<void> showSettingsSheet(BuildContext context) => Navigator.of(
@@ -332,6 +333,14 @@ class _Label extends StatelessWidget {
   }
 }
 
+/// "Telefon ini: RAM 3.8 GB · Mod Lite aktif. …"; tanpa RAM jika peranti tidak melaporkannya.
+String _liteHint(AppLocalizations l10n, DeviceInfo device, bool active) {
+  final state = active ? l10n.settingsLiteActive : l10n.settingsLiteInactive;
+  return device.totalMemGb > 0
+      ? l10n.settingsLiteModeHint(device.totalMemGb.toStringAsFixed(1), state)
+      : l10n.settingsLiteModeHintNoRam(state);
+}
+
 class _AppearanceGroup extends ConsumerWidget {
   const _AppearanceGroup();
 
@@ -431,6 +440,25 @@ class _AppearanceGroup extends ConsumerWidget {
             subtitle: l10n.settingsReduceMotionHint,
             value: prefs.reduceMotion,
             onChanged: prefsController.setReduceMotion,
+          ),
+          _Label(
+            l10n.settingsLiteMode,
+            hint: _liteHint(
+              l10n,
+              ref.watch(deviceInfoProvider),
+              ref.watch(liteModeProvider),
+            ),
+          ),
+          _OptionBar<LiteSetting>(
+            key: const ValueKey('lite-mode'),
+            selected: ref.watch(liteSettingProvider),
+            onChanged: (v) =>
+                unawaited(ref.read(liteSettingProvider.notifier).set(v)),
+            options: [
+              _Option(LiteSetting.auto, l10n.settingsLiteAuto),
+              _Option(LiteSetting.on, l10n.settingsLiteOn),
+              _Option(LiteSetting.off, l10n.settingsLiteOff),
+            ],
           ),
           _CompactSwitch(
             key: const ValueKey('haptics-switch'),

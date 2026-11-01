@@ -21,6 +21,54 @@ import '../domain/prayer_times.dart';
 /// Jam untuk waktu azan; diganti dalam ujian.
 final azanClockProvider = Provider<DateTime Function()>((ref) => DateTime.now);
 
+/// Masa semasa yang dikemas kini tepat pada setiap pergantian minit, untuk kiraan "1 j 12 min lagi"
+/// pada pil dan lembaran waktu solat. Tanpa ini teks itu hanya berubah bila skrin kebetulan dibina
+/// semula. Satu pemasa seminit (bukan sesaat), dan berhenti bila tiada widget yang memerhati.
+final azanMinuteClockProvider =
+    NotifierProvider.autoDispose<AzanMinuteClock, DateTime>(
+      AzanMinuteClock.new,
+    );
+
+class AzanMinuteClock extends Notifier<DateTime> {
+  Timer? _timer;
+
+  @override
+  DateTime build() {
+    final clock = ref.watch(azanClockProvider);
+    ref.onDispose(() => _timer?.cancel());
+    final now = clock();
+    _arm(clock, now);
+    return now;
+  }
+
+  void _arm(DateTime Function() clock, DateTime now) {
+    _timer?.cancel();
+    final intoMinute = Duration(
+      seconds: now.second,
+      milliseconds: now.millisecond,
+    );
+    // Sedikit selepas sempadan supaya pembundaran tidak jatuh pada minit yang sama.
+    final wait =
+        const Duration(minutes: 1) -
+        intoMinute +
+        const Duration(milliseconds: 50);
+    _timer = Timer(wait, () {
+      if (!ref.mounted) return;
+      final t = clock();
+      state = t;
+      _arm(clock, t);
+    });
+  }
+
+  /// App kembali ke depan: pemasa mungkin tertunda oleh sistem semasa di latar.
+  void refresh() {
+    final clock = ref.read(azanClockProvider);
+    final now = clock();
+    state = now;
+    _arm(clock, now);
+  }
+}
+
 @immutable
 class AzanState {
   const AzanState({
@@ -429,6 +477,9 @@ class AzanController extends Notifier<AzanState> {
   /// mematikan notifikasi) dan lokasi disegarkan; jadual dikemas kini jika perlu.
   Future<void> onAppResumed() async {
     _foreground = true;
+    if (ref.exists(azanMinuteClockProvider)) {
+      ref.read(azanMinuteClockProvider.notifier).refresh();
+    }
     ref.invalidateSelf();
     await refreshPermissionState();
     if (ref.mounted && ref.read(azanSettingsProvider).enabled) {

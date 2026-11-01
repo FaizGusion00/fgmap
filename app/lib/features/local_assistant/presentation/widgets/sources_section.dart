@@ -95,6 +95,9 @@ class _SourcesSectionState extends State<SourcesSection> {
     final fatwa = widget.sources
         .where((s) => s.kind == AnswerSourceKind.fatwa)
         .toList();
+    final web = widget.sources
+        .where((s) => s.kind == AnswerSourceKind.web)
+        .toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -113,7 +116,9 @@ class _SourcesSectionState extends State<SourcesSection> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    Icons.auto_stories_rounded,
+                    web.length == widget.sources.length
+                        ? Icons.public_rounded
+                        : Icons.auto_stories_rounded,
                     size: 16,
                     color: widget.color,
                   ),
@@ -134,10 +139,8 @@ class _SourcesSectionState extends State<SourcesSection> {
             ),
           ),
         ),
-        AnimatedSize(
+        _MaybeAnimatedSize(
           duration: Motion.of(context, Motion.normal),
-          curve: Motion.standard,
-          alignment: Alignment.topLeft,
           child: !_open
               ? const SizedBox(width: double.infinity)
               : Padding(
@@ -151,6 +154,15 @@ class _SourcesSectionState extends State<SourcesSection> {
                           _SourceCard(
                             source: classical[i],
                             index: classical[i].n ?? i + 1,
+                            color: widget.color,
+                          ),
+                      ],
+                      if (web.isNotEmpty) ...[
+                        _GroupLabel(l10n.aiWebSources),
+                        for (var i = 0; i < web.length; i++)
+                          _SourceCard(
+                            source: web[i],
+                            index: web[i].n ?? i + 1,
                             color: widget.color,
                           ),
                       ],
@@ -307,4 +319,24 @@ class _SourceCard extends StatelessWidget {
   }
 
   static bool _hasArabic(String s) => RegExp(r'[؀-ۿ]').hasMatch(s);
+}
+
+/// `AnimatedSize` dengan tempoh sifar (Kurangkan animasi / Mod Lite) mengubah dirinya semasa
+/// susun atur dan mencetuskan ralat "mutated in its own performLayout": tanpa animasi, tiada
+/// `AnimatedSize` langsung.
+class _MaybeAnimatedSize extends StatelessWidget {
+  const _MaybeAnimatedSize({required this.duration, required this.child});
+
+  final Duration duration;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => duration == Duration.zero
+      ? child
+      : AnimatedSize(
+          duration: duration,
+          curve: Motion.standard,
+          alignment: Alignment.topLeft,
+          child: child,
+        );
 }

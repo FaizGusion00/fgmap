@@ -114,6 +114,24 @@ abstract final class AppConfig {
     defaultValue: 'https://api.islamic.app',
   );
 
+  /// FG AI: maklumat terkini percuma tanpa kunci (ADR 0018). DuckDuckGo Instant Answer untuk
+  /// ringkasan entiti (carian web penuh DDG menyekat permintaan automatik), Google News RSS untuk tajuk
+  /// berita Malaysia, dan API awam Bank Negara Malaysia untuk kadar tukaran rasmi.
+  static const duckDuckGoApiUrl = String.fromEnvironment(
+    'DUCKDUCKGO_API_URL',
+    defaultValue: 'https://api.duckduckgo.com/',
+  );
+
+  static const googleNewsRssUrl = String.fromEnvironment(
+    'GOOGLE_NEWS_RSS_URL',
+    defaultValue: 'https://news.google.com/rss/search',
+  );
+
+  static const bnmApiUrl = String.fromEnvironment(
+    'BNM_API_URL',
+    defaultValue: 'https://api.bnm.gov.my/public',
+  );
+
   static const mapStyleLight = String.fromEnvironment(
     'MAP_STYLE_LIGHT',
     defaultValue: 'https://tiles.openfreemap.org/styles/liberty',
@@ -144,6 +162,9 @@ abstract final class AppConfig {
     'WAKTU_SOLAT_URL': waktuSolatUrl,
     'RADIO_BROWSER_URLS': radioBrowserUrls.join(','),
     'OFFLINE_MANIFEST_URL': offlineManifestUrl,
+    'DUCKDUCKGO_API_URL': duckDuckGoApiUrl,
+    'GOOGLE_NEWS_RSS_URL': googleNewsRssUrl,
+    'BNM_API_URL': bnmApiUrl,
     'MAP_STYLE_LIGHT': mapStyleLight,
     'MAP_STYLE_DARK': mapStyleDark,
     'MAP_STYLE_NIGHT_BASE': mapStyleNightBase,

@@ -58,11 +58,8 @@ const _prefsKey = 'diag.errors.v1';
 /// koordinat dan dipendekkan, supaya lokasi tidak terdedah walaupun ralat berpunca daripada permintaan
 /// rangkaian.
 class ErrorLog {
-  ErrorLog({
-    this._prefs,
-    this.capacity = 50,
-    DateTime Function()? clock,
-  }) : _clock = clock ?? DateTime.now {
+  ErrorLog({this._prefs, this.capacity = 50, DateTime Function()? clock})
+    : _clock = clock ?? DateTime.now {
     _load();
   }
 

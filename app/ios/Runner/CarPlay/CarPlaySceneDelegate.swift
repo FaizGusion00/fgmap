@@ -108,14 +108,20 @@ final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegat
       distanceRemaining: Measurement(value: toManeuverM, unit: UnitLength.meters),
       timeRemaining: toManeuverS
     )
-    if currentManeuver == nil || currentManeuverText != text {
+    // Ayat sisi ("Guna lorong paling kanan") datang kemudian daripada teks manuver (dalam 700 m),
+    // jadi ia sebahagian daripada kunci perubahan. Lorong grafik (CPLaneGuidance) sengaja tidak
+    // dihantar: konvensyen sudut CPLane tidak didokumenkan dan tidak dapat disahkan tanpa CarPlay
+    // sebenar; lorong tercermin lebih buruk daripada tiada lorong.
+    let laneHint = (session["laneHint"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+    let maneuverKey = text + "|" + (laneHint ?? "")
+    if currentManeuver == nil || currentManeuverText != maneuverKey {
       let maneuver = CPManeuver()
-      maneuver.instructionVariants = [text]
+      maneuver.instructionVariants = laneHint.map { ["\(text). \($0)", text] } ?? [text]
       maneuver.symbolImage = CarManeuverSymbol.image(for: kind)
       maneuver.initialTravelEstimates = maneuverEstimates
       navSession.upcomingManeuvers = [maneuver]
       currentManeuver = maneuver
-      currentManeuverText = text
+      currentManeuverText = maneuverKey
     } else if let maneuver = currentManeuver {
       navSession.updateEstimates(maneuverEstimates, for: maneuver)
     }

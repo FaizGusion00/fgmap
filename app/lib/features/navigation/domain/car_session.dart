@@ -2,10 +2,58 @@ import 'package:flutter/foundation.dart';
 
 import '../../../core/utils/geo.dart';
 import 'camera_planner.dart';
+import 'lane_plan.dart';
 import 'speed_bubble_data.dart';
 
 /// Mod yang dikongsi telefon dan Android Auto. Hanya satu yang memiliki kamera.
 enum CarDriveMode { browse, cruise, navigating }
+
+/// Satu lorong untuk skrin kereta: nama [LaneArrow] yang dibenarkan (kiri ke kanan) dan sama ada ia
+/// disyorkan. Hanya daripada data lorong sebenar (lihat [carLanesFor]).
+@immutable
+class CarLane {
+  const CarLane(this.arrows, this.recommended, [this.highlighted = const []]);
+
+  final List<String> arrows;
+  final bool recommended;
+
+  /// Arah dalam lorong ini yang sebenarnya disyorkan (subset [arrows]); kosong jika tidak disyorkan.
+  final List<String> highlighted;
+
+  Map<String, Object?> toMap() => {
+    'arrows': arrows,
+    'recommended': recommended,
+    'highlighted': highlighted,
+  };
+
+  @override
+  bool operator ==(Object other) =>
+      other is CarLane &&
+      other.recommended == recommended &&
+      listEquals(other.arrows, arrows) &&
+      listEquals(other.highlighted, highlighted);
+
+  @override
+  int get hashCode => Object.hash(
+    recommended,
+    Object.hashAll(arrows),
+    Object.hashAll(highlighted),
+  );
+}
+
+/// Lorong untuk dihantar ke hos kereta. Hanya data lorong SEBENAR: UI lorong asli Android Auto dan
+/// CarPlay tiada label "anggaran", jadi lorong yang diterbitkan daripada jenis manuver (anggaran)
+/// tidak pernah dihantar; kereta hanya menerima ayat sisi ([CarSessionSnapshot.laneHint]).
+List<CarLane> carLanesFor(LanePlan? plan) => plan == null || plan.estimated
+    ? const []
+    : [
+        for (final l in plan.lanes)
+          CarLane(
+            [for (final a in l.arrows) a.name],
+            l.recommended,
+            [for (final a in l.highlighted) a.name],
+          ),
+      ];
 
 /// Gambar sesi untuk hos kereta. Laluan hanya ada semasa navigasi.
 @immutable
@@ -32,6 +80,8 @@ class CarSessionSnapshot {
     this.alongCue,
     this.airAqi,
     this.prayerLine,
+    this.lanes = const [],
+    this.laneHint,
   });
 
   final CarDriveMode mode;
@@ -73,6 +123,13 @@ class CarSessionSnapshot {
   /// Waktu solat seterusnya, cth. "Asar 16:28" (browse dan cruise; hilang semasa navigasi supaya
   /// tidak bersaing dengan manuver). Hanya bila Waktu Azan dihidupkan.
   final String? prayerLine;
+
+  /// Lorong sebenar manuver seterusnya (kosong jika tiada data atau terlalu jauh).
+  final List<CarLane> lanes;
+
+  /// Ayat sisi ("Guna lorong paling kanan") untuk kereta tanpa data lorong; boleh berasal daripada
+  /// anggaran kerana ia hanya menyebut sisi.
+  final String? laneHint;
 
   bool get hasRoute => mode == CarDriveMode.navigating && route.length >= 2;
 
@@ -118,6 +175,8 @@ class CarSessionSnapshot {
       'driveAlert': driveAlert,
       'airAqi': airAqi,
       'prayerLine': prayerLine,
+      'lanes': [for (final l in lanes) l.toMap()],
+      'laneHint': laneHint,
     };
   }
 }
@@ -148,6 +207,8 @@ CarSessionSnapshot mapCarSession({
   String? alongCue,
   String? airAqi,
   String? prayerLine,
+  List<CarLane> lanes = const [],
+  String? laneHint,
 }) {
   final mode = navigating
       ? CarDriveMode.navigating
@@ -182,6 +243,8 @@ CarSessionSnapshot mapCarSession({
       cameraAlert: cameraAlert,
       weatherAlert: weatherAlert,
       alongCue: along,
+      lanes: lanes,
+      laneHint: laneHint,
     );
   }
   if (mode == CarDriveMode.cruise) {

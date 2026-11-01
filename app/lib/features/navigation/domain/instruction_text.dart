@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import '../../reports/domain/report.dart';
 
 import 'lane_guidance.dart';
+import 'lane_plan.dart';
 import 'nav_route.dart';
 
 /// Bahasa arahan. Ayat dijana sendiri daripada jenis manuver (Bahagian 8.2 pelan), bukan teks
@@ -107,6 +108,42 @@ class InstructionText {
     return switch (laneSideFor(m)) {
       LaneSide.left => _ms ? 'Guna lorong kiri.' : 'Use the left lane.',
       LaneSide.right => _ms ? 'Guna lorong kanan.' : 'Use the right lane.',
+      null => null,
+    };
+  }
+
+  /// "Guna lorong paling kanan" untuk kad dan skrin kereta (tanpa noktah). Daripada pelan lorong
+  /// (data sebenar atau anggaran sisi); bulatan tanpa pelan jatuh kepada sisi bulatan. Null jika
+  /// tiada petunjuk jujur.
+  String? laneHint(NavManeuver m) {
+    final hint = lanePlanFor(m)?.hint;
+    if (hint != null) {
+      final n = hint.count;
+      return switch (hint.kind) {
+        LaneHintKind.rightmost =>
+          n == 1
+              ? (_ms ? 'Guna lorong paling kanan' : 'Use the rightmost lane')
+              : (_ms
+                    ? 'Guna $n lorong paling kanan'
+                    : 'Use the $n rightmost lanes'),
+        LaneHintKind.leftmost =>
+          n == 1
+              ? (_ms ? 'Guna lorong paling kiri' : 'Use the leftmost lane')
+              : (_ms
+                    ? 'Guna $n lorong paling kiri'
+                    : 'Use the $n leftmost lanes'),
+        LaneHintKind.nthFromLeft =>
+          _ms ? 'Guna lorong ke-$n dari kiri' : 'Use lane $n from the left',
+        LaneHintKind.nthFromRight =>
+          _ms ? 'Guna lorong ke-$n dari kanan' : 'Use lane $n from the right',
+      };
+    }
+    if (m.lanes.isNotEmpty) return null;
+    return switch (laneSideFor(m)) {
+      LaneSide.left =>
+        _ms ? 'Guna lorong paling kiri' : 'Use the leftmost lane',
+      LaneSide.right =>
+        _ms ? 'Guna lorong paling kanan' : 'Use the rightmost lane',
       null => null,
     };
   }

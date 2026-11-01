@@ -107,6 +107,34 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     });
 
+    testWidgets(
+      'berhenti selepas 3 pancaran: tiada bingkai lagi (jimat bateri)',
+      (tester) async {
+        await pumpApp(
+          tester,
+          const Scaffold(
+            body: Center(
+              child: SearchWaveIcon(
+                burst: Duration(milliseconds: 400),
+                rest: Duration(milliseconds: 300),
+                firstDelay: Duration(milliseconds: 100),
+              ),
+            ),
+          ),
+        );
+        final painter = _painter(tester);
+        // 3 pancaran + rehat: 100 + 3*400 + 2*300 = 1900 ms.
+        for (var i = 0; i < 30; i++) {
+          await tester.pump(const Duration(milliseconds: 100));
+        }
+        expect(painter.progress.value, 1);
+        await tester.pump(const Duration(seconds: 5));
+        expect(painter.progress.value, 1, reason: 'tiada pancaran keempat');
+        expect(tester.binding.hasScheduledFrame, isFalse);
+        await tester.pumpWidget(const SizedBox());
+      },
+    );
+
     testWidgets('Reduce Motion: tiada gelombang langsung', (tester) async {
       reduceMotion(tester);
       await pumpApp(

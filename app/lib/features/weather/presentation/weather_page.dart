@@ -16,6 +16,7 @@ import '../domain/weather_codes.dart';
 import '../domain/weather_forecast.dart';
 import 'weather_animated_icon.dart';
 import 'weather_page_controller.dart';
+import '../../../core/agent/agent_targets.dart';
 
 /// Buka halaman Cuaca penuh (lokasi semasa + tempat disimpan).
 Future<void> showWeatherPage(BuildContext context) =>
@@ -126,11 +127,14 @@ class _WeatherPageState extends ConsumerState<WeatherPage> {
                 onPressed: () => unawaited(ctrl.removePlace(selected.id)),
                 icon: const Icon(Icons.delete_outline_rounded),
               ),
-            IconButton(
-              key: const ValueKey('weather-search'),
-              tooltip: l10n.weatherAddPlace,
-              onPressed: () => unawaited(_search()),
-              icon: const Icon(Icons.search_rounded),
+            AgentTarget(
+              id: 'weather.search',
+              child: IconButton(
+                key: const ValueKey('weather-search'),
+                tooltip: l10n.weatherAddPlace,
+                onPressed: () => unawaited(_search()),
+                icon: const Icon(Icons.search_rounded),
+              ),
             ),
           ],
         ),
@@ -1198,25 +1202,28 @@ class _WeatherSearchSheetState extends ConsumerState<_WeatherSearchSheet> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: TextField(
-                key: const ValueKey('weather-search-input'),
-                controller: _input,
-                autofocus: true,
-                textInputAction: TextInputAction.search,
-                onChanged: _onChanged,
-                onSubmitted: _search,
-                decoration: InputDecoration(
-                  hintText: l10n.weatherSearchHint,
-                  prefixIcon: const Icon(Icons.search_rounded),
-                  suffixIcon: _loading
-                      ? const Padding(
-                          padding: EdgeInsets.all(14),
-                          child: SizedBox.square(
-                            dimension: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        )
-                      : null,
+              child: AgentTarget(
+                id: 'weather.search.input',
+                child: TextField(
+                  key: const ValueKey('weather-search-input'),
+                  controller: _input,
+                  autofocus: true,
+                  textInputAction: TextInputAction.search,
+                  onChanged: _onChanged,
+                  onSubmitted: _search,
+                  decoration: InputDecoration(
+                    hintText: l10n.weatherSearchHint,
+                    prefixIcon: const Icon(Icons.search_rounded),
+                    suffixIcon: _loading
+                        ? const Padding(
+                            padding: EdgeInsets.all(14),
+                            child: SizedBox.square(
+                              dimension: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        : null,
+                  ),
                 ),
               ),
             ),
@@ -1235,15 +1242,18 @@ class _WeatherSearchSheetState extends ConsumerState<_WeatherSearchSheet> {
                 itemCount: _results.length,
                 itemBuilder: (context, i) {
                   final p = _results[i];
-                  return ListTile(
-                    leading: const Icon(Icons.location_city_rounded),
-                    title: Text(p.name),
-                    subtitle: Text(
-                      p.subtitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                  return AgentTarget(
+                    id: i < 3 ? 'weather.result.$i' : null,
+                    child: ListTile(
+                      leading: const Icon(Icons.location_city_rounded),
+                      title: Text(p.name),
+                      subtitle: Text(
+                        p.subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      onTap: () => Navigator.of(context).pop(p),
                     ),
-                    onTap: () => Navigator.of(context).pop(p),
                   );
                 },
               ),

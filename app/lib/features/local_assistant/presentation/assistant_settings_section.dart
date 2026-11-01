@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
 import '../data/muslim_ai_settings.dart';
+import '../data/web_settings.dart';
 import '../domain/local_llm.dart';
 import 'ai_model_sheet.dart';
 import 'assistant_controller.dart';
@@ -77,6 +78,20 @@ class AssistantSettingsSection extends ConsumerWidget {
           onPressed: () => unawaited(showAiModelSheet(context)),
           icon: const Icon(Icons.memory_rounded),
           label: Text(l10n.aiModelsManage),
+        ),
+        const SizedBox(height: 8),
+        SwitchListTile(
+          key: const ValueKey('assistant-auto-web'),
+          contentPadding: EdgeInsets.zero,
+          secondary: Icon(
+            Icons.public_rounded,
+            color: theme.colorScheme.primary,
+          ),
+          title: Text(l10n.assistantAutoWebTitle),
+          subtitle: Text(l10n.assistantAutoWebSubtitle),
+          value: ref.watch(assistantAutoWebProvider),
+          onChanged: (v) =>
+              unawaited(ref.read(assistantAutoWebProvider.notifier).set(v)),
         ),
         const SizedBox(height: 16),
         const Divider(height: 1),

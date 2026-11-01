@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 
 import '../utils/geo.dart';
 import '../utils/log.dart';
+import '../settings/device_tier.dart';
 
 enum LocationAccess {
   /// Belum diberi, tetapi sistem masih membenarkan kita meminta: sama ada belum pernah diminta atau
@@ -268,10 +269,12 @@ class GeolocatorLocationService implements LocationService {
   static LocationSettings trackingSettings(TargetPlatform platform) {
     switch (platform) {
       case TargetPlatform.android:
+        // Mod Lite: titik biru dikemas kini setiap 4 s / 10 m (cukup untuk peta terbiar) bagi
+        // menjimatkan bateri pada telefon lemah. Navigasi menggunakan tetapan sendiri.
         return AndroidSettings(
           accuracy: LocationAccuracy.high,
-          distanceFilter: 5,
-          intervalDuration: const Duration(seconds: 2),
+          distanceFilter: LiteMode.enabled ? 10 : 5,
+          intervalDuration: Duration(seconds: LiteMode.enabled ? 4 : 2),
         );
       case TargetPlatform.iOS:
       case TargetPlatform.macOS:

@@ -189,6 +189,21 @@ void main() {
       expect(find.byType(AzanSheet), findsOneWidget);
     });
 
+    testWidgets('pil: baki masa berdetik setiap minit tanpa sentuhan', (
+      tester,
+    ) async {
+      now = DateTime(2026, 10, 31, 14, 0, 30);
+      await pump(tester, const AzanTodayPill());
+      // Asar 16:25; 2 j 24 min 30 s dibundarkan ke atas.
+      expect(find.textContaining('2 j 25 min'), findsOneWidget);
+      now = DateTime(2026, 10, 31, 14, 1, 0, 50);
+      await tester.pump(const Duration(seconds: 31));
+      expect(find.textContaining('2 j 24 min'), findsOneWidget);
+      now = DateTime(2026, 10, 31, 14, 2, 0, 100);
+      await tester.pump(const Duration(minutes: 1));
+      expect(find.textContaining('2 j 23 min'), findsOneWidget);
+    });
+
     testWidgets(
       'selepas Isyak pil menunjukkan Subuh esok, bukan label kosong',
       (tester) async {

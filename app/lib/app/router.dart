@@ -8,6 +8,7 @@ import '../features/onboarding/data/onboarding_controller.dart';
 import '../features/onboarding/presentation/onboarding_page.dart';
 import '../features/splash/data/splash_controller.dart';
 import '../features/splash/presentation/splash_page.dart';
+import '../core/agent/agent_controller.dart';
 
 const _splashPath = '/splash';
 const _onboardingPath = '/onboarding';
@@ -38,6 +39,8 @@ final routerProvider = Provider<GoRouter>((ref) {
 
   final openOnMap = ref.read(splashDoneProvider);
   return GoRouter(
+    // Ejen FG AI kembali ke peta dan membuka halaman melalui navigator akar ini.
+    navigatorKey: rootNavigatorKey,
     initialLocation: openOnMap ? '/' : _splashPath,
     refreshListenable: refresh,
     redirect: (context, state) {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'weather_icon_painter.dart';
+import '../../../core/settings/device_tier.dart';
 
 /// Ikon cuaca berwarna dengan gerakan: matahari bersinar dan berputar, bulan dan bintang berkelip,
 /// awan hanyut, hujan dan salji jatuh, kilat berkelip, kabus bergerak. Dilukis sendiri
@@ -38,7 +39,7 @@ class _WeatherAnimatedIconState extends State<WeatherAnimatedIcon>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (MediaQuery.disableAnimationsOf(context)) {
+    if (MediaQuery.disableAnimationsOf(context) || LiteMode.enabled) {
       _c.stop();
       _c.value = _stillProgress;
     } else if (!_c.isAnimating) {
@@ -90,7 +91,7 @@ class _WeatherSevereBannerState extends State<WeatherSevereBanner>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (MediaQuery.disableAnimationsOf(context)) {
+    if (MediaQuery.disableAnimationsOf(context) || LiteMode.enabled) {
       _c.stop();
     } else if (!_c.isAnimating) {
       _c.repeat(reverse: true);

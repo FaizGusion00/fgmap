@@ -23,6 +23,7 @@ import 'features/offline_maps/data/offline_engine_host.dart';
 import 'features/offline_maps/data/offline_map_store.dart';
 import 'features/reports/data/reports_repository.dart';
 import 'features/reports/presentation/reports_controller.dart';
+import 'core/settings/device_tier.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,11 +47,13 @@ Future<void> main() async {
   // ialah data boleh dimuat turun semula, bukan data pengguna.
   //
   // Kedua-duanya panggilan platform yang bebas, jadi dijalankan serentak (satu round-trip, bukan dua).
-  final (prefs, support, documents) = await (
+  final (prefs, support, documents, device) = await (
     SharedPreferences.getInstance(),
     getApplicationSupportDirectory(),
     // Muzik yang diimport ialah kandungan pengguna: Documents (bukan Application Support).
     getApplicationDocumentsDirectory(),
+    // RAM/teras untuk Mod Lite: diketahui sebelum bingkai pertama supaya kesan tidak berkelip.
+    DeviceInfo.read(),
   ).wait;
   // Log ralat tempatan (tidak dihantar); pengendali global memasangnya sebelum apa-apa kod app berjalan.
   final errorLog = ErrorLog(prefs: prefs);
@@ -67,6 +70,7 @@ Future<void> main() async {
     ProviderScope(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
+        deviceInfoProvider.overrideWithValue(device),
         errorLogProvider.overrideWithValue(errorLog),
         mapStyleCacheDirProvider.overrideWithValue(styleCache),
         offlineMapStoreProvider.overrideWithValue(offlineStore),

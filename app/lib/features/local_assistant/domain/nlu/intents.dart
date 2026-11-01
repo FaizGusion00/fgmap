@@ -290,3 +290,73 @@ class ConversationContext {
   /// AI baru bertanya "nak ke mana?": jawapan pendek seterusnya ialah destinasi.
   final bool pendingDestination;
 }
+
+/// Jenis maklumat terkini yang diminta (ADR 0018).
+enum WebKind {
+  /// Soalan umum/fakta semasa: berita + DuckDuckGo + Wikipedia.
+  general,
+
+  /// "Berita terkini …", "latest news …".
+  news,
+
+  /// Kadar tukaran rasmi BNM ("kadar USD hari ini").
+  exchangeRate,
+
+  /// Harga minyak semasa (data.gov.my).
+  fuelPrice,
+
+  /// Pautan yang ditampal pengguna: baca halaman itu.
+  url,
+}
+
+/// Cari maklumat terkini di internet. [explicit] = pengguna meminta ("cari online", pautan, berita);
+/// jika tidak, ia dicetuskan oleh isyarat "terkini/hari ini" dan hanya dijalankan bila tetapan
+/// "cari di internet secara automatik" hidup.
+class WebSearchIntent extends AssistantIntent {
+  const WebSearchIntent(
+    this.query, {
+    this.kind = WebKind.general,
+    this.explicit = false,
+    this.currency,
+  });
+
+  final String query;
+  final WebKind kind;
+  final bool explicit;
+
+  /// Kod ISO mata wang untuk [WebKind.exchangeRate] (cth. USD).
+  final String? currency;
+}
+
+/// Skrin/aksi app yang boleh dijalankan oleh ejen FG AI di skrin (ADR 0019).
+enum AppScreen {
+  weather,
+  qibla,
+  airQuality,
+  music,
+  prayerTimes,
+  offlineMaps,
+  settings,
+  report,
+  recenter,
+
+  /// Cari tempat dalam perancang (arg = nama tempat) dan buka pratonton laluan.
+  findPlace,
+
+  /// Kategori berdekatan dalam perancang (arg = nama enum NearbyCategory), pilih yang pertama dan mula.
+  nearbyGo,
+}
+
+/// "Buka cuaca Kuantan", "tunjuk kiblat", "buka tetapan", "cari Pavilion di peta": ejen menekan
+/// butang sebenar di skrin sambil pengguna melihat.
+class OpenScreenIntent extends AssistantIntent {
+  const OpenScreenIntent(this.screen, {this.arg, this.start = false});
+
+  final AppScreen screen;
+
+  /// [AppScreen.nearbyGo]: tekan "Mula" juga ("… dan pergi", "and go").
+  final bool start;
+
+  /// Tempat (cuaca/findPlace) atau kategori (nearbyGo).
+  final String? arg;
+}

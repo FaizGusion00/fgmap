@@ -205,6 +205,13 @@ void main() {
     (tester) async {
       // Kumpulan ini kini di bawah Navigasi: permukaan tinggi supaya ia dibina dan boleh diketik.
       final c = await pumpPage(tester, size: const Size(390, 3400));
+      // Tatal sehingga kumpulan dibina: kedudukannya berubah bila tetapan baharu ditambah di atas.
+      await tester.scrollUntilVisible(
+        find.text('Rumah dan Kerja'),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
       expect(find.text('Rumah dan Kerja'), findsOneWidget);
       expect(find.text('Belum ditetapkan'), findsNWidgets(2));
 

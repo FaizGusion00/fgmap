@@ -49,6 +49,9 @@ class TrackArt extends StatelessWidget {
               uri.toString(),
               width: size,
               height: size,
+              // Nyahkod pada saiz paparan, bukan resolusi penuh (RAM telefon rendah).
+              cacheWidth: (size * MediaQuery.devicePixelRatioOf(context))
+                  .round(),
               fit: BoxFit.cover,
               errorBuilder: (_, _, _) => fallback,
             ),

@@ -1,5 +1,6 @@
 package com.fguniversalempire.fgmaps
 
+import android.app.ActivityManager
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -19,6 +20,24 @@ class MainActivity : AudioServiceActivity() {
         CarBridge.attach(flutterEngine.dartExecutor.binaryMessenger)
         // Kompas sensor sebenar untuk Kiblat (arah GPS tidak wujud ketika telefon diam).
         compass = CompassBridge(this, flutterEngine.dartExecutor.binaryMessenger)
+        // Maklumat peranti untuk Mod Lite: RAM keseluruhan, bendera "RAM rendah" sistem dan bilangan teras.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, DEVICE_CHANNEL)
+            .setMethodCallHandler { call, result ->
+                if (call.method == "deviceInfo") {
+                    val am = getSystemService(ACTIVITY_SERVICE) as ActivityManager
+                    val mem = ActivityManager.MemoryInfo().also { am.getMemoryInfo(it) }
+                    result.success(
+                        mapOf(
+                            "totalMemBytes" to mem.totalMem,
+                            "lowRamDevice" to am.isLowRamDevice,
+                            "cores" to Runtime.getRuntime().availableProcessors(),
+                            "sdk" to Build.VERSION.SDK_INT,
+                        ),
+                    )
+                } else {
+                    result.notImplemented()
+                }
+            }
         // Pintasan ke tetapan sistem untuk Waktu Azan: notifikasi app dan pengecualian bateri.
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, SYSTEM_CHANNEL)
             .setMethodCallHandler { call, result ->
@@ -94,5 +113,6 @@ class MainActivity : AudioServiceActivity() {
 
     private companion object {
         const val SYSTEM_CHANNEL = "com.fguniversalempire.fgmaps/system"
+        const val DEVICE_CHANNEL = "com.fguniversalempire.fgmaps/device"
     }
 }

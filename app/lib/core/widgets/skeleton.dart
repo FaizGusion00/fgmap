@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../settings/device_tier.dart';
 
 /// Blok placeholder dengan kilau bergerak (shimmer) semasa memuatkan, ganti pemutar bulat
 /// (Bahagian 14.3). Jika sistem meminta Reduce Motion, kilau dimatikan dan blok kekal statik.
@@ -28,7 +29,7 @@ class _SkeletonBoxState extends State<SkeletonBox>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (MediaQuery.disableAnimationsOf(context)) {
+    if (MediaQuery.disableAnimationsOf(context) || LiteMode.enabled) {
       _controller.stop();
     } else if (!_controller.isAnimating) {
       _controller.repeat();

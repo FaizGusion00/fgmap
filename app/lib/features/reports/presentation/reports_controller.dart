@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/location/location_service.dart';
@@ -37,12 +38,40 @@ class ReportsController extends Notifier<List<Report>> {
   List<Report> build() {
     ref.onDispose(() => _purgeTimer?.cancel());
     // Luput berjalan walaupun tiada interaksi: laporan yang luput hilang dari peta tanpa menunggu tindakan pengguna.
-    _purgeTimer = Timer.periodic(const Duration(minutes: 1), (_) => refresh());
+    _purgeTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      // Di latar belakang tiada peta untuk dikemas kini: jangan baca fail setiap minit.
+      if (_inBackground) return;
+      refresh();
+    });
     Future.microtask(refresh);
     return const [];
   }
 
   DateTime get _now => ref.read(reportsClockProvider)();
+
+  static bool get _inBackground {
+    try {
+      final s = WidgetsBinding.instance.lifecycleState;
+      return s == AppLifecycleState.paused || s == AppLifecycleState.hidden;
+    } on Object {
+      return false;
+    }
+  }
+
+  static bool _sameReports(List<Report> a, List<Report> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      final x = a[i];
+      final y = b[i];
+      if (x.id != y.id ||
+          x.expiresAt != y.expiresAt ||
+          x.confirms != y.confirms ||
+          x.denies != y.denies) {
+        return false;
+      }
+    }
+    return true;
+  }
 
   Future<void> refresh() async {
     if (!ref.mounted) return;
@@ -50,7 +79,9 @@ class ReportsController extends Notifier<List<Report>> {
     try {
       await repo.purgeExpired(_now);
       final active = await repo.active(_now);
-      if (ref.mounted) state = active;
+      // Senarai baharu yang sama kandungannya tetap "berubah" bagi Riverpod (Report tiada ==), dan
+      // skrin peta dibina semula sepenuhnya setiap minit. Tetapkan hanya bila kandungan berubah.
+      if (ref.mounted && !_sameReports(state, active)) state = active;
     } on Object catch (e) {
       logDiag('Laporan: gagal memuatkan ($e)');
     }

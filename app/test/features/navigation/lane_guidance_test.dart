@@ -164,7 +164,9 @@ void main() {
         ManeuverBanner(progress: progress(next: right, distance: 480)),
       );
       expect(find.byKey(const ValueKey('lane-hint')), findsOneWidget);
-      expect(find.text('Guna lorong kanan'), findsOneWidget);
+      expect(find.text('Guna lorong paling kanan'), findsOneWidget);
+      // Terlalu jauh untuk kotak lorong besar (pada 50 km/j); hanya ayat.
+      expect(find.byKey(const ValueKey('lane-panel')), findsNothing);
       // Lurus: tiada petunjuk.
       await pump(
         tester,
@@ -194,10 +196,20 @@ void main() {
           Lane(directions: Lane.right, valid: Lane.right, active: Lane.right),
         ],
       );
+      // Dekat: kotak lorong besar menggantikan jalur kecil; ayat kekal.
       await pump(
         tester,
         ManeuverBanner(progress: progress(next: withLanes, distance: 250)),
       );
+      expect(find.byKey(const ValueKey('lane-panel')), findsOneWidget);
+      expect(find.byKey(const ValueKey('lane-strip')), findsNothing);
+      expect(find.text('Guna 2 lorong paling kanan'), findsOneWidget);
+      // Lebih jauh (tetapi dalam 700 m): jalur kecil.
+      await pump(
+        tester,
+        ManeuverBanner(progress: progress(next: withLanes, distance: 480)),
+      );
+      expect(find.byKey(const ValueKey('lane-panel')), findsNothing);
       expect(find.byKey(const ValueKey('lane-strip')), findsOneWidget);
       expect(find.byKey(const ValueKey('lane-hint')), findsNothing);
       expect(find.byKey(const ValueKey('lane-cell-on')), findsNWidgets(2));

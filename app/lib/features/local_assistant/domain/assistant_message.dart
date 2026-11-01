@@ -107,7 +107,8 @@ class AssistantMessage {
 
 enum AssistantRole { user, assistant, system }
 
-enum AnswerSourceKind { classical, fatwa }
+/// classical/fatwa: FGMuslim. web: FG AI dari internet (berita, Wikipedia, DuckDuckGo, BNM).
+enum AnswerSourceKind { classical, fatwa, web }
 
 /// Satu rujukan berpetikan (kitab klasik islamic.app atau fatwa deen.ai).
 @immutable

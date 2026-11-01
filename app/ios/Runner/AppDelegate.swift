@@ -18,6 +18,22 @@ import UIKit
     CarBridge.shared.attach(messenger: engineBridge.applicationRegistrar.messenger())
     // Kompas sensor sebenar untuk skrin Kiblat (arah GPS tidak wujud ketika telefon diam).
     CompassBridge.shared.attach(messenger: engineBridge.applicationRegistrar.messenger())
+    // Maklumat peranti untuk Mod Lite (sama dengan Android): RAM keseluruhan dan bilangan teras.
+    FlutterMethodChannel(
+      name: "com.fguniversalempire.fgmaps/device",
+      binaryMessenger: engineBridge.applicationRegistrar.messenger()
+    ).setMethodCallHandler { call, result in
+      guard call.method == "deviceInfo" else {
+        result(FlutterMethodNotImplemented)
+        return
+      }
+      let info = ProcessInfo.processInfo
+      result([
+        "totalMemBytes": NSNumber(value: info.physicalMemory),
+        "lowRamDevice": info.physicalMemory < 3 * 1024 * 1024 * 1024,
+        "cores": info.activeProcessorCount,
+      ])
+    }
   }
 }
 

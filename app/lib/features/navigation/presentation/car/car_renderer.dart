@@ -7,6 +7,7 @@ import 'package:flutter/material.dart' show Brightness;
 import 'package:flutter/painting.dart';
 
 import 'car_mesh.dart';
+import '../../../../core/settings/device_tier.dart';
 
 /// Warna kereta. Badan mengikut warna utama tema; selebihnya tetap supaya kereta sentiasa kelihatan
 /// seperti kereta dalam tema cerah dan gelap.
@@ -356,10 +357,10 @@ class CarRenderer {
       path,
       Paint()
         ..color = color
-        ..maskFilter = MaskFilter.blur(
-          BlurStyle.normal,
-          math.max(1.5, ppm * 0.22),
-        ),
+        // Mod Lite: tiada kabur setiap bingkai pada GPU lemah (bayang rata lut sinar).
+        ..maskFilter = LiteMode.enabled
+            ? null
+            : MaskFilter.blur(BlurStyle.normal, math.max(1.5, ppm * 0.22)),
     );
   }
 
@@ -393,10 +394,9 @@ class CarRenderer {
           ..style = PaintingStyle.stroke
           ..strokeWidth = math.max(3, ppm * 0.22)
           ..color = color.withValues(alpha: 0.35)
-          ..maskFilter = MaskFilter.blur(
-            BlurStyle.normal,
-            math.max(2, ppm * 0.12),
-          ),
+          ..maskFilter = LiteMode.enabled
+              ? null
+              : MaskFilter.blur(BlurStyle.normal, math.max(2, ppm * 0.12)),
       )
       ..drawPath(
         path,

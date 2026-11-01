@@ -42,6 +42,9 @@ void main() {
           final text = _read(doc);
           for (final party in [
             'OpenFreeMap',
+            'DuckDuckGo',
+            'Google News',
+            'Bank Negara Malaysia',
             'Photon',
             'Nominatim',
             'Valhalla',

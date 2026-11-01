@@ -3,12 +3,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/settings/app_preferences.dart';
+import '../core/settings/device_tier.dart';
 import '../core/settings/easy_mode_scope.dart';
 import '../core/theme/app_theme.dart';
 import '../core/theme/theme_controller.dart';
 import '../features/navigation/presentation/car_session_hub.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'router.dart';
+import '../core/agent/agent_overlay.dart';
 
 // ThemeData dibina sekali sahaja; membina semula pada setiap build akan mencetuskan animasi tema.
 final _lightTheme = AppTheme.light();
@@ -22,13 +24,15 @@ class FgmapApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(themeControllerProvider);
     final prefs = ref.watch(appPreferencesProvider);
+    final lite = ref.watch(liteModeProvider);
+    LiteMode.enabled = lite;
 
     return MaterialApp.router(
       onGenerateTitle: (context) => AppLocalizations.of(context).appName,
       theme: _lightTheme,
       darkTheme: settings.amoled ? _amoledTheme : _darkTheme,
       themeMode: ref.watch(effectiveThemeModeProvider),
-      themeAnimationDuration: _themeAnimation(prefs.reduceMotion),
+      themeAnimationDuration: _themeAnimation(prefs.reduceMotion || lite),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       // Pilihan bahasa pengguna mengatasi bahasa peranti; null = ikut peranti (BM lalai).
@@ -41,7 +45,8 @@ class FgmapApp extends ConsumerWidget {
           child: _applyAccessibility(
             context,
             prefs,
-            child ?? const SizedBox.shrink(),
+            // Lapisan ejen FG AI di atas semua halaman dan lembaran (jari hantu + status).
+            AgentOverlay(child: child ?? const SizedBox.shrink()),
           ),
         );
       },

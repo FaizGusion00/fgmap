@@ -101,7 +101,9 @@ class MapStyleLoader {
     try {
       final raw = await _rawBase(AppConfig.mapStyleNightBase);
       if (raw == null) return _darkFallback();
-      final styled = NightStyle.apply(raw);
+      // Nyahkod + warna semula + kod semula JSON gaya (~beratus KB) di luar isolat UI: telefon lemah
+      // tersekat beberapa ratus ms jika dibuat di sini semasa peta dibuka.
+      final styled = await compute(NightStyle.apply, raw);
       if (styled == null) return _darkFallback();
       return ResolvedMapStyle(
         styled,

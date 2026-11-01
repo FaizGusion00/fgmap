@@ -14,6 +14,7 @@ import '../domain/instruction_text.dart';
 import '../domain/nav_route.dart';
 import '../domain/navigation_session.dart';
 import 'lane_strip.dart';
+import 'lane_view.dart';
 import 'maneuver_glyph.dart';
 import 'navigation_controller.dart';
 import '../../../core/widgets/press_scale.dart';
@@ -209,9 +210,17 @@ Widget _clampTextScale(BuildContext context, Widget child) =>
 /// manuver rapat berikutnya. Padat (potret) dan lebih kecil lagi (mendatar). Beranimasi (slaid + skala)
 /// bila manuver bertukar.
 class ManeuverBanner extends StatelessWidget {
-  const ManeuverBanner({super.key, required this.progress, this.liveAlongM});
+  const ManeuverBanner({
+    super.key,
+    required this.progress,
+    this.liveAlongM,
+    this.motorcycle = false,
+  });
 
   final NavProgress progress;
+
+  /// Penunggang motosikal diberi kotak lorong lebih awal (lihat `laneViewWithinM`).
+  final bool motorcycle;
 
   /// Kedudukan sepanjang laluan yang dikemas kini setiap bingkai; jika ada, jarak ke manuver
   /// dikira daripadanya (bukan daripada fix GPS 1 Hz) supaya kiraan turun lancar.
@@ -245,6 +254,8 @@ class ManeuverBanner extends StatelessWidget {
                     : math.max(0.0, next.startM - along),
                 following: then,
                 thenGapM: then == null ? null : then.startM - next.startM,
+                speedMps: progress.speedMps,
+                motorcycle: motorcycle,
                 text: text,
                 metrics: metrics,
                 colors: colors,
@@ -320,10 +331,15 @@ class _BannerContent extends StatelessWidget {
     required this.distanceM,
     required this.following,
     required this.thenGapM,
+    required this.speedMps,
+    required this.motorcycle,
     required this.text,
     required this.metrics,
     required this.colors,
   });
+
+  final double speedMps;
+  final bool motorcycle;
 
   final BannerColors colors;
 
@@ -354,6 +370,16 @@ class _BannerContent extends StatelessWidget {
         : (text.cardDetail(following!) ?? text.cardStreet(following!));
     final ready = distanceM <= readyWithinM && !maneuver.isArrival;
     final getReady = distanceM <= getReadyWithinM && !maneuver.isArrival;
+    // Kotak lorong besar hanya dalam potret: pada telefon mendatar (~390 px tinggi) ia akan menelan
+    // pandangan jalan, jadi mendatar kekal dengan jalur/ayat lorong ringkas.
+    final lanePanel =
+        !metrics.landscape &&
+        LanePanel.shows(
+          maneuver,
+          distanceM: distanceM,
+          speedMps: speedMps,
+          motorcycle: motorcycle,
+        );
 
     final exitNo = maneuver.roundaboutExit;
     final glyphLabel =
@@ -457,6 +483,7 @@ class _BannerContent extends StatelessWidget {
                       distanceM: distanceM,
                       color: onPrimary,
                       compact: metrics.landscape,
+                      showStrip: !lanePanel,
                     ),
                   ],
                 ),
@@ -485,6 +512,12 @@ class _BannerContent extends StatelessWidget {
             minHeight: 5,
             color: onPrimary,
             backgroundColor: onPrimary.withValues(alpha: 0.2),
+          ),
+        if (lanePanel)
+          LanePanel(
+            maneuver: maneuver,
+            background: colors.background,
+            foreground: colors.foreground,
           ),
         if (following != null && thenGapM != null)
           ColoredBox(

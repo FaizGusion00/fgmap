@@ -39,6 +39,8 @@ import '../../weather/domain/weather_codes.dart';
 import '../domain/assistant_tools.dart';
 import '../presentation/ai_map_bridge.dart';
 import 'wikipedia_client.dart';
+import 'web_knowledge.dart';
+import '../domain/intent_router.dart' show looksMalay;
 
 /// Menjalankan alat pembantu terhadap ciri FGMaps sedia ada.
 class AssistantToolExecutor {
@@ -76,6 +78,9 @@ class AssistantToolExecutor {
           _str(args, 'query'),
           lang: _str(args, 'lang'),
         ),
+        // Pengawal FG AI menjalankan web_search sendiri (supaya sumber dipetik dalam jawapan);
+        // laluan ini untuk pemanggil lain.
+        'web_search' => await _webSearch(_str(args, 'query')),
         _ => {'ok': false, 'error': 'unknown_tool'},
       };
     } on Object catch (e) {
@@ -641,6 +646,30 @@ class AssistantToolExecutor {
       'category': cat.name,
       'count': pois.length,
       'places': pois,
+    };
+  }
+
+  Future<Map<String, Object?>> _webSearch(String? query) async {
+    if (query == null || query.trim().isEmpty) {
+      return {'ok': false, 'error': 'missing_query'};
+    }
+    final found = await _ref
+        .read(webKnowledgeProvider)
+        .search(query.trim(), malay: looksMalay(query));
+    if (found.snippets.isEmpty) {
+      return {'ok': false, 'error': found.failed ? 'offline' : 'not_found'};
+    }
+    return {
+      'ok': true,
+      'results': [
+        for (final s in found.snippets.take(5))
+          {
+            'title': s.title,
+            'source': s.source,
+            if (s.text.isNotEmpty) 'text': s.text,
+            'url': s.url,
+          },
+      ],
     };
   }
 

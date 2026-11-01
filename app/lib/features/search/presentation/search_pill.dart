@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../core/settings/easy_mode_scope.dart';
 import '../../../core/theme/fgmap_theme_extension.dart';
 import '../../../core/widgets/press_scale.dart';
+import '../../../core/settings/device_tier.dart';
 
 /// Pil carian terapung di skrin utama: ikon carian bergelombang di kiri, teks "Ke mana?" dan butang
 /// bulat bergradien di kanan. Mengetuknya membuka perancang perjalanan; [hint] (cara tekan-lama)
@@ -104,6 +105,7 @@ class SearchWaveIcon extends StatefulWidget {
     this.burst = const Duration(milliseconds: 2400),
     this.rest = const Duration(milliseconds: 2800),
     this.firstDelay = const Duration(milliseconds: 900),
+    this.maxBursts = 3,
   });
 
   final double size;
@@ -117,6 +119,11 @@ class SearchWaveIcon extends StatefulWidget {
   /// Jeda sebelum pancaran pertama selepas dipaparkan.
   final Duration firstDelay;
 
+  /// Bilangan pancaran sebelum ikon berhenti. Gelombang tanpa had memaksa Flutter melukis bingkai
+  /// hampir separuh masa di skrin utama (diukur: thread raster ~30% CPU semasa rehat), jadi ia hanya
+  /// petunjuk sekejap selepas skrin muncul.
+  final int maxBursts;
+
   @override
   State<SearchWaveIcon> createState() => _SearchWaveIconState();
 }
@@ -129,11 +136,13 @@ class _SearchWaveIconState extends State<SearchWaveIcon>
   );
   Timer? _timer;
   bool? _reduce;
+  int _bursts = 0;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final reduce = MediaQuery.disableAnimationsOf(context);
+    // Mod Lite: tiada gelombang hiasan langsung.
+    final reduce = MediaQuery.disableAnimationsOf(context) || LiteMode.enabled;
     if (reduce == _reduce) return;
     _reduce = reduce;
     _timer?.cancel();
@@ -146,7 +155,9 @@ class _SearchWaveIconState extends State<SearchWaveIcon>
 
   void _schedule(Duration after) {
     _timer?.cancel();
+    if (_bursts >= widget.maxBursts) return;
     _timer = Timer(after, () {
+      _bursts++;
       if (!mounted || _reduce != false) return;
       unawaited(
         _c.forward(from: 0).whenComplete(() {

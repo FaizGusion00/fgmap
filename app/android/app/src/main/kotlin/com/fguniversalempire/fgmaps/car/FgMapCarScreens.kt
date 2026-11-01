@@ -182,9 +182,13 @@ class FgMapNavScreen(
             session["maneuverKind"] as? String,
             (session["roundaboutExit"] as? Number)?.toInt(),
         )?.let { stepBuilder.setManeuver(it) }
+        // Lorong sebenar (hanya data Valhalla; Dart tidak menghantar anggaran): lorong + imej lorong.
+        // Tanpa lorong, ayat sisi ("Guna lorong paling kanan") menjadi cue jika tiada isyarat lain.
+        val lanesShown = CarLanes.apply(stepBuilder, session["lanes"])
+        val laneHint = if (lanesShown) null else (session["laneHint"] as? String)?.takeIf { it.isNotBlank() }
         // setCue ialah Car API 1, jadi hos lama memaparkan isyarat di sini.
         // Alert (RequiresCarApi 5) ditambah dalam syncDriveAlert; cue kekal jika banner ditolak.
-        driveAlertOf(session)?.let { stepBuilder.setCue(it) }
+        (driveAlertOf(session) ?: laneHint)?.let { stepBuilder.setCue(it) }
         val step = stepBuilder.build()
         val meters = (session["distanceToManeuverM"] as? Number)?.toDouble()
         val info = RoutingInfo.Builder()

@@ -23,6 +23,7 @@ import 'offline_places_prompt.dart';
 import 'place_search_controller.dart';
 import 'search_history_controller.dart';
 import '../../../core/utils/haptics.dart';
+import '../../../core/agent/agent_targets.dart';
 
 /// Destinasi pilihan. Asal laluan sentiasa lokasi GPS pengguna.
 @immutable
@@ -372,24 +373,29 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
                                   _onChanged('');
                                 },
                               ),
-                        child: TextField(
-                          key: const ValueKey('destination-field'),
-                          controller: _destText,
-                          focusNode: _destFocus,
-                          textInputAction: TextInputAction.search,
-                          onChanged: _onChanged,
-                          decoration: InputDecoration(
-                            hintText: widget.assign == null
-                                ? (_pickingStop
-                                      ? l10n.pickingStopHint
-                                      : l10n.searchHint)
-                                : l10n.savedAssigning(
-                                    savedKindLabel(l10n, widget.assign!),
-                                  ),
-                            border: InputBorder.none,
-                            isDense: true,
+                        child: AgentTarget(
+                          id: 'planner.destination',
+                          child: TextField(
+                            key: const ValueKey('destination-field'),
+                            controller: _destText,
+                            focusNode: _destFocus,
+                            textInputAction: TextInputAction.search,
+                            onChanged: _onChanged,
+                            // Butang "Cari" papan kekunci: cari semula (cth. selepas rangkaian gagal).
+                            onSubmitted: _onChanged,
+                            decoration: InputDecoration(
+                              hintText: widget.assign == null
+                                  ? (_pickingStop
+                                        ? l10n.pickingStopHint
+                                        : l10n.searchHint)
+                                  : l10n.savedAssigning(
+                                      savedKindLabel(l10n, widget.assign!),
+                                    ),
+                              border: InputBorder.none,
+                              isDense: true,
+                            ),
+                            style: theme.textTheme.bodyLarge,
                           ),
-                          style: theme.textTheme.bodyLarge,
                         ),
                       ),
                       if (_destination != null &&
@@ -533,29 +539,33 @@ class _ResultsList extends StatelessWidget {
             FadeSlideIn(
               key: ValueKey('place-${place.point.lat}-${place.point.lng}'),
               index: i,
-              child: ListTile(
-                leading: _PlaceIcon(icon: _iconFor(place.category)),
-                title: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        place.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+              // Ejen FG AI memilih hasil mengikut kedudukan (`planner.result.0` = pertama).
+              child: AgentTarget(
+                id: i < 5 ? 'planner.result.$i' : null,
+                child: ListTile(
+                  leading: _PlaceIcon(icon: _iconFor(place.category)),
+                  title: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          place.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                    ),
-                    if (place.fromOffline) ...[
-                      const SizedBox(width: 8),
-                      const _OfflineBadge(),
+                      if (place.fromOffline) ...[
+                        const SizedBox(width: 8),
+                        const _OfflineBadge(),
+                      ],
                     ],
-                  ],
+                  ),
+                  subtitle: _ResultSubtitle(
+                    place: place,
+                    from: state.origin ?? userLocation,
+                  ),
+                  trailing: showSaved ? _FavoriteStar(place: place) : null,
+                  onTap: () => onPick(place),
                 ),
-                subtitle: _ResultSubtitle(
-                  place: place,
-                  from: state.origin ?? userLocation,
-                ),
-                trailing: showSaved ? _FavoriteStar(place: place) : null,
-                onTap: () => onPick(place),
               ),
             ),
         ],
@@ -604,7 +614,10 @@ class _ResultsList extends StatelessWidget {
               GeocodeFailureKind.unavailable => l10n.searchErrorUnavailable,
               _ => l10n.routeErrorGeneric,
             },
-            action: TextButton(onPressed: onRetry, child: Text(l10n.routeRetry)),
+            action: TextButton(
+              onPressed: onRetry,
+              child: Text(l10n.routeRetry),
+            ),
           ),
         ],
       ),
@@ -1055,7 +1068,7 @@ class _CategoryChips extends StatelessWidget {
         NearbyCategory.parking,
       ),
     ];
-    Widget chip({
+    Widget bareChip({
       required IconData icon,
       required String label,
       required NearbyCategory category,
@@ -1091,6 +1104,21 @@ class _CategoryChips extends StatelessWidget {
         onPressed: () => onPick(category, label),
       );
     }
+
+    Widget chip({
+      required IconData icon,
+      required String label,
+      required NearbyCategory category,
+      required bool filled,
+    }) => AgentTarget(
+      id: 'planner.category.${category.name}',
+      child: bareChip(
+        icon: icon,
+        label: label,
+        category: category,
+        filled: filled,
+      ),
+    );
 
     return Padding(
       padding: const EdgeInsets.only(top: 12),

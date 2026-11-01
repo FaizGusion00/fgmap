@@ -24,7 +24,9 @@ String azanMethodName(AppLocalizations l10n, AzanMethod m) => switch (m) {
 
 /// "1 j 12 min" / "12 min".
 String remainingText(AppLocalizations l10n, Duration d) {
-  final m = d.inMinutes.clamp(0, 1 << 30);
+  // Dibundarkan ke atas: 1 j 52 min 30 s lagi ialah "1 j 53 min", bukan "1 j 52 min"; tepat pada waktu
+  // ialah 0.
+  final m = ((d.inSeconds + 59) ~/ 60).clamp(0, 1 << 30);
   if (m >= 60) return l10n.azanRemainingHours(m ~/ 60, m % 60);
   return l10n.azanRemainingMinutes(m);
 }

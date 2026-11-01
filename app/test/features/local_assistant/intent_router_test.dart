@@ -566,4 +566,118 @@ void main() {
       expect((i! as NearbyIntent).navigate, isTrue);
     });
   });
+
+  group('internet (ADR 0018)', () {
+    WebSearchIntent web(String t) {
+      final i = parseIntent(t);
+      expect(i, isA<WebSearchIntent>(), reason: t);
+      return i! as WebSearchIntent;
+    }
+
+    test(
+      'permintaan jelas: harga minyak, kadar tukaran, berita, cari online, pautan',
+      () {
+        expect(web('harga minyak hari ini').kind, WebKind.fuelPrice);
+        expect(web('berapa harga ron95 sekarang').kind, WebKind.fuelPrice);
+        final fx = web('kadar tukaran usd hari ini');
+        expect((fx.kind, fx.currency), (WebKind.exchangeRate, 'USD'));
+        expect(web('berapa 1 dollar singapura dalam ringgit').currency, 'SGD');
+        expect(web('exchange rate euro').currency, 'EUR');
+        final news = web('berita terkini banjir');
+        expect(
+          (news.kind, news.query, news.explicit),
+          (WebKind.news, 'banjir', true),
+        );
+        expect(web('latest news malaysia').kind, WebKind.news);
+        final ask = web('cari di internet pasal PTPTN');
+        expect((ask.query, ask.explicit), ('ptptn', true));
+        expect(
+          web('search online for iphone 17 price').query,
+          'iphone 17 price',
+        );
+        final link = web(
+          'tolong baca https://www.bernama.com/bm/news.php?id=1.',
+        );
+        expect(
+          (link.kind, link.query),
+          (WebKind.url, 'https://www.bernama.com/bm/news.php?id=1'),
+        );
+      },
+    );
+
+    test('soalan fakta semasa: carian automatik (bukan eksplisit)', () {
+      for (final t in [
+        'siapa perdana menteri malaysia sekarang',
+        'keputusan bola sepak harimau malaya semalam',
+        'who won the world cup this year',
+      ]) {
+        final w = web(t);
+        expect(w.explicit, isFalse, reason: t);
+        expect(w.kind, WebKind.general, reason: t);
+      }
+    });
+
+    test('arahan app tidak dirampas', () {
+      expect(parseIntent('cuaca hari ini'), isA<WeatherIntent>());
+      expect(parseIntent('what time is it now'), isA<ChatIntent>());
+      expect(
+        parseIntent('cari masjid terdekat'),
+        isNot(isA<WebSearchIntent>()),
+      );
+      expect(parseIntent('route to Ipoh'), isA<RouteIntent>());
+      expect(parseIntent('minyak dekat sini'), isA<NearbyIntent>());
+    });
+  });
+
+  group('ejen skrin (ADR 0019)', () {
+    OpenScreenIntent open(String t) {
+      final i = parseIntent(t);
+      expect(i, isA<OpenScreenIntent>(), reason: t);
+      return i! as OpenScreenIntent;
+    }
+
+    test('buka skrin app dengan kata kerja buka/open/tunjuk', () {
+      final w = open('buka cuaca Kuantan');
+      expect((w.screen, w.arg), (AppScreen.weather, 'kuantan'));
+      expect(open('open the weather').arg, isNull);
+      expect(open('tunjuk kiblat').screen, AppScreen.qibla);
+      expect(open('open qibla compass').screen, AppScreen.qibla);
+      expect(open('buka tetapan').screen, AppScreen.settings);
+      expect(open('open settings').screen, AppScreen.settings);
+      expect(open('buka peta offline').screen, AppScreen.offlineMaps);
+      expect(open('buka muzik').screen, AppScreen.music);
+      expect(open('buka waktu solat').screen, AppScreen.prayerTimes);
+      expect(open('open air quality').screen, AppScreen.airQuality);
+    });
+
+    test('cari di peta: tempat atau kategori (dengan/tanpa mula)', () {
+      final p = open('cari Pavilion KL di peta');
+      expect((p.screen, p.arg), (AppScreen.findPlace, 'pavilion kl'));
+      final m = open('cari masjid di peta dan pergi');
+      expect((m.screen, m.arg, m.start), (AppScreen.nearbyGo, 'mosque', true));
+      expect(open('tunjuk stesen minyak di peta').start, isFalse);
+      final near = open('cari masjid terdekat dan pergi');
+      expect(
+        (near.screen, near.arg, near.start),
+        (AppScreen.nearbyGo, 'mosque', true),
+      );
+      expect(
+        open('find the nearest petrol station and go').screen,
+        AppScreen.nearbyGo,
+      );
+      // Tanpa "dan pergi": senarai dalam sembang, bukan ejen.
+      expect(
+        parseIntent('cari masjid terdekat'),
+        isNot(isA<OpenScreenIntent>()),
+      );
+      expect(open('pusatkan peta').screen, AppScreen.recenter);
+    });
+
+    test('soalan biasa tetap dijawab dalam sembang', () {
+      expect(parseIntent('cuaca di Kuantan'), isA<WeatherIntent>());
+      expect(parseIntent('waktu solat'), isA<PrayerTimesIntent>());
+      expect(parseIntent('arah kiblat'), isA<QiblaIntent>());
+      expect(parseIntent('route to Ipoh'), isA<RouteIntent>());
+    });
+  });
 }

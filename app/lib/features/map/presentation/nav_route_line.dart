@@ -67,6 +67,9 @@ class NavRouteLine {
     ];
   }
 
+  /// Titik pada laluan yang dilukis pada jarak [d] (m) dari permulaan.
+  GeoPoint pointAt(double d) => _pointAt(d.clamp(0.0, totalM));
+
   GeoPoint _pointAt(double d) {
     final i = _segmentAt(d);
     final segLen = _cum[i + 1] - _cum[i];
@@ -101,6 +104,35 @@ class NavRouteLine {
     final t = segLen <= 0 ? 0.0 : (d - _cum[i]) / segLen;
     final m = _merc[i] + (_merc[i + 1] - _merc[i]) * t;
     return (m / total).clamp(0.0, 1.0);
+  }
+
+  /// Arah (darjah, 0 = utara) laluan yang dilukis pada jarak [d], diukur merentasi [spanM] supaya
+  /// tidak melompat pada titik selekoh yang rapat.
+  double bearingAt(double d, {double spanM = 8}) {
+    final a = pointAt(d - spanM);
+    final b = pointAt(d + spanM);
+    return bearingDegrees(a, b);
+  }
+
+  /// Anak panah arah sepanjang laluan dari [alongM] ke hadapan: tetap pada jalan (jarak berganda
+  /// [spacingM]) dan bukan pada kenderaan, jadi ia tidak "berjalan" bersama kereta. Hanya [count]
+  /// yang pertama di hadapan dihantar ke peta.
+  List<({GeoPoint point, double bearing})> chevronsAhead(
+    double alongM, {
+    double spacingM = 50,
+    int count = 14,
+    double clearM = 12,
+  }) {
+    if (points.length < 2 || totalM <= 0) return const [];
+    final first = ((alongM + clearM) / spacingM).ceil();
+    final out = <({GeoPoint point, double bearing})>[];
+    for (var k = first; out.length < count; k++) {
+      final d = k * spacingM;
+      // Tidak di hujung: anak panah yang menuding ke luar laluan mengelirukan.
+      if (d > totalM - clearM) break;
+      out.add((point: pointAt(d), bearing: bearingAt(d)));
+    }
+    return out;
   }
 
   /// Bahagian laluan dari [alongM] hingga akhir (untuk laluan sandaran tanpa `line-gradient`).

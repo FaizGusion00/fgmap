@@ -24,7 +24,7 @@ class AzanTodayPill extends ConsumerWidget {
     final enabled = ref.watch(azanSettingsProvider.select((s) => s.enabled));
     final next = ref.watch(azanControllerProvider.select((s) => s.upNext));
     final nextAt = ref.watch(azanControllerProvider.select((s) => s.upNextAt));
-    final now = ref.watch(azanClockProvider)();
+    final now = ref.watch(azanMinuteClockProvider);
 
     final String title;
     final String? sub;

@@ -14,6 +14,7 @@ import '../domain/toll.dart';
 import '../domain/routing_failure.dart';
 import 'route_format.dart';
 import 'route_preview_controller.dart';
+import '../../../core/agent/agent_targets.dart';
 
 /// Lembaran ringkasan laluan di bahagian bawah peta. Widget ini tulen (tiada Riverpod) supaya
 /// mudah diuji golden dalam setiap tema; [RoutePreviewSheet] di map_screen menyambungkannya.
@@ -183,11 +184,14 @@ class _LoadingBody extends StatelessWidget {
                   ),
                 ),
                 // Pengguna mesti boleh membatalkan semasa menunggu GPS atau pelayan.
-                IconButton(
-                  key: const ValueKey('route-cancel'),
-                  tooltip: l10n.routeClear,
-                  onPressed: onClear,
-                  icon: const Icon(Icons.close_rounded),
+                AgentTarget(
+                  id: 'route.cancel',
+                  child: IconButton(
+                    key: const ValueKey('route-cancel'),
+                    tooltip: l10n.routeClear,
+                    onPressed: onClear,
+                    icon: const Icon(Icons.close_rounded),
+                  ),
                 ),
               ],
             ),
@@ -484,11 +488,14 @@ class _StartRowState extends State<_StartRow> {
     return Row(
       children: [
         if (showSimulate)
-          TextButton.icon(
-            key: const ValueKey('nav-simulate'),
-            onPressed: widget.onSimulate,
-            icon: const Icon(Icons.play_circle_outline_rounded),
-            label: Text(l10n.navSimulate),
+          AgentTarget(
+            id: 'route.simulate',
+            child: TextButton.icon(
+              key: const ValueKey('nav-simulate'),
+              onPressed: widget.onSimulate,
+              icon: const Icon(Icons.play_circle_outline_rounded),
+              label: Text(l10n.navSimulate),
+            ),
           )
         else if (widget.onSimulate != null && easy)
           TextButton(
@@ -501,16 +508,19 @@ class _StartRowState extends State<_StartRow> {
         if (widget.onStart != null)
           Expanded(
             child: PressScale(
-              child: FilledButton.icon(
-                key: const ValueKey('nav-start'),
-                onPressed: widget.onStart,
-                icon: Icon(Icons.navigation_rounded, size: easy ? 28 : null),
-                label: Text(l10n.navStart),
-                style: FilledButton.styleFrom(
-                  minimumSize: Size.fromHeight(easy ? 64 : 54),
-                  textStyle: easy
-                      ? theme.textTheme.titleLarge
-                      : theme.textTheme.titleMedium,
+              child: AgentTarget(
+                id: 'route.start',
+                child: FilledButton.icon(
+                  key: const ValueKey('nav-start'),
+                  onPressed: widget.onStart,
+                  icon: Icon(Icons.navigation_rounded, size: easy ? 28 : null),
+                  label: Text(l10n.navStart),
+                  style: FilledButton.styleFrom(
+                    minimumSize: Size.fromHeight(easy ? 64 : 54),
+                    textStyle: easy
+                        ? theme.textTheme.titleLarge
+                        : theme.textTheme.titleMedium,
+                  ),
                 ),
               ),
             ),

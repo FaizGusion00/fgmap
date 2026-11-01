@@ -650,6 +650,7 @@ class _MessageList extends StatelessWidget {
             AiPhase.preparing => l10n.aiPreparing,
             AiPhase.working => l10n.aiWorking,
             AiPhase.searching => l10n.aiSearchingSources,
+            AiPhase.browsing => l10n.aiBrowsing,
             _ => l10n.aiThinking,
           };
           return _AssistantBlock(

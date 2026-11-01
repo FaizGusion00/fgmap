@@ -28,6 +28,11 @@ import '../domain/reply_cleaner.dart';
 import 'ai_chat_controller.dart';
 import 'ai_map_bridge.dart';
 import 'ai_reply_builder.dart';
+import '../data/web_settings.dart';
+import '../data/web_knowledge.dart';
+import '../../fuel/data/fuel_price_service.dart';
+import 'agent_scripts.dart';
+import '../../../core/agent/agent_controller.dart';
 
 export 'ai_chat_controller.dart' show AiPhase, AssistantUiState;
 
@@ -121,10 +126,16 @@ class AssistantController extends AiChatController {
       clearError: true,
     );
     try {
+      var lastPercent = -1;
       await runtime.download(
         id: target,
         onProgress: (p) {
           if (!ref.mounted) return;
+          // Muat turun berbilang GB melaporkan kemajuan sangat kerap; setiap kemas kini membina
+          // semula halaman AI dan helaian model. Hanya bila peratus (bulat) berubah: <= 100 kali.
+          final percent = (p * 100).floor();
+          if (percent == lastPercent) return;
+          lastPercent = percent;
           state = state.copyWith(downloadProgress: p);
         },
       );
@@ -200,9 +211,13 @@ class AssistantController extends AiChatController {
         ),
       );
       _pendingDestination = false;
-      if (intent is TopicIntent) {
+      final webIntent = intent is WebSearchIntent ? intent : null;
+      if (webIntent != null &&
+          (webIntent.explicit || ref.read(assistantAutoWebProvider))) {
+        reply = await _web(webIntent, trimmed, prior, replies, l10n);
+      } else if (intent is TopicIntent) {
         reply = await _topic(intent.topic, trimmed, prior, replies, l10n);
-      } else if (intent != null) {
+      } else if (intent != null && webIntent == null) {
         var usedModel = false;
         reply = await _withDeadline(
           _handle(
@@ -225,6 +240,18 @@ class AssistantController extends AiChatController {
             .copyWith(local: true);
       } else {
         reply = await _askModel(trimmed, prior, replies, l10n);
+        // Soalan fakta semasa tetapi carian automatik dimatikan: tawarkan carian dengan satu ketikan.
+        if (webIntent != null) {
+          reply = reply.copyWith(
+            actions: [
+              ...reply.actions,
+              AssistantAction(
+                AssistantActionKind.ask,
+                label: '${l10n.aiSearchWebAsk}: $trimmed',
+              ),
+            ],
+          );
+        }
       }
     } on Object catch (e) {
       logDiag('FG AI gagal: $e');
@@ -576,6 +603,11 @@ class AssistantController extends AiChatController {
         return summary != null
             ? replies.topic(summary)
             : replies.text(l10n.aiUnavailable);
+      case WebSearchIntent():
+        // Dikendalikan dalam send() (_web); di sini hanya untuk lengkap.
+        return replies.noAnswer();
+      case OpenScreenIntent():
+        return _runAgent(intent, replies, l10n);
       case CapabilitiesIntent(:final offlineFocused):
         return replies.capabilities(offlineFocused: offlineFocused);
       case WeatherIntent(:final place):
@@ -614,25 +646,63 @@ class AssistantController extends AiChatController {
     String text,
     List<AssistantMessage> prior,
     AiReplyBuilder replies,
-    AppLocalizations l10n,
-  ) async {
+    AppLocalizations l10n, {
+    List<WebSnippet> web = const [],
+  }) async {
     state = state.copyWith(phase: AiPhase.thinking);
-    final context = _contextLine(text);
+    final context = web.isNotEmpty
+        ? webContext(web, _clockNow())
+        : _contextLine(text);
+    // Sumber yang dirujuk jawapan: hasil carian awal, ditambah hasil alat web_search model.
+    final cited = [...web];
+    // Model meminta ejen menggunakan app: senarai semak ejen ialah jawapannya.
+    AssistantMessage? agentReply;
     final raw = await ref
         .read(localLlmRuntimeProvider)
         .chat(
           system: assistantSystemPrompt,
           history: prior,
-          userText: context == null ? text : '$context\n$text',
+          userText: context == null ? text : '$context\nQuestion: $text',
           sessionKey: state.current?.id,
           maxToolTurns: 2,
           onTool: (name, args) async {
             if (!llmToolNames.contains(name)) return {'error': 'unknown_tool'};
             if (ref.mounted) {
               state = state.copyWith(
-                phase: AiPhase.working,
+                phase: name == 'web_search'
+                    ? AiPhase.browsing
+                    : AiPhase.working,
                 clearStreaming: true,
               );
+            }
+            if (name == 'app_action') {
+              final screen = appScreenForAction('${args['action']}');
+              if (screen == null) {
+                return {'ok': false, 'error': 'unknown_action'};
+              }
+              final place = args['place']?.toString().trim();
+              agentReply = await _runAgent(
+                OpenScreenIntent(
+                  screen,
+                  arg: place == null || place.isEmpty ? null : place,
+                ),
+                replies,
+                l10n,
+              );
+              if (ref.mounted) state = state.copyWith(phase: AiPhase.thinking);
+              return {'ok': true, 'done': true};
+            }
+            if (name == 'web_search') {
+              final found = await ref
+                  .read(webKnowledgeProvider)
+                  .search(
+                    '${args['query'] ?? text}',
+                    malay: l10n.localeName.startsWith('ms'),
+                  );
+              final offset = cited.length;
+              cited.addAll(found.snippets);
+              if (ref.mounted) state = state.copyWith(phase: AiPhase.thinking);
+              return webToolResult(found.snippets, offset: offset);
             }
             final result = await _tools.run(name, args);
             if (ref.mounted) state = state.copyWith(phase: AiPhase.thinking);
@@ -653,6 +723,8 @@ class AssistantController extends AiChatController {
                 : state.copyWith(streamingText: shown);
           },
         );
+    final agentDone = agentReply;
+    if (agentDone != null) return agentDone;
     // Lapisan kedua: runtime sudah cleanReply, tetapi pastikan setiap laluan (ujian palsu,
     // model yang mencetak skema, sisa streaming) tidak membocorkan markup alat.
     final cleaned = cleanReply(raw);
@@ -670,7 +742,137 @@ class AssistantController extends AiChatController {
       }
       return replies.noAnswer();
     }
-    return replies.text(body);
+    if (cited.isEmpty) return replies.text(body);
+    return replies
+        .text(body)
+        .copyWith(
+          sources: [
+            for (var i = 0; i < cited.length; i++)
+              replies.webSource(cited[i], i + 1),
+          ],
+        );
+  }
+
+  DateTime _clockNow() => DateTime.now();
+
+  /// Ejen menggunakan app di skrin (jari hantu + senarai semak, ADR 0019), kemudian jawapan dalam
+  /// sembang meringkaskan setiap langkah. Langkah gagal tidak diteruskan.
+  Future<AssistantMessage> _runAgent(
+    OpenScreenIntent intent,
+    AiReplyBuilder replies,
+    AppLocalizations l10n,
+  ) async {
+    final steps = agentStepsFor(intent, l10n);
+    final outcome = await ref
+        .read(agentControllerProvider.notifier)
+        .run(agentTitleFor(intent, l10n), steps);
+    final lines = [
+      for (final s in outcome.steps)
+        '${switch (s.status) {
+          AgentStepStatus.done => '✓',
+          AgentStepStatus.failed => '✗',
+          _ => '○',
+        }} ${s.label}',
+    ];
+    final head = outcome.completed
+        ? l10n.agentDone
+        : outcome.stopped
+        ? l10n.agentStopped
+        : l10n.agentFailed;
+    return replies.text('**$head**\n${lines.join('\n')}');
+  }
+
+  /// Maklumat terkini dari internet (ADR 0018). Kadar tukaran dan harga minyak terus dari sumber
+  /// rasmi; pautan dibaca; soalan umum/berita dicari serentak (berita, DuckDuckGo, Wikipedia) lalu
+  /// diringkaskan oleh model (jika ada) dengan petikan [n], atau dipaparkan sebagai senarai bersumber.
+  Future<AssistantMessage> _web(
+    WebSearchIntent intent,
+    String text,
+    List<AssistantMessage> prior,
+    AiReplyBuilder replies,
+    AppLocalizations l10n,
+  ) async {
+    state = state.copyWith(phase: AiPhase.browsing);
+    final web = ref.read(webKnowledgeProvider);
+    final malay = l10n.localeName.startsWith('ms');
+    const budget = Duration(seconds: 12);
+    AssistantMessage offline() => replies
+        .text(replies.failure({'error': 'offline'}))
+        .copyWith(local: true);
+    switch (intent.kind) {
+      case WebKind.exchangeRate:
+        try {
+          final rate = await web
+              .exchangeRate(intent.currency ?? 'USD')
+              .timeout(budget);
+          if (rate != null) return replies.webFact(rate).copyWith(local: true);
+        } on Object catch (e) {
+          if (!await _linkUp()) return offline();
+          logDiag('Kadar BNM gagal: $e');
+        }
+        break;
+      case WebKind.fuelPrice:
+        try {
+          final prices = await ref
+              .read(fuelPricesProvider.future)
+              .timeout(budget);
+          if (prices != null) {
+            return replies.fuelPrices(prices).copyWith(local: true);
+          }
+        } on Object catch (e) {
+          logDiag('Harga minyak gagal: $e');
+        }
+        if (!await _linkUp()) return offline();
+        break;
+      case WebKind.url:
+        WebSnippet? page;
+        try {
+          page = await web.readUrl(intent.query).timeout(budget);
+        } on Object catch (e) {
+          logDiag('Baca pautan gagal: $e');
+          if (!await _linkUp()) return offline();
+        }
+        if (page == null) {
+          return replies.text(l10n.aiWebUnreadable).copyWith(local: true);
+        }
+        if (state.modelReady) {
+          return _askModel(text, prior, replies, l10n, web: [page]);
+        }
+        return replies
+            .webResults([page], title: page.title)
+            .copyWith(local: true);
+      case WebKind.general:
+      case WebKind.news:
+        break;
+    }
+    final query =
+        intent.kind == WebKind.exchangeRate || intent.kind == WebKind.fuelPrice
+        ? text
+        : intent.query;
+    final found = intent.kind == WebKind.news
+        ? WebSearchResult(
+            await web
+                .news(query, malay: malay)
+                .timeout(budget)
+                .catchError((Object _) => const <WebSnippet>[]),
+          )
+        : await web.search(query, malay: malay);
+    final snippets = found.snippets.take(5).toList();
+    if (snippets.isEmpty) {
+      if (found.failed || !await _linkUp()) return offline();
+      return replies.text(l10n.aiWebNothing(query)).copyWith(local: true);
+    }
+    if (state.modelReady && intent.kind != WebKind.news) {
+      return _askModel(text, prior, replies, l10n, web: snippets);
+    }
+    return replies
+        .webResults(
+          snippets,
+          title: intent.kind == WebKind.news
+              ? l10n.aiWebNewsTitle(query)
+              : l10n.aiWebResultsTitle(query),
+        )
+        .copyWith(local: true);
   }
 
   /// Konteks ringkas untuk model (Inggeris; bukan dipaparkan): laluan semasa, HANYA bila soalan
@@ -724,3 +926,48 @@ final assistantControllerProvider =
     NotifierProvider<AssistantController, AssistantUiState>(
       AssistantController.new,
     );
+
+/// Konteks hasil internet untuk model (Inggeris; tidak dipaparkan): bernombor supaya jawapan boleh
+/// memetik [n], dihadkan ~1,200 aksara (setiap token diproses pada telefon).
+String webContext(List<WebSnippet> web, DateTime now) {
+  final b = StringBuffer(
+    '[Web results fetched ${now.toIso8601String().substring(0, 10)}. Answer the question using ONLY '
+    'these results, cite them like [1], and say plainly if they do not answer it.]',
+  );
+  var budget = 1200;
+  for (var i = 0; i < web.length && budget > 0; i++) {
+    final s = web[i];
+    final date = s.date == null
+        ? ''
+        : ', ${s.date!.toIso8601String().substring(0, 10)}';
+    final body = s.text.isEmpty ? '' : ': ${s.text}';
+    var line = '[${i + 1}] ${s.title} (${s.source}$date)$body';
+    if (line.length > 320) line = '${line.substring(0, 319)}…';
+    b.write('\n$line');
+    budget -= line.length;
+  }
+  return b.toString();
+}
+
+/// Hasil alat `web_search` untuk model, bernombor bermula selepas [offset] sumber sedia ada.
+Map<String, Object?> webToolResult(List<WebSnippet> web, {int offset = 0}) {
+  if (web.isEmpty) return {'ok': false, 'error': 'not_found'};
+  return {
+    'ok': true,
+    'results': [
+      for (var i = 0; i < web.length && i < 5; i++)
+        {
+          'n': offset + i + 1,
+          'title': web[i].title,
+          'source': web[i].source,
+          if (web[i].date != null)
+            'date': web[i].date!.toIso8601String().substring(0, 10),
+          if (web[i].text.isNotEmpty)
+            'text': web[i].text.length > 240
+                ? '${web[i].text.substring(0, 239)}…'
+                : web[i].text,
+        },
+    ],
+    'note': 'Cite results as [n].',
+  };
+}

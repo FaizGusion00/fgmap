@@ -1,5 +1,7 @@
 import 'package:flutter_edge_ai/flutter_edge_ai.dart';
 
+import 'nlu/intents.dart' show AppScreen;
+
 /// Arahan sistem: pendek (setiap token diproses pada telefon). Arahan peta biasa ("route to X",
 /// "start", cuaca, kiblat) dikendalikan oleh kod sebelum model, jadi model kebanyakannya menjawab
 /// soalan umum. Konteks semasa (destinasi, laluan) dihantar dalam mesej, bukan di sini, supaya sesi
@@ -10,16 +12,18 @@ const assistantSystemPrompt =
     'phone. Answer ONLY the latest user message, in the language the user '
     'wrote (Bahasa Melayu or English). You can talk about any topic: general '
     'knowledge, history, science, culture, current issues, feelings and '
-    'advice. If the user names a topic without a specific question, give a '
-    'short, balanced overview of it. Be direct, friendly and professional: 2-5 '
-    'short sentences or a short list. Do not repeat earlier answers, do not '
-    'restate the question, never greet or introduce yourself unless the user '
-    'greets you, and never ask for confirmation. Answer greetings and chit-chat '
-    'from your own knowledge without tools. Use a tool only when the user asks '
-    'for a place location, the weather, or facts about a named topic you are '
-    'unsure of. Never invent coordinates, prices, weather or times. Never print '
-    'tool names, <tool_code> tags, JSON schemas, or "Parameters:" blocks. You '
-    'are not a religious authority.';
+    'advice. Start with the direct answer in the first sentence, then add 2-4 '
+    'short supporting points or steps when useful. If the user names a topic '
+    'without a specific question, give a short, balanced overview. Be '
+    'friendly and professional. Do not repeat earlier answers, do not restate '
+    'the question, never greet or introduce yourself unless the user greets '
+    'you, and never ask for confirmation. If you are not sure, say so briefly '
+    'instead of guessing. For anything that changes over time (news, prices, '
+    'who holds an office now, results, today\'s events) call web_search and '
+    'answer from its results, citing them like [1]. Use other tools only for '
+    'a place location or the weather. Never invent coordinates, prices, '
+    'weather, dates or times. Never print tool names, <tool_code> tags, JSON '
+    'schemas, or "Parameters:" blocks. You are not a religious authority.';
 
 /// Skema alat untuk LiteRT / prompt-based function calling.
 List<Tool> assistantTools() => const [
@@ -131,6 +135,41 @@ List<Tool> assistantTools() => const [
       'required': ['query'],
     },
   ),
+  Tool(
+    name: 'web_search',
+    description:
+        'Search the internet for up-to-date facts and news (today, latest, '
+        'current, prices, results). Returns numbered results to cite as [n].',
+    parameters: {
+      'type': 'object',
+      'properties': {
+        'query': {'type': 'string', 'description': 'Search words'},
+      },
+      'required': ['query'],
+    },
+  ),
+  Tool(
+    name: 'app_action',
+    description:
+        'Operate the FGMaps app on screen for the user (they watch it happen). '
+        'Use when the user asks to open or show an app screen.',
+    parameters: {
+      'type': 'object',
+      'properties': {
+        'action': {
+          'type': 'string',
+          'description':
+              'weather, qibla, air_quality, music, prayer_times, '
+              'offline_maps, settings, report, recenter, or find_place',
+        },
+        'place': {
+          'type': 'string',
+          'description': 'Place name for weather or find_place (optional)',
+        },
+      },
+      'required': ['action'],
+    },
+  ),
 ];
 
 const _planRouteTool = Tool(
@@ -160,7 +199,13 @@ const _planRouteTool = Tool(
 /// `plan_route` sengaja TIADA: model 0.6B memanggilnya untuk soalan yang tiada kaitan (cth. "who are
 /// you?" ketika pratonton laluan terbuka) dan jawapan menjadi kad laluan lama. Laluan hanya melalui
 /// penghala ([parseIntent]), yang memerlukan destinasi yang jelas.
-const llmToolNames = {'search_place', 'get_weather', 'wikipedia_summary'};
+const llmToolNames = {
+  'search_place',
+  'get_weather',
+  'wikipedia_summary',
+  'web_search',
+  'app_action',
+};
 
 List<Tool> llmAssistantTools() => [
   for (final t in assistantTools())
@@ -180,6 +225,8 @@ const assistantToolNames = {
   'list_cameras_along_route',
   'list_along_route',
   'wikipedia_summary',
+  'web_search',
+  'app_action',
 };
 
 bool isKnownAssistantTool(String name) => assistantToolNames.contains(name);
@@ -190,3 +237,18 @@ String clipToolResult(String text, {int max = 900}) {
   if (t.length <= max) return t;
   return '${t.substring(0, max - 1)}…';
 }
+
+/// `app_action` -> skrin ejen (null jika tidak dikenali: model tidak boleh mereka aksi).
+AppScreen? appScreenForAction(String? action) => switch (action?.trim()) {
+  'weather' => AppScreen.weather,
+  'qibla' => AppScreen.qibla,
+  'air_quality' => AppScreen.airQuality,
+  'music' => AppScreen.music,
+  'prayer_times' => AppScreen.prayerTimes,
+  'offline_maps' => AppScreen.offlineMaps,
+  'settings' => AppScreen.settings,
+  'report' => AppScreen.report,
+  'recenter' => AppScreen.recenter,
+  'find_place' => AppScreen.findPlace,
+  _ => null,
+};

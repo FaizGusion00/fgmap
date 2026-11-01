@@ -22,6 +22,8 @@ import '../data/navigation_settings.dart';
 import '../domain/camera_planner.dart';
 import '../domain/car_session.dart';
 import '../domain/instruction_text.dart';
+import '../domain/lane_guidance.dart' show laneHintWithinM;
+import '../domain/lane_plan.dart';
 import 'car_places.dart';
 import 'cruise_controller.dart';
 import 'navigation_controller.dart';
@@ -165,6 +167,22 @@ class CarSessionHub {
     final now = ref.read(navClockProvider)();
     final settings = ref.read(navigationSettingsProvider);
     final en = language == VoiceLanguage.en;
+    // Lorong: gambar lorong asli kereta hanya daripada data sebenar dan dalam jarak yang sama dengan
+    // kotak lorong di telefon; ayat sisi ("Guna lorong paling kanan") dalam 700 m.
+    final toManeuverM = progress?.distanceToNextM;
+    final motorcycle = nav.query?.vehicle == RouteVehicle.motorcycle;
+    final laneNear =
+        maneuver != null &&
+        toManeuverM != null &&
+        toManeuverM <=
+            laneViewWithinM(
+              speedMps: progress?.speedMps ?? 0,
+              motorcycle: motorcycle,
+            );
+    final laneHintNear =
+        maneuver != null &&
+        toManeuverM != null &&
+        toManeuverM <= laneHintWithinM;
     return mapCarSession(
       navigating: navigating,
       cruising: cruise.active,
@@ -201,6 +219,10 @@ class CarSessionHub {
       alongCue: _alongLine(nav, progress?.alongM ?? 0, en),
       airAqi: _airLine(en),
       prayerLine: _prayerLine(),
+      lanes: laneNear ? carLanesFor(lanePlanFor(maneuver)) : const [],
+      laneHint: laneHintNear
+          ? InstructionText(language).laneHint(maneuver)
+          : null,
     );
   }
 
@@ -239,9 +261,7 @@ class CarSessionHub {
   ) {
     final haze = nav.hazeAlert;
     if (haze != null) {
-      return en
-          ? 'Elevated IPU · ${haze.ipu}'
-          : 'IPU tinggi · ${haze.ipu}';
+      return en ? 'Elevated IPU · ${haze.ipu}' : 'IPU tinggi · ${haze.ipu}';
     }
     if (!nav.weatherSevere || !settings.weatherAlerts) return null;
     return en ? 'Severe weather' : 'Cuaca buruk';

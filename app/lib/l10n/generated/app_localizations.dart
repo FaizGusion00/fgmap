@@ -998,6 +998,60 @@ abstract class AppLocalizations {
   /// **'Guna lorong yang ditanda'**
   String get navLaneUse;
 
+  /// No description provided for @navLaneRightmost.
+  ///
+  /// In ms, this message translates to:
+  /// **'Guna lorong paling kanan'**
+  String get navLaneRightmost;
+
+  /// No description provided for @navLaneLeftmost.
+  ///
+  /// In ms, this message translates to:
+  /// **'Guna lorong paling kiri'**
+  String get navLaneLeftmost;
+
+  /// No description provided for @navLaneRightmostN.
+  ///
+  /// In ms, this message translates to:
+  /// **'Guna {count} lorong paling kanan'**
+  String navLaneRightmostN(int count);
+
+  /// No description provided for @navLaneLeftmostN.
+  ///
+  /// In ms, this message translates to:
+  /// **'Guna {count} lorong paling kiri'**
+  String navLaneLeftmostN(int count);
+
+  /// No description provided for @navLaneNthFromLeft.
+  ///
+  /// In ms, this message translates to:
+  /// **'Guna lorong ke-{n} dari kiri'**
+  String navLaneNthFromLeft(int n);
+
+  /// No description provided for @navLaneNthFromRight.
+  ///
+  /// In ms, this message translates to:
+  /// **'Guna lorong ke-{n} dari kanan'**
+  String navLaneNthFromRight(int n);
+
+  /// No description provided for @navLaneEstimated.
+  ///
+  /// In ms, this message translates to:
+  /// **'Anggaran lorong'**
+  String get navLaneEstimated;
+
+  /// No description provided for @navLaneViewSemantics.
+  ///
+  /// In ms, this message translates to:
+  /// **'Paparan {count} lorong'**
+  String navLaneViewSemantics(int count);
+
+  /// No description provided for @navLaneViewHintSemantics.
+  ///
+  /// In ms, this message translates to:
+  /// **'Paparan lorong. {hint}'**
+  String navLaneViewHintSemantics(String hint);
+
   /// No description provided for @navGetReady.
   ///
   /// In ms, this message translates to:
@@ -5753,6 +5807,258 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'Cuba tanya'**
   String get aiTryAsking;
+
+  /// No description provided for @settingsLiteMode.
+  ///
+  /// In ms, this message translates to:
+  /// **'Mod Lite (telefon lemah)'**
+  String get settingsLiteMode;
+
+  /// No description provided for @settingsLiteModeHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Telefon ini: RAM {ram} GB · {state}. Mod Lite mematikan bangunan 3D, kesan kabur dan animasi hiasan, mengurangkan GPS ketika peta terbiar dan menyimpan bateri.'**
+  String settingsLiteModeHint(String ram, String state);
+
+  /// No description provided for @settingsLiteAuto.
+  ///
+  /// In ms, this message translates to:
+  /// **'Auto'**
+  String get settingsLiteAuto;
+
+  /// No description provided for @settingsLiteOn.
+  ///
+  /// In ms, this message translates to:
+  /// **'Hidup'**
+  String get settingsLiteOn;
+
+  /// No description provided for @settingsLiteOff.
+  ///
+  /// In ms, this message translates to:
+  /// **'Mati'**
+  String get settingsLiteOff;
+
+  /// No description provided for @settingsLiteActive.
+  ///
+  /// In ms, this message translates to:
+  /// **'Mod Lite aktif'**
+  String get settingsLiteActive;
+
+  /// No description provided for @settingsLiteInactive.
+  ///
+  /// In ms, this message translates to:
+  /// **'Mod Lite tidak aktif'**
+  String get settingsLiteInactive;
+
+  /// No description provided for @settingsLiteModeHintNoRam.
+  ///
+  /// In ms, this message translates to:
+  /// **'{state}. Mod Lite mematikan bangunan 3D, kesan kabur dan animasi hiasan, mengurangkan GPS ketika peta terbiar dan menyimpan bateri.'**
+  String settingsLiteModeHintNoRam(String state);
+
+  /// No description provided for @aiBrowsing.
+  ///
+  /// In ms, this message translates to:
+  /// **'Mencari di internet…'**
+  String get aiBrowsing;
+
+  /// No description provided for @aiWebSources.
+  ///
+  /// In ms, this message translates to:
+  /// **'Sumber web'**
+  String get aiWebSources;
+
+  /// No description provided for @aiWebResultsTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Maklumat terkini: {query}'**
+  String aiWebResultsTitle(String query);
+
+  /// No description provided for @aiWebNewsTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Berita terkini: {query}'**
+  String aiWebNewsTitle(String query);
+
+  /// No description provided for @aiWebNothing.
+  ///
+  /// In ms, this message translates to:
+  /// **'Saya tidak jumpa maklumat terkini tentang \"{query}\". Cuba perkataan lain atau lebih khusus.'**
+  String aiWebNothing(String query);
+
+  /// No description provided for @aiWebUnreadable.
+  ///
+  /// In ms, this message translates to:
+  /// **'Saya tidak dapat membaca pautan itu (halaman tidak boleh dicapai, bukan HTTPS, atau tiada teks).'**
+  String get aiWebUnreadable;
+
+  /// No description provided for @aiFuelPricesTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Harga minyak semasa (berkuat kuasa {date})'**
+  String aiFuelPricesTitle(String date);
+
+  /// No description provided for @aiAgoMinutes.
+  ///
+  /// In ms, this message translates to:
+  /// **'{n} min lalu'**
+  String aiAgoMinutes(int n);
+
+  /// No description provided for @aiAgoHours.
+  ///
+  /// In ms, this message translates to:
+  /// **'{n} j lalu'**
+  String aiAgoHours(int n);
+
+  /// No description provided for @aiSearchWebAsk.
+  ///
+  /// In ms, this message translates to:
+  /// **'Cari di internet'**
+  String get aiSearchWebAsk;
+
+  /// No description provided for @assistantAutoWebTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Cari di internet secara automatik'**
+  String get assistantAutoWebTitle;
+
+  /// No description provided for @assistantAutoWebSubtitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'FG AI menyemak berita, Wikipedia dan data rasmi bila soalan perlukan maklumat terkini. Permintaan \"cari online\" sentiasa dijalankan.'**
+  String get assistantAutoWebSubtitle;
+
+  /// No description provided for @aiModelRecommended.
+  ///
+  /// In ms, this message translates to:
+  /// **'Disyorkan untuk telefon ini'**
+  String get aiModelRecommended;
+
+  /// No description provided for @aiModelTooHeavy.
+  ///
+  /// In ms, this message translates to:
+  /// **'Terlalu berat untuk telefon ini (RAM {ram} GB)'**
+  String aiModelTooHeavy(String ram);
+
+  /// No description provided for @aiModelTooHeavyTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Model ini mungkin terlalu berat'**
+  String get aiModelTooHeavyTitle;
+
+  /// No description provided for @aiModelTooHeavyBody.
+  ///
+  /// In ms, this message translates to:
+  /// **'{name} memerlukan lebih RAM daripada telefon ini ({ram} GB). Ia mungkin sangat perlahan atau ditutup oleh sistem. Teruskan muat turun?'**
+  String aiModelTooHeavyBody(String name, String ram);
+
+  /// No description provided for @agentStop.
+  ///
+  /// In ms, this message translates to:
+  /// **'Henti'**
+  String get agentStop;
+
+  /// No description provided for @agentWorking.
+  ///
+  /// In ms, this message translates to:
+  /// **'FG AI sedang menggunakan app…'**
+  String get agentWorking;
+
+  /// No description provided for @agentStepMap.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kembali ke peta'**
+  String get agentStepMap;
+
+  /// No description provided for @agentStepOpen.
+  ///
+  /// In ms, this message translates to:
+  /// **'Buka {x}'**
+  String agentStepOpen(String x);
+
+  /// No description provided for @agentStepSearch.
+  ///
+  /// In ms, this message translates to:
+  /// **'Cari \"{x}\"'**
+  String agentStepSearch(String x);
+
+  /// No description provided for @agentStepType.
+  ///
+  /// In ms, this message translates to:
+  /// **'Taip \"{x}\"'**
+  String agentStepType(String x);
+
+  /// No description provided for @agentStepPickFirst.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pilih hasil teratas'**
+  String get agentStepPickFirst;
+
+  /// No description provided for @agentStepPickNearest.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pilih yang terdekat'**
+  String get agentStepPickNearest;
+
+  /// No description provided for @agentStepOpenSearch.
+  ///
+  /// In ms, this message translates to:
+  /// **'Buka carian'**
+  String get agentStepOpenSearch;
+
+  /// No description provided for @agentStepCategory.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tekan {x}'**
+  String agentStepCategory(String x);
+
+  /// No description provided for @agentStepRouteReady.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tunggu laluan siap'**
+  String get agentStepRouteReady;
+
+  /// No description provided for @agentStepStart.
+  ///
+  /// In ms, this message translates to:
+  /// **'Mula navigasi'**
+  String get agentStepStart;
+
+  /// No description provided for @agentStepRecenter.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pusatkan peta pada lokasi saya'**
+  String get agentStepRecenter;
+
+  /// No description provided for @agentReport.
+  ///
+  /// In ms, this message translates to:
+  /// **'Laporan jalan'**
+  String get agentReport;
+
+  /// No description provided for @agentFindTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Cari {x}'**
+  String agentFindTitle(String x);
+
+  /// No description provided for @agentDone.
+  ///
+  /// In ms, this message translates to:
+  /// **'Siap. Ini yang saya lakukan:'**
+  String get agentDone;
+
+  /// No description provided for @agentStopped.
+  ///
+  /// In ms, this message translates to:
+  /// **'Dihentikan. Setakat ini:'**
+  String get agentStopped;
+
+  /// No description provided for @agentFailed.
+  ///
+  /// In ms, this message translates to:
+  /// **'Saya tidak dapat menyiapkannya. Ini yang berlaku:'**
+  String get agentFailed;
 }
 
 class _AppLocalizationsDelegate

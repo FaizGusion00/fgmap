@@ -253,7 +253,10 @@ void main() {
       await pumpHost(tester);
       await type(tester, 'destination-field', 'masjid putra');
       expect(find.text('Masjid Putra'), findsOneWidget);
-      expect(find.byKey(const ValueKey('result-offline-badge')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('result-offline-badge')),
+        findsOneWidget,
+      );
       expect(find.text('Offline'), findsWidgets);
     });
 

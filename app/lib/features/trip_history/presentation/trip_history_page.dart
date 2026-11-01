@@ -175,9 +175,9 @@ class _TripHistoryPageState extends ConsumerState<TripHistoryPage> {
                         overflow: TextOverflow.ellipsis,
                       ),
                       subtitle: Text(
-                        DateFormat.yMMMd()
-                            .add_Hm()
-                            .format(t.completedAt.toLocal()),
+                        DateFormat.yMMMd().add_Hm().format(
+                          t.completedAt.toLocal(),
+                        ),
                       ),
                       trailing: Text(
                         formatDistance(l10n, t.distanceM.round()),

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/utils/geo.dart';
 import '../../reports/domain/report.dart';
 import '../../navigation/domain/camera_planner.dart' show CameraPose;
+import '../domain/turn_label.dart';
 import 'maplibre_view.dart';
 import '../../navigation/presentation/car/car_mesh.dart' show VehicleKind;
 import 'nav_route_line.dart';
@@ -150,6 +151,8 @@ class MapViewConfig {
     this.finalLeg = const [],
     this.showCompass = true,
     this.vehicleKind = VehicleKind.car,
+    this.navTurnLabel,
+    this.poiPins = false,
     this.reports = const [],
     this.onUserGesture,
     this.onTap,
@@ -192,6 +195,14 @@ class MapViewConfig {
   /// Sambungan akhir bertitik dari hujung laluan (titik jalan) ke destinasi sebenar bila ia berjauhan;
   /// kosong jika tiada.
   final List<GeoPoint> finalLeg;
+
+  /// Nama jalan yang akan dimasuki pada belokan seterusnya, dilukis di atas laluan pada titik belok
+  /// supaya pemandu nampak "belok ke jalan mana" pada peta. Null = tiada.
+  final NavTurnLabel? navTurnLabel;
+
+  /// Pin tempat berwarna (stesen minyak, makan, kedai ...) menggantikan ikon POI gaya asal; hanya
+  /// semasa navigasi.
+  final bool poiPins;
 
   /// Jenis kenderaan untuk sprite kenderaan di lapisan peta (kereta atau motosikal).
   final VehicleKind vehicleKind;

@@ -8,14 +8,19 @@ import 'package:maplibre_gl/maplibre_gl.dart';
 
 import '../../../core/theme/motion.dart';
 import '../../../core/utils/geo.dart';
+import '../domain/poi_category.dart';
+import '../domain/turn_label.dart';
 import '../../reports/domain/report.dart';
 import '../../reports/presentation/report_icon.dart';
 import '../../navigation/domain/camera_planner.dart' show CameraPose;
 import 'map_frame_pump.dart';
+import 'map_symbols.dart';
 import 'map_view.dart';
 import 'nav_route_line.dart';
+import 'overlay_layer_props.dart';
 import 'vehicle_icon.dart';
 import '../../../core/utils/log.dart';
+import '../../../core/settings/device_tier.dart';
 
 const _altSource = 'fg-route-alt-src';
 const _mainSource = 'fg-route-main-src';
@@ -34,6 +39,16 @@ const _mainLayer = 'fg-route-main';
 const _casingFarLayer = 'fg-route-casing-far';
 const _mainFarLayer = 'fg-route-main-far';
 const _destLayer = 'fg-destination';
+const _chevronSource = 'fg-route-chevron-src';
+const _chevronLayer = 'fg-route-chevrons';
+const _chevronImage = 'fg-chevron';
+const _turnLabelSource = 'fg-turn-label-src';
+const _turnLabelLayer = 'fg-turn-label';
+const _poiPinLayer = 'fg-poi-pins';
+
+/// Lapisan POI gaya Liberty (ikon kecil + teks condong) yang disembunyikan apabila pin berwarna
+/// dipaparkan supaya tempat yang sama tidak dilukis dua kali.
+const _basePoiLayers = ['poi_r1', 'poi_r7', 'poi_r20'];
 
 const _emptyCollection = <String, dynamic>{
   'type': 'FeatureCollection',
@@ -81,6 +96,10 @@ class _MapLibreViewState extends State<MapLibreView> {
   GeoPoint? _sentDestination;
   List<MapReport> _sentReports = const [];
   List<GeoPoint> _sentLeg = const [];
+  NavRouteLine? _chevronNav;
+  int? _chevronFirst;
+  NavTurnLabel? _sentTurnLabel;
+  bool? _sentPoiPins;
 
   // Pemangkasan laluan navigasi. `line-gradient` memangkas bahagian yang telah dilalui tanpa menjana
   // semula geometri; jika platform menolaknya, jatuh balik ke menghantar baki laluan (jarang-jarang).
@@ -103,10 +122,15 @@ class _MapLibreViewState extends State<MapLibreView> {
     _activeStyleUrl = _initialStyleUrl;
     widget.config.userLocation?.addListener(_pushUserLocation);
     widget.config.navAlong?.addListener(_onNavAlong);
-    _userLocationHeartbeat = Timer.periodic(
-      _userLocationHeartbeatEvery,
-      (_) => _pushUserLocation(),
-    );
+    _userLocationHeartbeat = Timer.periodic(_userLocationHeartbeatEvery, (_) {
+      // Di latar belakang peta tidak kelihatan: jangan bangunkan enjin peta setiap 15 s.
+      final lifecycle = WidgetsBinding.instance.lifecycleState;
+      if (lifecycle == AppLifecycleState.paused ||
+          lifecycle == AppLifecycleState.hidden) {
+        return;
+      }
+      _pushUserLocation();
+    });
   }
 
   @override
@@ -244,10 +268,24 @@ class _MapLibreViewState extends State<MapLibreView> {
 
   void _onStyleLoaded() {
     _enqueue(_initOverlays);
+    if (LiteMode.enabled) _enqueue(_hide3dBuildings);
     // Menukar gaya mengaktifkan semula komponen lokasi tanpa kedudukan: hantar semula yang terkini.
     Future<void>.delayed(const Duration(milliseconds: 300), () {
       if (mounted) _pushUserLocation();
     });
+  }
+
+  /// Mod Lite: bangunan 3D (fill-extrusion) ialah lapisan paling berat pada GPU lemah, terutamanya
+  /// pada zum navigasi dan kecondongan 55°. Disorok; jalan dan label tidak terjejas.
+  Future<void> _hide3dBuildings() async {
+    final c = _controller;
+    if (c == null) return;
+    for (final id in await c.getLayerIds()) {
+      final name = '$id'.toLowerCase();
+      if (name.contains('3d') || name.contains('extrusion')) {
+        await c.setLayerVisibility('$id', false);
+      }
+    }
   }
 
   Future<void> _initOverlays() async {
@@ -263,6 +301,9 @@ class _MapLibreViewState extends State<MapLibreView> {
     // Buang dahulu jika wujud (onStyleLoaded boleh dipanggil lebih daripada sekali bagi gaya yang sama).
     for (final layer in [
       _vehicleLayer,
+      _turnLabelLayer,
+      _poiPinLayer,
+      _chevronLayer,
       _reportLayer,
       _destLayer,
       _legLayer,
@@ -276,6 +317,8 @@ class _MapLibreViewState extends State<MapLibreView> {
     }
     for (final source in [
       _vehicleSource,
+      _turnLabelSource,
+      _chevronSource,
       _reportSource,
       _destSource,
       _legSource,
@@ -290,6 +333,8 @@ class _MapLibreViewState extends State<MapLibreView> {
     await c.addGeoJsonSource(_legSource, _emptyCollection);
     await c.addGeoJsonSource(_destSource, _emptyCollection);
     await c.addGeoJsonSource(_reportSource, _emptyCollection);
+    await c.addGeoJsonSource(_chevronSource, _emptyCollection);
+    await c.addGeoJsonSource(_turnLabelSource, _emptyCollection);
     // Sumber baharu kosong: tiada apa yang dihantar lagi.
     _sentAlt = const [];
     _sentMain = const [];
@@ -299,6 +344,10 @@ class _MapLibreViewState extends State<MapLibreView> {
     _trimChunk = null;
     _sentDestination = null;
     _sentReports = const [];
+    _chevronNav = null;
+    _chevronFirst = null;
+    _sentTurnLabel = null;
+    _sentPoiPins = null;
 
     // Urutan penting: alternatif di bawah, kemudian tepi laluan utama, laluan utama, sambungan akhir,
     // destinasi.
@@ -316,6 +365,7 @@ class _MapLibreViewState extends State<MapLibreView> {
       enableInteraction: false,
     );
     await _addMainLayers(c, colors);
+    await _addChevronLayer(c);
     await c.addLineLayer(
       _legSource,
       _legLayer,
@@ -340,6 +390,9 @@ class _MapLibreViewState extends State<MapLibreView> {
       ),
       enableInteraction: false,
     );
+
+    await _addPoiPinLayer(c, colors);
+    await _addTurnLabelLayer(c, colors);
 
     // Penanda laporan komuniti: di atas laluan dan destinasi, di bawah kenderaan. Ikon dilukis sekali
     // setiap jenis dan dipilih mengikut sifat `icon` pada setiap titik.
@@ -393,6 +446,109 @@ class _MapLibreViewState extends State<MapLibreView> {
 
     _overlaysReady = true;
     await _pushData();
+  }
+
+  double get _iconScale =>
+      defaultTargetPlatform == TargetPlatform.android ? _pixelRatio : 1;
+
+  /// Anak panah arah putih di atas laluan: pemandu nampak jalan mana yang diikut dan ke arah mana.
+  /// Titik tetap pada jalan (bukan pada kenderaan), diputar mengikut arah jalan pada peta.
+  Future<void> _addChevronLayer(MapLibreMapController c) async {
+    try {
+      await c.addImage(_chevronImage, await renderChevron());
+      await c.addSymbolLayer(
+        _chevronSource,
+        _chevronLayer,
+        chevronLayerProps(
+          image: _chevronImage,
+          iconScale: _iconScale,
+          stale: widget.config.navStale,
+        ),
+        belowLayerId: _labelAnchor,
+        enableInteraction: false,
+      );
+    } on Object catch (e) {
+      logDiag('Lapisan anak panah laluan gagal: $e');
+    }
+  }
+
+  /// Pin tempat berwarna dari lapisan `poi` jubin peta. Gagal senyap jika gaya tiada sumber itu.
+  Future<void> _addPoiPinLayer(
+    MapLibreMapController c,
+    MapOverlayColors colors,
+  ) async {
+    try {
+      for (final cat in PoiCategory.values) {
+        await c.addImage(poiImageName(cat), await renderPoiPin(cat));
+      }
+      await c.addSymbolLayer(
+        vectorSourceId,
+        _poiPinLayer,
+        poiPinLayerProps(dark: colors.dark, iconScale: _iconScale),
+        sourceLayer: poiSourceLayer,
+        minzoom: poiPinMinZoom,
+        filter: poiPinFilter(),
+        enableInteraction: false,
+      );
+    } on Object catch (e) {
+      logDiag('Lapisan pin tempat gagal: $e');
+    }
+  }
+
+  /// Nama jalan yang akan dimasuki, pada titik belok.
+  Future<void> _addTurnLabelLayer(
+    MapLibreMapController c,
+    MapOverlayColors colors,
+  ) async {
+    try {
+      await c.addSymbolLayer(
+        _turnLabelSource,
+        _turnLabelLayer,
+        turnLabelLayerProps(routeHex: _hex(colors.mainRoute)),
+        enableInteraction: false,
+      );
+    } on Object catch (e) {
+      logDiag('Lapisan label belokan gagal: $e');
+    }
+  }
+
+  /// Anak panah arah di hadapan kenderaan. Dihantar semula hanya apabila anak panah pertama
+  /// bertukar (setiap ~50 m), bukan setiap bingkai.
+  Future<void> _updateChevrons(
+    MapLibreMapController c,
+    NavRouteLine nav,
+    double along,
+  ) async {
+    final first = ((along + 12) / 50).ceil();
+    if (identical(_chevronNav, nav) && _chevronFirst == first) return;
+    _chevronNav = nav;
+    _chevronFirst = first;
+    final items = nav.chevronsAhead(along);
+    await c.setGeoJsonSource(_chevronSource, {
+      'type': 'FeatureCollection',
+      'features': [
+        for (final it in items)
+          {
+            'type': 'Feature',
+            'properties': {'bearing': it.bearing},
+            'geometry': {
+              'type': 'Point',
+              'coordinates': [it.point.lng, it.point.lat],
+            },
+          },
+      ],
+    });
+  }
+
+  Future<void> _applyPoiPins(MapLibreMapController c, bool on) async {
+    try {
+      await c.setLayerVisibility(_poiPinLayer, on);
+      for (final id in _basePoiLayers) {
+        await c.setLayerVisibility(id, !on);
+      }
+    } on Object catch (e) {
+      logDiag('Pin tempat: tukar paparan gagal: $e');
+    }
   }
 
   /// Sumber laluan utama dengan `lineMetrics` (diperlukan oleh `line-gradient`). Jika platform
@@ -558,6 +714,16 @@ class _MapLibreViewState extends State<MapLibreView> {
         _mainLayer,
         _mainProps(colors, fraction, gradient: _gradientOk),
       );
+      // Anak panah arah menuding ke laluan yang tidak lagi diikut: disembunyikan bersama garisan
+      // pudar. Terakhir, kerana lapisan ini pilihan (boleh gagal dicipta).
+      await c.setLayerProperties(
+        _chevronLayer,
+        chevronLayerProps(
+          image: _chevronImage,
+          iconScale: _iconScale,
+          stale: widget.config.navStale,
+        ),
+      );
     } on Object catch (e) {
       logDiag('Kelegapan laluan gagal ditetapkan: $e');
     }
@@ -624,6 +790,7 @@ class _MapLibreViewState extends State<MapLibreView> {
       return;
     }
     final along = widget.config.navAlong?.value ?? 0;
+    await _updateChevrons(c, nav, along);
     final last = _trimAlong;
     if (last != null && (along - last).abs() < (_gradientOk ? 0.5 : 5)) return;
     _trimAlong = along;
@@ -716,6 +883,9 @@ class _MapLibreViewState extends State<MapLibreView> {
         _sentMain = const [];
         _trimAlong = null;
         await c.setGeoJsonSource(_mainSource, _emptyCollection);
+        _chevronNav = null;
+        _chevronFirst = null;
+        await c.setGeoJsonSource(_chevronSource, _emptyCollection);
         if (_gradientOk) {
           await _resetChunkFilters(c);
           await _setTrim(c, null);
@@ -737,6 +907,17 @@ class _MapLibreViewState extends State<MapLibreView> {
     if (!listEquals(_sentReports, cfg.reports)) {
       _sentReports = cfg.reports;
       await c.setGeoJsonSource(_reportSource, _reportFeatures(cfg.reports));
+    }
+    if (_sentTurnLabel != cfg.navTurnLabel) {
+      _sentTurnLabel = cfg.navTurnLabel;
+      await c.setGeoJsonSource(
+        _turnLabelSource,
+        _turnLabelFeature(cfg.navTurnLabel),
+      );
+    }
+    if (_sentPoiPins != cfg.poiPins) {
+      _sentPoiPins = cfg.poiPins;
+      await _applyPoiPins(c, cfg.poiPins);
     }
   }
 
@@ -1019,6 +1200,22 @@ Map<String, dynamic> _vehiclePoint(VehicleMarker? v) {
     ],
   };
 }
+
+Map<String, dynamic> _turnLabelFeature(NavTurnLabel? label) => label == null
+    ? _emptyCollection
+    : {
+        'type': 'FeatureCollection',
+        'features': [
+          {
+            'type': 'Feature',
+            'properties': {'text': label.text},
+            'geometry': {
+              'type': 'Point',
+              'coordinates': [label.point.lng, label.point.lat],
+            },
+          },
+        ],
+      };
 
 Map<String, dynamic> _point(GeoPoint? p) {
   return {

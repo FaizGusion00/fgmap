@@ -50,7 +50,12 @@ class EdgeAiLlmRuntime implements LocalLlmRuntime {
   /// Bila anggaran konteks melebihi bahagian ini daripada konteks model, sesi dimulakan semula
   /// dengan sejarah ringkas.
   int get _sessionBudget => (_activeModel.contextTokens * 0.68).round();
-  static const idleRelease = Duration(minutes: 3);
+
+  /// Model kecil kekal 3 minit (sembang berturut pantas); model > 1 GB hanya 60 s kerana ia memegang
+  /// berbilang GB RAM, yang menyebabkan sistem menutup app lain dan menghabiskan bateri.
+  Duration get idleRelease => _activeModel.sizeBytes > 1000000000
+      ? const Duration(seconds: 60)
+      : const Duration(minutes: 3);
 
   AiModelOption get _selected => aiModelById(_prefs.getString(aiModelPrefsKey));
 

@@ -10,6 +10,7 @@ import '../../offline_maps/presentation/offline_maps_sheet.dart'
 import '../domain/assistant_models.dart';
 import '../domain/local_llm.dart';
 import 'assistant_controller.dart';
+import '../../../core/settings/device_tier.dart';
 
 /// Helaian "Pilih model AI": lima model mengikut tahap (asas, sederhana, tinggi). Muat turun,
 /// guna atau padam; hanya satu digunakan pada satu masa.
@@ -95,19 +96,34 @@ class _ModelCard extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final state = ref.watch(assistantControllerProvider);
+    // Hanya medan yang kad ini perlukan: kad lain tidak dibina semula bila kemajuan muat turun berubah.
+    final status = ref.watch(
+      assistantControllerProvider.select((s) => s.modelStatus),
+    );
+    final downloadingId = ref.watch(
+      assistantControllerProvider.select((s) => s.downloadingModelId),
+    );
+    final busy = ref.watch(assistantControllerProvider.select((s) => s.busy));
     final selected = ref.watch(selectedAiModelProvider);
     final installed =
         ref.watch(installedAiModelsProvider).value ?? const <String>{};
     final controller = ref.read(assistantControllerProvider.notifier);
 
     final isInstalled = installed.contains(model.id);
+    final ramGb = ref.watch(deviceInfoProvider).totalMemGb;
+    final recommended = ramGb > 0 && recommendedAiModel(ramGb).id == model.id;
+    // Model yang memerlukan lebih RAM daripada telefon ini: boleh ditutup sistem atau sangat perlahan.
+    final tooHeavy = ramGb > 0 && model.minRamGb > ramGb + 0.4;
     final inUse = selected.id == model.id && isInstalled;
     final downloadingThis =
-        state.modelStatus == AssistantModelStatus.downloading &&
-        state.downloadingModelId == model.id;
-    final anyDownloading =
-        state.modelStatus == AssistantModelStatus.downloading;
+        status == AssistantModelStatus.downloading && downloadingId == model.id;
+    final anyDownloading = status == AssistantModelStatus.downloading;
+    // Kemajuan diperhati oleh kad yang sedang memuat turun sahaja.
+    final progress = downloadingThis
+        ? ref.watch(
+            assistantControllerProvider.select((s) => s.downloadProgress),
+          )
+        : 0.0;
 
     Future<void> use() async {
       await controller.selectModel(model.id);
@@ -117,6 +133,32 @@ class _ModelCard extends ConsumerWidget {
         ..showSnackBar(
           SnackBar(content: Text(l10n.aiModelSwitched(model.name))),
         );
+    }
+
+    Future<void> download() async {
+      if (tooHeavy) {
+        final ok = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text(l10n.aiModelTooHeavyTitle),
+            content: Text(
+              l10n.aiModelTooHeavyBody(model.name, ramGb.toStringAsFixed(1)),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(l10n.offlineMapsCancel),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text(l10n.aiModelDownload),
+              ),
+            ],
+          ),
+        );
+        if (ok != true) return;
+      }
+      await controller.downloadModel(id: model.id);
     }
 
     Future<void> delete() async {
@@ -181,6 +223,18 @@ class _ModelCard extends ConsumerWidget {
                 ),
             ],
           ),
+          if (recommended || tooHeavy) ...[
+            const SizedBox(height: 6),
+            _Badge(
+              text: recommended
+                  ? l10n.aiModelRecommended
+                  : l10n.aiModelTooHeavy(ramGb.toStringAsFixed(1)),
+              color: recommended ? scheme.primary : scheme.error,
+              icon: recommended
+                  ? Icons.thumb_up_alt_rounded
+                  : Icons.warning_amber_rounded,
+            ),
+          ],
           const SizedBox(height: 4),
           Text(
             aiModelDescription(l10n, model),
@@ -210,14 +264,12 @@ class _ModelCard extends ConsumerWidget {
               borderRadius: BorderRadius.circular(6),
               child: LinearProgressIndicator(
                 minHeight: 6,
-                value: state.downloadProgress <= 0
-                    ? null
-                    : state.downloadProgress,
+                value: progress <= 0 ? null : progress,
               ),
             ),
             const SizedBox(height: 6),
             Text(
-              l10n.assistantDownloading((state.downloadProgress * 100).round()),
+              l10n.assistantDownloading((progress * 100).round()),
               style: theme.textTheme.bodySmall,
             ),
           ] else ...[
@@ -229,15 +281,14 @@ class _ModelCard extends ConsumerWidget {
                     key: ValueKey('ai-model-download-${model.id}'),
                     onPressed: anyDownloading
                         ? null
-                        : () =>
-                              unawaited(controller.downloadModel(id: model.id)),
+                        : () => unawaited(download()),
                     icon: const Icon(Icons.download_rounded),
                     label: Text(l10n.aiModelDownloadUse),
                   )
                 else if (!inUse)
                   FilledButton.icon(
                     key: ValueKey('ai-model-use-${model.id}'),
-                    onPressed: state.busy ? null : () => unawaited(use()),
+                    onPressed: busy ? null : () => unawaited(use()),
                     icon: const Icon(Icons.bolt_rounded),
                     label: Text(l10n.aiModelUse),
                   ),

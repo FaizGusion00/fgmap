@@ -387,6 +387,15 @@ AssistantIntent? parseIntent(
   final raw = canonicalizeSlang(normalizeCommand(text));
   if (raw.isEmpty) return null;
 
+  // Permintaan internet yang jelas (pautan, "cari online", berita, kadar tukaran, harga minyak)
+  // didahulukan: jika tidak, "berita terkini banjir" dibaca sebagai carian TEMPAT bernama "banjir".
+  final web = strongWebIntent(raw, text);
+  if (web != null) return web;
+
+  // "Buka cuaca", "tunjuk kiblat": ejen membuka skrin itu sendiri (bukan jawapan dalam sembang).
+  final open = openScreenIntent(raw);
+  if (open != null) return open;
+
   final strict = _restore(_gateTopic(_parseCore(raw, ctx), text));
   if (strict != null) return strict;
 
@@ -772,7 +781,159 @@ AssistantIntent? _parseCore(String raw, ConversationContext ctx) {
   final topic = topicOf(t);
   if (topic != null) return TopicIntent(topic);
 
+  final fresh = freshFactIntent(t);
+  if (fresh != null) return fresh;
+
   return null;
+}
+
+final _url = RegExp(r'https://[^\s<>"]+');
+
+final _explicitWeb = RegExp(
+  r'^(?:tolong\s+|please\s+|boleh\s+)?(?:cari(?:kan)?|search|google|semak|check|look\s*up|browse)\s+(?:(?:di|kat|dekat|dalam|on|the|in)\s+)*(?:internet|online|web|google|dalam\s+talian)\b\s*(?:(?:untuk|for|about|pasal|tentang|mengenai)\s+)?(.*)$|^(.+?)\s+(?:(?:di|kat|dekat|on|in)\s+)?(?:internet|online|google)$|^google\s+(.+)$',
+);
+
+final _news = RegExp(r'\b(?:berita|news|headlines?|tajuk\s+utama|breaking)\b');
+
+final _fuelPrice = RegExp(
+  r'\bharga\s+(?:minyak|petrol|ron\s*9[57]|diesel)\b|\b(?:fuel|petrol|ron\s*9[57]|diesel)\s+prices?\b|\bberapa\s+(?:harga\s+)?(?:ron\s*9[57]|diesel)\b',
+);
+
+final _exchange = RegExp(
+  r'\b(?:kadar\s+tukaran|exchange\s+rates?|tukaran\s+(?:wang|mata\s+wang|asing)|currency|forex|mata\s+wang)\b',
+);
+
+/// Perkataan mata wang -> kod ISO. Disemak mengikut tertib (frasa panjang dahulu).
+const _currencies = <String, String>{
+  'dolar singapura': 'SGD',
+  'dollar singapura': 'SGD',
+  'singapore dollar': 'SGD',
+  'dolar australia': 'AUD',
+  'australian dollar': 'AUD',
+  'dolar hong kong': 'HKD',
+  'dolar amerika': 'USD',
+  'us dollar': 'USD',
+  'usd': 'USD',
+  'sgd': 'SGD',
+  'eur': 'EUR',
+  'euro': 'EUR',
+  'gbp': 'GBP',
+  'pound': 'GBP',
+  'paun': 'GBP',
+  'jpy': 'JPY',
+  'yen': 'JPY',
+  'cny': 'CNY',
+  'rmb': 'CNY',
+  'yuan': 'CNY',
+  'renminbi': 'CNY',
+  'idr': 'IDR',
+  'rupiah': 'IDR',
+  'thb': 'THB',
+  'baht': 'THB',
+  'aud': 'AUD',
+  'hkd': 'HKD',
+  'sar': 'SAR',
+  'riyal': 'SAR',
+  'aed': 'AED',
+  'dirham': 'AED',
+  'inr': 'INR',
+  'rupee': 'INR',
+  'krw': 'KRW',
+  'won': 'KRW',
+  'dollar': 'USD',
+  'dolar': 'USD',
+};
+
+String? _currencyIn(String t) {
+  for (final e in _currencies.entries) {
+    if (RegExp('\\b${e.key}\\b').hasMatch(t)) return e.value;
+  }
+  return null;
+}
+
+/// Permintaan internet yang jelas. [t] sudah dinormalkan; [original] untuk pautan dan pertanyaan.
+WebSearchIntent? strongWebIntent(String t, String original) {
+  final url = _url.firstMatch(original);
+  if (url != null) {
+    return WebSearchIntent(
+      url.group(0)!.replaceFirst(RegExp(r'[).,]+$'), ''),
+      kind: WebKind.url,
+      explicit: true,
+    );
+  }
+  if (_fuelPrice.hasMatch(t)) {
+    return WebSearchIntent(t, kind: WebKind.fuelPrice, explicit: true);
+  }
+  final currency = _currencyIn(t);
+  if (currency != null &&
+      (_exchange.hasMatch(t) ||
+          RegExp(
+            r'\b(?:ringgit|rm|myr|berapa|kadar|rate|nilai|value|tukar|convert|to)\b',
+          ).hasMatch(t))) {
+    return WebSearchIntent(
+      t,
+      kind: WebKind.exchangeRate,
+      explicit: true,
+      currency: currency,
+    );
+  }
+  if (_exchange.hasMatch(t)) {
+    return WebSearchIntent(
+      t,
+      kind: WebKind.exchangeRate,
+      explicit: true,
+      currency: 'USD',
+    );
+  }
+  final explicitMatch = _explicitWeb.firstMatch(t);
+  if (explicitMatch != null) {
+    final q =
+        (explicitMatch.group(1) ??
+                explicitMatch.group(2) ??
+                explicitMatch.group(3) ??
+                '')
+            .trim();
+    if (q.isNotEmpty) {
+      return WebSearchIntent(
+        q,
+        kind: _news.hasMatch(q) ? WebKind.news : WebKind.general,
+        explicit: true,
+      );
+    }
+  }
+  if (_news.hasMatch(t)) {
+    final q = t
+        .replaceAll(
+          RegExp(
+            r'\b(?:berita|news|headlines?|tajuk\s+utama|breaking|terkini|latest|terbaru|today|hari\s+ini|tentang|pasal|mengenai|about|on|apa|what|s|is|the|any|ada|tak|ke)\b',
+          ),
+          ' ',
+        )
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+    return WebSearchIntent(
+      q.isEmpty ? 'Malaysia' : q,
+      kind: WebKind.news,
+      explicit: true,
+    );
+  }
+  return null;
+}
+
+final _freshCue = RegExp(
+  r'\b(?:hari\s+ini|today|sekarang|kini|now|currently|current|semasa|terkini|latest|terbaru|tahun\s+ini|this\s+year|minggu\s+ini|this\s+week|semalam|yesterday)\b',
+);
+
+final _questionCue = RegExp(
+  r'\b(?:siapa|who|apa|what|berapa|how\s+much|how\s+many|bila|when|keputusan|result|results|skor|score|harga|price|menang|won|win|juara|champion)\b',
+);
+
+/// Soalan fakta semasa ("siapa perdana menteri sekarang", "keputusan bola semalam"): carian internet
+/// automatik (bukan [WebSearchIntent.explicit]).
+WebSearchIntent? freshFactIntent(String t) {
+  if (!_freshCue.hasMatch(t) || !_questionCue.hasMatch(t)) return null;
+  if (t.split(' ').length < 3) return null;
+  return WebSearchIntent(t);
 }
 
 final _topicAbout = RegExp(
@@ -1540,4 +1701,114 @@ NearbyCategory? _nearbyCategory(String t) {
     if (e.value.hasMatch(t)) return e.key;
   }
   return null;
+}
+
+final _openVerb = RegExp(
+  r'^(?:tolong\s+|please\s+|boleh\s+|can\s+you\s+|cuba\s+)?(?:buka(?:kan)?|bukak|open|show(?:\s+me)?|tunjuk(?:kan)?|pergi\s+ke|go\s+to|lancar(?:kan)?|launch)\s+(?:(?:the|skrin|screen|page|halaman|aplikasi|app|menu)\s+)*(.+)$',
+);
+
+/// Kata skrin -> skrin. Disemak mengikut tertib.
+final _screenWords = <(RegExp, AppScreen)>[
+  (
+    RegExp(r'^(?:cuaca|weather|ramalan(?:\s+cuaca)?|forecast)\b'),
+    AppScreen.weather,
+  ),
+  (
+    RegExp(r'^(?:kiblat|qibla|qiblat|kompas|compass|arah\s+kiblat)\b'),
+    AppScreen.qibla,
+  ),
+  (
+    RegExp(r'^(?:kualiti\s+udara|air\s+quality|ipu|aqi|jerebu|haze)\b'),
+    AppScreen.airQuality,
+  ),
+  (
+    RegExp(r'^(?:muzik|music|lagu|songs?|radio|pemain\s+muzik|player)\b'),
+    AppScreen.music,
+  ),
+  (
+    RegExp(r'^(?:waktu\s+solat|prayer\s+times?|jadual\s+solat|azan)\b'),
+    AppScreen.prayerTimes,
+  ),
+  (
+    RegExp(
+      r'^(?:peta\s+(?:offline|luar\s+talian)|offline\s+maps?|muat\s+turun\s+peta|download\s+maps?)\b',
+    ),
+    AppScreen.offlineMaps,
+  ),
+  (
+    RegExp(r'^(?:tetapan|settings?|setting|pengaturan|preferences)\b'),
+    AppScreen.settings,
+  ),
+  (RegExp(r'^(?:laporan|report|lapor)\b'), AppScreen.report),
+];
+
+/// "Buka cuaca Kuantan", "tunjuk kiblat", "buka tetapan", "cari Pavilion di peta". [t] sudah dinormalkan.
+OpenScreenIntent? openScreenIntent(String t) {
+  final onMap = RegExp(
+    r'^(?:tolong\s+)?(?:cari|search|tunjuk(?:kan)?|show|find)\s+(.+?)\s+(?:di|dekat|kat|on|in)\s+(?:the\s+)?(?:peta|map)(\s+(?:dan|and|then|lepas\s+tu)\s+(?:pergi|go|navigate|navigasi|mula|start)(?:\s+(?:ke\s+sana|there))?)?$',
+  ).firstMatch(t);
+  if (onMap != null) {
+    final q = onMap.group(1)!.trim();
+    final go = onMap.group(2) != null;
+    final category = _plannerCategory(q);
+    if (category != null) {
+      return OpenScreenIntent(
+        AppScreen.nearbyGo,
+        arg: category.name,
+        start: go,
+      );
+    }
+    if (q.isNotEmpty) return OpenScreenIntent(AppScreen.findPlace, arg: q);
+  }
+  // "Cari masjid terdekat dan pergi": kategori + "dan pergi" = ejen memilih yang terdekat dan memandu.
+  final andGo = RegExp(
+    r'^(?:tolong\s+)?(?:cari(?:kan)?|search(?:\s+for)?|find)\s+(.+?)\s+(?:dan|and|then|lepas\s+tu)\s+(?:pergi|go|navigate|navigasi|bawa\s+saya)(?:\s+(?:ke\s+sana|sana|there))?$',
+  ).firstMatch(t);
+  if (andGo != null) {
+    final category = _plannerCategory(andGo.group(1)!);
+    if (category != null) {
+      return OpenScreenIntent(
+        AppScreen.nearbyGo,
+        arg: category.name,
+        start: true,
+      );
+    }
+  }
+  if (RegExp(
+    r'^(?:pusatkan|recenter|center|centre)\s+(?:the\s+)?(?:peta|map)|^(?:tunjuk|show)\s+(?:lokasi\s+saya\s+)?(?:di|on)\s+(?:peta|map)$',
+  ).hasMatch(t)) {
+    return const OpenScreenIntent(AppScreen.recenter);
+  }
+  final m = _openVerb.firstMatch(t);
+  if (m == null) return null;
+  final rest = m.group(1)!.trim();
+  for (final (re, screen) in _screenWords) {
+    final hit = re.firstMatch(rest);
+    if (hit == null) continue;
+    var arg = rest
+        .substring(hit.end)
+        .replaceFirst(
+          RegExp(r'^\s*(?:di|kat|dekat|untuk|for|in|at|pasal)\s+'),
+          '',
+        )
+        .trim();
+    if (arg.isEmpty || screen != AppScreen.weather) arg = '';
+    return OpenScreenIntent(screen, arg: arg.isEmpty ? null : arg);
+  }
+  return null;
+}
+
+/// Kategori yang ada cip dalam perancang (ejen menekan cip itu).
+const _plannerChips = {
+  NearbyCategory.fuel,
+  NearbyCategory.food,
+  NearbyCategory.mosque,
+  NearbyCategory.hospital,
+  NearbyCategory.toilets,
+  NearbyCategory.parking,
+};
+
+NearbyCategory? _plannerCategory(String q) {
+  final c = _nearbyCategory(q);
+  return c != null && _plannerChips.contains(c) ? c : null;
 }

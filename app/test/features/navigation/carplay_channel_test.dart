@@ -61,6 +61,8 @@ void main() {
       'driveAlert',
       'airAqi',
       'prayerLine',
+      'lanes',
+      'laneHint',
     ]) {
       expect(map.containsKey(key), isTrue, reason: key);
     }

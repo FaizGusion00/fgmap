@@ -534,6 +534,45 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navLaneUse => 'Use the marked lane';
 
   @override
+  String get navLaneRightmost => 'Use the rightmost lane';
+
+  @override
+  String get navLaneLeftmost => 'Use the leftmost lane';
+
+  @override
+  String navLaneRightmostN(int count) {
+    return 'Use the $count rightmost lanes';
+  }
+
+  @override
+  String navLaneLeftmostN(int count) {
+    return 'Use the $count leftmost lanes';
+  }
+
+  @override
+  String navLaneNthFromLeft(int n) {
+    return 'Use lane $n from the left';
+  }
+
+  @override
+  String navLaneNthFromRight(int n) {
+    return 'Use lane $n from the right';
+  }
+
+  @override
+  String get navLaneEstimated => 'Estimated lane';
+
+  @override
+  String navLaneViewSemantics(int count) {
+    return 'Lane view, $count lanes';
+  }
+
+  @override
+  String navLaneViewHintSemantics(String hint) {
+    return 'Lane view. $hint';
+  }
+
+  @override
   String get navGetReady => 'Get ready';
 
   @override
@@ -3323,4 +3362,162 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiTryAsking => 'Try asking';
+
+  @override
+  String get settingsLiteMode => 'Lite mode (low-end phones)';
+
+  @override
+  String settingsLiteModeHint(String ram, String state) {
+    return 'This phone: $ram GB RAM · $state. Lite mode turns off 3D buildings, blur effects and decorative animations, reduces GPS while the map is idle and saves battery.';
+  }
+
+  @override
+  String get settingsLiteAuto => 'Auto';
+
+  @override
+  String get settingsLiteOn => 'On';
+
+  @override
+  String get settingsLiteOff => 'Off';
+
+  @override
+  String get settingsLiteActive => 'Lite mode on';
+
+  @override
+  String get settingsLiteInactive => 'Lite mode off';
+
+  @override
+  String settingsLiteModeHintNoRam(String state) {
+    return '$state. Lite mode turns off 3D buildings, blur effects and decorative animations, reduces GPS while the map is idle and saves battery.';
+  }
+
+  @override
+  String get aiBrowsing => 'Searching the web…';
+
+  @override
+  String get aiWebSources => 'Web sources';
+
+  @override
+  String aiWebResultsTitle(String query) {
+    return 'Latest information: $query';
+  }
+
+  @override
+  String aiWebNewsTitle(String query) {
+    return 'Latest news: $query';
+  }
+
+  @override
+  String aiWebNothing(String query) {
+    return 'I couldn\'t find recent information about \"$query\". Try other or more specific words.';
+  }
+
+  @override
+  String get aiWebUnreadable =>
+      'I couldn\'t read that link (the page is unreachable, not HTTPS, or has no text).';
+
+  @override
+  String aiFuelPricesTitle(String date) {
+    return 'Current fuel prices (effective $date)';
+  }
+
+  @override
+  String aiAgoMinutes(int n) {
+    return '$n min ago';
+  }
+
+  @override
+  String aiAgoHours(int n) {
+    return '$n h ago';
+  }
+
+  @override
+  String get aiSearchWebAsk => 'Search the web';
+
+  @override
+  String get assistantAutoWebTitle => 'Search the web automatically';
+
+  @override
+  String get assistantAutoWebSubtitle =>
+      'FG AI checks news, Wikipedia and official data when a question needs up-to-date facts. \'Search online\' requests always run.';
+
+  @override
+  String get aiModelRecommended => 'Recommended for this phone';
+
+  @override
+  String aiModelTooHeavy(String ram) {
+    return 'Too heavy for this phone ($ram GB RAM)';
+  }
+
+  @override
+  String get aiModelTooHeavyTitle => 'This model may be too heavy';
+
+  @override
+  String aiModelTooHeavyBody(String name, String ram) {
+    return '$name needs more RAM than this phone has ($ram GB). It may be very slow or closed by the system. Download anyway?';
+  }
+
+  @override
+  String get agentStop => 'Stop';
+
+  @override
+  String get agentWorking => 'FG AI is using the app…';
+
+  @override
+  String get agentStepMap => 'Back to the map';
+
+  @override
+  String agentStepOpen(String x) {
+    return 'Open $x';
+  }
+
+  @override
+  String agentStepSearch(String x) {
+    return 'Search \"$x\"';
+  }
+
+  @override
+  String agentStepType(String x) {
+    return 'Type \"$x\"';
+  }
+
+  @override
+  String get agentStepPickFirst => 'Pick the top result';
+
+  @override
+  String get agentStepPickNearest => 'Pick the nearest';
+
+  @override
+  String get agentStepOpenSearch => 'Open search';
+
+  @override
+  String agentStepCategory(String x) {
+    return 'Tap $x';
+  }
+
+  @override
+  String get agentStepRouteReady => 'Wait for the route';
+
+  @override
+  String get agentStepStart => 'Start navigation';
+
+  @override
+  String get agentStepRecenter => 'Center the map on my location';
+
+  @override
+  String get agentReport => 'Road report';
+
+  @override
+  String agentFindTitle(String x) {
+    return 'Find $x';
+  }
+
+  @override
+  String get agentDone => 'Done. Here\'s what I did:';
+
+  @override
+  String get agentStopped => 'Stopped. So far:';
+
+  @override
+  String get agentFailed => 'I couldn\'t finish that. Here\'s what happened:';
 }

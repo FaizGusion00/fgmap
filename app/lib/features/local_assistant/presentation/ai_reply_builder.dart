@@ -11,6 +11,8 @@ import '../../route_preview/presentation/route_format.dart';
 import '../../search/domain/nearby_category.dart';
 import '../../search/presentation/nearby_category_label.dart';
 import '../../weather/domain/weather_codes.dart';
+import '../../fuel/domain/fuel.dart';
+import '../data/web_knowledge.dart';
 import '../domain/assistant_message.dart';
 import '../domain/intent_router.dart' show ChatKind, TripInfoKind;
 
@@ -408,6 +410,94 @@ class AiReplyBuilder {
         ? '**${r['title']}**'
         : '**${r['title']}** · $artist';
     return _reply(l10n.aiPlaying(title));
+  }
+
+  /// Sumber web bernombor untuk kad "Sumber" di bawah jawapan.
+  AnswerSource webSource(WebSnippet s, int n) => AnswerSource(
+    kind: AnswerSourceKind.web,
+    title: s.title,
+    url: s.url,
+    n: n,
+    subtitle: s.date == null ? s.source : '${s.source} · ${_when(s.date!)}',
+  );
+
+  /// Hasil internet tanpa model: ringkasan (DuckDuckGo/Wikipedia) dan tajuk berita terkini, setiap
+  /// satu dengan nombor petikan [n] yang sepadan dengan kad sumber.
+  AssistantMessage webResults(
+    List<WebSnippet> snippets, {
+    required String title,
+  }) {
+    final b = StringBuffer('**$title**');
+    var listed = false;
+    for (var i = 0; i < snippets.length; i++) {
+      final s = snippets[i];
+      if (s.text.isNotEmpty) {
+        final text = s.text.length > 480
+            ? '${s.text.substring(0, s.text.lastIndexOf(' ', 470).clamp(1, 470))}…'
+            : s.text;
+        b.write('\n\n$text [${i + 1}]');
+      } else {
+        if (!listed) b.write('\n');
+        listed = true;
+        final when = s.date == null ? '' : ' · ${_when(s.date!)}';
+        b.write('\n- ${s.title} (${s.source}$when) [${i + 1}]');
+      }
+    }
+    return _reply(b.toString()).copyWith(
+      sources: [
+        for (var i = 0; i < snippets.length; i++) webSource(snippets[i], i + 1),
+      ],
+    );
+  }
+
+  /// Satu fakta rasmi (cth. kadar tukaran BNM) dengan sumber dan tarikh.
+  AssistantMessage webFact(WebSnippet s) {
+    final when = s.date == null ? '' : ', ${_when(s.date!)}';
+    return _reply(
+      '**${s.title}**: ${s.text}\n${s.source}$when [1]',
+    ).copyWith(sources: [webSource(s, 1)]);
+  }
+
+  /// Harga minyak semasa (data.gov.my, RM seliter).
+  AssistantMessage fuelPrices(FuelPrices p) {
+    String rm(FuelType t) {
+      final v = p.priceOf(t);
+      return v == null ? '–' : 'RM ${v.toStringAsFixed(2)}';
+    }
+
+    final date =
+        p.effectiveDate ??
+        DateFormat.yMMMd(l10n.localeName).format(p.fetchedAt);
+    const url = 'https://data.gov.my/data-catalogue/fuelprice';
+    return _reply(
+      '**${l10n.aiFuelPricesTitle(date)}**\n'
+      '- RON95: ${rm(FuelType.ron95)}\n'
+      '- RON97: ${rm(FuelType.ron97)}\n'
+      '- Diesel: ${rm(FuelType.diesel)}\n'
+      'data.gov.my [1]',
+    ).copyWith(
+      sources: const [
+        AnswerSource(
+          kind: AnswerSourceKind.web,
+          title: 'Harga minyak / Fuel prices',
+          url: url,
+          n: 1,
+          subtitle: 'data.gov.my (KKMM / MOF)',
+        ),
+      ],
+    );
+  }
+
+  /// "2 j lalu" untuk berita hari ini, selain itu tarikh pendek.
+  String _when(DateTime d) {
+    final diff = _clock().difference(d.toLocal());
+    if (!diff.isNegative && diff < const Duration(hours: 1)) {
+      return l10n.aiAgoMinutes(diff.inMinutes.clamp(1, 59));
+    }
+    if (!diff.isNegative && diff < const Duration(hours: 24)) {
+      return l10n.aiAgoHours(diff.inHours);
+    }
+    return DateFormat.yMMMd(l10n.localeName).format(d.toLocal());
   }
 
   AssistantMessage text(

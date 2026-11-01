@@ -44,7 +44,7 @@ class AzanSheet extends ConsumerWidget {
     final azan = ref.watch(azanControllerProvider);
     final settings = ref.watch(azanSettingsProvider);
     final today = azan.today;
-    final now = ref.watch(azanClockProvider)();
+    final now = ref.watch(azanMinuteClockProvider);
     final city = cityNamed(settings.cityName);
 
     return DraggableScrollableSheet(

@@ -533,6 +533,45 @@ class AppLocalizationsMs extends AppLocalizations {
   String get navLaneUse => 'Guna lorong yang ditanda';
 
   @override
+  String get navLaneRightmost => 'Guna lorong paling kanan';
+
+  @override
+  String get navLaneLeftmost => 'Guna lorong paling kiri';
+
+  @override
+  String navLaneRightmostN(int count) {
+    return 'Guna $count lorong paling kanan';
+  }
+
+  @override
+  String navLaneLeftmostN(int count) {
+    return 'Guna $count lorong paling kiri';
+  }
+
+  @override
+  String navLaneNthFromLeft(int n) {
+    return 'Guna lorong ke-$n dari kiri';
+  }
+
+  @override
+  String navLaneNthFromRight(int n) {
+    return 'Guna lorong ke-$n dari kanan';
+  }
+
+  @override
+  String get navLaneEstimated => 'Anggaran lorong';
+
+  @override
+  String navLaneViewSemantics(int count) {
+    return 'Paparan $count lorong';
+  }
+
+  @override
+  String navLaneViewHintSemantics(String hint) {
+    return 'Paparan lorong. $hint';
+  }
+
+  @override
   String get navGetReady => 'Bersedia';
 
   @override
@@ -3326,4 +3365,162 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get aiTryAsking => 'Cuba tanya';
+
+  @override
+  String get settingsLiteMode => 'Mod Lite (telefon lemah)';
+
+  @override
+  String settingsLiteModeHint(String ram, String state) {
+    return 'Telefon ini: RAM $ram GB · $state. Mod Lite mematikan bangunan 3D, kesan kabur dan animasi hiasan, mengurangkan GPS ketika peta terbiar dan menyimpan bateri.';
+  }
+
+  @override
+  String get settingsLiteAuto => 'Auto';
+
+  @override
+  String get settingsLiteOn => 'Hidup';
+
+  @override
+  String get settingsLiteOff => 'Mati';
+
+  @override
+  String get settingsLiteActive => 'Mod Lite aktif';
+
+  @override
+  String get settingsLiteInactive => 'Mod Lite tidak aktif';
+
+  @override
+  String settingsLiteModeHintNoRam(String state) {
+    return '$state. Mod Lite mematikan bangunan 3D, kesan kabur dan animasi hiasan, mengurangkan GPS ketika peta terbiar dan menyimpan bateri.';
+  }
+
+  @override
+  String get aiBrowsing => 'Mencari di internet…';
+
+  @override
+  String get aiWebSources => 'Sumber web';
+
+  @override
+  String aiWebResultsTitle(String query) {
+    return 'Maklumat terkini: $query';
+  }
+
+  @override
+  String aiWebNewsTitle(String query) {
+    return 'Berita terkini: $query';
+  }
+
+  @override
+  String aiWebNothing(String query) {
+    return 'Saya tidak jumpa maklumat terkini tentang \"$query\". Cuba perkataan lain atau lebih khusus.';
+  }
+
+  @override
+  String get aiWebUnreadable =>
+      'Saya tidak dapat membaca pautan itu (halaman tidak boleh dicapai, bukan HTTPS, atau tiada teks).';
+
+  @override
+  String aiFuelPricesTitle(String date) {
+    return 'Harga minyak semasa (berkuat kuasa $date)';
+  }
+
+  @override
+  String aiAgoMinutes(int n) {
+    return '$n min lalu';
+  }
+
+  @override
+  String aiAgoHours(int n) {
+    return '$n j lalu';
+  }
+
+  @override
+  String get aiSearchWebAsk => 'Cari di internet';
+
+  @override
+  String get assistantAutoWebTitle => 'Cari di internet secara automatik';
+
+  @override
+  String get assistantAutoWebSubtitle =>
+      'FG AI menyemak berita, Wikipedia dan data rasmi bila soalan perlukan maklumat terkini. Permintaan \"cari online\" sentiasa dijalankan.';
+
+  @override
+  String get aiModelRecommended => 'Disyorkan untuk telefon ini';
+
+  @override
+  String aiModelTooHeavy(String ram) {
+    return 'Terlalu berat untuk telefon ini (RAM $ram GB)';
+  }
+
+  @override
+  String get aiModelTooHeavyTitle => 'Model ini mungkin terlalu berat';
+
+  @override
+  String aiModelTooHeavyBody(String name, String ram) {
+    return '$name memerlukan lebih RAM daripada telefon ini ($ram GB). Ia mungkin sangat perlahan atau ditutup oleh sistem. Teruskan muat turun?';
+  }
+
+  @override
+  String get agentStop => 'Henti';
+
+  @override
+  String get agentWorking => 'FG AI sedang menggunakan app…';
+
+  @override
+  String get agentStepMap => 'Kembali ke peta';
+
+  @override
+  String agentStepOpen(String x) {
+    return 'Buka $x';
+  }
+
+  @override
+  String agentStepSearch(String x) {
+    return 'Cari \"$x\"';
+  }
+
+  @override
+  String agentStepType(String x) {
+    return 'Taip \"$x\"';
+  }
+
+  @override
+  String get agentStepPickFirst => 'Pilih hasil teratas';
+
+  @override
+  String get agentStepPickNearest => 'Pilih yang terdekat';
+
+  @override
+  String get agentStepOpenSearch => 'Buka carian';
+
+  @override
+  String agentStepCategory(String x) {
+    return 'Tekan $x';
+  }
+
+  @override
+  String get agentStepRouteReady => 'Tunggu laluan siap';
+
+  @override
+  String get agentStepStart => 'Mula navigasi';
+
+  @override
+  String get agentStepRecenter => 'Pusatkan peta pada lokasi saya';
+
+  @override
+  String get agentReport => 'Laporan jalan';
+
+  @override
+  String agentFindTitle(String x) {
+    return 'Cari $x';
+  }
+
+  @override
+  String get agentDone => 'Siap. Ini yang saya lakukan:';
+
+  @override
+  String get agentStopped => 'Dihentikan. Setakat ini:';
+
+  @override
+  String get agentFailed => 'Saya tidak dapat menyiapkannya. Ini yang berlaku:';
 }
