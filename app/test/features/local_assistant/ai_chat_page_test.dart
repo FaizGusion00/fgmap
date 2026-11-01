@@ -84,6 +84,36 @@ void main() {
     expect(find.textContaining('are paid by card'), findsOneWidget);
   });
 
+  testWidgets('model yang membuang tool_code tidak dipaparkan dalam gelembung', (
+    tester,
+  ) async {
+    final llm = FakeLlm(
+      reply:
+          'Hello! How can I help?\n'
+          '<tool_code>get_weather: Current weather at GPS. Parameters: '
+          '{"type": "object", "properties": {"query": {"type": "string"}}}'
+          '</tool_code>',
+    );
+    await pump(tester, llm);
+    await send(tester, 'Hello');
+    expect(find.textContaining('Hello'), findsWidgets);
+    expect(find.textContaining('tool_code'), findsNothing);
+    expect(find.textContaining('Parameters'), findsNothing);
+    expect(find.textContaining('get_weather'), findsNothing);
+  });
+
+  testWidgets('soalan ciri offline dijawab tanpa model / tanpa skema alat', (
+    tester,
+  ) async {
+    final llm = FakeLlm(reply: 'SHOULD_NOT_APPEAR <tool_code>x</tool_code>');
+    await pump(tester, llm);
+    await send(tester, 'What can i ask you using your ofline features?');
+    expect(llm.lastUserText, isNull);
+    expect(find.textContaining('SHOULD_NOT_APPEAR'), findsNothing);
+    expect(find.textContaining('tool_code'), findsNothing);
+    expect(find.textContaining('On-device'), findsOneWidget);
+  });
+
   testWidgets('FGMuslim ialah halaman berasingan dengan pintu opt-in', (
     tester,
   ) async {

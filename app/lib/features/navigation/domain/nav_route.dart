@@ -188,8 +188,8 @@ class NavRoute {
     required this.cum,
     required this.totalM,
     required this.maneuvers,
-    required List<double> startTimes,
-  }) : _startTimes = startTimes;
+    required this._startTimes,
+  });
 
   final RouteOption option;
   final List<double> cum;

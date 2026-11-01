@@ -59,11 +59,10 @@ const _prefsKey = 'diag.errors.v1';
 /// rangkaian.
 class ErrorLog {
   ErrorLog({
-    SharedPreferences? prefs,
+    this._prefs,
     this.capacity = 50,
     DateTime Function()? clock,
-  }) : _prefs = prefs,
-       _clock = clock ?? DateTime.now {
+  }) : _clock = clock ?? DateTime.now {
     _load();
   }
 

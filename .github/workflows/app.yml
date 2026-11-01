@@ -12,7 +12,8 @@ permissions:
 
 env:
   # Sama dengan versi pembangunan. Golden bergantung pada versi Flutter; naikkan bersama kemas kini golden.
-  FLUTTER_VERSION: "3.41.7"
+  # Mesti memenuhi app/pubspec.yaml sdk: ^3.12.0 (Dart ≥ 3.12).
+  FLUTTER_VERSION: "3.47.9"
 
 jobs:
   test:
@@ -58,6 +59,6 @@ jobs:
 
       - run: flutter pub get
 
-      # Garis asas dijana pada pelari macOS yang sama (Flutter 3.41.7). Jangan
+      # Garis asas dijana pada pelari macOS yang sama (Flutter 3.47.9). Jangan
       # jana semula pada Linux: teks tidak sepadan.
       - run: flutter test --tags golden

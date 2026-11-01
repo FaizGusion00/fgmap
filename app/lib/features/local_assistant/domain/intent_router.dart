@@ -56,6 +56,19 @@ class SearchIntent extends AssistantIntent {
   final String query;
 }
 
+/// "Search my current location", "where am I", "lokasi saya" — GPS peranti, bukan carian nama tempat.
+class CurrentLocationIntent extends AssistantIntent {
+  const CurrentLocationIntent();
+}
+
+/// "What can I ask offline?", "apa boleh tanya" — FAQ ciri, tanpa skema alat.
+class CapabilitiesIntent extends AssistantIntent {
+  const CapabilitiesIntent({this.offlineFocused = false});
+
+  /// Pengguna menyebut offline / model pada telefon secara khusus.
+  final bool offlineFocused;
+}
+
 class WeatherIntent extends AssistantIntent {
   const WeatherIntent([this.place]);
 
@@ -292,6 +305,13 @@ AssistantIntent? parseIntent(String text, {bool hasRoute = false}) {
     return hasRoute ? const CancelRouteIntent() : null;
   }
 
+  final capabilities = _capabilitiesIntent(t);
+  if (capabilities != null) return capabilities;
+
+  if (_isCurrentLocationQuery(t)) {
+    return const CurrentLocationIntent();
+  }
+
   final pref = _preferenceIn(t);
   final startNow = _startNow.hasMatch(t);
 
@@ -371,7 +391,10 @@ AssistantIntent? parseIntent(String text, {bool hasRoute = false}) {
   final search = _searchVerb.firstMatch(t);
   if (search != null) {
     final q = _cleanDestination(search.group(1)!);
-    if (q != null) return SearchIntent(q);
+    if (q != null) {
+      if (_isCurrentLocationPhrase(q)) return const CurrentLocationIntent();
+      return SearchIntent(q);
+    }
   }
 
   return null;
@@ -380,6 +403,51 @@ AssistantIntent? parseIntent(String text, {bool hasRoute = false}) {
 final _searchVerb = RegExp(
   r'^(?:please\s+|tolong\s+)?(?:find|search(?:\s+for)?|look\s+for|locate|cari(?:kan)?|where\s+is|wheres|di\s+mana(?:kah)?|kat\s+mana|mana)\s+(.+)',
 );
+
+/// "my current location", "lokasi saya", "where am i", "cari lokasi semasa".
+bool _isCurrentLocationQuery(String t) {
+  if (RegExp(
+    r'^(?:where\s+am\s+i|wheres\s+my\s+location|what(?:s|\s+is)\s+my\s+(?:current\s+)?(?:location|position)|lokasi\s+(?:saya|aku|semasa)|mana\s+(?:saya|aku)\s+sekarang|kedudukan\s+(?:saya|aku|semasa))$',
+  ).hasMatch(t)) {
+    return true;
+  }
+  if (RegExp(
+    r'^(?:please\s+|tolong\s+)?(?:find|search(?:\s+for)?|look\s+for|locate|show|cari(?:kan)?|tunjuk(?:kan)?)\s+(?:for\s+)?(?:my\s+)?(?:current\s+)?(?:location|position|gps|lokasi|kedudukan)(?:\s+(?:saya|aku|semasa|current))?$',
+  ).hasMatch(t)) {
+    return true;
+  }
+  return _isCurrentLocationPhrase(t);
+}
+
+bool _isCurrentLocationPhrase(String q) {
+  final t = q.trim();
+  return RegExp(
+    r'^(?:my\s+)?(?:current\s+)?(?:location|position|gps)(?:\s+here)?$|^(?:lokasi|kedudukan)(?:\s+(?:saya|aku|semasa|ini))?$|^(?:my\s+)?(?:lokasi|kedudukan)\s+(?:saya|aku)$',
+  ).hasMatch(t);
+}
+
+CapabilitiesIntent? _capabilitiesIntent(String t) {
+  final offline = RegExp(
+    r'\b(?:offline|ofline|on[- ]?device|on[- ]?phone|tanpa\s+internet|luar\s+talian|model\s+(?:pada\s+)?(?:telefon|peranti)|local\s+model)\b',
+  ).hasMatch(t);
+  final asks = RegExp(
+    r'\b(?:what\s+can\s+i\s+(?:ask|do|use)|what\s+(?:are\s+)?(?:your|the)\s+(?:offline\s+)?(?:features|tools|commands)|how\s+can\s+you\s+help|apa\s+(?:yang\s+)?(?:boleh|bolehkah)\s+(?:saya\s+)?(?:tanya|minta|gunakan)|ciri(?:an)?\s+(?:offline|ofline)|bantuan\s+(?:offline|ofline))\b',
+  ).hasMatch(t);
+  final help = RegExp(
+    r'^(?:help|bantuan|commands?|arahan|apa\s+boleh\s+buat|what\s+can\s+you\s+do)$',
+  ).hasMatch(t);
+  if (asks || (help && offline) || (offline && asks)) {
+    return CapabilitiesIntent(offlineFocused: offline || asks);
+  }
+  if (offline &&
+      RegExp(
+        r'\b(?:features?|tools?|commands?|ask|tanya|gunakan|use)\b',
+      ).hasMatch(t)) {
+    return const CapabilitiesIntent(offlineFocused: true);
+  }
+  if (help) return const CapabilitiesIntent();
+  return null;
+}
 
 RoutePreference? _preferenceIn(String t) {
   for (final e in _prefPatterns.entries) {

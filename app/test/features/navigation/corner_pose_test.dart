@@ -81,7 +81,7 @@ void main() {
         path += distanceMeters(prev, cur);
         prev = cur;
       }
-      final expected = radius * math.pi / 2;
+      const expected = radius * math.pi / 2;
       expect(path, closeTo(expected, expected * 0.08));
     });
 

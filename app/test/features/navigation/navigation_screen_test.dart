@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:fgmap/core/location/location_service.dart';
 import 'package:fgmap/core/platform/external_actions.dart';
@@ -9,10 +10,15 @@ import 'package:fgmap/features/navigation/data/screen_awake.dart';
 import 'package:fgmap/features/navigation/domain/camera_planner.dart';
 import 'package:fgmap/features/navigation/presentation/navigation_controller.dart';
 import 'package:fgmap/features/navigation/presentation/navigation_hud.dart';
+import 'package:fgmap/features/offline_maps/data/local_basemap.dart';
+import 'package:fgmap/features/offline_maps/data/offline_engine_host.dart';
+import 'package:fgmap/features/offline_maps/data/offline_map_store.dart';
+import 'package:fgmap/features/offline_maps/presentation/offline_map_controller.dart';
 import 'package:fgmap/features/route_preview/data/route_planner.dart';
 import 'package:fgmap/features/speed_limits/data/speed_limit_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -28,6 +34,8 @@ void main() {
   late FakeAwake awake;
   late FakeLocationService location;
   late SharedPreferences prefs;
+  late Directory offlineDir;
+  late OfflineMapStore offlineStore;
 
   late FakeShareService share;
   late FakePhoneDialer dialer;
@@ -41,7 +49,36 @@ void main() {
     location = FakeLocationService(fix: const LocationFix(point: klcc));
     SharedPreferences.setMockInitialValues({});
     prefs = await SharedPreferences.getInstance();
+    offlineDir = await Directory.systemTemp.createTemp('fg_nav_screen_');
+    offlineStore = OfflineMapStore(Directory('${offlineDir.path}/maps'));
+    await offlineStore.ensureDir();
   });
+
+  tearDown(() async {
+    if (await offlineDir.exists()) {
+      await offlineDir.delete(recursive: true);
+    }
+  });
+
+  List<Override> mapOverrides({
+    required FakeRoutePlanner planner,
+    List<Override> extra = const [],
+  }) => [
+    map.override,
+    locationServiceProvider.overrideWithValue(location),
+    routePlannerProvider.overrideWithValue(planner),
+    // Pratonton memakai routeOptionsPlanner; tanpa ini MultiRoutePlanner menarik enjin offline.
+    routeOptionsPlannerProvider.overrideWithValue(planner),
+    offlineMapStoreProvider.overrideWithValue(offlineStore),
+    offlineManifestUrlProvider.overrideWithValue(''),
+    // Elak localBasemap async di pohon MapScreen supaya FakeMapHarness dibina serta-merta.
+    localBasemapProvider.overrideWith((ref) async => null),
+    sharedPreferencesProvider.overrideWithValue(prefs),
+    voiceGuideProvider.overrideWithValue(voice),
+    speedLimitServiceProvider.overrideWithValue(FakeSpeedLimitService()),
+    screenAwakeProvider.overrideWithValue(awake),
+    ...extra,
+  ];
 
   Future<ProviderContainer> pumpScreen(WidgetTester tester) async {
     usePhoneSurface(tester);
@@ -49,23 +86,20 @@ void main() {
     await pumpApp(
       tester,
       const MapScreen(),
-      overrides: [
-        map.override,
-        locationServiceProvider.overrideWithValue(location),
-        routePlannerProvider.overrideWithValue(
-          FakeRoutePlanner((_) async => [lShapedRoute(legM: 800)]),
-        ),
-        sharedPreferencesProvider.overrideWithValue(prefs),
-        voiceGuideProvider.overrideWithValue(voice),
-        speedLimitServiceProvider.overrideWithValue(FakeSpeedLimitService()),
-        screenAwakeProvider.overrideWithValue(awake),
-        shareServiceProvider.overrideWithValue(share),
-        phoneDialerProvider.overrideWithValue(dialer),
-        // Jam mengikut masa palsu ujian: cap masa fix dan penapis GPS maju bersama setiap pump.
-        navClockProvider.overrideWithValue(() => tester.binding.clock.now()),
-      ],
+      overrides: mapOverrides(
+        planner: FakeRoutePlanner((_) async => [lShapedRoute(legM: 800)]),
+        extra: [
+          shareServiceProvider.overrideWithValue(share),
+          phoneDialerProvider.overrideWithValue(dialer),
+          // Jam mengikut masa palsu ujian: cap masa fix dan penapis GPS maju bersama setiap pump.
+          navClockProvider.overrideWithValue(() => tester.binding.clock.now()),
+        ],
+      ),
     );
     await tester.pumpAndSettle();
+    // Storan offline menjadikan localBasemap async; pumpAndSettle boleh selesai sebelum
+    // gaya peta siap dan FakeMapHarness.config ditetapkan.
+    await waitForFakeMap(tester, map);
     final container = ProviderScope.containerOf(
       tester.element(find.byType(MapScreen)),
     );
@@ -417,25 +451,17 @@ void main() {
   ) async {
     usePhoneSurface(tester);
     reduceMotion(tester);
+    location = FakeLocationService(fix: const LocationFix(point: klcc));
     await pumpApp(
       tester,
       const MapScreen(),
       locale: const Locale('en'),
-      overrides: [
-        map.override,
-        locationServiceProvider.overrideWithValue(
-          FakeLocationService(fix: const LocationFix(point: klcc)),
-        ),
-        routePlannerProvider.overrideWithValue(
-          FakeRoutePlanner((_) async => [lShapedRoute(legM: 800)]),
-        ),
-        sharedPreferencesProvider.overrideWithValue(prefs),
-        voiceGuideProvider.overrideWithValue(voice),
-        speedLimitServiceProvider.overrideWithValue(FakeSpeedLimitService()),
-        screenAwakeProvider.overrideWithValue(awake),
-      ],
+      overrides: mapOverrides(
+        planner: FakeRoutePlanner((_) async => [lShapedRoute(legM: 800)]),
+      ),
     );
     await tester.pumpAndSettle();
+    await waitForFakeMap(tester, map);
     map.config!.onLongPress(klia);
     await tester.pumpAndSettle();
     await tapSimulate(tester);

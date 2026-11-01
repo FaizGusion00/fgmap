@@ -189,3 +189,16 @@ class FakeMapHarness {
 
   Override get override => mapViewBuilderProvider.overrideWithValue(build);
 }
+
+/// Menunggu gaya peta async (cth. selepas override [offlineMapStoreProvider]) supaya
+/// [FakeMapHarness.config] siap sebelum ujian menekan lama pada peta.
+Future<void> waitForFakeMap(WidgetTester tester, FakeMapHarness map) async {
+  for (var i = 0; i < 50 && map.config == null; i++) {
+    await tester.pump(const Duration(milliseconds: 20));
+  }
+  expect(
+    map.config,
+    isNotNull,
+    reason: 'FakeMapHarness tidak dibina — gaya peta masih loading?',
+  );
+}

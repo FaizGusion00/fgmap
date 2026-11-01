@@ -15,6 +15,7 @@ import '../domain/assistant_message.dart';
 import '../domain/assistant_tools.dart';
 import '../domain/intent_router.dart';
 import '../domain/local_llm.dart';
+import '../domain/reply_cleaner.dart';
 import 'ai_chat_controller.dart';
 import 'ai_map_bridge.dart';
 import 'ai_reply_builder.dart';
@@ -157,7 +158,10 @@ class AssistantController extends AiChatController {
       }
     } on Object catch (e) {
       logDiag('FG AI gagal: $e');
-      reply = replies.text(l10n.aiError);
+      final offline = networkErrorCode(e);
+      reply = replies.text(
+        offline != null ? l10n.aiOfflineTool : l10n.aiError,
+      );
     }
     if (!ref.mounted) return;
     final all = [...state.messages, reply];
@@ -228,6 +232,10 @@ class AssistantController extends AiChatController {
           title: l10n.aiSearchTitle(query),
           query: query,
         );
+      case CurrentLocationIntent():
+        return replies.currentLocation(await _tools.currentLocation());
+      case CapabilitiesIntent(:final offlineFocused):
+        return replies.capabilities(offlineFocused: offlineFocused);
       case WeatherIntent(:final place):
         return replies.weather(
           await _tools.run('get_weather', {'query': ?place}),
@@ -303,19 +311,34 @@ class AssistantController extends AiChatController {
               return;
             }
             _lastStreamPush = now;
-            state = partial.isEmpty
+            final shown = partial.isEmpty ? '' : cleanReply(partial);
+            state = shown.isEmpty
                 ? state.copyWith(clearStreaming: true)
-                : state.copyWith(streamingText: partial);
+                : state.copyWith(streamingText: shown);
           },
         );
-    final body = raw.length > 2000 ? '${raw.substring(0, 1999)}…' : raw;
+    // Lapisan kedua: runtime sudah cleanReply, tetapi pastikan setiap laluan (ujian palsu,
+    // model yang mencetak skema, sisa streaming) tidak membocorkan markup alat.
+    final cleaned = cleanReply(raw);
+    final body = cleaned.length > 2000
+        ? '${cleaned.substring(0, 1999)}…'
+        : cleaned;
     final r = route;
     if (r != null && r['ok'] == true) {
       // Butiran laluan daripada data sebenar (bukan teks model) supaya angka sentiasa tepat.
       final card = replies.route(r);
-      return body.isEmpty ? card : card.copyWith(text: '${card.text}\n\n$body');
+      final safeExtra = cleanReply(body);
+      return safeExtra.isEmpty
+          ? card
+          : card.copyWith(text: '${card.text}\n\n$safeExtra');
     }
-    if (body.isEmpty) return replies.text(l10n.aiUnavailable);
+    if (body.isEmpty) {
+      // Model membuang skema alat sahaja (cth. soalan "what can I ask offline").
+      if (looksLikeToolLeak(raw)) {
+        return replies.capabilities(offlineFocused: true);
+      }
+      return replies.text(l10n.aiUnavailable);
+    }
     return replies.text(body);
   }
 

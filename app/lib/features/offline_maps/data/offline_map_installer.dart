@@ -27,14 +27,11 @@ typedef InstallProgress =
 ///   4. tutup enjin, gantikan pek aktif, tulis metadata
 class OfflineMapInstaller {
   OfflineMapInstaller({
-    required Dio dio,
-    required OfflineMapStore store,
-    required OfflineEngineHost host,
-    Future<void> Function()? beforePlacesSwap,
-  }) : _dio = dio,
-       _store = store,
-       _host = host,
-       _beforePlacesSwap = beforePlacesSwap;
+    required this._dio,
+    required this._store,
+    required this._host,
+    this._beforePlacesSwap,
+  });
 
   final Dio _dio;
   final OfflineMapStore _store;

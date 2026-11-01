@@ -77,6 +77,62 @@ void main() {
     expect((preview as RouteReady).selected.label, RouteLabel.noTolls);
   });
 
+  test('currentLocation guna GPS, bukan geokod nama tempat', () async {
+    final container = ProviderContainer(
+      overrides: [
+        locationServiceProvider.overrideWithValue(
+          FakeLocationService(
+            accessValue: LocationAccess.granted,
+            fix: const LocationFix(point: GeoPoint(3.15, 101.7)),
+          ),
+        ),
+        reverseGeocoderProvider.overrideWithValue(
+          _FakeReverse(
+            const Place(
+              name: 'Near KL',
+              subtitle: 'Kuala Lumpur',
+              point: GeoPoint(3.15, 101.7),
+            ),
+          ),
+        ),
+        geocoderProvider.overrideWithValue(
+          _FakeGeocoder([
+            const Place(
+              name: 'Batu Arang Heritage Town',
+              subtitle: 'nonsense',
+              point: GeoPoint(3.3, 101.5),
+            ),
+          ]),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    final result = await container
+        .read(assistantToolExecutorProvider)
+        .currentLocation();
+    expect(result['ok'], isTrue);
+    expect(result['lat'], closeTo(3.15, 0.001));
+    expect(result['lng'], closeTo(101.7, 0.001));
+    expect(result['place'], contains('Near KL'));
+    expect(result['source'], 'gps');
+  });
+
+  test('currentLocation tanpa GPS: no_location', () async {
+    final container = ProviderContainer(
+      overrides: [
+        locationServiceProvider.overrideWithValue(
+          FakeLocationService(accessValue: LocationAccess.deniedForever),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    final result = await container
+        .read(assistantToolExecutorProvider)
+        .currentLocation();
+    expect(result['ok'], isFalse);
+    expect(result['error'], 'no_location');
+  });
+
   test('alat asing ditolak', () async {
     final container = ProviderContainer();
     addTearDown(container.dispose);
@@ -95,6 +151,14 @@ class _FakeGeocoder implements Geocoder {
   @override
   Future<List<Place>> search(String query, {GeoPoint? near, cancel}) async =>
       places;
+}
+
+class _FakeReverse implements ReverseGeocoder {
+  _FakeReverse(this.place);
+  final Place? place;
+
+  @override
+  Future<Place?> reverse(GeoPoint point, {cancel}) async => place;
 }
 
 class _FakeRoutePreview extends RoutePreviewController {

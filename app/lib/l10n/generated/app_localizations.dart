@@ -4352,6 +4352,12 @@ abstract class AppLocalizations {
   /// **'Saya perlukan lokasi anda untuk ini. Hidupkan lokasi dan cuba lagi.'**
   String get aiNoLocation;
 
+  /// No description provided for @aiOfflineTool.
+  ///
+  /// In ms, this message translates to:
+  /// **'Itu perlukan internet. Anda sedang luar talian — cuba lagi bila online, atau tanya sesuatu yang berfungsi pada telefon (laluan dengan peta offline, kiblat, waktu solat).'**
+  String get aiOfflineTool;
+
   /// No description provided for @aiRouteCleared.
   ///
   /// In ms, this message translates to:
@@ -4364,6 +4370,12 @@ abstract class AppLocalizations {
   /// **'{category} terdekat:'**
   String aiNearbyTitle(String category);
 
+  /// No description provided for @aiNearbyAroundYou.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tempat berdekatan sekitar anda:'**
+  String get aiNearbyAroundYou;
+
   /// No description provided for @aiNothingFound.
   ///
   /// In ms, this message translates to:
@@ -4375,6 +4387,30 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'Ini yang saya jumpa untuk \"{query}\":'**
   String aiSearchTitle(String query);
+
+  /// No description provided for @aiCurrentLocation.
+  ///
+  /// In ms, this message translates to:
+  /// **'Anda di sini: {place}. Koordinat: {lat}, {lng}.'**
+  String aiCurrentLocation(String place, String lat, String lng);
+
+  /// No description provided for @aiCurrentLocationCoords.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kedudukan GPS anda ialah {lat}, {lng}. Nama tempat tidak dapat diselesaikan sekarang.'**
+  String aiCurrentLocationCoords(String lat, String lng);
+
+  /// No description provided for @aiCapabilities.
+  ///
+  /// In ms, this message translates to:
+  /// **'Anda boleh minta saya rancang laluan, mula navigasi, cari minyak/masjid/makan berdekatan, cuaca atau IPU, kiblat, waktu solat, tempat sepanjang laluan, atau main muzik/radio. Arahan peta berfungsi tanpa model pada telefon.'**
+  String get aiCapabilities;
+
+  /// No description provided for @aiCapabilitiesOffline.
+  ///
+  /// In ms, this message translates to:
+  /// **'Ciri pada telefon (luar talian): rancang laluan jika peta offline sudah dimuat turun, arah kiblat, dan waktu solat hari ini. Carian tempat, cuaca, IPU, muzik dan Wikipedia perlukan internet. Arahan seperti \"Laluan ke KLCC\" atau \"Di mana saya\" tidak akan memaparkan senarai alat.'**
+  String get aiCapabilitiesOffline;
 
   /// No description provided for @aiWeatherNow.
   ///

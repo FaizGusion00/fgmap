@@ -14,6 +14,8 @@ tools/basemap/.cache/
 *.sqlite
 *.tar
 *.tar.gz
+# Glyph PBF Noto Sans untuk paparan peta offline (~700 KB; ADR 0016).
+!app/assets/map/fonts/**/*.pbf
 
 # Rahsia dan env setempat
 .env

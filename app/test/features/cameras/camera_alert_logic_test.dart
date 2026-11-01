@@ -105,10 +105,10 @@ void main() {
   });
 
   test('bound NB/SB menapis arah perjalanan', () {
-    final nb = SpeedCamera(
+    const nb = SpeedCamera(
       id: 'nb',
       name: 'NB',
-      point: const GeoPoint(0, 0.02),
+      point: GeoPoint(0, 0.02),
       source: SpeedCameraSource.jpjAwas,
       bound: 'NB',
     );
@@ -158,10 +158,10 @@ void main() {
   });
 
   test('pin approx guna koridor ≥700 m walaupun corridorM ketat', () {
-    final approx = SpeedCamera(
+    const approx = SpeedCamera(
       id: 'km',
       name: 'KM',
-      point: const GeoPoint(0.005, 0.02), // ~555 m off-track
+      point: GeoPoint(0.005, 0.02), // ~555 m off-track
       source: SpeedCameraSource.jpjAwas,
       confidence: SpeedCameraConfidence.approx,
     );
@@ -175,10 +175,10 @@ void main() {
       ),
       isNotNull,
     );
-    final precise = SpeedCamera(
+    const precise = SpeedCamera(
       id: 'gps',
       name: 'GPS',
-      point: const GeoPoint(0.005, 0.02),
+      point: GeoPoint(0.005, 0.02),
       source: SpeedCameraSource.jpjAwas,
       confidence: SpeedCameraConfidence.high,
     );

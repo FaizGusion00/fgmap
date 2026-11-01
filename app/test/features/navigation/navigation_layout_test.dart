@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:fgmap/core/location/location_service.dart';
 import 'package:fgmap/core/storage/preferences.dart';
 import 'package:fgmap/features/map/presentation/map_screen.dart';
@@ -7,10 +9,15 @@ import 'package:fgmap/features/navigation/presentation/car/car_mesh.dart';
 import 'package:fgmap/features/navigation/presentation/car/vehicle_overlay.dart';
 import 'package:fgmap/features/navigation/presentation/navigation_controller.dart';
 import 'package:fgmap/features/navigation/presentation/navigation_hud.dart';
+import 'package:fgmap/features/offline_maps/data/local_basemap.dart';
+import 'package:fgmap/features/offline_maps/data/offline_engine_host.dart';
+import 'package:fgmap/features/offline_maps/data/offline_map_store.dart';
+import 'package:fgmap/features/offline_maps/presentation/offline_map_controller.dart';
 import 'package:fgmap/features/route_preview/data/route_planner.dart';
 import 'package:fgmap/features/speed_limits/data/speed_limit_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -26,12 +33,40 @@ void main() {
 
   late FakeMapHarness map;
   late SharedPreferences prefs;
+  late Directory offlineDir;
+  late OfflineMapStore offlineStore;
 
   setUp(() async {
     map = FakeMapHarness();
     SharedPreferences.setMockInitialValues({});
     prefs = await SharedPreferences.getInstance();
+    offlineDir = await Directory.systemTemp.createTemp('fg_nav_layout_');
+    offlineStore = OfflineMapStore(Directory('${offlineDir.path}/maps'));
+    await offlineStore.ensureDir();
   });
+
+  tearDown(() async {
+    if (await offlineDir.exists()) {
+      await offlineDir.delete(recursive: true);
+    }
+  });
+
+  List<Override> mapOverrides({
+    required FakeRoutePlanner planner,
+    List<Override> extra = const [],
+  }) => [
+    map.override,
+    locationServiceProvider.overrideWithValue(
+      FakeLocationService(fix: const LocationFix(point: klcc)),
+    ),
+    routePlannerProvider.overrideWithValue(planner),
+    routeOptionsPlannerProvider.overrideWithValue(planner),
+    offlineMapStoreProvider.overrideWithValue(offlineStore),
+    offlineManifestUrlProvider.overrideWithValue(''),
+    localBasemapProvider.overrideWith((ref) async => null),
+    sharedPreferencesProvider.overrideWithValue(prefs),
+    ...extra,
+  ];
 
   Future<ProviderContainer> pumpNavigating(
     WidgetTester tester,
@@ -45,21 +80,17 @@ void main() {
     await pumpApp(
       tester,
       const MapScreen(),
-      overrides: [
-        map.override,
-        locationServiceProvider.overrideWithValue(
-          FakeLocationService(fix: const LocationFix(point: klcc)),
-        ),
-        routePlannerProvider.overrideWithValue(
-          FakeRoutePlanner((_) async => [lShapedRoute(legM: 1500)]),
-        ),
-        sharedPreferencesProvider.overrideWithValue(prefs),
-        voiceGuideProvider.overrideWithValue(FakeVoice()),
-        speedLimitServiceProvider.overrideWithValue(FakeSpeedLimitService()),
-        screenAwakeProvider.overrideWithValue(FakeAwake()),
-      ],
+      overrides: mapOverrides(
+        planner: FakeRoutePlanner((_) async => [lShapedRoute(legM: 1500)]),
+        extra: [
+          voiceGuideProvider.overrideWithValue(FakeVoice()),
+          speedLimitServiceProvider.overrideWithValue(FakeSpeedLimitService()),
+          screenAwakeProvider.overrideWithValue(FakeAwake()),
+        ],
+      ),
     );
     await tester.pumpAndSettle();
+    await waitForFakeMap(tester, map);
     map.config!.onLongPress(klia);
     await tester.pumpAndSettle();
     if (easy) {
@@ -232,18 +263,12 @@ void main() {
       await pumpApp(
         tester,
         const MapScreen(),
-        overrides: [
-          map.override,
-          locationServiceProvider.overrideWithValue(
-            FakeLocationService(fix: const LocationFix(point: klcc)),
-          ),
-          routePlannerProvider.overrideWithValue(
-            FakeRoutePlanner((_) async => [lShapedRoute(legM: 1500)]),
-          ),
-          sharedPreferencesProvider.overrideWithValue(prefs),
-        ],
+        overrides: mapOverrides(
+          planner: FakeRoutePlanner((_) async => [lShapedRoute(legM: 1500)]),
+        ),
       );
       await tester.pumpAndSettle();
+      await waitForFakeMap(tester, map);
       map.config!.onLongPress(klia);
       await tester.pumpAndSettle();
 
@@ -265,21 +290,19 @@ void main() {
       await pumpApp(
         tester,
         const MapScreen(),
-        overrides: [
-          map.override,
-          locationServiceProvider.overrideWithValue(
-            FakeLocationService(fix: const LocationFix(point: klcc)),
-          ),
-          routePlannerProvider.overrideWithValue(
-            FakeRoutePlanner((_) async => [lShapedRoute(legM: 1500)]),
-          ),
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          voiceGuideProvider.overrideWithValue(FakeVoice()),
-          speedLimitServiceProvider.overrideWithValue(FakeSpeedLimitService()),
-          screenAwakeProvider.overrideWithValue(FakeAwake()),
-        ],
+        overrides: mapOverrides(
+          planner: FakeRoutePlanner((_) async => [lShapedRoute(legM: 1500)]),
+          extra: [
+            voiceGuideProvider.overrideWithValue(FakeVoice()),
+            speedLimitServiceProvider.overrideWithValue(
+              FakeSpeedLimitService(),
+            ),
+            screenAwakeProvider.overrideWithValue(FakeAwake()),
+          ],
+        ),
       );
       await tester.pumpAndSettle();
+      await waitForFakeMap(tester, map);
       expect(map.config!.vehicleKind, VehicleKind.car);
       map.config!.onLongPress(klia);
       await tester.pumpAndSettle();

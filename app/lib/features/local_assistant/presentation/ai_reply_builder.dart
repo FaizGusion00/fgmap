@@ -63,6 +63,7 @@ class AiReplyBuilder {
         'not_found' when query != null => l10n.aiPlaceNotFound(query),
         'not_found' => l10n.aiNothingFound,
         'no_location' => l10n.aiNoLocation,
+        'offline' || 'network' => l10n.aiOfflineTool,
         'no_route' => l10n.aiNeedRoute,
         'route_failed' || 'route_timeout' => l10n.aiRouteFailed,
         _ => l10n.aiUnavailable,
@@ -95,6 +96,20 @@ class AiReplyBuilder {
             ],
     );
   }
+
+  AssistantMessage currentLocation(Map<String, Object?> r) {
+    if (r['ok'] != true) return _reply(failure(r));
+    final lat = (r['lat'] as num?)?.toStringAsFixed(5) ?? '';
+    final lng = (r['lng'] as num?)?.toStringAsFixed(5) ?? '';
+    final place = r['place']?.toString().trim();
+    final text = place == null || place.isEmpty
+        ? l10n.aiCurrentLocationCoords(lat, lng)
+        : l10n.aiCurrentLocation('**$place**', lat, lng);
+    return _reply(text);
+  }
+
+  AssistantMessage capabilities({bool offlineFocused = false}) =>
+      _reply(offlineFocused ? l10n.aiCapabilitiesOffline : l10n.aiCapabilities);
 
   AssistantMessage places(
     Map<String, Object?> r, {

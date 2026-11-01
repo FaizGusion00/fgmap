@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/location/location_service.dart';
@@ -27,6 +29,7 @@ import '../../route_preview/presentation/route_preview_controller.dart';
 import '../../search/data/nearby_search.dart';
 import '../../search/data/photon_geocoder.dart';
 import '../../search/domain/nearby_category.dart';
+import '../../search/domain/place.dart';
 import '../../weather/data/open_meteo_client.dart';
 import '../../weather/domain/weather_codes.dart';
 import '../domain/assistant_tools.dart';
@@ -72,36 +75,67 @@ class AssistantToolExecutor {
         _ => {'ok': false, 'error': 'unknown_tool'},
       };
     } on Object catch (e) {
-      return {'ok': false, 'error': e.toString()};
+      return {'ok': false, 'error': networkErrorCode(e) ?? e.toString()};
     }
+  }
+
+  /// Kedudukan GPS semasa (+ nama tempat jika geokod songsang berjaya).
+  /// Berfungsi luar talian untuk koordinat; nama tempat mungkin tiada tanpa internet.
+  Future<Map<String, Object?>> currentLocation() async {
+    final here = await _gps();
+    if (here == null) return {'ok': false, 'error': 'no_location'};
+    String? place;
+    try {
+      final reverse = _ref.read(reverseGeocoderProvider);
+      final hit = await reverse.reverse(here);
+      place = hit == null
+          ? null
+          : [
+              hit.name,
+              if (hit.subtitle.isNotEmpty) hit.subtitle.split(',').first.trim(),
+            ].where((s) => s.isNotEmpty).join(', ');
+    } on Object {
+      // GPS kekal berguna walaupun songsang gagal (luar talian / flaky).
+    }
+    return {
+      'ok': true,
+      'lat': here.lat,
+      'lng': here.lng,
+      if (place != null && place.isNotEmpty) 'place': place,
+      'source': 'gps',
+    };
   }
 
   Future<Map<String, Object?>> searchPlace(String? query) async {
     if (query == null || query.trim().isEmpty) {
       return {'ok': false, 'error': 'missing_query'};
     }
-    final near = await _gps();
-    final places = await _ref
-        .read(geocoderProvider)
-        .search(query.trim(), near: near);
-    if (places.isEmpty) return {'ok': false, 'error': 'not_found'};
-    final top = places.take(5).toList();
-    return {
-      'ok': true,
-      'places': [
-        for (final p in top)
-          {
-            'name': p.name,
-            'subtitle': p.subtitle,
-            'lat': p.point.lat,
-            'lng': p.point.lng,
-            if (near != null)
-              'distance_km': double.parse(
-                (distanceMeters(near, p.point) / 1000).toStringAsFixed(1),
-              ),
-          },
-      ],
-    };
+    try {
+      final near = await _gps();
+      final places = await _ref
+          .read(geocoderProvider)
+          .search(query.trim(), near: near);
+      if (places.isEmpty) return {'ok': false, 'error': 'not_found'};
+      final top = places.take(5).toList();
+      return {
+        'ok': true,
+        'places': [
+          for (final p in top)
+            {
+              'name': p.name,
+              'subtitle': p.subtitle,
+              'lat': p.point.lat,
+              'lng': p.point.lng,
+              if (near != null)
+                'distance_km': double.parse(
+                  (distanceMeters(near, p.point) / 1000).toStringAsFixed(1),
+                ),
+            },
+        ],
+      };
+    } on Object catch (e) {
+      return {'ok': false, 'error': networkErrorCode(e) ?? e.toString()};
+    }
   }
 
   /// Rancang laluan ke [query] dan pilih pilihan yang sepadan dengan [preference]. Dengan [start],
@@ -302,23 +336,27 @@ class AssistantToolExecutor {
   }) async {
     final here = await _gps();
     if (here == null) return {'ok': false, 'error': 'no_location'};
-    final result = await _ref
-        .read(nearbySearchProvider)
-        .search(category, here, fallbackName: fallbackName);
-    if (result.places.isEmpty) return {'ok': false, 'error': 'not_found'};
-    return {
-      'ok': true,
-      'places': [
-        for (final p in result.places.take(5))
-          {
-            'name': p.name,
-            'subtitle': p.subtitle,
-            'lat': p.point.lat,
-            'lng': p.point.lng,
-            'distance_m': distanceMeters(here, p.point).round(),
-          },
-      ],
-    };
+    try {
+      final result = await _ref
+          .read(nearbySearchProvider)
+          .search(category, here, fallbackName: fallbackName);
+      if (result.places.isEmpty) return {'ok': false, 'error': 'not_found'};
+      return {
+        'ok': true,
+        'places': [
+          for (final p in result.places.take(5))
+            {
+              'name': p.name,
+              'subtitle': p.subtitle,
+              'lat': p.point.lat,
+              'lng': p.point.lng,
+              'distance_m': distanceMeters(here, p.point).round(),
+            },
+        ],
+      };
+    } on Object catch (e) {
+      return {'ok': false, 'error': networkErrorCode(e) ?? e.toString()};
+    }
   }
 
   Future<Map<String, Object?>> _airQuality(String? query) async {
@@ -589,3 +627,35 @@ class AssistantToolExecutor {
 final assistantToolExecutorProvider = Provider(
   (ref) => AssistantToolExecutor(ref),
 );
+
+/// Kod ralat stabil untuk kegagalan rangkaian (dipaparkan sebagai mesej luar talian).
+String? networkErrorCode(Object e) {
+  if (e is GeocodeFailure) {
+    return switch (e.kind) {
+      GeocodeFailureKind.network => 'offline',
+      GeocodeFailureKind.unavailable || GeocodeFailureKind.rateLimited =>
+        'offline',
+      GeocodeFailureKind.generic => null,
+    };
+  }
+  if (e is DioException) {
+    return switch (e.type) {
+      DioExceptionType.connectionTimeout ||
+      DioExceptionType.connectionError ||
+      DioExceptionType.sendTimeout ||
+      DioExceptionType.receiveTimeout => 'offline',
+      DioExceptionType.unknown when e.error is SocketException => 'offline',
+      _ => null,
+    };
+  }
+  if (e is SocketException) return 'offline';
+  final text = e.toString().toLowerCase();
+  if (text.contains('socketexception') ||
+      text.contains('failed host lookup') ||
+      text.contains('network is unreachable') ||
+      text.contains('connection refused') ||
+      text.contains('connection reset')) {
+    return 'offline';
+  }
+  return null;
+}

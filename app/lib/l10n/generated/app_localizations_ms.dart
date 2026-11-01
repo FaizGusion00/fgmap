@@ -2459,6 +2459,10 @@ class AppLocalizationsMs extends AppLocalizations {
       'Saya perlukan lokasi anda untuk ini. Hidupkan lokasi dan cuba lagi.';
 
   @override
+  String get aiOfflineTool =>
+      'Itu perlukan internet. Anda sedang luar talian — cuba lagi bila online, atau tanya sesuatu yang berfungsi pada telefon (laluan dengan peta offline, kiblat, waktu solat).';
+
+  @override
   String get aiRouteCleared => 'Laluan dipadam.';
 
   @override
@@ -2467,12 +2471,33 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
+  String get aiNearbyAroundYou => 'Tempat berdekatan sekitar anda:';
+
+  @override
   String get aiNothingFound => 'Tiada apa-apa dijumpai berdekatan sekarang.';
 
   @override
   String aiSearchTitle(String query) {
     return 'Ini yang saya jumpa untuk \"$query\":';
   }
+
+  @override
+  String aiCurrentLocation(String place, String lat, String lng) {
+    return 'Anda di sini: $place. Koordinat: $lat, $lng.';
+  }
+
+  @override
+  String aiCurrentLocationCoords(String lat, String lng) {
+    return 'Kedudukan GPS anda ialah $lat, $lng. Nama tempat tidak dapat diselesaikan sekarang.';
+  }
+
+  @override
+  String get aiCapabilities =>
+      'Anda boleh minta saya rancang laluan, mula navigasi, cari minyak/masjid/makan berdekatan, cuaca atau IPU, kiblat, waktu solat, tempat sepanjang laluan, atau main muzik/radio. Arahan peta berfungsi tanpa model pada telefon.';
+
+  @override
+  String get aiCapabilitiesOffline =>
+      'Ciri pada telefon (luar talian): rancang laluan jika peta offline sudah dimuat turun, arah kiblat, dan waktu solat hari ini. Carian tempat, cuaca, IPU, muzik dan Wikipedia perlukan internet. Arahan seperti \"Laluan ke KLCC\" atau \"Di mana saya\" tidak akan memaparkan senarai alat.';
 
   @override
   String aiWeatherNow(
