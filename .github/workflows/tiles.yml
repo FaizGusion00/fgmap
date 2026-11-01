@@ -137,8 +137,11 @@ jobs:
           gh release view tiles --json assets --jq '.assets[].name' \
             | grep -E '^places-[0-9]{8}\.sqlite\.gz$' | grep -v "^places-${VERSION}\.sqlite\.gz$" \
             | while read -r old; do gh release delete-asset tiles "$old" --yes; done || true
-          # Paparan peta lama dibuang hanya jika yang baharu sudah diterbitkan; jika Planetiler gagal,
-          # manifest tidak menyebutnya dan fail lama dibuang kerana tiada lagi yang merujuknya.
-          gh release view tiles --json assets --jq '.assets[].name' \
-            | grep -E '^basemap-[0-9]{8}\.pmtiles$' | grep -v -x "${BASEMAP:-none}" \
-            | while read -r old; do gh release delete-asset tiles "$old" --yes; done || true
+          # Paparan peta lama dibuang hanya selepas yang baharu diterbitkan. Jika Planetiler gagal,
+          # BASEMAP kosong: jangan padam aset lama (fallback "none" tidak sepadan mana-mana nama fail,
+          # jadi grep -v akan memadam semuanya).
+          if [ -n "$BASEMAP" ]; then
+            gh release view tiles --json assets --jq '.assets[].name' \
+              | grep -E '^basemap-[0-9]{8}\.pmtiles$' | grep -v -x "$BASEMAP" \
+              | while read -r old; do gh release delete-asset tiles "$old" --yes; done || true
+          fi
