@@ -1924,28 +1924,27 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get aboutNew1 =>
-      'FG AI understands everyday and slang Malay better. Find 23 kinds of places (pharmacy, barber, ATM, hotel and more) with distance cards and a Go button';
+  String get aboutNew1 => 'New FGMaps logo, with a new opening animation';
 
   @override
   String get aboutNew2 =>
-      'FG AI answers up-to-date questions from the free web: news, BNM exchange rates and fuel prices. You can turn it off in Settings';
+      'Real junction view before a turn: T-junctions, crossroads and roundabouts with the exit number. A white arrow on the map shows where to turn';
 
   @override
   String get aboutNew3 =>
-      'FG AI can tap buttons in the app for you. Lite Mode reduces animations and 3D buildings on slower phones';
+      'Better landscape mode: the car and route stay aligned when you rotate the phone, and a compact junction box now shows too';
 
   @override
   String get aboutNew4 =>
-      'A lane box and direction arrows on the map while driving';
+      'Smoother navigation start: the camera goes straight to your car without jumping, and auto-zoom is smarter at turns and on highways';
 
   @override
   String get aboutNew5 =>
-      'Android Auto: a Nearby button, voice search in plain sentences, prayer time and real lanes';
+      'FG AI fetches the latest news right away when asked and no longer repeats old answers';
 
   @override
   String get aboutNew6 =>
-      'Place search in Malaysia is more accurate and faster';
+      'Android Auto: the map keeps moving when your phone is locked, a car icon on the map, night mode follows the car, and you can pan and zoom';
 
   @override
   String get alongRouteTitle => 'Along the route';

@@ -38,10 +38,10 @@ void main() {
       find.byKey(const ValueKey('about-whats-new')),
       300,
     );
-    expect(find.text('Baharu dalam versi 1.3.0'), findsOneWidget);
-    expect(find.textContaining('FG AI lebih faham'), findsOneWidget);
+    expect(find.text('Baharu dalam versi 1.4.0'), findsOneWidget);
+    expect(find.textContaining('Logo baharu FGMaps'), findsOneWidget);
     expect(
-      find.textContaining('Android Auto: butang Berdekatan'),
+      find.textContaining('Android Auto: peta terus bergerak'),
       findsOneWidget,
     );
     await tester.scrollUntilVisible(

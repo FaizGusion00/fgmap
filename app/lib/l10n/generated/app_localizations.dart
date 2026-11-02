@@ -3413,37 +3413,37 @@ abstract class AppLocalizations {
   /// No description provided for @aboutNew1.
   ///
   /// In ms, this message translates to:
-  /// **'FG AI lebih faham ayat harian dan bahasa pasar. Cari 23 jenis tempat (farmasi, kedai gunting, ATM, hotel dan lagi) dengan kad jarak dan butang Pergi'**
+  /// **'Logo baharu FGMaps, dengan animasi pembuka yang baharu'**
   String get aboutNew1;
 
   /// No description provided for @aboutNew2.
   ///
   /// In ms, this message translates to:
-  /// **'FG AI jawab soalan terkini dari web percuma: berita, kadar tukaran BNM dan harga minyak. Boleh dimatikan dalam Tetapan'**
+  /// **'Gambar simpang sebenar ketika hendak belok: simpang 3, simpang 4 dan bulatan dengan nombor keluar. Anak panah putih di peta tunjuk tempat belok'**
   String get aboutNew2;
 
   /// No description provided for @aboutNew3.
   ///
   /// In ms, this message translates to:
-  /// **'FG AI boleh menekan butang dalam app untuk anda. Mod Lite kurangkan animasi dan bangunan 3D pada telefon yang perlahan'**
+  /// **'Mod mendatar diperbaiki: kereta dan laluan kekal sejajar bila telefon diputar, dan kotak simpang padat turut dipaparkan'**
   String get aboutNew3;
 
   /// No description provided for @aboutNew4.
   ///
   /// In ms, this message translates to:
-  /// **'Kotak lorong dan anak panah arah di peta semasa memandu'**
+  /// **'Mula navigasi lebih licin: kamera terus ke kereta tanpa melompat, dan zum automatik lebih pandai di selekoh dan lebuh raya'**
   String get aboutNew4;
 
   /// No description provided for @aboutNew5.
   ///
   /// In ms, this message translates to:
-  /// **'Android Auto: butang Berdekatan, carian suara dalam ayat biasa, waktu solat dan lorong sebenar'**
+  /// **'FG AI terus cari berita terkini bila diminta dan tidak lagi mengulang jawapan lama'**
   String get aboutNew5;
 
   /// No description provided for @aboutNew6.
   ///
   /// In ms, this message translates to:
-  /// **'Carian tempat di Malaysia lebih tepat dan lebih laju'**
+  /// **'Android Auto: peta terus bergerak walaupun telefon dikunci, ikon kereta di peta, mod malam ikut kereta, dan boleh geser serta zum'**
   String get aboutNew6;
 
   /// No description provided for @alongRouteTitle.

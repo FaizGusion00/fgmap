@@ -1924,27 +1924,27 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get aboutNew1 =>
-      'FG AI lebih faham ayat harian dan bahasa pasar. Cari 23 jenis tempat (farmasi, kedai gunting, ATM, hotel dan lagi) dengan kad jarak dan butang Pergi';
+      'Logo baharu FGMaps, dengan animasi pembuka yang baharu';
 
   @override
   String get aboutNew2 =>
-      'FG AI jawab soalan terkini dari web percuma: berita, kadar tukaran BNM dan harga minyak. Boleh dimatikan dalam Tetapan';
+      'Gambar simpang sebenar ketika hendak belok: simpang 3, simpang 4 dan bulatan dengan nombor keluar. Anak panah putih di peta tunjuk tempat belok';
 
   @override
   String get aboutNew3 =>
-      'FG AI boleh menekan butang dalam app untuk anda. Mod Lite kurangkan animasi dan bangunan 3D pada telefon yang perlahan';
+      'Mod mendatar diperbaiki: kereta dan laluan kekal sejajar bila telefon diputar, dan kotak simpang padat turut dipaparkan';
 
   @override
   String get aboutNew4 =>
-      'Kotak lorong dan anak panah arah di peta semasa memandu';
+      'Mula navigasi lebih licin: kamera terus ke kereta tanpa melompat, dan zum automatik lebih pandai di selekoh dan lebuh raya';
 
   @override
   String get aboutNew5 =>
-      'Android Auto: butang Berdekatan, carian suara dalam ayat biasa, waktu solat dan lorong sebenar';
+      'FG AI terus cari berita terkini bila diminta dan tidak lagi mengulang jawapan lama';
 
   @override
   String get aboutNew6 =>
-      'Carian tempat di Malaysia lebih tepat dan lebih laju';
+      'Android Auto: peta terus bergerak walaupun telefon dikunci, ikon kereta di peta, mod malam ikut kereta, dan boleh geser serta zum';
 
   @override
   String get alongRouteTitle => 'Sepanjang laluan';

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Splash asli Android 12+ tanpa ikon: hanya warna latar. Logo dibina oleh splash animasi Flutter
+     (titik, laluan, anak panah); ikon statik di sini akan muncul, hilang, lalu dilukis semula. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@android:color/transparent" />
+</shape>
