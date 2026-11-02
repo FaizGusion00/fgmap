@@ -7,7 +7,11 @@ import 'package:fgmap/core/location/location_service.dart';
 import 'package:fgmap/core/storage/preferences.dart';
 import 'package:fgmap/features/map/data/map_style_loader.dart';
 import 'package:fgmap/features/map/presentation/idle_follow.dart';
+import 'package:fgmap/features/navigation/data/trip_record.dart';
+import 'package:fgmap/features/navigation/data/trip_store.dart';
+import 'package:fgmap/features/navigation/domain/instruction_text.dart';
 import 'package:fgmap/features/onboarding/presentation/onboarding_page.dart';
+import 'package:fgmap/features/route_preview/domain/route_option.dart';
 import 'package:fgmap/features/splash/data/splash_controller.dart';
 import 'package:fgmap/features/splash/presentation/splash_page.dart';
 import 'package:fgmap/features/splash/presentation/splash_painter.dart';
@@ -18,6 +22,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/fakes.dart';
 import '../../helpers/pump_app.dart';
+import '../navigation/nav_test_support.dart';
 
 class _CountingLoader extends MapStyleLoader {
   _CountingLoader() : super(Dio(), null);
@@ -28,6 +33,15 @@ class _CountingLoader extends MapStyleLoader {
   Future<ResolvedMapStyle> resolve({required bool dark}) async {
     requested.add(dark);
     return light();
+  }
+}
+
+/// Animasi splash dimajukan setiap bingkai (bukan jam dinding), jadi ia dimainkan dalam bingkai 16 ms
+/// seperti pada telefon.
+Future<void> _play(WidgetTester tester, Duration length) async {
+  final frames = length.inMilliseconds ~/ 16 + 2;
+  for (var i = 0; i < frames; i++) {
+    await tester.pump(const Duration(milliseconds: 16));
   }
 }
 
@@ -180,7 +194,7 @@ void main() {
 
     testWidgets('pengguna baharu: selepas animasi -> sambutan', (tester) async {
       await pumpFull(tester);
-      await tester.pump(SplashPage.animation);
+      await _play(tester, SplashPage.animation);
       await tester.pump(SplashPage.hold + const Duration(milliseconds: 50));
       await _settle(tester);
       expect(find.byType(SplashPage), findsNothing);
@@ -190,7 +204,7 @@ void main() {
     testWidgets('pengguna sedia ada: selepas animasi -> peta', (tester) async {
       await prefs.setBool('onboarding.v1', true);
       await pumpFull(tester);
-      await tester.pump(SplashPage.animation);
+      await _play(tester, SplashPage.animation);
       await tester.pump(SplashPage.hold + const Duration(milliseconds: 50));
       await _settle(tester);
       expect(find.byType(SplashPage), findsNothing);
@@ -209,19 +223,108 @@ void main() {
       expect(find.byKey(const ValueKey('fake-map')), findsOneWidget);
     });
 
-    testWidgets('Reduce Motion: logo statik sebentar, tiada animasi panjang', (
+    testWidgets(
+      'Reduce Motion / penjimat bateri: logo siap pudar masuk, kemudian tamat cepat',
+      (tester) async {
+        await prefs.setBool('onboarding.v1', true);
+        reduceMotion(tester);
+        await pumpFull(tester);
+        await tester.pump();
+        expect(find.byType(SplashPage), findsOneWidget);
+        double opacity() => tester
+            .widget<Opacity>(
+              find
+                  .descendant(
+                    of: find.byType(SplashPage),
+                    matching: find.byType(Opacity),
+                  )
+                  .first,
+            )
+            .opacity;
+        expect(opacity(), lessThan(0.2), reason: 'bermula pudar');
+        await _play(tester, SplashPage.reducedMotionReveal);
+        expect(opacity(), 1);
+        await tester.pump(
+          SplashPage.reducedMotionHold + const Duration(milliseconds: 50),
+        );
+        await _settle(tester);
+        expect(find.byType(SplashPage), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'bingkai pertama yang berat tidak melangkau animasi (telefon sebenar)',
+      (tester) async {
+        await prefs.setBool('onboarding.v1', true);
+        await pumpFull(tester);
+        await tester.pump();
+        // Bingkai 1.5 s (fon, shader, gaya peta): pengawal berasaskan masa akan tamat di sini.
+        await tester.pump(const Duration(milliseconds: 1500));
+        await tester.pump(const Duration(milliseconds: 16));
+        final painter =
+            tester
+                    .widget<CustomPaint>(
+                      find
+                          .descendant(
+                            of: find.byType(SplashPage),
+                            matching: find.byType(CustomPaint),
+                          )
+                          .first,
+                    )
+                    .painter!
+                as SplashPainter;
+        expect(painter.timeline.t, lessThan(0.1));
+        expect(painter.timeline.arrowIn, 0, reason: 'anak panah belum masuk');
+        await _play(tester, SplashPage.animation);
+        await tester.pump(SplashPage.hold + const Duration(milliseconds: 50));
+        await _settle(tester);
+        expect(find.byType(SplashPage), findsNothing);
+      },
+    );
+
+    testWidgets('perjalanan disimpan: splash tetap dimainkan (versi pantas)', (
       tester,
     ) async {
       await prefs.setBool('onboarding.v1', true);
-      reduceMotion(tester);
+      final option = lShapedRoute(legM: 500);
+      await prefs.setString(
+        TripStore.key,
+        encodeTrip(
+          NavigationTrip(
+            savedAt: DateTime.now(),
+            route: option,
+            query: RouteQuery(
+              origin: option.points.first,
+              destination: option.points.last,
+            ),
+            alongM: 100,
+            language: VoiceLanguage.ms,
+            position: option.points[2],
+            bearing: 90,
+            speedMps: 10,
+          ),
+        )!,
+      );
       await pumpFull(tester);
       await tester.pump();
+      // Dahulu splash dilangkau terus bila perjalanan disimpan.
       expect(find.byType(SplashPage), findsOneWidget);
-      await tester.pump(
-        SplashPage.reducedMotionHold + const Duration(milliseconds: 50),
-      );
-      await tester.pumpAndSettle();
-      expect(find.byType(SplashPage), findsNothing);
+      await _play(tester, SplashPage.quickAnimation);
+      final painter =
+          tester
+                  .widget<CustomPaint>(
+                    find
+                        .descendant(
+                          of: find.byType(SplashPage),
+                          matching: find.byType(CustomPaint),
+                        )
+                        .first,
+                  )
+                  .painter!
+              as SplashPainter;
+      expect(painter.timeline.t, 1, reason: 'versi pantas sudah lengkap');
+      // Hentikan sebelum peta dibina (pemulihan navigasi diuji dalam trip_restore_test).
+      await tester.pumpWidget(const SizedBox());
     });
 
     testWidgets(
@@ -232,7 +335,7 @@ void main() {
         final container = ProviderScope.containerOf(
           tester.element(find.byType(SplashPage)),
         );
-        await tester.pump(SplashPage.animation);
+        await _play(tester, SplashPage.animation);
         await tester.pump(SplashPage.hold + const Duration(milliseconds: 50));
         await _settle(tester);
         expect(container.read(splashDoneProvider), isTrue);
