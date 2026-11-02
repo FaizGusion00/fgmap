@@ -30,7 +30,7 @@ dependencies:
       url: https://github.com/fstotz/flutter_tts.git
       ref: codex/apple-packaging-built-in-kotlin
   geolocator: ^14.1.2
-  go_router: ^17.5.0
+  go_router: ^18.1.2
   # FG AI: membaca tajuk berita RSS dan halaman yang dipautkan pengguna (sudah transitif).
   html: ^0.15.7
   intl: ^0.20.2
