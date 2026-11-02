@@ -9,7 +9,7 @@ environment:
 dependencies:
   audioplayers: ^6.8.1
   connectivity_plus: ^7.3.1
-  crypto: ^3.0.7
+  crypto: ^3.0.8
   dio: ^5.11.1
   fgmap_valhalla:
     path: ../packages/fgmap_valhalla
@@ -19,10 +19,10 @@ dependencies:
     path: ../packages/fg_device_music
   flutter:
     sdk: flutter
-  flutter_native_splash: ^2.4.7
+  flutter_native_splash: ^2.4.8
   flutter_localizations:
     sdk: flutter
-  flutter_riverpod: ^3.3.2
+  flutter_riverpod: ^3.4.3
   # 4.2.5 masih apply kotlin-android; guna PR Built-in Kotlin sehingga pub lepaskan versi baharu.
   # https://github.com/dlutton/flutter_tts/pull/660
   flutter_tts:
@@ -40,8 +40,8 @@ dependencies:
   path_provider: ^2.1.6
   shared_preferences: ^2.5.6
   # Indeks carian offline (SQLite FTS4 sistem). Sudah ada secara transitif; kini digunakan terus.
-  sqflite: ^2.4.2
-  wakelock_plus: ^1.7.0
+  sqflite: ^2.4.5
+  wakelock_plus: ^1.8.0
   app_links: ^6.4.1
   share_plus: ^13.3.1
   url_launcher: ^6.3.3
@@ -53,7 +53,7 @@ dependencies:
   audio_service: ^0.18.19
   audio_session: ^0.2.4
   file_picker: ^13.3.0
-  home_widget: ^0.7.0
+  home_widget: ^0.10.0
   flutter_edge_ai: ^2.5.4
   flutter_edge_ai_litertlm: ^1.19.0
 
