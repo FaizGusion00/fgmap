@@ -146,6 +146,10 @@ void main() {
       final keep = _read('android/app/src/main/res/raw/keep.xml');
       expect(keep, contains('@raw/azan'));
       expect(keep, contains('@raw/azan_short'));
+      // Ikon notifikasi dan kawalan media muzik juga dirujuk melalui nama (build release tanpanya:
+      // notifikasi muzik gagal dibina dan muzik berhenti bila app ke latar).
+      expect(keep, contains('@drawable/ic_stat_fgmaps'));
+      expect(keep, contains('@drawable/audio_service_*'));
       for (final f in ['azan.mp3', 'azan_short.mp3']) {
         expect(
           File('android/app/src/main/res/raw/$f').existsSync(),

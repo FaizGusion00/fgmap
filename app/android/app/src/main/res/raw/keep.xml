@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Bunyi azan dan ikon kecil notifikasi dirujuk hanya melalui nama (saluran notifikasi,
      flutter_local_notifications, audio_service), jadi pengecilan sumber (isShrinkResources)
-     akan membuangnya tanpa peraturan simpan ini. -->
+     akan membuangnya tanpa peraturan simpan ini. Ikon kawalan media audio_service (main/jeda/henti/
+     langkau) juga dirujuk melalui nama: tanpanya notifikasi muzik gagal dibina dalam build release
+     ("You must specify an icon resource id to build a CustomAction") dan muzik berhenti di latar. -->
 <resources xmlns:tools="http://schemas.android.com/tools"
-    tools:keep="@raw/azan,@raw/azan_short,@drawable/ic_stat_fgmaps" />
+    tools:keep="@raw/azan,@raw/azan_short,@drawable/ic_stat_fgmaps,@drawable/audio_service_*" />
