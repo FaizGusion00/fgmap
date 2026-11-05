@@ -119,11 +119,21 @@ def phone(v: str | None) -> str | None:
     return digits
 
 
-def district(v: str) -> str:
+def postcode(v: str | None) -> str | None:
+    """Poskod 5 digit. Excel membuang sifar di depan (Kedah/Perlis/P. Pinang: "9100" -> "09100")."""
+    d = re.sub(r"\D", "", v or "")[:5]
+    if len(d) == 4:
+        d = d.zfill(5)
+    return d if len(d) == 5 else None
+
+
+def district(v: str) -> str | None:
+    if missing(v) or re.match(r"^\s*tiada\s+maklumat", v or "", re.I):
+        return None
     # Kod bahagian pejabat agama Sabah ("BPA - KENINGAU", "PBS - TAMPARULI") bukan sebahagian nama daerah.
     s = re.sub(r"^[A-Z]{2,4}\s*-\s*", "", v.strip().upper())
     s = re.sub(r"^(WILAYAH PERSEKUTUAN|DAERAH)\s+", "", s)
-    return title(s)
+    return title(s) or None
 
 
 TYPE_WORDS = {"masjid", "surau", "musolla", "musalla", "musollah", "mosque", "jamek", "jamik",
@@ -168,7 +178,7 @@ def read_rows(text: str, kind: str) -> list[dict]:
             "type": kind,
             "name": title(name),
             "address": clean_text(r.get("ALAMAT")),
-            "postcode": (re.sub(r"\D", "", r.get("POSKOD") or "")[:5] or None),
+            "postcode": postcode(r.get("POSKOD")),
             "district": district(r.get("DAERAH") or "") or None,
             "state": state,
             "phone": phone(r.get("NO. TELEFON")),

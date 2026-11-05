@@ -31,9 +31,13 @@ class TollEstimate {
     required this.plazaCount,
     required this.unknownCount,
     required this.knownRm,
+    this.reportedCount = 0,
   });
 
   final int plazaCount;
+
+  /// Plaza berharga yang kadarnya daripada laporan berita (`basis: "reported"`), bukan jadual rasmi.
+  final int reportedCount;
 
   /// Plaza yang tiada harga disahkan.
   final int unknownCount;
@@ -60,10 +64,13 @@ String? tollClassOf(RouteVehicle vehicle) =>
 
 @immutable
 class _OpenPlaza {
-  const _OpenPlaza(this.point, this.ratesRm);
+  const _OpenPlaza(this.point, this.ratesRm, {this.reported = false});
 
   final GeoPoint point;
   final Map<String, double> ratesRm;
+
+  /// Kadar daripada laporan (berita), bukan jadual rasmi pengendali.
+  final bool reported;
 }
 
 @immutable
@@ -92,14 +99,20 @@ class _ClosedSystem {
 /// Hasil padanan satu plaza laluan dengan dataset.
 @immutable
 class _Hit {
-  const _Hit.closed(this.system, this.index) : openRate = null, isOpen = false;
-  const _Hit.open(this.openRate) : system = -1, index = -1, isOpen = true;
-  const _Hit.none() : system = -1, index = -1, openRate = null, isOpen = false;
+  const _Hit.closed(this.system, this.index)
+    : openRate = null,
+      isOpen = false,
+      reported = false;
+  const _Hit.open(this.openRate, {this.reported = false})
+    : system = -1,
+      index = -1,
+      isOpen = true;
 
   final int system;
   final int index;
   final double? openRate;
   final bool isOpen;
+  final bool reported;
 
   bool get isClosed => system >= 0;
 }
@@ -194,7 +207,13 @@ class TollRates {
         if (v is num && v >= 0 && v.isFinite) parsed[k] = v.toDouble();
       });
       if (parsed.isEmpty) continue;
-      out.add(_OpenPlaza(GeoPoint(lat.toDouble(), lng.toDouble()), parsed));
+      out.add(
+        _OpenPlaza(
+          GeoPoint(lat.toDouble(), lng.toDouble()),
+          parsed,
+          reported: p['basis'] == 'reported',
+        ),
+      );
     }
     return out;
   }
@@ -250,7 +269,15 @@ class TollRates {
   }
 
   /// Anggaran bagi [plazas] (mengikut susunan perjalanan) untuk [vehicle].
-  TollEstimate estimate(List<TollPlaza> plazas, RouteVehicle vehicle) {
+  ///
+  /// Dengan [route], larian sistem tertutup dipecah di tempat laluan KELUAR dari jalan bertol
+  /// (>= [freeGapM] manuver tanpa tol di antara dua plaza): keluar di Jalan Duta, merentas KL di jalan
+  /// percuma dan masuk semula di Sungai Besi ialah dua perjalanan, bukan satu tiket Rawang-Kajang.
+  TollEstimate estimate(
+    List<TollPlaza> plazas,
+    RouteVehicle vehicle, {
+    RouteOption? route,
+  }) {
     final cls = tollClassOf(vehicle);
     if (cls == null) {
       // Kenderaan tanpa kelas dalam data: tiada harga (bukan percuma).
@@ -260,73 +287,161 @@ class TollRates {
         knownRm: 0,
       );
     }
-    final hits = [for (final p in plazas) _match(p.point, cls)];
+    final cands = [for (final p in plazas) _candidates(p.point, cls)];
+    final freeBetween = route == null ? null : _freeMetres(route);
 
     var known = 0.0;
     var unknown = 0;
+    var reported = 0;
     var i = 0;
-    while (i < hits.length) {
-      final h = hits[i];
-      if (h.isOpen) {
-        if (h.openRate == null) {
+    while (i < cands.length) {
+      final c = cands[i];
+      if (c.isEmpty) {
+        unknown++;
+        i++;
+        continue;
+      }
+      if (c.first.isOpen) {
+        final rate = c.first.openRate;
+        if (rate == null) {
           unknown++;
         } else {
-          known += h.openRate!;
+          known += rate;
+          if (c.first.reported) reported++;
         }
         i++;
-      } else if (h.isClosed) {
-        // Larian plaza berturutan pada sistem yang sama: pertama = masuk, terakhir = keluar.
+        continue;
+      }
+      // Larian plaza berturutan pada sistem tertutup yang sama. Pilih sistem yang memberi larian
+      // terpanjang (plaza dikongsi dua sistem, cth. SKVE/WCE, atau kembar (U)/(S) pada titik sama).
+      var bestSystem = -1;
+      var bestEnd = i;
+      for (final s in {
+        for (final h in c)
+          if (h.isClosed) h.system,
+      }) {
         var j = i;
-        while (j + 1 < hits.length &&
-            hits[j + 1].isClosed &&
-            hits[j + 1].system == h.system) {
+        while (j + 1 < cands.length &&
+            cands[j + 1].any((h) => h.isClosed && h.system == s)) {
           j++;
         }
-        final count = j - i + 1;
-        final fare = count < 2
-            ? null
-            : _closed[h.system].fare(h.index, hits[j].index);
+        if (j > bestEnd || bestSystem < 0) {
+          bestSystem = s;
+          bestEnd = j;
+        }
+      }
+      final sys = _closed[bestSystem];
+      List<int> indices(int k) => [
+        for (final h in cands[k])
+          if (h.isClosed && h.system == bestSystem) h.index,
+      ];
+      // Dalam satu perjalanan: plaza pertama = masuk, terakhir = keluar (plaza di tengah, cth. susur
+      // yang hampir dengan laluan utama, diabaikan).
+      void trip(int from, int to) {
+        if (from == to) {
+          unknown++;
+          return;
+        }
+        double? fare;
+        for (final a in indices(from)) {
+          for (final b in indices(to)) {
+            final f = sys.fare(a, b);
+            if (f != null && (fare == null || f < fare)) fare = f;
+          }
+        }
         if (fare == null) {
-          unknown += count;
+          unknown += to - from + 1;
         } else {
           known += fare;
         }
-        i = j + 1;
-      } else {
-        unknown++;
-        i++;
       }
+
+      var tripStart = i;
+      for (var k = i; k < bestEnd; k++) {
+        final left =
+            freeBetween != null &&
+            freeBetween(plazas[k].alongM, plazas[k + 1].alongM) >= freeGapM;
+        if (left) {
+          trip(tripStart, k);
+          tripStart = k + 1;
+        }
+      }
+      trip(tripStart, bestEnd);
+      i = bestEnd + 1;
     }
     return TollEstimate(
       plazaCount: plazas.length,
       unknownCount: unknown,
       knownRm: known,
+      reportedCount: reported,
     );
   }
 
-  _Hit _match(GeoPoint point, String cls) {
-    var best = matchRadiusM;
-    _Hit? hit;
+  /// Jarak manuver tanpa tol di antara dua plaza yang menandakan laluan keluar dari sistem tertutup.
+  static const freeGapM = 500.0;
+
+  /// Fungsi: meter jalan TANPA tol di antara dua kedudukan sepanjang [route].
+  static double Function(double, double) _freeMetres(RouteOption route) {
+    final pts = route.points;
+    final along = <double>[0];
+    for (var i = 1; i < pts.length; i++) {
+      along.add(along.last + distanceMeters(pts[i - 1], pts[i]));
+    }
+    double at(int shape) =>
+        along.isEmpty ? 0 : along[shape.clamp(0, along.length - 1)];
+    final spans = <(double, double)>[];
+    final ms = route.maneuvers;
+    for (var i = 0; i < ms.length; i++) {
+      if (ms[i].toll) continue;
+      final start = at(ms[i].beginShapeIndex);
+      final end = i + 1 < ms.length
+          ? at(ms[i + 1].beginShapeIndex)
+          : (along.isEmpty ? 0.0 : along.last);
+      if (end > start) spans.add((start, end));
+    }
+    return (a, b) {
+      final lo = a < b ? a : b, hi = a < b ? b : a;
+      var sum = 0.0;
+      for (final (s, e) in spans) {
+        final o = (e < hi ? e : hi) - (s > lo ? s : lo);
+        if (o > 0) sum += o;
+      }
+      return sum;
+    };
+  }
+
+  /// Semua padanan dataset bagi satu plaza laluan, terdekat dahulu. Calon dalam 5 m daripada yang
+  /// terdekat dikekalkan bersama (plaza kembar arah (U)/(S) pada koordinat sama, plaza dikongsi dua
+  /// sistem): pemilihan akhir dibuat oleh pasangan yang benar-benar ada kadar.
+  List<_Hit> _candidates(GeoPoint point, String cls) {
+    final found = <(double, _Hit)>[];
     for (var s = 0; s < _closed.length; s++) {
       final plazas = _closed[s].plazas;
       for (var k = 0; k < plazas.length; k++) {
         final p = plazas[k].point;
         if (p == null) continue;
         final d = distanceMeters(point, p);
-        if (d <= best) {
-          best = d;
-          hit = _Hit.closed(s, k);
-        }
+        if (d <= matchRadiusM) found.add((d, _Hit.closed(s, k)));
       }
     }
     for (final p in _open) {
       final d = distanceMeters(point, p.point);
-      if (d <= best) {
-        best = d;
-        hit = _Hit.open(p.ratesRm[cls]);
+      if (d <= matchRadiusM) {
+        found.add((d, _Hit.open(p.ratesRm[cls], reported: p.reported)));
       }
     }
-    return hit ?? const _Hit.none();
+    if (found.isEmpty) return const [];
+    // Seri jarak: harga tetap dahulu (seperti sebelum ini), kemudian tertutup.
+    found.sort((a, b) {
+      final c = a.$1.compareTo(b.$1);
+      if (c != 0) return c;
+      return (b.$2.isOpen ? 1 : 0) - (a.$2.isOpen ? 1 : 0);
+    });
+    final nearest = found.first.$1;
+    return [
+      for (final (d, h) in found)
+        if (d <= nearest + 5) h,
+    ];
   }
 }
 

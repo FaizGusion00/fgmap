@@ -4,7 +4,6 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:fgmap/core/utils/geo.dart';
 import 'package:fgmap/features/local_assistant/domain/intent_router.dart';
-import 'package:fgmap/features/local_assistant/domain/nlu/intents.dart';
 import 'package:fgmap/features/masjid/data/masjid_directory.dart';
 import 'package:fgmap/features/masjid/presentation/masjid_directory_page.dart';
 import 'package:fgmap/features/search/data/photon_geocoder.dart';
@@ -78,19 +77,71 @@ void main() {
     );
   });
 
-  test('dengan lokasi: yang berkoordinat disusun ikut jarak dahulu', () {
-    final dir = MasjidDirectory(all);
-    const klcc = GeoPoint(3.1579, 101.7117);
-    final r = dir.query(const MasjidQuery(state: 'Kuala Lumpur'), near: klcc);
-    final located = r.takeWhile((e) => e.point != null).toList();
-    expect(located.length, greaterThan(5));
-    for (var i = 1; i < located.length; i++) {
-      expect(
-        distanceMeters(klcc, located[i].point!),
-        greaterThanOrEqualTo(distanceMeters(klcc, located[i - 1].point!)),
+  test(
+    'dengan lokasi: tanpa koordinat ikut pusat daerah, bukan di hujung senarai',
+    () {
+      MasjidEntry m(
+        String name,
+        String district,
+        String state, [
+        GeoPoint? p,
+      ]) => MasjidEntry(
+        type: MasjidType.surau,
+        name: name,
+        district: district,
+        state: state,
+        point: p,
       );
-    }
-    expect(r.skip(located.length).every((e) => e.point == null), isTrue);
+      final dir = MasjidDirectory([
+        m('Surau Jauh', 'Kota Kinabalu', 'Sabah', const GeoPoint(5.98, 116.07)),
+        m('Surau Tanpa Koordinat', 'Gombak', 'Selangor'),
+        m('Surau A', 'Gombak', 'Selangor', const GeoPoint(3.25, 101.65)),
+        m('Surau B', 'Gombak', 'Selangor', const GeoPoint(3.27, 101.67)),
+        m('Surau Daerah Kosong', 'Hulu Selangor', 'Selangor'),
+      ]);
+      final r = dir
+          .query(const MasjidQuery(), near: const GeoPoint(3.25, 101.65))
+          .map((e) => e.name)
+          .toList();
+      expect(r.first, 'Surau A');
+      expect(
+        r.indexOf('Surau Tanpa Koordinat'),
+        lessThan(r.indexOf('Surau Jauh')),
+      );
+      // Tiada anggaran langsung: di hujung.
+      expect(r.last, 'Surau Daerah Kosong');
+    },
+  );
+
+  test('carian: ejaan bercantum, petikan pintar, kampong, mosque', () {
+    MasjidEntry m(String name) =>
+        MasjidEntry(type: MasjidType.masjid, name: name, state: 'Johor');
+    final dir = MasjidDirectory([
+      m('Masjid As-Syakirin'),
+      m("Surau Ma'bud"),
+      m('Masjid Kampung Parit Raja'),
+      m('Surau Al-Falah'),
+    ]);
+    List<String> q(String t) =>
+        dir.query(MasjidQuery(text: t)).map((e) => e.name).toList();
+    expect(q('assyakirin'), ['Masjid As-Syakirin']);
+    expect(q('alfalah'), ['Surau Al-Falah']);
+    expect(q('ma’bud'), ["Surau Ma'bud"]);
+    expect(q('kampong parit'), ['Masjid Kampung Parit Raja']);
+    expect(q('pt raja'), ['Masjid Kampung Parit Raja']);
+    expect(q('mosque syakirin'), ['Masjid As-Syakirin']);
+  });
+
+  test('aset: poskod 5 digit (sifar depan), tiada daerah "Tiada Maklumat"', () {
+    expect(
+      all.where((e) => e.postcode != null && e.postcode!.length != 5),
+      isEmpty,
+    );
+    expect(
+      all.where((e) => (e.district ?? '').toLowerCase().startsWith('tiada')),
+      isEmpty,
+    );
+    expect(all.where((e) => e.postcode == '09100'), isNotEmpty);
   });
 
   test(
@@ -140,7 +191,19 @@ void main() {
 
       final a = open('senarai masjid selangor')!;
       expect((a.screen, a.arg), (AppScreen.masjidDirectory, 'selangor'));
-      expect(open('list of mosques in penang')!.arg, 'penang');
+      expect(open('list of mosques in penang')!.arg, 'Pulau Pinang');
+      expect(open('senarai masjid melaka')!.arg, 'Melaka');
+      expect(open('senarai masjid kl')!.arg, 'Kuala Lumpur');
+      // "Terdekat / near me": buka direktori (disusun ikut jarak), bukan cari "terdekat".
+      final near = open('senarai masjid terdekat')!;
+      expect((near.screen, near.arg), (AppScreen.masjidDirectory, null));
+      expect(open('list mosques near me')!.arg, isNull);
+      expect(open('senarai surau dekat sini')!.arg, isNull);
+      expect(open('senarai masjid di kuala kedah')!.arg, 'kuala kedah');
+      expect(
+        open('show all mosques along the route')?.screen,
+        isNot(AppScreen.masjidDirectory),
+      );
       expect(
         open('buka senarai masjid dan surau')!.screen,
         AppScreen.masjidDirectory,

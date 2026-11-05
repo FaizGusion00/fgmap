@@ -135,6 +135,8 @@ class DatasetTollFinder implements TollPlazaFinder {
 
   @override
   Future<List<TollPlaza>> find(RouteOption route) async {
+    // Valhalla kata tiada jalan bertol: plaza yang "dipadankan" hanyalah plaza jalan selari.
+    if (!route.hasTolls) return const [];
     final rates = await _rates();
     if (rates.isEmpty || route.points.length < 2) return const [];
     var s = 90.0, w = 180.0, n = -90.0, e = -180.0;
@@ -204,5 +206,5 @@ final routeTollEstimateProvider = FutureProvider.autoDispose
         () async => rates,
       ).find(key.option);
       if (plazas.isEmpty) return null;
-      return rates.estimate(plazas, key.vehicle);
+      return rates.estimate(plazas, key.vehicle, route: key.option);
     });

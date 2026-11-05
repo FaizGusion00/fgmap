@@ -263,13 +263,13 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
     final shared = sharedLocationFromUri(uri);
     final point = shared?.point;
     if (point != null) {
-      // Butang "Arah" Google selalunya meletakkan ALAMAT sebagai destinasi (`daddr=Kemensah
-      // Heights, …`), bukan nama tempat: nama yang pengguna cari lebih jelas, alamat jadi subtajuk.
+      // Pelayar sudah memilih nama terbaik (nama tempat Google, kemudian carian Google terakhir),
+      // bukan alamat `daddr` dan bukan teks lama perancang.
       final label = shared!.label;
       _pick(
         Place(
-          name: typed.isNotEmpty ? typed : (label ?? l10n.webSearchPlace),
-          subtitle: label != null && typed.isNotEmpty ? label : 'Google',
+          name: label ?? (typed.isNotEmpty ? typed : l10n.webSearchPlace),
+          subtitle: 'Google',
           point: point,
         ),
       );

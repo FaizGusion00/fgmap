@@ -223,10 +223,15 @@ final mapStyleProvider = FutureProvider.family<ResolvedMapStyle, bool>((
   return loader.resolve(dark: dark);
 });
 
-/// Gaya hibrid satelit; null jika tidak dapat dibina (peta biasa digunakan).
-final satelliteMapStyleProvider = FutureProvider<ResolvedMapStyle?>((
-  ref,
-) async {
-  final basemap = await ref.watch(localBasemapProvider.future);
-  return ref.watch(mapStyleLoaderProvider).satellite(basemap: basemap);
-});
+/// Gaya hibrid satelit; null jika tidak dapat dibina (peta biasa digunakan). Hanya hasil yang berjaya
+/// disimpan: kegagalan (cth. mula tanpa internet) dicuba semula bila Satelit dipilih lagi.
+final satelliteMapStyleProvider = FutureProvider.autoDispose<ResolvedMapStyle?>(
+  (ref) async {
+    final basemap = await ref.watch(localBasemapProvider.future);
+    final style = await ref
+        .watch(mapStyleLoaderProvider)
+        .satellite(basemap: basemap);
+    if (style != null) ref.keepAlive();
+    return style;
+  },
+);

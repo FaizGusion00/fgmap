@@ -24,7 +24,16 @@ class MasjidEntry {
     this.district,
     this.phone,
     this.point,
-  });
+  }) : searchKey = foldMasjidText(
+         [
+           name,
+           address,
+           postcode,
+           district,
+           state,
+         ].whereType<String>().join(' '),
+       ),
+       compactKey = foldMasjidText(name).replaceAll(' ', '');
 
   final MasjidType type;
   final String name;
@@ -35,10 +44,12 @@ class MasjidEntry {
   final String? phone;
   final GeoPoint? point;
 
-  /// Kunci carian (huruf kecil, tanpa tanda baca, singkatan dikembangkan).
-  late final String searchKey = foldMasjidText(
-    [name, address, postcode, district, state].whereType<String>().join(' '),
-  );
+  /// Kunci carian (huruf kecil, tanpa tanda baca, singkatan dikembangkan). Dikira semasa dihurai
+  /// (di isolat), bukan pada ketikan pertama di benang UI.
+  final String searchKey;
+
+  /// Nama tanpa jarak: "Assyakirin" sepadan "As-Syakirin", "Alfalah" sepadan "Al-Falah".
+  final String compactKey;
 
   /// Pertanyaan geokod apabila tiada koordinat: nama dahulu (paling tepat), kemudian kawasan.
   List<String> get geocodeQueries => [
@@ -78,13 +89,18 @@ const _expand = {
   'lrg': 'lorong',
   'ptg': 'permatang',
   'pdg': 'padang',
+  'kampong': 'kampung',
+  'pt': 'parit',
+  'mosque': 'masjid',
+  'mosques': 'masjid',
 };
 
 /// Teks untuk dipadankan: huruf kecil, tanda baca dibuang, singkatan biasa dikembangkan.
 String foldMasjidText(String s) {
   final words = s
       .toLowerCase()
-      .replaceAll("'", '')
+      // Termasuk petikan pintar iOS ("Ma’bud").
+      .replaceAll(RegExp("['’‘`´]"), '')
       .replaceAll(RegExp('[^a-z0-9]+'), ' ')
       .split(' ')
       .where((w) => w.isNotEmpty)
@@ -134,10 +150,38 @@ class MasjidQuery {
 /// Semua tempat, dimuat sekali daripada aset (dinyahmampat dan dihurai di isolat lain).
 class MasjidDirectory {
   MasjidDirectory(this.entries)
-    : states = (entries.map((e) => e.state).toSet().toList()..sort());
+    : states = (entries.map((e) => e.state).toSet().toList()..sort()),
+      _areaCentres = _centres(entries);
 
   final List<MasjidEntry> entries;
   final List<String> states;
+
+  /// Purata koordinat tempat berkoordinat bagi setiap daerah (kemudian negeri): anggaran kedudukan
+  /// tempat tanpa koordinat supaya susunan "terdekat" tidak meletakkan 93% senarai di hujung.
+  final Map<String, GeoPoint> _areaCentres;
+  final Map<String, List<String>> _districts = {};
+
+  static Map<String, GeoPoint> _centres(List<MasjidEntry> entries) {
+    final sum = <String, (double, double, int)>{};
+    void add(String key, GeoPoint p) {
+      final (a, b, n) = sum[key] ?? (0.0, 0.0, 0);
+      sum[key] = (a + p.lat, b + p.lng, n + 1);
+    }
+
+    for (final e in entries) {
+      final p = e.point;
+      if (p == null) continue;
+      if (e.district != null) add('${e.state}|${e.district}', p);
+    }
+    return {
+      for (final MapEntry(:key, value: (a, b, n)) in sum.entries)
+        if (n >= 2) key: GeoPoint(a / n, b / n),
+    };
+  }
+
+  GeoPoint? _approxPoint(MasjidEntry e) =>
+      e.point ??
+      (e.district == null ? null : _areaCentres['${e.state}|${e.district}']);
 
   static const asset = 'assets/jakim/masjid_surau.json.gz';
 
@@ -147,41 +191,49 @@ class MasjidDirectory {
     return MasjidDirectory(rows);
   }
 
-  List<String> districtsOf(String state) =>
-      entries
+  List<String> districtsOf(String state) => _districts[state] ??=
+      (entries
           .where((e) => e.state == state && e.district != null)
           .map((e) => e.district!)
           .toSet()
           .toList()
-        ..sort();
+        ..sort());
 
-  /// Tempat yang sepadan. Dengan [near], yang berkoordinat disusun ikut jarak dahulu, kemudian yang
-  /// tanpa koordinat ikut nama; tanpanya ikut nama.
+  /// Tempat yang sepadan. Dengan [near], disusun ikut jarak: koordinat tepat, atau pusat daerah
+  /// (anggaran) bagi yang tiada; yang langsung tiada anggaran di hujung. Tanpa [near]: ikut nama.
   List<MasjidEntry> query(MasjidQuery q, {GeoPoint? near}) {
-    final words = foldMasjidText(
-      q.text,
-    ).trim().split(' ').where((w) => w.isNotEmpty).toList();
+    final folded = foldMasjidText(q.text).trim();
+    final words = folded.split(' ').where((w) => w.isNotEmpty).toList();
+    final compact = folded.replaceAll(' ', '');
+    bool matches(MasjidEntry e) =>
+        words.every((w) => e.searchKey.contains(' $w')) ||
+        (compact.length >= 4 && e.compactKey.contains(compact));
     final out = <MasjidEntry>[
       for (final e in entries)
         if ((q.type == null || e.type == q.type) &&
             (q.state == null || e.state == q.state) &&
             (q.district == null || e.district == q.district) &&
-            words.every((w) => e.searchKey.contains(' $w')))
+            (words.isEmpty || matches(e)))
           e,
     ];
     if (near == null) return out;
-    final located = <(double, MasjidEntry)>[];
+    final ranked = <(double, MasjidEntry)>[];
     final rest = <MasjidEntry>[];
     for (final e in out) {
-      final p = e.point;
+      final p = _approxPoint(e);
       if (p == null) {
         rest.add(e);
       } else {
-        located.add((distanceMeters(near, p), e));
+        ranked.add((distanceMeters(near, p), e));
       }
     }
-    located.sort((a, b) => a.$1.compareTo(b.$1));
-    return [for (final (_, e) in located) e, ...rest];
+    // Sama jarak (tempat sedaerah tanpa koordinat): yang berkoordinat tepat dahulu.
+    ranked.sort((a, b) {
+      final c = a.$1.compareTo(b.$1);
+      if (c != 0) return c;
+      return (a.$2.point == null ? 1 : 0) - (b.$2.point == null ? 1 : 0);
+    });
+    return [for (final (_, e) in ranked) e, ...rest];
   }
 }
 
@@ -196,6 +248,12 @@ List<MasjidEntry> decodeMasjidRows(Uint8List gz) {
   return out;
 }
 
-final masjidDirectoryProvider = FutureProvider<MasjidDirectory>(
-  (ref) => MasjidDirectory.load(),
-);
+/// Dimuat sekali dan disimpan selepas berjaya. Jika gagal, ia dibuang apabila halaman ditutup supaya
+/// membuka semula benar-benar mencuba lagi (bukan ralat tersimpan sehingga app dimulakan semula).
+final masjidDirectoryProvider = FutureProvider.autoDispose<MasjidDirectory>((
+  ref,
+) async {
+  final dir = await MasjidDirectory.load();
+  ref.keepAlive();
+  return dir;
+});

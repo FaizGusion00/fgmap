@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/theme/fgmap_theme_extension.dart';
@@ -342,6 +343,7 @@ class _ReadyBody extends StatelessWidget {
           route: route,
           toll: state.tollOf(route),
           fuelCostRm: fuelCostRm,
+          motorcycle: state.query.vehicle == RouteVehicle.motorcycle,
         ),
         const SizedBox(height: 14),
         if (state.options.length > 1) ...[
@@ -777,12 +779,16 @@ class _RouteOptionCard extends StatelessWidget {
                             ),
                             const SizedBox(width: 3),
                             // Harga terus pada kad (bukan sekadar ikon): pemandu membandingkan kos.
-                            Text(
-                              _tollShort(l10n, toll) ?? l10n.routeTollShort,
-                              key: const ValueKey('route-card-toll'),
-                              style: theme.textTheme.labelMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                                color: theme.colorScheme.onSurface,
+                            Flexible(
+                              child: Text(
+                                _tollShort(l10n, toll) ?? l10n.routeTollShort,
+                                key: const ValueKey('route-card-toll'),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: theme.colorScheme.onSurface,
+                                ),
                               ),
                             ),
                           ],
@@ -1109,19 +1115,23 @@ String? _tollLong(AppLocalizations l10n, TollEstimate? e) {
 /// Kos perjalanan: dua jubin padat sebelah-menyebelah (Tol | Minyak), harga besar yang "dikira naik"
 /// bila laluan bertukar, dan satu baris kecil untuk jalan bertol serta penafian. Laluan bertol tanpa
 /// harga dalam data kita: jubin tol berkata begitu (tidak senyap). Tanpa tol: jubin "Tiada tol".
-class _CostStrip extends StatelessWidget {
+class _CostStrip extends ConsumerWidget {
   const _CostStrip({
     required this.route,
     required this.toll,
     required this.fuelCostRm,
+    this.motorcycle = false,
   });
 
   final RouteOption route;
   final TollEstimate? toll;
   final double? fuelCostRm;
 
+  /// Motosikal: tiada kelas dalam data kadar, dan kebanyakan lebuh raya percuma untuk motosikal.
+  final bool motorcycle;
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final fg = context.fg;
@@ -1133,11 +1143,20 @@ class _CostStrip extends StatelessWidget {
         .where((l) => l.isNotEmpty)
         .take(2)
         .join(', ');
+    // Anggaran belum tiba: "mengira", bukan "tiada dalam data" yang kemudian bertukar jadi RM.
+    final loading =
+        route.hasTolls &&
+        e == null &&
+        !motorcycle &&
+        ref.watch(tollLookupEnabledProvider);
     final note = [
       if (e != null && e.isPartial)
         l10n.routeTollUnpricedPlazas(e.unknownCount),
       if (route.hasTolls && roads.isNotEmpty) roads,
-      if (priced) l10n.routeTollDisclaimer,
+      if (priced)
+        e.reportedCount > 0
+            ? l10n.routeTollDisclaimerReported
+            : l10n.routeTollDisclaimer,
     ].join(' · ');
 
     final tollTile = _CostTile(
@@ -1147,10 +1166,21 @@ class _CostStrip extends StatelessWidget {
       label: route.hasTolls ? l10n.routeTollTitle : l10n.routeNoTolls,
       amount: priced ? e.knownRm : null,
       plus: priced && e.isPartial,
-      fallback: route.hasTolls ? l10n.routeTollPriceUnknown : null,
+      fallback: !route.hasTolls
+          ? null
+          : motorcycle
+          ? l10n.routeTollMotorcycle
+          : loading
+          ? l10n.routeTollLoading
+          : l10n.routeTollPriceUnknown,
       semantics: route.hasTolls
           ? [
-              _tollLong(l10n, e) ?? l10n.routeTollPriceUnknown,
+              if (motorcycle)
+                l10n.routeTollMotorcycle
+              else if (loading)
+                l10n.routeTollLoading
+              else
+                _tollLong(l10n, e) ?? l10n.routeTollPriceUnknown,
               if (roads.isNotEmpty) l10n.routeTollOn(roads),
             ].join(', ')
           : l10n.routeNoTolls,

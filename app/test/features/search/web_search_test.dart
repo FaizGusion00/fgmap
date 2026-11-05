@@ -1,3 +1,4 @@
+import 'package:fgmap/core/utils/geo.dart';
 import 'package:fgmap/features/search/domain/location_link.dart';
 import 'package:fgmap/features/search/presentation/web_search_page.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -81,5 +82,46 @@ void main() {
     expect(mapPinFromUri(u)!.lng, closeTo(101.713178, 1e-9));
     final bare = withGooglePin(o, '3.1535483,101.713178')!;
     expect(mapPinFromUri(bare)!.lat, closeTo(3.1535483, 1e-9));
+  });
+
+  group('serahan diseragamkan (nama terbaik, pin Google)', () {
+    test('Arah: alamat daddr diganti carian Google', () {
+      final u = normalizeGoogleHandoff(
+        Uri.parse(
+          'https://maps.google.com/maps?daddr=168,+Jln+Bukit+Bintang,+55100+Kuala+Lumpur+@3.149106,101.712924',
+        ),
+        serpQuery: 'Pavilion KL',
+      );
+      final s = sharedLocationFromUri(u)!;
+      expect(s.label, 'Pavilion KL');
+      expect(s.point, const GeoPoint(3.149106, 101.712924));
+    });
+
+    test('nama tempat dalam pautan diutamakan berbanding carian', () {
+      final u = normalizeGoogleHandoff(
+        Uri.parse(
+          'https://www.google.com/maps/place/Aquaria+KLCC/@3.15,101.71,17z/data=!3d3.1535!4d101.7131',
+        ),
+        serpQuery: 'aqua klcc',
+      );
+      expect(sharedLocationFromUri(u)!.label, 'Aquaria KLCC');
+      expect(mapPinFromUri(u), const GeoPoint(3.1535, 101.7131));
+    });
+
+    test('geo: dan pautan tanpa pin tidak diubah', () {
+      final g = Uri.parse('geo:3.1,101.7');
+      expect(normalizeGoogleHandoff(g), g);
+      final q = Uri.parse('https://maps.google.com/maps?q=Zoo+Negara');
+      expect(normalizeGoogleHandoff(q), q);
+    });
+
+    test('hos Google sahaja boleh menyerahkan pautan', () {
+      expect(isGoogleHost('www.google.com'), isTrue);
+      expect(isGoogleHost('www.google.com.my'), isTrue);
+      expect(isGoogleHost('maps.google.com'), isTrue);
+      expect(isGoogleHost('google.evil.com'), isFalse);
+      expect(isGoogleHost('notgoogle.com'), isFalse);
+      expect(isGoogleHost('example.com'), isFalse);
+    });
   });
 }

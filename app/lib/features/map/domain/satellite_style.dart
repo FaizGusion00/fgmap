@@ -39,6 +39,9 @@ abstract final class SatelliteStyle {
     if (layers is! List || layers.isEmpty || sources is! Map) return null;
 
     final kept = <Object?>[];
+    // Air, litupan tanah dan guna tanah disimpan DI BAWAH imej: tanpa internet (jubin satelit tidak
+    // dimuat) peta masih menunjukkan air dan kawasan, bukan latar gelap kosong.
+    final under = <Object?>[];
     var roads = 0;
     for (final raw in layers) {
       if (raw is! Map<String, dynamic>) continue;
@@ -47,6 +50,9 @@ abstract final class SatelliteStyle {
       final sl = raw['source-layer'];
       switch (type) {
         // Imej satelit menggantikan latar, tanah, air, bangunan dan relief.
+        case 'fill'
+            when const {'water', 'landcover', 'landuse', 'park'}.contains(sl):
+          under.add(raw);
         case 'background' ||
             'fill' ||
             'fill-extrusion' ||
@@ -73,7 +79,13 @@ abstract final class SatelliteStyle {
               (raw['paint'] ??= <String, dynamic>{}) as Map<String, dynamic>;
           final layout = raw['layout'];
           final hasText = layout is Map && layout['text-field'] != null;
-          if (hasText) {
+          // Perisai nombor jalan: teks gelap di atas ikon terang, jangan diputihkan.
+          final shield =
+              id.contains('shield') ||
+              (layout is Map &&
+                  layout['icon-image'] != null &&
+                  layout['symbol-placement'] == 'line');
+          if (hasText && !shield) {
             paint['text-color'] = labelColor;
             paint['text-halo-color'] = haloColor;
             paint['text-halo-width'] = 1.4;
@@ -89,7 +101,7 @@ abstract final class SatelliteStyle {
 
     // Sumber raster yang tidak lagi digunakan (relief Natural Earth) dibuang supaya tidak dimuat.
     final used = {
-      for (final l in kept)
+      for (final l in [...under, ...kept])
         if (l is Map && l['source'] is String) l['source'] as String,
     };
     sources.removeWhere((key, _) => !used.contains(key));
@@ -107,6 +119,7 @@ abstract final class SatelliteStyle {
         'type': 'background',
         'paint': {'background-color': '#0B1220'},
       },
+      ...under,
       {
         'id': satelliteLayerId,
         'type': 'raster',

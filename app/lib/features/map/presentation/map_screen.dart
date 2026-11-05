@@ -547,21 +547,32 @@ class _MapScreenState extends ConsumerState<MapScreen>
       initial: initial,
     );
     if (pick == null || !mounted) return;
+    var place = pick.place;
     if (pick.approximate) {
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppLocalizations.of(
-              context,
-            ).masjidApproximateSnack(pick.place.name),
-          ),
-        ),
+        SnackBar(content: Text(l10n.masjidApproximateSnack(place.name))),
+      );
+      // Lokasi daripada alamat, bukan pin tepat: nama destinasi (pratonton, navigasi, sejarah)
+      // menyatakannya supaya pengguna tidak menyangka ia tepat.
+      final p = place;
+      place = Place(
+        name: l10n.masjidApproximateLabel(p.name),
+        subtitle: p.subtitle,
+        point: p.point,
+        category: p.category,
+        osmKey: p.osmKey,
+        osmType: p.osmType,
+        osmId: p.osmId,
+        extentDiagonalM: p.extentDiagonalM,
+        countryCode: p.countryCode,
+        fromOffline: p.fromOffline,
       );
     }
     if (pick.go) {
-      await _goNow(pick.place);
+      await _goNow(place);
     } else {
-      await _planSelection(TripSelection(destination: pick.place));
+      await _planSelection(TripSelection(destination: place));
     }
   }
 
@@ -726,6 +737,9 @@ class _MapScreenState extends ConsumerState<MapScreen>
         'google.com',
         'www.google.com',
         'maps.google.com',
+        'google.com.my',
+        'www.google.com.my',
+        'maps.google.com.my',
         'maps.app.goo.gl',
         'goo.gl',
         'waze.com',

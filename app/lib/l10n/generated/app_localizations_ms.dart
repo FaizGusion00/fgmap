@@ -138,6 +138,10 @@ class AppLocalizationsMs extends AppLocalizations {
   String get mapLayerSatellite => 'Satelit';
 
   @override
+  String get mapLayerSatelliteFailed =>
+      'Satelit tidak dapat dimuat (perlukan internet). Peta biasa dipaparkan.';
+
+  @override
   String get mapLayerSatelliteHint =>
       'Satelit perlukan internet. Imej: Esri, Maxar, Earthstar Geographics.';
 
@@ -227,6 +231,11 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
+  String masjidApproximateLabel(String name) {
+    return '$name (anggaran)';
+  }
+
+  @override
   String get webSearchOpen => 'Cari di Google';
 
   @override
@@ -262,6 +271,17 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get routeTollPriceUnknown => 'Harga tol belum ada dalam data kami';
+
+  @override
+  String get routeTollLoading => 'Mengira harga tol…';
+
+  @override
+  String get routeTollMotorcycle =>
+      'Motosikal biasanya percuma; semak papan tanda';
+
+  @override
+  String get routeTollDisclaimerReported =>
+      'Anggaran kereta (kelas 1); sebahagian kadar daripada laporan berita. Semak harga di plaza.';
 
   @override
   String routeTollUnpricedPlazas(int count) {
@@ -1821,7 +1841,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get legalAttribution =>
-      'Data peta © penyumbang OpenStreetMap (ODbL). Gaya dan jubin: OpenFreeMap, OpenMapTiles. Laluan: Valhalla. Carian: Photon (komoot) dan Nominatim. Harga petrol: data.gov.my. Waktu solat: JAKIM e-Solat melalui WaktuSolat API (api.waktusolat.app), dan pengiraan Adhan. Muzik: Audius (Open Music License), Radio Browser, dan Apple Music di iPhone (pelanggan, melalui MusicKit Apple); strim radio daripada stesen masing-masing. Rakaman azan: Aaqib Azeez / Atcovi, Wikimedia Commons, CC BY-SA 4.0.';
+      'Data peta © penyumbang OpenStreetMap (ODbL). Gaya dan jubin: OpenFreeMap, OpenMapTiles. Imej satelit: Powered by Esri (Esri, Maxar, Earthstar Geographics, GIS User Community). Senarai masjid dan surau: JAKIM melalui data.gov.my (CC BY). Laluan: Valhalla. Carian: Photon (komoot) dan Nominatim. Harga petrol: data.gov.my. Waktu solat: JAKIM e-Solat melalui WaktuSolat API (api.waktusolat.app), dan pengiraan Adhan. Muzik: Audius (Open Music License), Radio Browser, dan Apple Music di iPhone (pelanggan, melalui MusicKit Apple); strim radio daripada stesen masing-masing. Rakaman azan: Aaqib Azeez / Atcovi, Wikimedia Commons, CC BY-SA 4.0.';
 
   @override
   String get aboutAttributionTitle => 'Sumber data';

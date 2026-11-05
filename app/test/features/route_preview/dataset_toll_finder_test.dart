@@ -116,6 +116,114 @@ void main() {
       expect(e.knownRm, closeTo(3.50 + 3.50 + 1.85, 0.001));
     },
   );
+
+  TollPlaza plazaAt(GeoPoint p, double alongM) =>
+      TollPlaza(id: '$alongM', point: p, alongM: alongM);
+
+  test(
+    'keluar di Jalan Duta, merentas KL tanpa tol, masuk semula di Sungai Besi: dua perjalanan',
+    () {
+      const rawang = GeoPoint(3.30439, 101.54864);
+      const duta = GeoPoint(3.17576, 101.65576);
+      const sgBesi = GeoPoint(3.03919, 101.70581);
+      const kajang = GeoPoint(2.98548, 101.74412);
+      final pts = _line(const [rawang, duta, sgBesi, kajang]);
+      // Rawang->Duta bertol, Duta->Sg Besi jalan bandar (tanpa tol), Sg Besi->Kajang bertol.
+      final opt = RouteOption(
+        distanceM: 60000,
+        durationS: 3600,
+        hasTolls: true,
+        points: pts,
+        maneuvers: const [
+          Maneuver(
+            type: 1,
+            streetNames: ['E1'],
+            lengthM: 20000,
+            timeS: 900,
+            beginShapeIndex: 0,
+            toll: true,
+          ),
+          Maneuver(
+            type: 9,
+            streetNames: ['Jalan Kuching'],
+            lengthM: 18000,
+            timeS: 1800,
+            beginShapeIndex: 205,
+          ),
+          Maneuver(
+            type: 10,
+            streetNames: ['E2'],
+            lengthM: 8000,
+            timeS: 400,
+            beginShapeIndex: 400,
+            toll: true,
+          ),
+        ],
+      );
+      double alongOf(GeoPoint p) {
+        var best = 0;
+        var d = double.infinity;
+        for (var k = 0; k < pts.length; k++) {
+          final x = distanceMeters(pts[k], p);
+          if (x < d) {
+            d = x;
+            best = k;
+          }
+        }
+        var a = 0.0;
+        for (var k = 1; k <= best; k++) {
+          a += distanceMeters(pts[k - 1], pts[k]);
+        }
+        return a;
+      }
+
+      final plazas = [
+        for (final p in const [rawang, duta, sgBesi, kajang])
+          plazaAt(p, alongOf(p)),
+      ];
+      final split = rates.estimate(plazas, RouteVehicle.car, route: opt);
+      expect(split.isExact, isTrue);
+      expect(split.knownRm, closeTo(2.95 + 0.82, 0.001));
+      // Tanpa maklumat laluan: tingkah laku lama (masuk pertama, keluar terakhir).
+      expect(
+        rates.estimate(plazas, RouteVehicle.car).knownRm,
+        closeTo(10.99, 0.001),
+      );
+    },
+  );
+
+  test(
+    'plaza kembar (U)/(S) pada titik sama: pasangan yang ada kadar dipilih',
+    () {
+      const juru = GeoPoint(5.3238, 100.43656);
+      const pd = GeoPoint(2.68876, 101.93213);
+      final there = rates.estimate([
+        plazaAt(juru, 0),
+        plazaAt(pd, 400000),
+      ], RouteVehicle.car);
+      final back = rates.estimate([
+        plazaAt(pd, 0),
+        plazaAt(juru, 400000),
+      ], RouteVehicle.car);
+      expect(there.isExact, isTrue);
+      expect(there.knownRm, closeTo(44.44, 0.001));
+      expect(back.isExact, isTrue);
+      expect(back.knownRm, closeTo(44.44, 0.001));
+    },
+  );
+
+  test(
+    'laluan tanpa tol (Valhalla): plaza jalan selari tidak dikira',
+    () async {
+      final finder = DatasetTollFinder(() async => rates);
+      final points = _line(const [
+        GeoPoint(3.1700, 101.6600),
+        GeoPoint(3.17576, 101.65576),
+        GeoPoint(3.1800, 101.6500),
+      ]);
+      expect(await finder.find(route(points, tolls: false)), isEmpty);
+    },
+  );
 }
 
 class _CountingFinder implements TollPlazaFinder {

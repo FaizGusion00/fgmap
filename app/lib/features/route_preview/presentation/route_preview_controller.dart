@@ -322,17 +322,44 @@ class RoutePreviewController extends Notifier<RoutePreviewState> {
           _tollsInFlight.add(key);
           try {
             final plazas = await finder.find(option);
-            if (!ref.mounted || seq != _seq) return;
+            if (!ref.mounted) return;
             final current = state;
             if (current is! RouteReady) return;
+            // Simpan selagi laluan ini masih dipaparkan, walaupun kelompok laluan baharu tiba semasa
+            // menunggu (kelompok baharu melangkau kunci yang sedang dicari, jadi jangan buang hasil).
+            if (seq != _seq &&
+                !current.options.any((o) => routeKey(o) == key)) {
+              return;
+            }
             state = current.copyWith(
               tolls: {
                 ...current.tolls,
-                key: rates.estimate(plazas, current.query.vehicle),
+                key: rates.estimate(
+                  plazas,
+                  current.query.vehicle,
+                  route: option,
+                ),
               },
             );
           } on TollLookupFailure {
-            // Tiada anggaran untuk laluan ini.
+            // Tiada anggaran untuk laluan ini: simpan "tiada plaza dikenal pasti" supaya paparan
+            // berhenti "mengira" dan berkata harga tiada (bukan menunggu selama-lamanya).
+            if (!ref.mounted) return;
+            final current = state;
+            if (current is! RouteReady ||
+                !current.options.any((o) => routeKey(o) == key)) {
+              return;
+            }
+            state = current.copyWith(
+              tolls: {
+                ...current.tolls,
+                key: const TollEstimate(
+                  plazaCount: 0,
+                  unknownCount: 0,
+                  knownRm: 0,
+                ),
+              },
+            );
           } finally {
             _tollsInFlight.remove(key);
           }

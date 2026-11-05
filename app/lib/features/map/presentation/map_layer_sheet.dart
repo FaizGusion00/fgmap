@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/widgets/sheet_bottom_inset.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../data/map_layer.dart';
+import '../data/map_style_loader.dart';
 
 /// Lembaran "Jenis peta" (seperti butang lapisan Google Maps): Lalai atau Satelit.
 Future<void> showMapLayerSheet(BuildContext context) =>
@@ -12,6 +15,35 @@ Future<void> showMapLayerSheet(BuildContext context) =>
       useSafeArea: true,
       builder: (_) => const SheetBottomInset(child: MapLayerSheet()),
     );
+
+/// Satelit dipilih: jika percubaan lepas gagal, cuba lagi; jika masih gagal (tiada internet dan tiada
+/// gaya dalam cache), beritahu pengguna bahawa peta biasa dipaparkan, bukan diam.
+Future<void> _checkSatellite(BuildContext context, WidgetRef ref) async {
+  // Bekas penyedia dan ScaffoldMessenger kekal selepas lembaran ini ditutup.
+  final container = ProviderScope.containerOf(context, listen: false);
+  final messenger = ScaffoldMessenger.maybeOf(context);
+  final l10n = AppLocalizations.of(context);
+  final previous = container.read(satelliteMapStyleProvider);
+  if (!previous.isLoading && previous.value == null) {
+    container.invalidate(satelliteMapStyleProvider);
+  }
+  // Langganan sementara supaya penyedia autoDispose hidup sehingga keputusan diketahui.
+  final sub = container.listen(satelliteMapStyleProvider, (_, _) {});
+  try {
+    final style = await container.read(satelliteMapStyleProvider.future);
+    if (style == null) {
+      messenger?.showSnackBar(
+        SnackBar(content: Text(l10n.mapLayerSatelliteFailed)),
+      );
+    }
+  } on Object {
+    messenger?.showSnackBar(
+      SnackBar(content: Text(l10n.mapLayerSatelliteFailed)),
+    );
+  } finally {
+    sub.close();
+  }
+}
 
 class MapLayerSheet extends ConsumerWidget {
   const MapLayerSheet({super.key});
@@ -35,6 +67,9 @@ class MapLayerSheet extends ConsumerWidget {
             borderRadius: BorderRadius.circular(18),
             onTap: () {
               ref.read(mapLayerProvider.notifier).set(layer);
+              if (layer == MapLayer.satellite) {
+                unawaited(_checkSatellite(context, ref));
+              }
               Navigator.of(context).maybePop();
             },
             child: Padding(

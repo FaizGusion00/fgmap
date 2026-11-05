@@ -44,6 +44,39 @@ class LoadNav extends WebNavDecision {
   const LoadNav();
 }
 
+/// Nama terbaik untuk tempat dalam pautan Google [link]: nama tempat dalam pautan (`q=`, `/place/<nama>`)
+/// diutamakan kerana `daddr` Google biasanya ALAMAT; kemudian [serpQuery] (carian Google semasa);
+/// akhirnya label pautan (alamat). Teks tidak dipercayai: dibersihkan.
+String? googlePlaceName(Uri link, {String? serpQuery}) {
+  String? clean(String? v) {
+    final t = sanitizeSharedLabel(v)?.trim();
+    return t == null || t.isEmpty ? null : t;
+  }
+
+  final p = link.queryParameters;
+  for (final v in [p['q'], p['query']]) {
+    if (v == null || v.contains('@')) continue;
+    final coords = RegExp(r'^\s*-?\d+(?:\.\d+)?\s*,\s*-?\d+(?:\.\d+)?\s*$');
+    if (coords.hasMatch(v)) continue;
+    final n = clean(v);
+    if (n != null) return n;
+  }
+  final segs = link.pathSegments;
+  final i = segs.indexOf('place');
+  if (i >= 0 && i + 1 < segs.length) {
+    final n = clean(segs[i + 1].replaceAll('+', ' '));
+    if (n != null) return n;
+  }
+  return clean(serpQuery) ?? clean(sharedLocationFromUri(link)?.label);
+}
+
+/// Pautan serahan seragam `daddr=Nama @lat,lng` (satu bentuk untuk perancang dan peta).
+Uri pinnedGoogleLink(double lat, double lng, String? name) => Uri.https(
+  'maps.google.com',
+  '/maps',
+  {'daddr': name == null || name.isEmpty ? '$lat,$lng' : '$name @$lat,$lng'},
+);
+
 /// Pautan peta [original] (tanpa pin) digabung dengan koordinat [pin] (`"lat,lng"`) yang Google
 /// sendiri letak pada kad tempat yang sama (pautan "Arah" `daddr=…@lat,lng` / `!3d!4d`). Hasil:
 /// pautan `daddr=Nama @lat,lng` yang terus membawa pin; null jika [pin] tidak sah.
@@ -59,14 +92,30 @@ Uri? withGooglePin(Uri original, String pin, {String? fallbackLabel}) {
   if (lat.abs() > 90 || lng.abs() > 180 || (lat == 0 && lng == 0)) {
     return null;
   }
-  final fromLink = sharedLocationFromUri(original)?.label?.trim();
-  final label = fromLink == null || fromLink.isEmpty
-      ? sanitizeSharedLabel(fallbackLabel)?.trim()
-      : fromLink;
-  return Uri.https('maps.google.com', '/maps', {
-    'daddr': label == null || label.isEmpty ? '$lat,$lng' : '$label @$lat,$lng',
-  });
+  return pinnedGoogleLink(
+    lat,
+    lng,
+    googlePlaceName(original, serpQuery: fallbackLabel),
+  );
 }
+
+/// Pautan berpin yang ditekan, diseragamkan dengan nama terbaik; pautan tanpa pin (atau `geo:`)
+/// dipulangkan seadanya.
+Uri normalizeGoogleHandoff(Uri uri, {String? serpQuery}) {
+  if (uri.scheme != 'http' && uri.scheme != 'https') return uri;
+  final pin = mapPinFromUri(uri);
+  if (pin == null) return uri;
+  return pinnedGoogleLink(
+    pin.lat,
+    pin.lng,
+    googlePlaceName(uri, serpQuery: serpQuery),
+  );
+}
+
+/// Hos Google (halaman yang dibenarkan menyerahkan pautan kepada FGMaps).
+bool isGoogleHost(String host) => RegExp(
+  r'(^|\.)google\.(com|com\.my|[a-z]{2,3}|co\.[a-z]{2}|com\.[a-z]{2})$',
+).hasMatch(host.toLowerCase());
 
 /// Fungsi tulen (diuji tanpa WebView).
 WebNavDecision decideWebNavigation(String url) {
@@ -161,7 +210,9 @@ class _WebSearchPageState extends State<WebSearchPage> {
                 ? page?.queryParameters['q']
                 : null;
             if (q != null && q.trim().isNotEmpty) _serpQuery = q.trim();
-            await _web?.runJavaScript(_interceptScript);
+            if (page != null && isGoogleHost(page.host)) {
+              await _web?.runJavaScript(_interceptScript);
+            }
             final back = await _web?.canGoBack() ?? false;
             if (mounted) setState(() => _canBack = back);
           },
@@ -191,8 +242,23 @@ class _WebSearchPageState extends State<WebSearchPage> {
         return;
       }
     }
-    final decision = decideWebNavigation(url);
-    if (decision is HandToMaps) _onMapUri(decision.uri, pagePin: pin);
+    unawaited(_onMapLinkFromPage(url, pin));
+  }
+
+  Future<void> _onMapLinkFromPage(String url, String? pin) async {
+    // Hanya halaman Google boleh menyerahkan pautan (bukan laman lain yang dibuka dari hasil carian).
+    final current = Uri.tryParse(await _web?.currentUrl() ?? '');
+    if (current == null || !isGoogleHost(current.host) || !mounted) return;
+    switch (decideWebNavigation(url)) {
+      case HandToMaps(:final uri):
+        _onMapUri(uri, pagePin: pin);
+      case LoadNav():
+        // Skrip tersalah tangkap pautan biasa: buka seperti biasa, jangan telan ketikan.
+        final u = Uri.tryParse(url);
+        if (u != null) await _web?.loadRequest(u);
+      case BlockNav():
+        break;
+    }
   }
 
   /// Pautan peta ditekan. Dengan koordinat pin: terus pulang ke FGMaps. Tanpa (nama sahaja, pautan
@@ -222,32 +288,25 @@ class _WebSearchPageState extends State<WebSearchPage> {
   Future<void> _resolve(Uri uri) async {
     final web = _web;
     if (web == null) return;
-    // Navigasi tanpa klik (tiada konteks kad): cari pin unik pada halaman semasa dahulu.
-    try {
-      final r = await web.runJavaScriptReturningResult(
-        'window.__fgPagePin ? window.__fgPagePin() : ""',
-      );
-      final pin = '$r'.replaceAll('"', '');
-      final withPin = pin.isEmpty
-          ? null
-          : withGooglePin(uri, pin, fallbackLabel: _serpQuery);
-      if (withPin != null) {
-        _handOff(withPin);
+    _resolveTimeout = Timer(const Duration(seconds: 20), () {
+      // Google tidak memberi koordinat: serahkan NAMA sahaja (FGMaps mencarinya), jangan sekali-kali
+      // pusat paparan `@` pautan asal yang boleh jauh dari tempat sebenar.
+      final original = _resolving;
+      if (original == null) return;
+      final name = googlePlaceName(original, serpQuery: _serpQuery);
+      if (name == null) {
+        _cancelResolve();
         return;
       }
-    } on Object {
-      // Halaman tanpa skrip (belum siap dimuat): teruskan ke Google Maps web.
-    }
-    if (_handedOff || !mounted) return;
-    _resolveTimeout = Timer(const Duration(seconds: 20), () {
-      // Google tidak memberi koordinat: pulangkan pautan asal (FGMaps mencari nama tempat itu).
-      final original = _resolving;
-      if (original != null) _handOff(original);
+      _handOff(Uri.https('maps.google.com', '/maps', {'q': name}));
     });
     // Google Maps web mudah alih mengalih ke app (`intent://`) dan berhenti; versi desktop memuat
     // halaman tempat, yang membawa pin dalam URL atau data tempatnya.
     await web.setUserAgent(_desktopUserAgent);
+    if (_handedOff || !mounted || _resolving != uri) return;
     await web.loadRequest(uri);
+    if (_handedOff || !mounted || _resolving != uri) return;
+    _resolvePoll?.cancel();
     _resolvePoll = Timer.periodic(const Duration(milliseconds: 900), (_) {
       if (_resolving == null || _handedOff) return;
       unawaited(
@@ -256,11 +315,29 @@ class _WebSearchPageState extends State<WebSearchPage> {
     });
   }
 
-  void _onResolvedPin(String pin) {
+  Future<void> _onResolvedPin(String pin) async {
+    if (_resolving == null) return;
+    final current = Uri.tryParse(await _web?.currentUrl() ?? '');
     final original = _resolving;
-    if (original == null) return;
+    if (original == null || current == null || !isGoogleHost(current.host)) {
+      return;
+    }
     final withPin = withGooglePin(original, pin, fallbackLabel: _serpQuery);
     if (withPin != null) _handOff(withPin);
+  }
+
+  /// Batal menyelesaikan (pengguna menekan kembali, atau Google tidak memberi apa-apa): kembali ke
+  /// carian Google dengan pelayar mudah alih biasa.
+  void _cancelResolve() {
+    _resolveTimeout?.cancel();
+    _resolvePoll?.cancel();
+    if (_resolving == null) return;
+    final web = _web;
+    if (mounted) setState(() => _resolving = null);
+    unawaited(() async {
+      await web?.setUserAgent(null);
+      if (await web?.canGoBack() == true) await web?.goBack();
+    }());
   }
 
   /// Semasa menyelesaikan: setiap URL disemak untuk koordinat pin. `intent://` (Google Maps cuba
@@ -283,7 +360,11 @@ class _WebSearchPageState extends State<WebSearchPage> {
     _handedOff = true;
     _resolveTimeout?.cancel();
     _resolvePoll?.cancel();
-    Navigator.of(context).pop(uri);
+    final route = ModalRoute.of(context);
+    final nav = Navigator.of(context);
+    // Menu/dialog terbuka di atas halaman ini: tutup dahulu, kemudian halaman ini sendiri.
+    if (route != null && !route.isCurrent) nav.popUntil((r) => r == route);
+    nav.pop(normalizeGoogleHandoff(uri, serpQuery: _serpQuery));
   }
 
   void _search(String q) {
@@ -307,8 +388,12 @@ class _WebSearchPageState extends State<WebSearchPage> {
     final theme = Theme.of(context);
     final web = _web;
     return PopScope(
-      canPop: !_canBack,
+      canPop: !_canBack && _resolving == null,
       onPopInvokedWithResult: (didPop, _) async {
+        if (!didPop && _resolving != null) {
+          _cancelResolve();
+          return;
+        }
         if (!didPop && await web?.canGoBack() == true) await web?.goBack();
         final back = await web?.canGoBack() ?? false;
         if (mounted) setState(() => _canBack = back);
@@ -330,9 +415,10 @@ class _WebSearchPageState extends State<WebSearchPage> {
             IconButton(
               tooltip: l10n.webSearchReload,
               icon: const Icon(Icons.refresh_rounded),
-              onPressed: () => web?.reload(),
+              onPressed: _resolving != null ? null : () => web?.reload(),
             ),
             PopupMenuButton<String>(
+              enabled: _resolving == null,
               onSelected: (v) async {
                 if (v == 'clear') {
                   await WebViewCookieManager().clearCookies();
@@ -455,9 +541,26 @@ const _interceptScript = r"""
 (function () {
   if (window.__fgMapsHook) return;
   window.__fgMapsHook = true;
-  var re = /(google\.[a-z.]+\/maps|maps\.google\.|maps\.app\.goo\.gl|goo\.gl\/maps|^intent:|^geo:|^google\.navigation:)/i;
   function abs(u) { try { return new URL(u, location.href).href; } catch (e) { return String(u); } }
   function dec(u) { try { return decodeURIComponent(String(u).replace(/\+/g, ' ')); } catch (e) { return String(u); } }
+  // Pautan peta sebenar (bukan sebarang URL yang kebetulan mengandungi "google.com/maps"). Pembalut
+  // `google.com/url?q=<peta>` dibuka balutannya.
+  function mapUrl(raw) {
+    var u = abs(raw);
+    if (/^(intent|geo|google\.navigation):/i.test(u)) return u;
+    var x;
+    try { x = new URL(u); } catch (e) { return null; }
+    var h = x.hostname.toLowerCase(), p = x.pathname;
+    if (/(^|\.)google\.[a-z.]+$/.test(h) && p === '/url') {
+      var t = x.searchParams.get('q') || x.searchParams.get('url');
+      return t && t !== u ? mapUrl(t) : null;
+    }
+    if (/^maps\.google\.[a-z.]+$/.test(h)) return u;
+    if (/^(www\.)?google\.[a-z.]+$/.test(h) && /^\/maps(\/|$)/.test(p)) return u;
+    if (h === 'maps.app.goo.gl') return u;
+    if (h === 'goo.gl' && /^\/maps(\/|$)/.test(p)) return u;
+    return null;
+  }
   // Koordinat pin dalam pautan Google: daddr/destination "… @lat,lng" atau data "!3dlat!4dlng".
   function pinOf(u) {
     var t = dec(u), m = /[?&](?:daddr|destination)=[^&]*@(-?\d{1,2}\.\d+),\s*(-?\d{1,3}\.\d+)/.exec(t);
@@ -465,41 +568,19 @@ const _interceptScript = r"""
     return m ? m[1] + ',' + m[2] : null;
   }
   function linkOf(el) { return el.getAttribute && (el.getAttribute('href') || el.getAttribute('data-url') || el.getAttribute('data-href')) || ''; }
-  // Satu pin unik dalam [root]; null jika tiada atau lebih daripada satu tempat.
-  function uniquePin(root) {
-    var found = null, els = root.querySelectorAll('a[href],[data-url],[data-href]');
-    for (var i = 0; i < els.length; i++) {
-      var p = pinOf(linkOf(els[i]));
-      if (!p) continue;
-      if (found && found !== p) return false;
-      found = p;
-    }
-    return found;
-  }
-  // Naik dari elemen yang ditekan sehingga bekas pertama yang ada pin: kad tempat yang sama.
-  function pinNear(el) {
-    for (var n = 0; el && el !== document && n < 14; n++, el = el.parentNode) {
-      if (!el.querySelectorAll) continue;
-      var p = uniquePin(el);
-      if (p === false) return null;
-      if (p) return p;
-    }
-    var all = uniquePin(document);
-    return all || null;
-  }
-  window.__fgPagePin = function () { return uniquePin(document) || ''; };
-  function send(u, p) { try { FGMapsLink.postMessage(JSON.stringify({u: abs(u), p: p || pinOf(u)})); } catch (e) {} }
+  function send(u) { try { FGMapsLink.postMessage(JSON.stringify({u: u, p: pinOf(u)})); } catch (e) {} }
   document.addEventListener('click', function (e) {
     var el = e.target;
     while (el && el !== document) {
-      var u = linkOf(el);
-      if (u && re.test(abs(u))) { e.preventDefault(); e.stopPropagation(); send(u, pinOf(u) || pinNear(el)); return; }
+      var raw = linkOf(el), u = raw && mapUrl(raw);
+      if (u) { e.preventDefault(); e.stopPropagation(); send(u); return; }
       el = el.parentNode;
     }
   }, true);
   var open = window.open;
-  window.open = function (u) {
-    if (u && re.test(abs(u))) { send(u, pinOf(u) || window.__fgPagePin() || null); return null; }
+  window.open = function (raw) {
+    var u = raw && mapUrl(raw);
+    if (u) { send(u); return null; }
     return open.apply(window, arguments);
   };
 })();

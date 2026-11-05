@@ -214,4 +214,42 @@ void main() {
       );
     });
   });
+
+  group('alamat bernombor bukan koordinat', () {
+    test('daddr "2, 4 & 6, Jalan SS 21/39" tiada pin palsu (2,4)', () {
+      final u = Uri.parse(
+        'https://maps.google.com/maps?daddr=2,+4+%26+6,+Jalan+SS+21%2F39,+Petaling+Jaya',
+      );
+      expect(mapPinFromUri(u), isNull);
+      final s = sharedLocationFromUri(u)!;
+      expect(s.point, isNull);
+      expect(s.label, '2, 4 & 6, Jalan SS 21/39, Petaling Jaya');
+    });
+
+    test(
+      'koordinat sah dengan label, altitud dan parameter geo kekal dibaca',
+      () {
+        expect(
+          sharedLocationFromUri(Uri.parse('geo:3.1,101.7,20;u=35'))!.point,
+          const GeoPoint(3.1, 101.7),
+        );
+        final named = sharedLocationFromUri(
+          Uri.parse('https://maps.google.com/maps?q=3.1,101.7(Masjid+Negara)'),
+        )!;
+        expect(named.point, const GeoPoint(3.1, 101.7));
+        expect(named.label, 'Masjid Negara');
+      },
+    );
+
+    test('/maps/dir/<dari>/<lat,lng>/@… memberi pin destinasi', () {
+      expect(
+        mapPinFromUri(
+          Uri.parse(
+            'https://www.google.com/maps/dir/3.1,101.6/3.2,101.7/@3.15,101.65,12z',
+          ),
+        ),
+        const GeoPoint(3.2, 101.7),
+      );
+    });
+  });
 }

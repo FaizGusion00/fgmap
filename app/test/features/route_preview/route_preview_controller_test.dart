@@ -640,7 +640,9 @@ void main() {
         await _controller(c).planTo(klia);
         await settle();
         final ready = _state(c) as RouteReady;
-        expect(ready.tolls, isEmpty);
+        // Gagal: disimpan sebagai "tiada plaza dikenal pasti" (UI berhenti "mengira", tiada RM).
+        expect(ready.tolls.values.single.plazaCount, 0);
+        expect(ready.tolls.values.single.knownRm, 0);
         expect(ready.loadingMore, isFalse);
       },
     );

@@ -1766,6 +1766,50 @@ final _masjidList = RegExp(
   r'^(?:tolong\s+|please\s+)?(?:(?:buka|tunjuk(?:kan)?|show(?:\s+me)?|cari(?:kan)?|find)\s+)?(?:senarai|direktori|list\s+of|list|semua|all)\s+(?:masjid(?:\s+(?:dan|&)\s+surau)?|surau|mosques?(?:\s+(?:and|&)\s+surau)?)(?:\s+(?:di|kat|dekat|in|at|negeri|daerah))?\s*(.*)$',
 );
 
+/// Nama negeri seperti dalam data JAKIM (dicari sebagai teks dalam direktori).
+const _masjidStateAliases = {
+  'penang': 'Pulau Pinang',
+  'pulau pinang': 'Pulau Pinang',
+  'p pinang': 'Pulau Pinang',
+  'pinang': 'Pulau Pinang',
+  'malacca': 'Melaka',
+  'melaka': 'Melaka',
+  'kl': 'Kuala Lumpur',
+  'kuala lumpur': 'Kuala Lumpur',
+  'wp': 'Kuala Lumpur',
+  'wilayah': 'Kuala Lumpur',
+  'wilayah persekutuan': 'Kuala Lumpur',
+  'n9': 'Negeri Sembilan',
+  'ns': 'Negeri Sembilan',
+  'n sembilan': 'Negeri Sembilan',
+  'negeri sembilan': 'Negeri Sembilan',
+  'johore': 'Johor',
+  'trengganu': 'Terengganu',
+  'ganu': 'Terengganu',
+};
+
+/// Baki ayat "senarai masjid …" menjadi teks carian direktori: nama negeri diseragamkan
+/// ("penang" -> "Pulau Pinang"), kata "terdekat/near me" dibuang (direktori sudah menyusun ikut
+/// jarak). Null jika tiada apa-apa untuk dicari.
+String? masjidDirectoryArg(String rest) {
+  var t = rest
+      .toLowerCase()
+      .replaceAll(
+        RegExp(
+          r'\b(?:yang\s+)?(?:paling\s+)?(?:terdekat|berdekatan|berhampiran|dekat\s+(?:sini|saya|dengan\s+saya)|near(?:by|\s+me|\s+here)?|around\s+(?:me|here)|sekitar\s+(?:sini|saya)|kat\s+sini|di\s+sini|sini|saya|me|please|tolong)\b',
+        ),
+        ' ',
+      )
+      .replaceAll(
+        RegExp(r'^\s*(?:di|kat|dekat|in|at|negeri|daerah|state\s+of)\s+'),
+        '',
+      )
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
+  if (t.isEmpty) return null;
+  return _masjidStateAliases[t] ?? t;
+}
+
 /// "Buka cuaca Kuantan", "tunjuk kiblat", "buka tetapan", "cari Pavilion di peta". [t] sudah dinormalkan.
 OpenScreenIntent? openScreenIntent(String t) {
   final onMap = RegExp(
@@ -1799,12 +1843,13 @@ OpenScreenIntent? openScreenIntent(String t) {
     }
   }
   final masjid = _masjidList.firstMatch(t);
-  if (masjid != null) {
-    final q = masjid.group(1)!.trim();
-    return OpenScreenIntent(
-      AppScreen.masjidDirectory,
-      arg: q.isEmpty ? null : q,
-    );
+  // "Semua masjid sepanjang laluan" ialah carian sepanjang laluan, bukan direktori.
+  if (masjid != null &&
+      !RegExp(
+        r'\b(?:laluan|route|perjalanan|jalan\s+ni)\b',
+      ).hasMatch(masjid.group(1)!)) {
+    final q = masjidDirectoryArg(masjid.group(1)!);
+    return OpenScreenIntent(AppScreen.masjidDirectory, arg: q);
   }
   if (RegExp(
     r'^(?:pusatkan|recenter|center|centre)\s+(?:the\s+)?(?:peta|map)|^(?:tunjuk|show)\s+(?:lokasi\s+saya\s+)?(?:di|on)\s+(?:peta|map)$',

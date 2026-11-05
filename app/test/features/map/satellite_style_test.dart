@@ -26,7 +26,22 @@ void main() {
     final style = hybrid();
     final layers = (style['layers'] as List).cast<Map<String, dynamic>>();
     expect(layers.first['type'], 'background');
-    expect(layers[1]['id'], satelliteLayerId);
+    final sat = layers.indexWhere((l) => l['id'] == satelliteLayerId);
+    // Di bawah imej hanya latar dan isian air/tanah (untuk luar talian), tiada jalan atau label.
+    expect(sat, greaterThan(0));
+    for (final l in layers.take(sat).skip(1)) {
+      expect(l['type'], 'fill');
+      expect(const {
+        'water',
+        'landcover',
+        'landuse',
+        'park',
+      }, contains(l['source-layer']));
+    }
+    expect(
+      layers.take(sat).where((l) => l['source-layer'] == 'water'),
+      isNotEmpty,
+    );
     final src = (style['sources'] as Map)[satelliteSourceId] as Map;
     expect(src['type'], 'raster');
     expect((src['tiles'] as List).single, contains('World_Imagery'));
@@ -36,10 +51,11 @@ void main() {
   });
 
   test(
-    'tanah, air, bangunan dan relief dibuang; jalan lut sinar; label kekal',
+    'di atas imej: tiada isian/bangunan/relief; jalan lut sinar; label kekal',
     () {
       final layers = (hybrid()['layers'] as List).cast<Map<String, dynamic>>();
-      final rest = layers.skip(2);
+      final sat = layers.indexWhere((l) => l['id'] == satelliteLayerId);
+      final rest = layers.skip(sat + 1);
       expect(
         rest.where(
           (l) => [
@@ -62,7 +78,10 @@ void main() {
       final labels = rest.where(
         (l) =>
             l['type'] == 'symbol' &&
-            (l['layout'] as Map?)?['text-field'] != null,
+            (l['layout'] as Map?)?['text-field'] != null &&
+            !'${l['id']}'.contains('shield') &&
+            !((l['layout'] as Map?)?['icon-image'] != null &&
+                (l['layout'] as Map?)?['symbol-placement'] == 'line'),
       );
       expect(labels.length, greaterThan(10));
       for (final l in labels) {

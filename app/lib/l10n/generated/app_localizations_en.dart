@@ -138,6 +138,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mapLayerSatellite => 'Satellite';
 
   @override
+  String get mapLayerSatelliteFailed =>
+      'Satellite couldn\'t load (needs internet). Showing the standard map.';
+
+  @override
   String get mapLayerSatelliteHint =>
       'Satellite needs internet. Imagery: Esri, Maxar, Earthstar Geographics.';
 
@@ -227,6 +231,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String masjidApproximateLabel(String name) {
+    return '$name (approx.)';
+  }
+
+  @override
   String get webSearchOpen => 'Search on Google';
 
   @override
@@ -262,6 +271,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get routeTollPriceUnknown => 'Toll price not in our data yet';
+
+  @override
+  String get routeTollLoading => 'Calculating toll…';
+
+  @override
+  String get routeTollMotorcycle =>
+      'Motorcycles usually ride free; check the signs';
+
+  @override
+  String get routeTollDisclaimerReported =>
+      'Car (class 1) estimate; some rates are from news reports. Check the price at the plaza.';
 
   @override
   String routeTollUnpricedPlazas(int count) {
@@ -1827,7 +1847,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get legalAttribution =>
-      'Map data © OpenStreetMap contributors (ODbL). Style and tiles: OpenFreeMap, OpenMapTiles. Routing: Valhalla. Search: Photon (komoot) and Nominatim. Fuel prices: data.gov.my. Prayer times: JAKIM e-Solat via the WaktuSolat API (api.waktusolat.app), and Adhan calculation. Music: Audius (Open Music License), Radio Browser, and Apple Music on iPhone (subscribers, via Apple\'s MusicKit); radio streams come from the stations themselves. Azan recording: Aaqib Azeez / Atcovi, Wikimedia Commons, CC BY-SA 4.0.';
+      'Map data © OpenStreetMap contributors (ODbL). Style and tiles: OpenFreeMap, OpenMapTiles. Satellite imagery: Powered by Esri (Esri, Maxar, Earthstar Geographics, GIS User Community). Mosque & surau list: JAKIM via data.gov.my (CC BY). Routing: Valhalla. Search: Photon (komoot) and Nominatim. Fuel prices: data.gov.my. Prayer times: JAKIM e-Solat via the WaktuSolat API (api.waktusolat.app), and Adhan calculation. Music: Audius (Open Music License), Radio Browser, and Apple Music on iPhone (subscribers, via Apple\'s MusicKit); radio streams come from the stations themselves. Azan recording: Aaqib Azeez / Atcovi, Wikimedia Commons, CC BY-SA 4.0.';
 
   @override
   String get aboutAttributionTitle => 'Data sources';

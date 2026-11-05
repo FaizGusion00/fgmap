@@ -115,6 +115,18 @@ GeoPoint? _pinFromData(Uri uri) {
 GeoPoint? mapPinFromUri(Uri uri) {
   final pin = _pinFromData(uri);
   if (pin != null) return pin;
+  // `/maps/dir/<dari>/<lat,lng>/@…`: segmen destinasi berupa koordinat.
+  final segs = uri.pathSegments;
+  final dir = segs.indexOf('dir');
+  if (dir >= 0) {
+    for (final seg in segs.skip(dir + 1).toList().reversed) {
+      final t = seg.replaceAll('+', ' ').trim();
+      if (t.isEmpty || t.startsWith('@') || t.startsWith('data=')) continue;
+      final c = _coordinates(t);
+      if (c != null) return c;
+      break;
+    }
+  }
   final p = uri.queryParameters;
   for (final v in [p['destination'], p['daddr'], p['q'], p['query'], p['ll']]) {
     if (v == null) continue;
@@ -182,17 +194,21 @@ String? _parameterFromOpaquePath(String path, String name) {
   return match == null ? null : Uri.decodeComponent(match.group(1)!);
 }
 
+/// `lat,lng` keseluruhan nilai (boleh diikuti altitud `,alt`, parameter geo `;u=…` atau label
+/// `(Nama)`). Alamat seperti `2, 4 & 6, Jalan SS 21/39` BUKAN koordinat.
+final _coordinatePattern = RegExp(
+  r'^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)'
+  r'(?:\s*,\s*-?\d+(?:\.\d+)?)?\s*(?:;[^()]*)?\s*(?:\((.*)\))?\s*$',
+);
+
 GeoPoint? _coordinates(String? value) {
   if (value == null) return null;
-  final match = RegExp(
-    r'^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)',
-  ).firstMatch(value);
+  final match = _coordinatePattern.firstMatch(value);
   if (match == null) return null;
   return _point(match.group(1), match.group(2));
 }
 
-bool _looksLikeCoordinates(String value) =>
-    RegExp(r'^\s*-?\d+(?:\.\d+)?\s*,\s*-?\d+(?:\.\d+)?').hasMatch(value);
+bool _looksLikeCoordinates(String value) => _coordinatePattern.hasMatch(value);
 
 GeoPoint? _point(String? latitude, String? longitude) {
   final lat = double.tryParse(latitude ?? '');
@@ -217,15 +233,16 @@ String? _placeLabel(Uri uri, Map<String, String> params) {
       params['destination'] ??
       params['daddr'];
   if (query != null) {
-    final label = query
-        .replaceFirst(
-          RegExp(r'^\s*-?\d+(?:\.\d+)?\s*,\s*-?\d+(?:\.\d+)?\s*\(?'),
-          '',
-        )
-        .replaceAll(RegExp(r'\)$'), '')
-        .trim();
-    if (label.isNotEmpty && _coordinates(query) == null) return label;
-    if (label.isNotEmpty && label != query.trim()) return label;
+    final coords = _coordinatePattern.firstMatch(query);
+    if (coords == null) {
+      // Nama atau alamat (termasuk yang bermula dengan nombor rumah): label penuh.
+      final t = query.trim();
+      if (t.isNotEmpty) return t;
+    } else {
+      // `lat,lng(Nama)`: label dalam kurungan sahaja.
+      final named = coords.group(3)?.trim();
+      if (named != null && named.isNotEmpty) return named;
+    }
   }
 
   final segments = uri.pathSegments;

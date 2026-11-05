@@ -314,6 +314,12 @@ abstract class AppLocalizations {
   /// **'Satelit'**
   String get mapLayerSatellite;
 
+  /// No description provided for @mapLayerSatelliteFailed.
+  ///
+  /// In ms, this message translates to:
+  /// **'Satelit tidak dapat dimuat (perlukan internet). Peta biasa dipaparkan.'**
+  String get mapLayerSatelliteFailed;
+
   /// No description provided for @mapLayerSatelliteHint.
   ///
   /// In ms, this message translates to:
@@ -452,6 +458,12 @@ abstract class AppLocalizations {
   /// **'Lokasi anggaran daripada alamat: {name}'**
   String masjidApproximateSnack(String name);
 
+  /// No description provided for @masjidApproximateLabel.
+  ///
+  /// In ms, this message translates to:
+  /// **'{name} (anggaran)'**
+  String masjidApproximateLabel(String name);
+
   /// No description provided for @webSearchOpen.
   ///
   /// In ms, this message translates to:
@@ -517,6 +529,24 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'Harga tol belum ada dalam data kami'**
   String get routeTollPriceUnknown;
+
+  /// No description provided for @routeTollLoading.
+  ///
+  /// In ms, this message translates to:
+  /// **'Mengira harga tol…'**
+  String get routeTollLoading;
+
+  /// No description provided for @routeTollMotorcycle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Motosikal biasanya percuma; semak papan tanda'**
+  String get routeTollMotorcycle;
+
+  /// No description provided for @routeTollDisclaimerReported.
+  ///
+  /// In ms, this message translates to:
+  /// **'Anggaran kereta (kelas 1); sebahagian kadar daripada laporan berita. Semak harga di plaza.'**
+  String get routeTollDisclaimerReported;
 
   /// No description provided for @routeTollUnpricedPlazas.
   ///
@@ -3227,7 +3257,7 @@ abstract class AppLocalizations {
   /// No description provided for @legalAttribution.
   ///
   /// In ms, this message translates to:
-  /// **'Data peta © penyumbang OpenStreetMap (ODbL). Gaya dan jubin: OpenFreeMap, OpenMapTiles. Laluan: Valhalla. Carian: Photon (komoot) dan Nominatim. Harga petrol: data.gov.my. Waktu solat: JAKIM e-Solat melalui WaktuSolat API (api.waktusolat.app), dan pengiraan Adhan. Muzik: Audius (Open Music License), Radio Browser, dan Apple Music di iPhone (pelanggan, melalui MusicKit Apple); strim radio daripada stesen masing-masing. Rakaman azan: Aaqib Azeez / Atcovi, Wikimedia Commons, CC BY-SA 4.0.'**
+  /// **'Data peta © penyumbang OpenStreetMap (ODbL). Gaya dan jubin: OpenFreeMap, OpenMapTiles. Imej satelit: Powered by Esri (Esri, Maxar, Earthstar Geographics, GIS User Community). Senarai masjid dan surau: JAKIM melalui data.gov.my (CC BY). Laluan: Valhalla. Carian: Photon (komoot) dan Nominatim. Harga petrol: data.gov.my. Waktu solat: JAKIM e-Solat melalui WaktuSolat API (api.waktusolat.app), dan pengiraan Adhan. Muzik: Audius (Open Music License), Radio Browser, dan Apple Music di iPhone (pelanggan, melalui MusicKit Apple); strim radio daripada stesen masing-masing. Rakaman azan: Aaqib Azeez / Atcovi, Wikimedia Commons, CC BY-SA 4.0.'**
   String get legalAttribution;
 
   /// No description provided for @aboutAttributionTitle.
