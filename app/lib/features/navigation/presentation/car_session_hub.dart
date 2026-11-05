@@ -14,6 +14,7 @@ import '../../azan/presentation/azan_controller.dart';
 import '../../azan/presentation/azan_l10n.dart' show prayerName;
 import '../../along_route/domain/along_route_category.dart';
 import '../../cameras/domain/speed_camera.dart';
+import '../../map/data/map_layer.dart';
 import '../../map/data/map_style_loader.dart';
 import '../../route_preview/data/route_planner.dart';
 import '../../route_preview/domain/route_option.dart';
@@ -183,9 +184,19 @@ class CarSessionHub {
     final cruise = ref.read(cruiseControllerProvider);
     final progress = nav.progress;
     final dark = _dark();
-    final loaded = ref.read(mapStyleProvider(dark));
-    final style = loaded is AsyncData<ResolvedMapStyle> ? loaded.value : null;
-    if (style == null) _publishWhenStyleReady(dark);
+    // Peta kereta mengikut jenis peta pilihan pengguna: Satelit bila dipilih dan gayanya sudah siap;
+    // sementara menunggu (atau jika gagal dibina) peta biasa digunakan supaya skrin tidak kosong.
+    ResolvedMapStyle? style;
+    if (ref.read(mapLayerProvider) == MapLayer.satellite) {
+      final sat = ref.read(satelliteMapStyleProvider);
+      style = sat is AsyncData<ResolvedMapStyle?> ? sat.value : null;
+      if (style == null) _publishWhenSatelliteReady();
+    }
+    if (style == null) {
+      final loaded = ref.read(mapStyleProvider(dark));
+      style = loaded is AsyncData<ResolvedMapStyle> ? loaded.value : null;
+      if (style == null) _publishWhenStyleReady(dark);
+    }
     final navigating = nav.isActive;
     final arrived = nav.phase == NavPhase.arrived;
     final maneuver = arrived ? null : progress?.next;
@@ -338,6 +349,17 @@ class CarSessionHub {
   }
 
   final Set<bool> _awaitingStyle = {};
+  bool _awaitingSatellite = false;
+
+  /// Gaya satelit belum siap (baru dipilih, atau belum pernah dibina): push semula sebaik siap.
+  void _publishWhenSatelliteReady() {
+    if (_awaitingSatellite) return;
+    _awaitingSatellite = true;
+    ref
+        .read(satelliteMapStyleProvider.future)
+        .then<void>((_) => publish(), onError: (Object _) {})
+        .whenComplete(() => _awaitingSatellite = false);
+  }
 
   /// Gaya peta belum dimuat (cth. mod malam kereta baru bertukar): push semula sebaik siap, supaya
   /// skrin kereta tidak kekal pada gaya sandaran walaupun tiada perubahan lain.
@@ -578,6 +600,8 @@ final carSessionHubProvider = Provider<CarSessionHub>((ref) {
     hub.publish();
   });
   ref.listen(effectiveThemeModeProvider, (_, _) => hub.publish());
+  // Pilihan Satelit/Biasa di telefon diikuti oleh peta kereta.
+  ref.listen(mapLayerProvider, (_, _) => hub.publish());
   ref.listen(airQualityControllerProvider, (_, _) => hub.publish());
   // Waktu solat seterusnya di skrin kereta: hanya bila waktu seterusnya atau suisnya berubah.
   ref.listen(azanControllerProvider.select((s) => s.upNext), (_, _) {

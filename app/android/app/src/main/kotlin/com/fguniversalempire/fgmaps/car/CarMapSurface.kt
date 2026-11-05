@@ -38,6 +38,7 @@ import org.maplibre.android.style.layers.PropertyFactory.iconRotationAlignment
 import org.maplibre.android.style.layers.PropertyFactory.lineCap
 import org.maplibre.android.style.layers.PropertyFactory.lineColor
 import org.maplibre.android.style.layers.PropertyFactory.lineJoin
+import org.maplibre.android.style.layers.PropertyFactory.lineOpacity
 import org.maplibre.android.style.layers.PropertyFactory.lineWidth
 import org.maplibre.android.style.layers.SymbolLayer
 import org.maplibre.android.style.sources.GeoJsonSource
@@ -72,6 +73,11 @@ class CarMapSurface(
     private var appliedRouteVersion: Int? = null
     private var lastSession: Map<String, Any?> = emptyMap()
 
+    /** Anak panah arah pada laluan (lihat [CarRouteGuide]); kosong jika tiada laluan atau gagal dikira. */
+    private var routeChevrons: List<CarRouteGuide.Chevron> = emptyList()
+    private var chevronCursor = CHEVRON_UNSET
+    private var chevronIcon: Bitmap? = null
+
     /** Mod seret hos aktif, dan masa gerak isyarat terakhir (pan/zum) di skrin kereta. */
     private var panMode = false
     private var lastGestureAt = 0L
@@ -104,11 +110,13 @@ class CarMapSurface(
                 appliedRouteVersion = null
                 // Gaya baharu membuang sumber/lapisan: lukis semula daripada sesi TERKINI.
                 drawRoute(it, lastSession)
+                drawChevrons(it, lastSession)
                 drawVehicle(it, lastSession)
             }
         } else {
             map.style?.let {
                 drawRoute(it, session)
+                drawChevrons(it, session)
                 drawVehicle(it, session)
             }
         }
@@ -215,6 +223,11 @@ class CarMapSurface(
                     ready.uiSettings.isLogoEnabled = false
                     ready.uiSettings.isAttributionEnabled = false
                     vehicleIcons = VehicleIcons.render(density.density, density.densityDpi)
+                    chevronIcon = try {
+                        CarRouteGuide.icon(density.density, density.densityDpi)
+                    } catch (_: Throwable) {
+                        null
+                    }
                     // Permukaan baharu (hos AA bangun / skrin kembali): lukis semula
                     // gaya, laluan dan kamera daripada gambar sesi terakhir.
                     appliedStyleKey = null
@@ -320,13 +333,21 @@ class CarMapSurface(
         } else {
             null
         }
+        // Laluan baharu: anak panah dikira semula daripada geometri yang sama. Kegagalan hanya
+        // menggugurkan anak panah; garisan laluan tidak terjejas.
+        routeChevrons = try {
+            CarRouteGuide.chevrons(points)
+        } catch (_: Throwable) {
+            emptyList()
+        }
+        chevronCursor = CHEVRON_UNSET
         val existing = style.getSource(SOURCE) as? GeoJsonSource
         if (existing == null) {
             if (feature == null) return
             style.addSource(GeoJsonSource(SOURCE, feature))
             val line = LineLayer(LAYER, SOURCE).withProperties(
                 lineColor("#2F6BFF"),
-                lineWidth(6f),
+                lineWidth(8f),
                 lineCap("round"),
                 lineJoin("round"),
             )
@@ -336,12 +357,80 @@ class CarMapSurface(
             } else {
                 style.addLayer(line)
             }
+            // Tepi putih di bawah garisan: laluan kelihatan jelas di atas peta gelap, terang dan satelit.
+            // Pilihan: jika gagal, garisan biru kekal.
+            try {
+                style.addLayerBelow(
+                    LineLayer(CASING_LAYER, SOURCE).withProperties(
+                        lineColor("#FFFFFF"),
+                        lineWidth(12.5f),
+                        lineOpacity(0.92f),
+                        lineCap("round"),
+                        lineJoin("round"),
+                    ),
+                    LAYER,
+                )
+            } catch (_: Throwable) {
+            }
         } else if (feature == null) {
             existing.setGeoJson(FeatureCollection.fromFeatures(emptyList<Feature>()))
         } else {
             existing.setGeoJson(feature)
         }
         appliedRouteVersion = if (mode == "navigating") version else null
+    }
+
+    /**
+     * Anak panah arah putih di atas laluan, beberapa di hadapan kenderaan. Hanya dihantar semula
+     * bila anak panah terdekat bertukar (setiap ~70 m), bukan pada setiap gambar sesi. Semuanya
+     * pilihan: apa-apa kegagalan menggugurkan anak panah sahaja.
+     */
+    private fun drawChevrons(style: Style, session: Map<String, Any?>) {
+        try {
+            val icon = chevronIcon ?: return
+            val navigating = session["mode"] == "navigating"
+            var source = style.getSource(CHEVRON_SOURCE) as? GeoJsonSource
+            if (source == null) {
+                if (!navigating || routeChevrons.isEmpty()) return
+                if (style.getImage(CHEVRON) == null) style.addImage(CHEVRON, icon)
+                source = GeoJsonSource(CHEVRON_SOURCE)
+                style.addSource(source)
+                val layer = SymbolLayer(CHEVRON_LAYER, CHEVRON_SOURCE).withProperties(
+                    iconImage(CHEVRON),
+                    iconRotate(Expression.get("bearing")),
+                    iconRotationAlignment(Property.ICON_ROTATION_ALIGNMENT_MAP),
+                    iconPitchAlignment(Property.ICON_PITCH_ALIGNMENT_MAP),
+                    iconAllowOverlap(true),
+                    iconIgnorePlacement(true),
+                )
+                // Di atas garisan laluan, di bawah penanda kenderaan.
+                if (style.getLayer(VEHICLE_LAYER) != null) {
+                    style.addLayerBelow(layer, VEHICLE_LAYER)
+                } else {
+                    style.addLayer(layer)
+                }
+                chevronCursor = CHEVRON_UNSET
+            }
+            if (!navigating || routeChevrons.isEmpty()) {
+                if (chevronCursor != CHEVRON_CLEARED) {
+                    source.setGeoJson(FeatureCollection.fromFeatures(emptyList<Feature>()))
+                    chevronCursor = CHEVRON_CLEARED
+                }
+                return
+            }
+            val lat = (session["vehicleLat"] as? Number)?.toDouble() ?: return
+            val lng = (session["vehicleLng"] as? Number)?.toDouble() ?: return
+            val cursor = CarRouteGuide.cursor(routeChevrons, maxOf(chevronCursor, 0), lat, lng)
+            if (cursor == chevronCursor) return
+            chevronCursor = cursor
+            val features = CarRouteGuide.ahead(routeChevrons, cursor).map { c ->
+                Feature.fromGeometry(Point.fromLngLat(c.lng, c.lat)).also {
+                    it.addNumberProperty("bearing", c.bearing)
+                }
+            }
+            source.setGeoJson(FeatureCollection.fromFeatures(features))
+        } catch (_: Throwable) {
+        }
     }
 
     private var vehicleIcons: VehicleIcons? = null
@@ -383,6 +472,12 @@ class CarMapSurface(
     private companion object {
         const val SOURCE = "fgmap-car-route"
         const val LAYER = "fgmap-car-route-line"
+        const val CASING_LAYER = "fgmap-car-route-casing"
+        const val CHEVRON_SOURCE = "fgmap-car-chevron-src"
+        const val CHEVRON_LAYER = "fgmap-car-chevrons"
+        const val CHEVRON = "fgmap-car-chevron"
+        const val CHEVRON_UNSET = -1
+        const val CHEVRON_CLEARED = -2
         const val VEHICLE_SOURCE = "fgmap-car-vehicle"
         const val VEHICLE_LAYER = "fgmap-car-vehicle-icon"
         const val ARROW = "fgmap-car-vehicle-arrow"
