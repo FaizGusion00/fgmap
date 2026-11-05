@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:fgmap/core/theme/app_theme.dart';
+import 'package:fgmap/features/doorstep/data/osm_entrances.dart';
 import 'package:fgmap/features/navigation/data/flyover_service.dart';
 import 'package:fgmap/core/utils/geo.dart';
 import 'package:fgmap/features/navigation/domain/camera_planner.dart';
@@ -65,6 +66,9 @@ Future<void> pumpApp(
         // Jejambat (Overpass) dan pintu masuk (Overpass): tiada cermin = tiada rangkaian.
         flyoverServiceProvider.overrideWithValue(
           FlyoverService(Dio(), const []),
+        ),
+        osmEntranceSearchProvider.overrideWithValue(
+          OsmEntranceSearch(Dio(), const []),
         ),
         ...overrides,
       ],

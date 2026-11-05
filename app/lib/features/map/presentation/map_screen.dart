@@ -42,6 +42,9 @@ import '../../route_preview/domain/route_option.dart' show RouteVehicle;
 import '../domain/turn_label.dart';
 import '../../masjid/data/masjid_directory.dart' show MasjidQuery;
 import '../../masjid/presentation/masjid_directory_page.dart';
+import '../../doorstep/data/saved_entrances.dart';
+import '../../doorstep/domain/entrance.dart';
+import '../../doorstep/presentation/doorstep_controller.dart';
 import '../../highway/presentation/highway_page.dart';
 import '../data/map_layer.dart';
 import 'map_layer_sheet.dart';
@@ -536,6 +539,36 @@ class _MapScreenState extends ConsumerState<MapScreen>
     );
     if (selection == null || !mounted) return;
     await _planSelection(selection);
+  }
+
+  /// Kad tiba: simpan kedudukan GPS sebenar sebagai pintu masuk lalai tempat ini (tempat asal, walaupun
+  /// laluan menuju pintu OSM). Pulangkan benar jika disimpan.
+  Future<bool> _saveArrivalEntrance() async {
+    final nav = ref.read(navigationControllerProvider);
+    final dest = nav.query?.destination;
+    if (dest == null) return false;
+    final door = ref.read(doorstepProvider);
+    final place = door.place;
+    bool near(GeoPoint? a) => a != null && distanceMeters(a, dest) < 1;
+    final target = place != null && (near(place) || near(door.selected?.point))
+        ? place
+        : dest;
+    final fix = await ref
+        .read(locationServiceProvider)
+        .currentFix(timeout: const Duration(seconds: 6));
+    if (fix == null || !mounted) return false;
+    await ref
+        .read(savedEntrancesProvider.notifier)
+        .save(
+          target,
+          Entrance(point: fix.point, kind: EntranceKind.saved),
+          placeName: nav.query?.destinationLabel ?? door.placeLabel,
+        );
+    if (!mounted) return true;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(AppLocalizations.of(context).doorstepSavedSnack)),
+    );
+    return true;
   }
 
   /// Senarai masjid dan surau (JAKIM): Arah = pratonton laluan, Pergi = mula navigasi.
@@ -1370,6 +1403,9 @@ class _MapScreenState extends ConsumerState<MapScreen>
       _onNavigationChanged,
     );
     ref.listen<CruiseState>(cruiseControllerProvider, _onCruiseChanged);
+    // Pintu masuk: pengawal destinasi mesti hidup sejak laluan pertama (pintu lalai pengguna digunakan
+    // terus), bukan hanya bila bahagian "Pintu masuk" dipaparkan.
+    ref.listen<DoorstepState>(doorstepProvider, (_, _) {});
     // Permintaan daripada halaman AI: tutup halaman itu, kemudian tunjuk atau mula laluan.
     ref.listen<AiMapRequest?>(aiMapRequestProvider, (prev, next) {
       if (next == null || next.id == prev?.id) return;
@@ -2405,7 +2441,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
               ),
             ),
             if (arrived)
-              ArrivalCard(onDone: stop)
+              ArrivalCard(onDone: stop, onSaveEntrance: _saveArrivalEntrance)
             else if (panel != null)
               panel
             else

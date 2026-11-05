@@ -6611,6 +6611,96 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'dimuat {time}'**
   String cctvFullscreenLoaded(String time);
+
+  /// No description provided for @doorstepTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pintu masuk'**
+  String get doorstepTitle;
+
+  /// No description provided for @doorstepPin.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pin destinasi'**
+  String get doorstepPin;
+
+  /// No description provided for @doorstepSaved.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pintu anda'**
+  String get doorstepSaved;
+
+  /// No description provided for @doorstepMain.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pintu utama'**
+  String get doorstepMain;
+
+  /// No description provided for @doorstepVisitor.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pengawal / pelawat'**
+  String get doorstepVisitor;
+
+  /// No description provided for @doorstepParking.
+  ///
+  /// In ms, this message translates to:
+  /// **'Masuk parkir'**
+  String get doorstepParking;
+
+  /// No description provided for @doorstepGate.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pagar masuk'**
+  String get doorstepGate;
+
+  /// No description provided for @doorstepLoading.
+  ///
+  /// In ms, this message translates to:
+  /// **'Loading bay'**
+  String get doorstepLoading;
+
+  /// No description provided for @doorstepService.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pintu servis'**
+  String get doorstepService;
+
+  /// No description provided for @doorstepDoor.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pintu bangunan'**
+  String get doorstepDoor;
+
+  /// No description provided for @doorstepMakeDefault.
+  ///
+  /// In ms, this message translates to:
+  /// **'Jadikan pintu lalai untuk tempat ini'**
+  String get doorstepMakeDefault;
+
+  /// No description provided for @doorstepRemoveDefault.
+  ///
+  /// In ms, this message translates to:
+  /// **'Buang pintu lalai tempat ini'**
+  String get doorstepRemoveDefault;
+
+  /// No description provided for @doorstepSource.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tekan pintu untuk laluan terus ke situ; tekan lama untuk jadikan lalai. Data pintu mungkin tidak lengkap.'**
+  String get doorstepSource;
+
+  /// No description provided for @doorstepArrivalSave.
+  ///
+  /// In ms, this message translates to:
+  /// **'Simpan lokasi saya sebagai pintu masuk'**
+  String get doorstepArrivalSave;
+
+  /// No description provided for @doorstepSavedSnack.
+  ///
+  /// In ms, this message translates to:
+  /// **'Disimpan. Lain kali FGMaps terus ke pintu ini.'**
+  String get doorstepSavedSnack;
 }
 
 class _AppLocalizationsDelegate

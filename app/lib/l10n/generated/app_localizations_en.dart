@@ -3867,4 +3867,51 @@ class AppLocalizationsEn extends AppLocalizations {
   String cctvFullscreenLoaded(String time) {
     return 'loaded $time';
   }
+
+  @override
+  String get doorstepTitle => 'Entrance';
+
+  @override
+  String get doorstepPin => 'Destination pin';
+
+  @override
+  String get doorstepSaved => 'Your entrance';
+
+  @override
+  String get doorstepMain => 'Main entrance';
+
+  @override
+  String get doorstepVisitor => 'Guardhouse / visitors';
+
+  @override
+  String get doorstepParking => 'Parking entrance';
+
+  @override
+  String get doorstepGate => 'Gate';
+
+  @override
+  String get doorstepLoading => 'Loading bay';
+
+  @override
+  String get doorstepService => 'Service entrance';
+
+  @override
+  String get doorstepDoor => 'Building entrance';
+
+  @override
+  String get doorstepMakeDefault => 'Make this the default entrance here';
+
+  @override
+  String get doorstepRemoveDefault => 'Remove this place\'s default entrance';
+
+  @override
+  String get doorstepSource =>
+      'Tap an entrance to route straight to it; long-press to make it the default. Entrance data may be incomplete.';
+
+  @override
+  String get doorstepArrivalSave => 'Save my spot as the entrance';
+
+  @override
+  String get doorstepSavedSnack =>
+      'Saved. Next time FGMaps goes straight to this entrance.';
 }

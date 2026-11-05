@@ -1183,16 +1183,35 @@ class NavStatusChip extends StatelessWidget {
 }
 
 /// Kad ketibaan: dipaparkan di tengah bawah apabila destinasi dicapai.
-class ArrivalCard extends StatelessWidget {
-  const ArrivalCard({super.key, required this.onDone, this.floating = false});
+class ArrivalCard extends StatefulWidget {
+  const ArrivalCard({
+    super.key,
+    required this.onDone,
+    this.floating = false,
+    this.onSaveEntrance,
+  });
 
   final VoidCallback onDone;
 
   /// Kad terapung bulat penuh (mendatar), bukan lembaran yang melekat pada tepi bawah.
   final bool floating;
 
+  /// "Simpan lokasi saya sebagai pintu masuk": pulangkan benar jika disimpan. Null = tiada butang.
+  final Future<bool> Function()? onSaveEntrance;
+
+  @override
+  State<ArrivalCard> createState() => _ArrivalCardState();
+}
+
+class _ArrivalCardState extends State<ArrivalCard> {
+  bool _saved = false;
+  bool _saving = false;
+
   @override
   Widget build(BuildContext context) {
+    final floating = widget.floating;
+    final onDone = widget.onDone;
+    final onSave = widget.onSaveEntrance;
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     return _clampTextScale(
@@ -1248,6 +1267,24 @@ class ArrivalCard extends StatelessWidget {
                       child: Text(l10n.navDone),
                     ),
                   ),
+                  // Pintu sebenar (bukan pin): disimpan pada telefon, laluan seterusnya terus ke sini.
+                  if (onSave != null && !_saved)
+                    TextButton.icon(
+                      key: const ValueKey('arrival-save-entrance'),
+                      onPressed: _saving
+                          ? null
+                          : () async {
+                              setState(() => _saving = true);
+                              final ok = await onSave();
+                              if (!mounted) return;
+                              setState(() {
+                                _saving = false;
+                                _saved = ok;
+                              });
+                            },
+                      icon: const Icon(Icons.door_front_door_rounded),
+                      label: Text(l10n.doorstepArrivalSave),
+                    ),
                 ],
               ),
             ),

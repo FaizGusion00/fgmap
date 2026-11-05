@@ -1589,5 +1589,20 @@
   "cctvLiveVideoTitle": "Video langsung?",
   "cctvLiveVideoBody": "LLM tiada strim video awam untuk lebuh raya; video lebuh raya hanya dalam app TuJu dan PLUS (tertutup). Video langsung awam yang ada: kamera jalan bandar KL oleh KLCCC (DBKL), dimainkan di laman mereka.",
   "cctvFullscreenLoaded": "dimuat {time}",
-  "@cctvFullscreenLoaded": {"placeholders": {"time": {"type": "String"}}}
+  "@cctvFullscreenLoaded": {"placeholders": {"time": {"type": "String"}}},
+  "doorstepTitle": "Pintu masuk",
+  "doorstepPin": "Pin destinasi",
+  "doorstepSaved": "Pintu anda",
+  "doorstepMain": "Pintu utama",
+  "doorstepVisitor": "Pengawal / pelawat",
+  "doorstepParking": "Masuk parkir",
+  "doorstepGate": "Pagar masuk",
+  "doorstepLoading": "Loading bay",
+  "doorstepService": "Pintu servis",
+  "doorstepDoor": "Pintu bangunan",
+  "doorstepMakeDefault": "Jadikan pintu lalai untuk tempat ini",
+  "doorstepRemoveDefault": "Buang pintu lalai tempat ini",
+  "doorstepSource": "Tekan pintu untuk laluan terus ke situ; tekan lama untuk jadikan lalai. Data pintu mungkin tidak lengkap.",
+  "doorstepArrivalSave": "Simpan lokasi saya sebagai pintu masuk",
+  "doorstepSavedSnack": "Disimpan. Lain kali FGMaps terus ke pintu ini."
 }

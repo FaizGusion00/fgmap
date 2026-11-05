@@ -8,6 +8,8 @@ import '../../along_route/presentation/along_route_controller.dart';
 import '../../azan/data/azan_location.dart';
 import '../../azan/data/official_prayer_times.dart';
 import '../../azan/presentation/azan_controller.dart';
+import '../../doorstep/data/osm_entrances.dart';
+import '../../doorstep/data/saved_entrances.dart';
 import '../../local_assistant/data/chat_history_store.dart';
 import '../../local_assistant/data/muslim_ai_settings.dart';
 import '../../local_assistant/presentation/assistant_controller.dart';
@@ -45,6 +47,7 @@ Future<void> eraseAllUserData(WidgetRef ref) async {
   await ref.read(tripHistoryStoreProvider).clear();
   await ref.read(radioFavoritesProvider.notifier).clear();
   await ref.read(radioHealthProvider.notifier).clear();
+  await ref.read(savedEntrancesProvider.notifier).clear();
 
   final prefs = ref.read(sharedPreferencesProvider);
   await eraseConversations(prefs);
@@ -52,6 +55,7 @@ Future<void> eraseAllUserData(WidgetRef ref) async {
   for (final key in prefs.getKeys().where(
     (k) =>
         k.startsWith(alongRouteCachePrefix) ||
+        k.startsWith(entranceCachePrefix) ||
         k.startsWith(weatherCachePrefix) ||
         k == weatherPlacesKey,
   )) {

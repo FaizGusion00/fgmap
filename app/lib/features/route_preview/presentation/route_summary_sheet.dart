@@ -18,6 +18,7 @@ import '../domain/routing_failure.dart';
 import 'route_format.dart';
 import 'route_preview_controller.dart';
 import '../../../core/agent/agent_targets.dart';
+import '../../doorstep/presentation/entrance_section.dart';
 import '../../highway/domain/highways.dart';
 import '../../highway/presentation/highway_page.dart';
 
@@ -349,6 +350,8 @@ class _ReadyBody extends StatelessWidget {
           fuelCostRm: fuelCostRm,
           motorcycle: state.query.vehicle == RouteVehicle.motorcycle,
         ),
+        // Pintu masuk sebenar (OSM / simpanan pengguna): laluan sampai ke pintu, bukan sekadar pin.
+        const EntranceSection(),
         const SizedBox(height: 14),
         if (state.options.length > 1) ...[
           Padding(

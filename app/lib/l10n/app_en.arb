@@ -1453,5 +1453,20 @@
   "cctvCameraCount": "{count, plural, =1{1 camera} other{{count} cameras}}",
   "cctvLiveVideoTitle": "Live video?",
   "cctvLiveVideoBody": "LLM has no public video stream for highways; highway video is only in the TuJu and PLUS apps (closed). Public live video that exists: KL city-road cameras by KLCCC (DBKL), played on their site.",
-  "cctvFullscreenLoaded": "loaded {time}"
+  "cctvFullscreenLoaded": "loaded {time}",
+  "doorstepTitle": "Entrance",
+  "doorstepPin": "Destination pin",
+  "doorstepSaved": "Your entrance",
+  "doorstepMain": "Main entrance",
+  "doorstepVisitor": "Guardhouse / visitors",
+  "doorstepParking": "Parking entrance",
+  "doorstepGate": "Gate",
+  "doorstepLoading": "Loading bay",
+  "doorstepService": "Service entrance",
+  "doorstepDoor": "Building entrance",
+  "doorstepMakeDefault": "Make this the default entrance here",
+  "doorstepRemoveDefault": "Remove this place's default entrance",
+  "doorstepSource": "Tap an entrance to route straight to it; long-press to make it the default. Entrance data may be incomplete.",
+  "doorstepArrivalSave": "Save my spot as the entrance",
+  "doorstepSavedSnack": "Saved. Next time FGMaps goes straight to this entrance."
 }

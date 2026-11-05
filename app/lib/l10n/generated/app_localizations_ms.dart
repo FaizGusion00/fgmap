@@ -3865,4 +3865,51 @@ class AppLocalizationsMs extends AppLocalizations {
   String cctvFullscreenLoaded(String time) {
     return 'dimuat $time';
   }
+
+  @override
+  String get doorstepTitle => 'Pintu masuk';
+
+  @override
+  String get doorstepPin => 'Pin destinasi';
+
+  @override
+  String get doorstepSaved => 'Pintu anda';
+
+  @override
+  String get doorstepMain => 'Pintu utama';
+
+  @override
+  String get doorstepVisitor => 'Pengawal / pelawat';
+
+  @override
+  String get doorstepParking => 'Masuk parkir';
+
+  @override
+  String get doorstepGate => 'Pagar masuk';
+
+  @override
+  String get doorstepLoading => 'Loading bay';
+
+  @override
+  String get doorstepService => 'Pintu servis';
+
+  @override
+  String get doorstepDoor => 'Pintu bangunan';
+
+  @override
+  String get doorstepMakeDefault => 'Jadikan pintu lalai untuk tempat ini';
+
+  @override
+  String get doorstepRemoveDefault => 'Buang pintu lalai tempat ini';
+
+  @override
+  String get doorstepSource =>
+      'Tekan pintu untuk laluan terus ke situ; tekan lama untuk jadikan lalai. Data pintu mungkin tidak lengkap.';
+
+  @override
+  String get doorstepArrivalSave => 'Simpan lokasi saya sebagai pintu masuk';
+
+  @override
+  String get doorstepSavedSnack =>
+      'Disimpan. Lain kali FGMaps terus ke pintu ini.';
 }
