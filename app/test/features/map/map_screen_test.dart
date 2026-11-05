@@ -1153,12 +1153,12 @@ void main() {
       await tester.pumpAndSettle();
       // 67.049 km x 8.0 / 100 x RM2.00 = RM10.73.
       expect(find.byKey(const ValueKey('fuel-cost')), findsOneWidget);
-      expect(find.text('≈ RM 10.73 minyak'), findsOneWidget);
+      expect(find.text('≈ RM 10.73'), findsOneWidget);
 
       // Motosikal: penggunaan 3.5 L/100 km -> RM4.69.
       await tester.tap(find.byTooltip('Motosikal'));
       await tester.pumpAndSettle();
-      expect(find.text('≈ RM 4.69 minyak'), findsOneWidget);
+      expect(find.text('≈ RM 4.69'), findsOneWidget);
     });
   });
 
