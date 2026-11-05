@@ -33,6 +33,7 @@ This data is not backed up to the cloud (Android backup is disabled).
 The app must contact the following services to work. Each also receives your IP address and ordinary connection details, and processes them under its own privacy policy.
 
 - **Maps (OpenFreeMap):** map tile and style requests. They reveal the area you are viewing.
+- **Satellite map (Esri World Imagery, United States):** only when you choose the "Satellite" map type: imagery tile requests for the area you are viewing.
 - **Place search (Photon by komoot, Germany; fallback Nominatim by the OpenStreetMap Foundation, UK):** the text you type and your approximate position as a ranking hint. When you choose "Use current location" for Home or Work, your exact position is sent once to obtain an address name.
 - **Routes and speed limits (Valhalla by FOSSGIS e.V., Germany):** your current GPS position as the origin, the destination, direction of travel, vehicle type and route options. During navigation the app recalculates the route if you leave it, and sends the route shape to obtain speed limits. During route preview, the shapes of a few candidate routes are also sent (with no identifiers) to learn their road classes, so the recommended route prefers main roads over village roads.
 - **Nearby places and toll plazas (Overpass API; mirrors in Europe):** the centre point or bounding box of the area searched.

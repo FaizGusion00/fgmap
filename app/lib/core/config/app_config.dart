@@ -132,6 +132,15 @@ abstract final class AppConfig {
     defaultValue: 'https://api.bnm.gov.my/public',
   );
 
+  /// Imej satelit untuk peta "Satelit" (hibrid). Esri World Imagery: atribusi "Powered by Esri"
+  /// dipaparkan; syarat Esri untuk penggunaan berskala besar memerlukan akaun ArcGIS (pelan percuma
+  /// ada), dan URL boleh ditukar di sini tanpa mengubah kod.
+  static const satelliteTilesUrl = String.fromEnvironment(
+    'SATELLITE_TILES_URL',
+    defaultValue:
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  );
+
   static const mapStyleLight = String.fromEnvironment(
     'MAP_STYLE_LIGHT',
     defaultValue: 'https://tiles.openfreemap.org/styles/liberty',
@@ -165,6 +174,7 @@ abstract final class AppConfig {
     'DUCKDUCKGO_API_URL': duckDuckGoApiUrl,
     'GOOGLE_NEWS_RSS_URL': googleNewsRssUrl,
     'BNM_API_URL': bnmApiUrl,
+    'SATELLITE_TILES_URL': satelliteTilesUrl,
     'MAP_STYLE_LIGHT': mapStyleLight,
     'MAP_STYLE_DARK': mapStyleDark,
     'MAP_STYLE_NIGHT_BASE': mapStyleNightBase,

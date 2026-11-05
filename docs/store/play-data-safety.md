@@ -31,7 +31,7 @@ menghantar borang; jawapan mesti sepadan dengan apa yang app lakukan pada versi 
 | Carian web FG AI (DuckDuckGo, Google News, Wikipedia, Bank Negara Malaysia, data.gov.my) | Ya | Ya | Fungsi app | Ya (hanya apabila pengguna bertanya maklumat terkini atau menampal pautan; boleh dimatikan dalam Tetapan > FG AI) | Hanya perkataan soalan atau pautan itu; tiada lokasi dan tiada sejarah sembang |
 
 "Dikongsi" bermaksud dihantar kepada pihak ketiga yang bukan pemproses bagi pihak kita (OpenStreetMap
-Foundation, komoot, FOSSGIS, OpenFreeMap, GitHub, Google untuk pautan pendek, Audius dan Radio Browser untuk
+Foundation, komoot, FOSSGIS, OpenFreeMap, Esri (peta satelit), GitHub, Google untuk pautan pendek, Audius dan Radio Browser untuk
 Muzik, WaktuSolat API untuk jadual rasmi JAKIM, Open-Meteo untuk cuaca, Jabatan Alam Sekitar/EQMS untuk IPU, DuckDuckGo, Google News, Wikipedia, Bank Negara Malaysia dan data.gov.my untuk carian web FG AI, Hugging Face untuk muat turun model FG AI sekali sahaja; sembang tidak dihantar ke mana-mana pelayan AI). Pengiraan waktu solat pada peranti (kaedah sandaran) tidak menghantar data. Tiada data dijual atau digunakan untuk iklan.
 
 ## Kebenaran dan pengisytiharan lain

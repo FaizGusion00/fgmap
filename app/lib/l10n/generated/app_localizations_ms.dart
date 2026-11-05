@@ -126,6 +126,22 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
+  String get mapLayersTooltip => 'Jenis peta';
+
+  @override
+  String get mapLayersTitle => 'Jenis peta';
+
+  @override
+  String get mapLayerStandard => 'Lalai';
+
+  @override
+  String get mapLayerSatellite => 'Satelit';
+
+  @override
+  String get mapLayerSatelliteHint =>
+      'Satelit perlukan internet. Imej: Esri, Maxar, Earthstar Geographics.';
+
+  @override
   String get appearanceTooltip => 'Tetapan';
 
   @override
@@ -1924,19 +1940,19 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get aboutNew1 =>
-      'Logo baharu FGMaps, dengan animasi pembuka yang baharu';
+      'Jenis peta Satelit (seperti Google Maps): imej satelit dengan jalan, nama tempat dan laluan navigasi di atasnya. Tekan butang lapisan di peta';
 
   @override
   String get aboutNew2 =>
-      'Gambar simpang sebenar ketika hendak belok: simpang 3, simpang 4 dan bulatan dengan nombor keluar. Anak panah putih di peta tunjuk tempat belok';
+      'Logo baharu FGMaps, dengan animasi pembuka yang baharu';
 
   @override
   String get aboutNew3 =>
-      'Mod mendatar diperbaiki: kereta dan laluan kekal sejajar bila telefon diputar, dan kotak simpang padat turut dipaparkan';
+      'Gambar simpang sebenar ketika hendak belok: simpang 3, simpang 4 dan bulatan dengan nombor keluar. Anak panah putih di peta tunjuk tempat belok';
 
   @override
   String get aboutNew4 =>
-      'Mula navigasi lebih licin: kamera terus ke kereta tanpa melompat, dan zum automatik lebih pandai di selekoh dan lebuh raya';
+      'Mod mendatar diperbaiki, mula navigasi lebih licin, dan zum automatik lebih pandai';
 
   @override
   String get aboutNew5 =>
@@ -1944,7 +1960,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get aboutNew6 =>
-      'Android Auto: peta terus bergerak walaupun telefon dikunci, ikon kereta di peta, mod malam ikut kereta, dan boleh geser serta zum';
+      'Muzik terus dimainkan di latar dengan kawalan media; Android Auto terus bergerak walaupun telefon dikunci';
 
   @override
   String get alongRouteTitle => 'Sepanjang laluan';

@@ -11,6 +11,7 @@ import '../../../core/network/dio_provider.dart';
 import '../../offline_maps/data/local_basemap.dart';
 import '../domain/local_basemap_style.dart';
 import '../domain/night_style.dart';
+import '../domain/satellite_style.dart';
 import '../../../core/network/retry_interceptor.dart';
 import '../../../core/utils/log.dart';
 
@@ -115,6 +116,30 @@ class MapStyleLoader {
     }
   }
 
+  /// Gaya hibrid satelit, dibina daripada gaya Liberty (paparan offline jika dipasang, supaya jalan
+  /// dan label tetap ada tanpa OpenFreeMap). Null jika gagal: pemanggil kekal pada peta biasa.
+  Future<ResolvedMapStyle?> satellite({LocalBasemap? basemap}) async {
+    try {
+      final base = basemap == null
+          ? await _rawBase(AppConfig.mapStyleNightBase)
+          : LocalBasemapStyle.build(
+              basemap.styleTemplate,
+              pmtilesPath: basemap.pmtilesPath,
+              assetsDir: basemap.assetsDir,
+            );
+      if (base == null) return null;
+      final styled = await compute(_satelliteStyle, base);
+      if (styled == null) return null;
+      return ResolvedMapStyle(
+        styled,
+        'satellite:${basemap?.version ?? 'online'}:${styled.length}:${styled.hashCode}',
+      );
+    } on Object catch (e) {
+      logDiag('Gaya satelit gagal: $e');
+      return null;
+    }
+  }
+
   File? _cacheFile(String url) {
     final dir = _cacheDir;
     if (dir == null) return null;
@@ -170,6 +195,9 @@ class MapStyleLoader {
   }
 }
 
+String? _satelliteStyle(String raw) =>
+    SatelliteStyle.apply(raw, tilesUrl: AppConfig.satelliteTilesUrl);
+
 /// Folder cache gaya peta; null (lalai) = tiada cache fail. `main.dart` menyuntik folder sokongan app.
 final mapStyleCacheDirProvider = Provider<Directory?>((ref) => null);
 
@@ -193,4 +221,12 @@ final mapStyleProvider = FutureProvider.family<ResolvedMapStyle, bool>((
     if (offline != null) return offline;
   }
   return loader.resolve(dark: dark);
+});
+
+/// Gaya hibrid satelit; null jika tidak dapat dibina (peta biasa digunakan).
+final satelliteMapStyleProvider = FutureProvider<ResolvedMapStyle?>((
+  ref,
+) async {
+  final basemap = await ref.watch(localBasemapProvider.future);
+  return ref.watch(mapStyleLoaderProvider).satellite(basemap: basemap);
 });

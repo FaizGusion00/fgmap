@@ -290,6 +290,36 @@ abstract class AppLocalizations {
   /// **'{hours} j {minutes} min'**
   String durationHoursMinutes(int hours, int minutes);
 
+  /// No description provided for @mapLayersTooltip.
+  ///
+  /// In ms, this message translates to:
+  /// **'Jenis peta'**
+  String get mapLayersTooltip;
+
+  /// No description provided for @mapLayersTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Jenis peta'**
+  String get mapLayersTitle;
+
+  /// No description provided for @mapLayerStandard.
+  ///
+  /// In ms, this message translates to:
+  /// **'Lalai'**
+  String get mapLayerStandard;
+
+  /// No description provided for @mapLayerSatellite.
+  ///
+  /// In ms, this message translates to:
+  /// **'Satelit'**
+  String get mapLayerSatellite;
+
+  /// No description provided for @mapLayerSatelliteHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Satelit perlukan internet. Imej: Esri, Maxar, Earthstar Geographics.'**
+  String get mapLayerSatelliteHint;
+
   /// No description provided for @appearanceTooltip.
   ///
   /// In ms, this message translates to:
@@ -3413,25 +3443,25 @@ abstract class AppLocalizations {
   /// No description provided for @aboutNew1.
   ///
   /// In ms, this message translates to:
-  /// **'Logo baharu FGMaps, dengan animasi pembuka yang baharu'**
+  /// **'Jenis peta Satelit (seperti Google Maps): imej satelit dengan jalan, nama tempat dan laluan navigasi di atasnya. Tekan butang lapisan di peta'**
   String get aboutNew1;
 
   /// No description provided for @aboutNew2.
   ///
   /// In ms, this message translates to:
-  /// **'Gambar simpang sebenar ketika hendak belok: simpang 3, simpang 4 dan bulatan dengan nombor keluar. Anak panah putih di peta tunjuk tempat belok'**
+  /// **'Logo baharu FGMaps, dengan animasi pembuka yang baharu'**
   String get aboutNew2;
 
   /// No description provided for @aboutNew3.
   ///
   /// In ms, this message translates to:
-  /// **'Mod mendatar diperbaiki: kereta dan laluan kekal sejajar bila telefon diputar, dan kotak simpang padat turut dipaparkan'**
+  /// **'Gambar simpang sebenar ketika hendak belok: simpang 3, simpang 4 dan bulatan dengan nombor keluar. Anak panah putih di peta tunjuk tempat belok'**
   String get aboutNew3;
 
   /// No description provided for @aboutNew4.
   ///
   /// In ms, this message translates to:
-  /// **'Mula navigasi lebih licin: kamera terus ke kereta tanpa melompat, dan zum automatik lebih pandai di selekoh dan lebuh raya'**
+  /// **'Mod mendatar diperbaiki, mula navigasi lebih licin, dan zum automatik lebih pandai'**
   String get aboutNew4;
 
   /// No description provided for @aboutNew5.
@@ -3443,7 +3473,7 @@ abstract class AppLocalizations {
   /// No description provided for @aboutNew6.
   ///
   /// In ms, this message translates to:
-  /// **'Android Auto: peta terus bergerak walaupun telefon dikunci, ikon kereta di peta, mod malam ikut kereta, dan boleh geser serta zum'**
+  /// **'Muzik terus dimainkan di latar dengan kawalan media; Android Auto terus bergerak walaupun telefon dikunci'**
   String get aboutNew6;
 
   /// No description provided for @alongRouteTitle.

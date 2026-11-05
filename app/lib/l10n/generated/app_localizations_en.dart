@@ -126,6 +126,22 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get mapLayersTooltip => 'Map type';
+
+  @override
+  String get mapLayersTitle => 'Map type';
+
+  @override
+  String get mapLayerStandard => 'Default';
+
+  @override
+  String get mapLayerSatellite => 'Satellite';
+
+  @override
+  String get mapLayerSatelliteHint =>
+      'Satellite needs internet. Imagery: Esri, Maxar, Earthstar Geographics.';
+
+  @override
   String get appearanceTooltip => 'Settings';
 
   @override
@@ -1924,19 +1940,19 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get aboutNew1 => 'New FGMaps logo, with a new opening animation';
+  String get aboutNew1 =>
+      'Satellite map type (like Google Maps): satellite imagery with roads, place names and your route on top. Tap the layers button on the map';
 
   @override
-  String get aboutNew2 =>
-      'Real junction view before a turn: T-junctions, crossroads and roundabouts with the exit number. A white arrow on the map shows where to turn';
+  String get aboutNew2 => 'New FGMaps logo, with a new opening animation';
 
   @override
   String get aboutNew3 =>
-      'Better landscape mode: the car and route stay aligned when you rotate the phone, and a compact junction box now shows too';
+      'Real junction view before a turn: T-junctions, crossroads and roundabouts with the exit number. A white arrow on the map shows where to turn';
 
   @override
   String get aboutNew4 =>
-      'Smoother navigation start: the camera goes straight to your car without jumping, and auto-zoom is smarter at turns and on highways';
+      'Better landscape mode, a smoother navigation start and smarter auto-zoom';
 
   @override
   String get aboutNew5 =>
@@ -1944,7 +1960,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutNew6 =>
-      'Android Auto: the map keeps moving when your phone is locked, a car icon on the map, night mode follows the car, and you can pan and zoom';
+      'Music keeps playing in the background with media controls; Android Auto keeps moving when your phone is locked';
 
   @override
   String get alongRouteTitle => 'Along the route';

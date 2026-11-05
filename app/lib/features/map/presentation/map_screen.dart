@@ -40,6 +40,8 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../route_preview/data/route_planner.dart' show routeVehicleProvider;
 import '../../route_preview/domain/route_option.dart' show RouteVehicle;
 import '../domain/turn_label.dart';
+import '../data/map_layer.dart';
+import 'map_layer_sheet.dart';
 import '../../route_preview/domain/route_options_merge.dart';
 import '../../along_route/domain/along_route_category.dart';
 import '../../along_route/domain/along_route_poi.dart';
@@ -1397,7 +1399,15 @@ class _MapScreenState extends ConsumerState<MapScreen>
 
     // Gaya peta (gaya malam diwarnakan semula; lihat NightStyle). Gaya sebelumnya dikekalkan semasa
     // gaya baharu dimuat supaya peta tidak berkelip; peta pertama menunggu paling lama beberapa saat.
-    final resolved = ref.watch(mapStyleProvider(mapIsDark)).value;
+    // Satelit (hibrid): semasa gaya satelit dimuat, gaya sebelumnya kekal (tiada kelipan); jika ia
+    // gagal dibina, peta biasa digunakan.
+    final satellite = ref.watch(mapLayerProvider) == MapLayer.satellite
+        ? ref.watch(satelliteMapStyleProvider)
+        : null;
+    final ResolvedMapStyle? resolved =
+        satellite != null && (satellite.isLoading || satellite.value != null)
+        ? satellite.value
+        : ref.watch(mapStyleProvider(mapIsDark)).value;
     if (resolved != null) _lastStyle = resolved;
     final style = resolved ?? _lastStyle;
 
@@ -1654,6 +1664,15 @@ class _MapScreenState extends ConsumerState<MapScreen>
                               if (!sheetVisible) ...[
                                 // Skrin pendek (telefon mendatar): butang zum disembunyikan supaya lajur
                                 // kawalan tidak menutup lembaran laluan; mencubit tetap berfungsi.
+                                // Jenis peta (Lalai / Satelit) dalam kedua-dua orientasi.
+                                _GlassIconButton(
+                                  agentId: 'map.layers',
+                                  icon: Icons.layers_rounded,
+                                  tooltip: l10n.mapLayersTooltip,
+                                  onPressed: () =>
+                                      unawaited(showMapLayerSheet(context)),
+                                ),
+                                const SizedBox(height: 8),
                                 if (MediaQuery.sizeOf(context).height >=
                                     500) ...[
                                   _MapZoomControls(

@@ -10,7 +10,7 @@ final appPackageInfoProvider = FutureProvider<PackageInfo>(
 
 /// Versi yang diterangkan oleh kad "Baharu dalam versi". Mesti sama dengan `version:` dalam pubspec.yaml;
 /// `about_page_test.dart` gagal jika berbeza.
-const aboutWhatsNewVersion = '1.4.0';
+const aboutWhatsNewVersion = '1.5.0';
 
 class AboutPage extends ConsumerWidget {
   const AboutPage({super.key});

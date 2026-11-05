@@ -33,6 +33,7 @@ Data ini tidak disandarkan ke awan (sandaran Android dimatikan).
 App perlu menghubungi perkhidmatan berikut untuk berfungsi. Setiap satu turut menerima alamat IP anda dan maklumat sambungan biasa, dan memprosesnya mengikut dasar privasi mereka sendiri.
 
 - **Peta (OpenFreeMap):** permintaan jubin dan gaya peta. Ia mendedahkan kawasan yang anda lihat.
+- **Peta satelit (Esri World Imagery, Amerika Syarikat):** hanya apabila anda memilih jenis peta "Satelit": permintaan jubin imej untuk kawasan yang anda lihat.
 - **Carian tempat (Photon oleh komoot, Jerman; sandaran Nominatim oleh Yayasan OpenStreetMap, UK):** teks yang anda taip dan kedudukan anggaran anda sebagai keutamaan hasil. Apabila anda memilih "Guna lokasi semasa" untuk Rumah atau Kerja, kedudukan tepat dihantar sekali untuk mendapatkan nama alamat.
 - **Laluan dan had laju (Valhalla oleh FOSSGIS e.V., Jerman):** kedudukan GPS semasa anda sebagai asal, destinasi, arah perjalanan, jenis kenderaan dan pilihan laluan. Semasa navigasi, app mengira semula laluan jika anda menyimpang, dan menghantar bentuk laluan untuk mendapatkan had laju. Semasa pratonton, bentuk beberapa laluan calon juga dihantar (tanpa pengenal pasti) untuk mengetahui kelas jalannya supaya laluan yang disyorkan mengutamakan jalan utama berbanding jalan kampung.
 - **Tempat berhampiran dan plaza tol (Overpass API; cermin di Eropah):** titik tengah atau kotak sempadan kawasan yang dicari.
