@@ -28,6 +28,7 @@ import '../../../core/theme/fgmap_theme_extension.dart';
 import '../../../core/platform/external_actions.dart';
 import '../../../core/utils/map_links.dart';
 import '../../fuel/data/fuel_settings.dart';
+import '../../navigation/data/offline_voice.dart';
 import '../../fuel/domain/fuel.dart';
 import '../../route_preview/presentation/route_format.dart';
 import '../../safety/presentation/emergency_sheet.dart';
@@ -152,6 +153,9 @@ class _MapScreenState extends ConsumerState<MapScreen>
     onLocation: _followLocation,
   );
   DateTime? _backgroundedAt;
+
+  /// Amaran "suara offline belum dipasang" sekali sahaja setiap sesi app.
+  bool _offlineVoiceWarned = false;
 
   @override
   void initState() {
@@ -539,6 +543,30 @@ class _MapScreenState extends ConsumerState<MapScreen>
     );
     if (selection == null || !mounted) return;
     await _planSelection(selection);
+  }
+
+  /// Sekali setiap sesi: suara bahasa navigasi belum dipasang untuk luar talian -> beritahu, dengan
+  /// butang terus ke skrin muat turun suara.
+  Future<void> _warnOfflineVoice(VoiceLanguage language) async {
+    if (_offlineVoiceWarned ||
+        !ref.read(navigationSettingsProvider).voiceEnabled) {
+      return;
+    }
+    final probe = ref.read(offlineVoiceProbeProvider);
+    final status = await probe.status(language);
+    if (status != OfflineVoiceStatus.missing || !mounted) return;
+    _offlineVoiceWarned = true;
+    final l10n = AppLocalizations.of(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        duration: const Duration(seconds: 8),
+        content: Text(l10n.navOfflineVoiceSnack),
+        action: SnackBarAction(
+          label: l10n.navOfflineVoiceInstall,
+          onPressed: () => unawaited(probe.openInstaller()),
+        ),
+      ),
+    );
   }
 
   /// Kad tiba: simpan kedudukan GPS sebenar sebagai pintu masuk lalai tempat ini (tempat asal, walaupun
@@ -1043,6 +1071,11 @@ class _MapScreenState extends ConsumerState<MapScreen>
                 )
               : null,
         );
+    unawaited(
+      _warnOfflineVoice(
+        ref.read(navigationSettingsProvider).voiceLanguage ?? uiLanguage,
+      ),
+    );
   }
 
   Future<void> _confirmEnd() async {

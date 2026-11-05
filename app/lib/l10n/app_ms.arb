@@ -1604,5 +1604,11 @@
   "doorstepRemoveDefault": "Buang pintu lalai tempat ini",
   "doorstepSource": "Tekan pintu untuk laluan terus ke situ; tekan lama untuk jadikan lalai. Data pintu mungkin tidak lengkap.",
   "doorstepArrivalSave": "Simpan lokasi saya sebagai pintu masuk",
-  "doorstepSavedSnack": "Disimpan. Lain kali FGMaps terus ke pintu ini."
+  "doorstepSavedSnack": "Disimpan. Lain kali FGMaps terus ke pintu ini.",
+  "navOfflineVoiceReady": "Suara tanpa internet: sedia",
+  "navOfflineVoiceReadyHint": "Arahan bersuara berfungsi walaupun tiada liputan.",
+  "navOfflineVoiceMissing": "Suara tanpa internet: belum dipasang",
+  "navOfflineVoiceMissingHint": "Tanpa internet, arahan mungkin senyap. Muat turun suara bahasa ini dalam tetapan suara telefon.",
+  "navOfflineVoiceInstall": "Pasang",
+  "navOfflineVoiceSnack": "Suara tanpa internet belum dipasang: arahan mungkin senyap di kawasan tiada liputan."
 }

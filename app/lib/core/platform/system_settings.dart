@@ -25,6 +25,10 @@ abstract interface class SystemSettings {
 
   /// Android: app dikecualikan daripada pengoptimuman bateri? Platform lain: true.
   Future<bool> isIgnoringBatteryOptimizations();
+
+  /// Buka skrin muat turun suara TTS (Android) supaya suara navigasi berfungsi tanpa internet. iOS:
+  /// tetapan app (suara dimuat turun di Tetapan > Kebolehcapaian > Kandungan Dituturkan).
+  Future<bool> openTtsSettings();
 }
 
 class PlatformSystemSettings implements SystemSettings {
@@ -63,6 +67,15 @@ class PlatformSystemSettings implements SystemSettings {
   @override
   Future<bool> isIgnoringBatteryOptimizations() async =>
       _android ? _call('isIgnoringBatteryOptimizations') : true;
+
+  @override
+  Future<bool> openTtsSettings() async {
+    if (_android) return _call('openTtsSettings');
+    if (!kIsWeb && Platform.isIOS) {
+      return launchUrl(Uri.parse('app-settings:'));
+    }
+    return false;
+  }
 }
 
 final systemSettingsProvider = Provider<SystemSettings>(

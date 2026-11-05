@@ -1468,5 +1468,11 @@
   "doorstepRemoveDefault": "Remove this place's default entrance",
   "doorstepSource": "Tap an entrance to route straight to it; long-press to make it the default. Entrance data may be incomplete.",
   "doorstepArrivalSave": "Save my spot as the entrance",
-  "doorstepSavedSnack": "Saved. Next time FGMaps goes straight to this entrance."
+  "doorstepSavedSnack": "Saved. Next time FGMaps goes straight to this entrance.",
+  "navOfflineVoiceReady": "Offline voice: ready",
+  "navOfflineVoiceReadyHint": "Spoken directions work even with no signal.",
+  "navOfflineVoiceMissing": "Offline voice: not installed",
+  "navOfflineVoiceMissingHint": "Without internet, directions may be silent. Download this language's voice in your phone's speech settings.",
+  "navOfflineVoiceInstall": "Install",
+  "navOfflineVoiceSnack": "Offline voice isn't installed: directions may go silent where there's no signal."
 }

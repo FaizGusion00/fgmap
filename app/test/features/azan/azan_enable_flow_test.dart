@@ -46,6 +46,9 @@ class _FakeSystemSettings implements SystemSettings {
 
   @override
   Future<bool> isIgnoringBatteryOptimizations() async => ignoringBattery;
+
+  @override
+  Future<bool> openTtsSettings() async => true;
 }
 
 void main() {

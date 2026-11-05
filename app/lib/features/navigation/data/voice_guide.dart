@@ -8,6 +8,7 @@ import 'package:flutter_tts/flutter_tts.dart';
 import '../../../core/audio/audio_coordinator.dart';
 import '../domain/announcement_planner.dart';
 import '../domain/instruction_text.dart';
+import 'offline_voice.dart';
 import 'sound_synth.dart';
 import '../../../core/utils/log.dart';
 
@@ -178,6 +179,7 @@ class FlutterTtsEngine implements TtsEngine {
     if (_language != language) {
       await _tts.setLanguage(language.ttsLocale);
       _language = language;
+      await _preferOfflineVoice(language);
     }
     // focus: minta fokus audio sementara (boleh perlahan) supaya app muzik lain turut memperlahankan.
     await _tts.speak(text, focus: true);
@@ -186,6 +188,19 @@ class FlutterTtsEngine implements TtsEngine {
   @override
   Future<void> stop() async {
     await _tts.stop();
+  }
+
+  /// Android: enjin boleh memilih suara rangkaian sebagai lalai, yang senyap tanpa internet. Jika suara
+  /// luar talian bagi bahasa ini dipasang, gunakan itu secara jelas supaya arahan berfungsi di kawasan
+  /// tanpa liputan. Tiada suara luar talian: lalai enjin dikekalkan (berfungsi bila ada internet).
+  Future<void> _preferOfflineVoice(VoiceLanguage language) async {
+    if (defaultTargetPlatform != TargetPlatform.android) return;
+    try {
+      final voice = pickOfflineVoice(await _tts.getVoices, language);
+      if (voice != null) await _tts.setVoice(voice);
+    } on Object catch (e) {
+      logDiag('Pilih suara offline gagal: $e');
+    }
   }
 }
 

@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
+import android.speech.tts.TextToSpeech
 import com.fguniversalempire.fgmaps.car.CarBridge
 import com.ryanheise.audioservice.AudioServiceActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -75,6 +76,14 @@ class MainActivity : AudioServiceActivity() {
                         )
                     }
                     "openAppSettings" -> result.success(launchFirst())
+                    // Suara navigasi offline: skrin muat turun data suara enjin TTS (Google: pilih
+                    // "Melayu"), kemudian tetapan TTS sistem jika skrin itu tiada.
+                    "openTtsSettings" -> result.success(
+                        launchFirst(
+                            Intent(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA),
+                            Intent("com.android.settings.TTS_SETTINGS"),
+                        ),
+                    )
                     "isIgnoringBatteryOptimizations" -> {
                         val pm = getSystemService(POWER_SERVICE) as PowerManager
                         result.success(

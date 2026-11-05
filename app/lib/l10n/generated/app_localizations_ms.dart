@@ -3912,4 +3912,25 @@ class AppLocalizationsMs extends AppLocalizations {
   @override
   String get doorstepSavedSnack =>
       'Disimpan. Lain kali FGMaps terus ke pintu ini.';
+
+  @override
+  String get navOfflineVoiceReady => 'Suara tanpa internet: sedia';
+
+  @override
+  String get navOfflineVoiceReadyHint =>
+      'Arahan bersuara berfungsi walaupun tiada liputan.';
+
+  @override
+  String get navOfflineVoiceMissing => 'Suara tanpa internet: belum dipasang';
+
+  @override
+  String get navOfflineVoiceMissingHint =>
+      'Tanpa internet, arahan mungkin senyap. Muat turun suara bahasa ini dalam tetapan suara telefon.';
+
+  @override
+  String get navOfflineVoiceInstall => 'Pasang';
+
+  @override
+  String get navOfflineVoiceSnack =>
+      'Suara tanpa internet belum dipasang: arahan mungkin senyap di kawasan tiada liputan.';
 }

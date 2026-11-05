@@ -3914,4 +3914,25 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get doorstepSavedSnack =>
       'Saved. Next time FGMaps goes straight to this entrance.';
+
+  @override
+  String get navOfflineVoiceReady => 'Offline voice: ready';
+
+  @override
+  String get navOfflineVoiceReadyHint =>
+      'Spoken directions work even with no signal.';
+
+  @override
+  String get navOfflineVoiceMissing => 'Offline voice: not installed';
+
+  @override
+  String get navOfflineVoiceMissingHint =>
+      'Without internet, directions may be silent. Download this language\'s voice in your phone\'s speech settings.';
+
+  @override
+  String get navOfflineVoiceInstall => 'Install';
+
+  @override
+  String get navOfflineVoiceSnack =>
+      'Offline voice isn\'t installed: directions may go silent where there\'s no signal.';
 }

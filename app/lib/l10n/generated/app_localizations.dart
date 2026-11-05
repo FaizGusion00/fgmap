@@ -6701,6 +6701,42 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'Disimpan. Lain kali FGMaps terus ke pintu ini.'**
   String get doorstepSavedSnack;
+
+  /// No description provided for @navOfflineVoiceReady.
+  ///
+  /// In ms, this message translates to:
+  /// **'Suara tanpa internet: sedia'**
+  String get navOfflineVoiceReady;
+
+  /// No description provided for @navOfflineVoiceReadyHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Arahan bersuara berfungsi walaupun tiada liputan.'**
+  String get navOfflineVoiceReadyHint;
+
+  /// No description provided for @navOfflineVoiceMissing.
+  ///
+  /// In ms, this message translates to:
+  /// **'Suara tanpa internet: belum dipasang'**
+  String get navOfflineVoiceMissing;
+
+  /// No description provided for @navOfflineVoiceMissingHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tanpa internet, arahan mungkin senyap. Muat turun suara bahasa ini dalam tetapan suara telefon.'**
+  String get navOfflineVoiceMissingHint;
+
+  /// No description provided for @navOfflineVoiceInstall.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pasang'**
+  String get navOfflineVoiceInstall;
+
+  /// No description provided for @navOfflineVoiceSnack.
+  ///
+  /// In ms, this message translates to:
+  /// **'Suara tanpa internet belum dipasang: arahan mungkin senyap di kawasan tiada liputan.'**
+  String get navOfflineVoiceSnack;
 }
 
 class _AppLocalizationsDelegate

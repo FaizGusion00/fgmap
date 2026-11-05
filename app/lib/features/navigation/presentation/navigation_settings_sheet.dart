@@ -5,6 +5,7 @@ import '../../../core/widgets/sheet_bottom_inset.dart';
 import '../../../core/theme/theme_controller.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../data/navigation_settings.dart';
+import '../data/offline_voice.dart';
 import '../domain/camera_planner.dart';
 import '../domain/instruction_text.dart';
 
@@ -167,6 +168,10 @@ class NavigationSettingsSection extends ConsumerWidget {
             selected: {settings.voiceLanguage},
             onSelectionChanged: (s) => controller.setVoiceLanguage(s.first),
           ),
+        ),
+        OfflineVoiceRow(
+          language:
+              settings.voiceLanguage ?? VoiceLanguage.fromCode(l10n.localeName),
         ),
         const SizedBox(height: 20),
         Text(l10n.settingsVoiceVolume, style: theme.textTheme.titleSmall),
@@ -353,6 +358,97 @@ class _NavThemeRow extends ConsumerWidget {
         selected: {mode},
         onSelectionChanged: (s) =>
             ref.read(themeControllerProvider.notifier).setMode(s.first),
+      ),
+    );
+  }
+}
+
+/// Status suara tanpa internet bagi bahasa suara semasa: hijau jika dipasang; jika tidak, butang ke
+/// skrin muat turun suara sistem. Disemak semula bila pengguna kembali ke app (selepas memasang).
+class OfflineVoiceRow extends ConsumerStatefulWidget {
+  const OfflineVoiceRow({super.key, required this.language});
+
+  final VoiceLanguage language;
+
+  @override
+  ConsumerState<OfflineVoiceRow> createState() => _OfflineVoiceRowState();
+}
+
+class _OfflineVoiceRowState extends ConsumerState<OfflineVoiceRow>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.invalidate(offlineVoiceStatusProvider(widget.language));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final status = ref.watch(offlineVoiceStatusProvider(widget.language)).value;
+    if (status == null || status == OfflineVoiceStatus.unknown) {
+      return const SizedBox.shrink();
+    }
+    final ok = status == OfflineVoiceStatus.installed;
+    final color = ok ? Colors.green.shade600 : theme.colorScheme.error;
+    return Container(
+      key: ValueKey('offline-voice-${status.name}'),
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            ok ? Icons.offline_pin_rounded : Icons.cloud_off_rounded,
+            color: color,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  ok ? l10n.navOfflineVoiceReady : l10n.navOfflineVoiceMissing,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  ok
+                      ? l10n.navOfflineVoiceReadyHint
+                      : l10n.navOfflineVoiceMissingHint,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (!ok)
+            TextButton(
+              key: const ValueKey('offline-voice-install'),
+              onPressed: () =>
+                  ref.read(offlineVoiceProbeProvider).openInstaller(),
+              child: Text(l10n.navOfflineVoiceInstall),
+            ),
+        ],
       ),
     );
   }
