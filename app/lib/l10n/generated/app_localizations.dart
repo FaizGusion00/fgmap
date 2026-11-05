@@ -3695,37 +3695,37 @@ abstract class AppLocalizations {
   /// No description provided for @aboutNew1.
   ///
   /// In ms, this message translates to:
-  /// **'CCTV lebuh raya terus daripada Lembaga Lebuhraya Malaysia (34 lebuh raya). Dari pratonton laluan, tekan \"CCTV laluan\" untuk kamera di laluan anda'**
+  /// **'Jejambat dan jalan bawah: di simpang bertingkat, kad dan suara beritahu \"Naik jejambat\", \"Jangan naik jejambat, ikut jalan bawah\" atau \"Laluan bawah tanah\"'**
   String get aboutNew1;
 
   /// No description provided for @aboutNew2.
   ///
   /// In ms, this message translates to:
-  /// **'Kalkulator tol rasmi LLM dalam app: pilih lebuh raya dan plaza, lihat kadar untuk kereta, van, lori, teksi dan bas'**
+  /// **'Navigasi sampai ke pintu: pilih pintu utama, pondok pengawal, masuk parkir atau loading bay, atau simpan pintu anda sendiri semasa tiba'**
   String get aboutNew2;
 
   /// No description provided for @aboutNew3.
   ///
   /// In ms, this message translates to:
-  /// **'Anggaran tol dibetulkan: plaza dipadankan pada booth sebenar dan kadar terus daripada kalkulator LLM (cth. Setia Alam ke JB RM37.15). Jika plaza masuk/keluar tidak pasti, app beritahu, bukan teka harga rendah'**
+  /// **'Garisan laluan biru kini sentiasa kelihatan, melekat pada kereta dan tidak lagi tersorok di bawah jejantas'**
   String get aboutNew3;
 
   /// No description provided for @aboutNew4.
   ///
   /// In ms, this message translates to:
-  /// **'Cari di Google dalam app: tekan \"Arah\" atau \"Buka dalam Peta\" dan FGMaps terus kira laluan ke lokasi tepat Google, tanpa carian semula'**
+  /// **'Suara tanpa internet, dan bila internet kembali laluan, cuaca, harga minyak serta had laju dikemas kini sendiri'**
   String get aboutNew4;
 
   /// No description provided for @aboutNew5.
   ///
   /// In ms, this message translates to:
-  /// **'Senarai masjid & surau Malaysia (JAKIM): cari, tapis ikut negeri dan daerah, kemudian Arah atau Pergi terus'**
+  /// **'Imej satelit lebih tajam di bandar, dan muat turun peta offline boleh disambung dari tempat ia terhenti'**
   String get aboutNew5;
 
   /// No description provided for @aboutNew6.
   ///
   /// In ms, this message translates to:
-  /// **'FG AI boleh buka CCTV dan kalkulator tol: cuba \"cctv plus selatan\" atau \"kalkulator tol\"'**
+  /// **'About kini ada semua sumber data, dan halaman \"Semua perubahan\" dengan perbandingan sebelum dan selepas'**
   String get aboutNew6;
 
   /// No description provided for @alongRouteTitle.
@@ -6959,6 +6959,66 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'Sambung muat turun'**
   String get offlineMapsResume;
+
+  /// No description provided for @aboutAllChanges.
+  ///
+  /// In ms, this message translates to:
+  /// **'Lihat semua perubahan'**
+  String get aboutAllChanges;
+
+  /// No description provided for @aboutAllChangesHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Setiap versi, dengan perbandingan sebelum dan selepas'**
+  String get aboutAllChangesHint;
+
+  /// No description provided for @changelogTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Semua perubahan'**
+  String get changelogTitle;
+
+  /// No description provided for @changelogIntro.
+  ///
+  /// In ms, this message translates to:
+  /// **'Apa yang berubah dalam setiap versi FGMaps. Bagi setiap perubahan, \"Sebelum\" ialah apa yang berlaku dahulu dan \"Selepas\" ialah apa yang berlaku sekarang.'**
+  String get changelogIntro;
+
+  /// No description provided for @changelogBefore.
+  ///
+  /// In ms, this message translates to:
+  /// **'Sebelum'**
+  String get changelogBefore;
+
+  /// No description provided for @changelogAfter.
+  ///
+  /// In ms, this message translates to:
+  /// **'Selepas'**
+  String get changelogAfter;
+
+  /// No description provided for @changelogTip.
+  ///
+  /// In ms, this message translates to:
+  /// **'Cara guna'**
+  String get changelogTip;
+
+  /// No description provided for @changelogLatest.
+  ///
+  /// In ms, this message translates to:
+  /// **'Terkini'**
+  String get changelogLatest;
+
+  /// No description provided for @changelogVersion.
+  ///
+  /// In ms, this message translates to:
+  /// **'Versi {version}'**
+  String changelogVersion(String version);
+
+  /// No description provided for @changelogLoadFailed.
+  ///
+  /// In ms, this message translates to:
+  /// **'Senarai perubahan tidak dapat dibuka. Cuba lagi.'**
+  String get changelogLoadFailed;
 }
 
 class _AppLocalizationsDelegate

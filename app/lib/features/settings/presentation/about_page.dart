@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../../../core/widgets/fade_through_route.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import 'changelog_page.dart';
 
 final appPackageInfoProvider = FutureProvider<PackageInfo>(
   (ref) => PackageInfo.fromPlatform(),
@@ -10,7 +12,7 @@ final appPackageInfoProvider = FutureProvider<PackageInfo>(
 
 /// Versi yang diterangkan oleh kad "Baharu dalam versi". Mesti sama dengan `version:` dalam pubspec.yaml;
 /// `about_page_test.dart` gagal jika berbeza.
-const aboutWhatsNewVersion = '1.7.0';
+const aboutWhatsNewVersion = '1.8.0';
 
 /// Tarikh keluaran versi [aboutWhatsNewVersion] (dipaparkan dalam About).
 final aboutReleaseDate = DateTime(2026, 11, 6);
@@ -215,6 +217,23 @@ class AboutPage extends ConsumerWidget {
                           ),
                       ],
                     ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Card(
+                  margin: EdgeInsets.zero,
+                  child: ListTile(
+                    key: const ValueKey('about-all-changes'),
+                    leading: Icon(
+                      Icons.compare_arrows_rounded,
+                      color: theme.colorScheme.primary,
+                    ),
+                    title: Text(l10n.aboutAllChanges),
+                    subtitle: Text(l10n.aboutAllChangesHint),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => Navigator.of(
+                      context,
+                    ).push<void>(fadeThroughRoute(const ChangelogPage())),
                   ),
                 ),
                 const SizedBox(height: 16),

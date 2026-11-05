@@ -2109,27 +2109,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutNew1 =>
-      'Highway CCTV straight from the Malaysian Highway Authority (34 highways). From the route preview, tap \"Route CCTV\" for cameras on your route';
+      'Flyovers and the road below: at multi-level junctions the card and voice say \"Take the flyover\", \"Stay on the lower road\" or \"Underpass\"';
 
   @override
   String get aboutNew2 =>
-      'Official LLM toll calculator in the app: pick a highway and plazas to see rates for cars, vans, lorries, taxis and buses';
+      'Navigation to the entrance: pick the main entrance, guardhouse, car park entrance or loading bay, or save your own entrance when you arrive';
 
   @override
   String get aboutNew3 =>
-      'Toll estimates fixed: plazas are matched on their real booths and rates come straight from the LLM calculator (e.g. Setia Alam to JB RM37.15). If the entry/exit plaza is unclear, the app says so instead of guessing low';
+      'The blue route line now always stays visible, sticks to the car and no longer hides under flyovers';
 
   @override
   String get aboutNew4 =>
-      'Search on Google inside the app: tap \"Directions\" or \"Open in Maps\" and FGMaps routes straight to Google\'s exact pin, no re-search';
+      'Voice guidance without internet, and when you are back online the route, weather, fuel prices and speed limits refresh by themselves';
 
   @override
   String get aboutNew5 =>
-      'Malaysia mosque & surau directory (JAKIM): search, filter by state and district, then Directions or Go';
+      'Sharper satellite imagery in towns, and the offline map download can resume where it stopped';
 
   @override
   String get aboutNew6 =>
-      'FG AI can open CCTV and the toll calculator: try \"cctv plus selatan\" or \"toll calculator\"';
+      'About now lists every data source, plus an \"All changes\" page with before and after comparisons';
 
   @override
   String get alongRouteTitle => 'Along the route';
@@ -4060,4 +4060,39 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get offlineMapsResume => 'Resume download';
+
+  @override
+  String get aboutAllChanges => 'See all changes';
+
+  @override
+  String get aboutAllChangesHint =>
+      'Every version, with before and after comparisons';
+
+  @override
+  String get changelogTitle => 'All changes';
+
+  @override
+  String get changelogIntro =>
+      'What changed in each FGMaps version. For each change, \"Before\" is what happened earlier and \"After\" is what happens now.';
+
+  @override
+  String get changelogBefore => 'Before';
+
+  @override
+  String get changelogAfter => 'After';
+
+  @override
+  String get changelogTip => 'How to use';
+
+  @override
+  String get changelogLatest => 'Latest';
+
+  @override
+  String changelogVersion(String version) {
+    return 'Version $version';
+  }
+
+  @override
+  String get changelogLoadFailed =>
+      'The list of changes couldn\'t be opened. Try again.';
 }

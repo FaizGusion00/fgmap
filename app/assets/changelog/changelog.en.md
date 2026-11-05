@@ -1,0 +1,226 @@
+# 1.8.0 | 2026-11-06
+This release focuses on real driving in Malaysia: multi-level junctions, getting to the right door, voice guidance that keeps working without internet, and a route line that no longer disappears.
+
+## The blue route line stays visible and sticks to the car
+Before: On some phones and roads, the blue line disappeared in front of the car and reappeared far ahead. On the dark, offline and satellite maps it was also hidden under flyovers, elevated highways and ramps, and came back after the flyover.
+After: The blue line is now drawn above every road and flyover (street names still sit on top). It starts right under the car and moves smoothly with it, including through corners. A backup line that always starts just ahead of the car keeps the route visible even if a phone fails to draw the trimmed part.
+
+## Flyovers and the road below
+Before: At multi-level junctions the app only said "Keep right" or "Take the ramp", without saying whether to go up the flyover or stay on the road below. Many drivers went up the wrong flyover.
+After: The instruction card and voice now say "Take the flyover", "Stay on the lower road, not the flyover" or "Take the underpass". The same hint is shown on the car screen (Android Auto).
+How to use: It appears on its own at forks and slip roads. "Take the flyover" and "underpass" come from the route data, so they work without internet. "Stay on the lower road" needs internet.
+
+## Navigation to the entrance
+Before: The route ended at the destination pin, which is sometimes in the middle of a building or at the wrong door. Drivers had to circle around looking for the entrance or the car park.
+After: The route preview now lists the main entrance, guardhouse or visitor gate, car park entrance, loading bay and building doors. Tap one and the route goes straight there. You can make one entrance the default for that place, or tap "Save my spot as the entrance" when you arrive. Next time FGMaps goes straight to that entrance.
+How to use: Tap an entrance to route there, long-press to make it the default. The first time needs internet, then it is kept for 30 days. Entrance data may be incomplete, so some places only have a pin or a gate.
+
+## Voice guidance without internet
+Before: Voice guidance depended on the phone's settings. If the Malay voice needed internet, instructions could go silent in areas without coverage, with no warning.
+After: FGMaps now picks a voice that is already installed on the phone. Navigation settings show "Offline voice: ready" or "not installed" with an Install button. If the voice is not installed, a warning appears once when navigation starts.
+How to use: Navigation settings > Offline voice > Install, then download the voice for your language once (for example in Google Text-to-Speech). On iPhone it depends on Apple's voices.
+
+## Back online, data refreshes by itself
+Before: Anything that failed to load while offline (route, weather, fuel prices, speed limits) stayed empty until you redid it yourself.
+After: The app tells you when you are offline. When the internet comes back it reloads the failed route, weather, fuel prices and places along the route by itself. During navigation it also reloads speed limits, flyovers and cameras, without changing your route.
+
+## Resume the offline map download
+Before: If the app was closed while downloading the map pack (510 MB), the card showed "Not downloaded" and the download seemed to start over.
+After: The card now shows "Download paused at X%" with a "Resume download" button, and the download continues from there.
+How to use: The offline map pack is downloaded once. Offline search covers the places in that pack, so not every place on Google will be found.
+
+## Sharper satellite imagery in towns
+Before: The satellite map was capped at zoom level 18, so it looked blurry when zoomed in.
+After: In towns and suburbs, native level-19 imagery now switches on by itself. It is about twice as detailed, so road markings, vehicles and trees are visible. It is only used where the imagery is confirmed to exist. Elsewhere the map stays as before, with no grey "no data" tiles.
+How to use: Map layers button > Satellite, then zoom in. Very close zoom (beyond level 19) is still soft because finer imagery does not exist.
+
+## Weather and search while offline
+Before: While offline, the weather card could show saved weather for another destination up to 50 km away (for example KLIA weather for a route to KLCC). The "Search on Google" row also stayed even though it cannot work without internet.
+After: Saved weather is only used for destinations within 10 km, labelled with the current destination. The "Search on Google" row is hidden when there is no internet, and offline search stays available.
+
+## A more complete About page, and this page
+Before: Data provider names were sprinkled across the screens, for example "Data: OpenStreetMap", "Weather: Open-Meteo" and "via Audius". About only showed the version and six lines of recent changes.
+After: The screens are now clean, without source names. All credits are organised in About > Data sources, one line for each kind of data. About also shows the version, build number, release date and an "Open-source licences" button. This "All changes" page explains every version with a before and after comparison.
+How to use: Settings > About FGMaps > See all changes.
+
+# 1.7.0 | 2026-11-06
+Highway CCTV and the official toll calculator, right inside the app.
+
+## Highway CCTV
+Before: To check traffic on a highway you had to leave FGMaps and open another website or app.
+After: Real CCTV images from the Malaysian Highway Authority for 34 highways are now in the app. Images update about every minute and refresh by themselves every 30 seconds, with a timestamp on the image. From the route preview, tap "Route CCTV" to see only the cameras along your route.
+How to use: These are camera images updated regularly, not live video. Needs internet.
+
+## Official toll calculator
+Before: Toll rates were only estimated from a dataset in the app, with no way to check the official rate.
+After: The official toll calculator is in the app: pick a highway and plazas, and see the rate for cars, vans, lorries, taxis and buses, straight from the government calculator.
+
+## Route toll estimate fixed
+Before: Toll plazas were sometimes matched to the wrong plaza, so the toll estimate could be too low.
+After: Plazas are now matched to the actual booth, and rates come straight from the official calculator. For example Setia Alam to Johor Bahru is RM38.87 (RM37.15 to Skudai plus RM1.72 at Kempas). If the entry or exit plaza is uncertain, the app tells you instead of guessing a low price.
+
+## FG AI opens CCTV and the toll calculator
+Before: FG AI did not know about CCTV or the toll calculator.
+After: Try "cctv plus selatan" or "toll calculator". FG AI opens the right screen.
+
+# 1.6.0 | 2026-11-05
+The mosque and surau list for all of Malaysia, and Google search inside the app.
+
+## Mosque and surau list (JAKIM)
+Before: Mosques could only be found one at a time through map search, and there was no complete list.
+After: The official list of mosques and suraus across Malaysia (about 23,000 places). Search by name, filter by state and district, then tap Directions for a route preview or Go to start navigating.
+How to use: The list is official data from 2019, so some entries may have changed. About 7% have an exact location. The rest are looked up by address when tapped and marked "approximate".
+
+## Search on Google inside the app
+Before: Places missing from FGMaps search had to be found in another app and copied into FGMaps.
+After: "Search on Google" opens right inside the app. Tap "Directions" or "Open in Maps" on a Google result and FGMaps routes straight to the exact location Google gives, without searching for the name again.
+
+## FG AI opens the mosque list
+Before: FG AI could only find the nearest mosque.
+After: Try "senarai masjid Selangor" (mosque list Selangor). FG AI opens the list already filtered.
+
+## More complete toll estimates
+Before: Some highways such as SPE, Besraya and NPE were missing from the toll estimate.
+After: Toll estimates are clearer and cover more highways, including SPE, Besraya and NPE.
+
+# 1.5.0 | 2026-11-05
+Satellite map and music that keeps playing.
+
+## Satellite map
+Before: Only the regular street map (light and dark).
+After: A Satellite map type, like Google Maps: satellite imagery with roads, place names and the navigation route on top.
+How to use: Tap the layers button on the map and choose Satellite. Needs internet.
+
+## Music keeps playing in the background
+Before: Music could stop when the screen was locked or the app was left.
+After: Music keeps playing in the background, with play, pause and next controls on the notification and lock screen.
+
+## Android Auto with the phone locked
+Before: The map on the car screen could stop moving when the phone was locked.
+After: Android Auto keeps moving and guiding even when the phone is locked.
+
+# 1.4.0 | 2026-11-02
+A new look, and pictures of the real junction before you turn.
+
+## New logo and opening animation
+Before: The early logo and opening screen.
+After: The new FGMaps logo with a new, lighter opening animation.
+
+## Pictures of the real junction
+Before: Only a direction arrow, with no picture of the junction ahead.
+After: When a turn is near, the card shows the real junction: T-junctions, crossroads and roundabouts with the exit number. A white arrow on the map shows exactly where to turn.
+
+## Landscape mode improved
+Before: When the phone was rotated to landscape, the car and the route line could drift out of place.
+After: The car and the route stay aligned when the phone is rotated, and a compact junction box is shown in landscape too.
+
+## Smoother navigation start
+Before: The camera could jump when navigation started, and the zoom did not adapt to the type of road.
+After: The camera moves straight to the car without jumping. Automatic zoom is smarter: closer in corners and further out on highways.
+
+## FG AI and the latest news
+Before: FG AI sometimes repeated an old answer even when asked for the latest news.
+After: FG AI searches for the latest news when asked, and no longer repeats old answers.
+
+## Android Auto
+Before: The car screen map had no car icon, did not follow the car's night mode, and could not be panned.
+After: A car icon on the map, night mode that follows the car, pan and zoom, and the map keeps moving even when the phone is locked.
+
+# 1.3.0 | 2026-11-01
+A smarter FG AI, and lane guidance on the map.
+
+## FG AI understands everyday sentences
+Before: FG AI sometimes did not understand normal sentences or slang, and showed odd text such as "/no_tool".
+After: FG AI understands everyday sentences, slang and typos. It can find 23 kinds of places (pharmacy, barber, ATM, hotel and more), shown as cards with distance, area and a Go button.
+
+## FG AI answers up-to-date questions from the web
+Before: FG AI could only answer from knowledge on the phone.
+After: FG AI can answer up-to-date questions from free web sources: news, exchange rates and fuel prices.
+How to use: It can be turned off in Settings > FG AI. Only your question is sent, not your location or chat history.
+
+## FG AI taps buttons for you, and Lite Mode
+Before: FG AI only answered with text.
+After: FG AI can open screens and tap buttons in the app for you, and you see every step it takes. Lite Mode reduces animations and 3D buildings on slower phones.
+
+## Lane box and direction arrows
+Before: No lane guidance on the map.
+After: A lane box and direction arrows on the map while driving, so you know which lane to take before the junction.
+
+## Android Auto
+Before: The car screen could only search for places by name.
+After: A Nearby button, voice search in plain sentences (for example "nearest barber"), prayer time, and real lanes on the car screen.
+
+## More accurate place search
+Before: Some Malaysian place names and abbreviations were hard to find.
+After: Place search in Malaysia is more accurate and faster.
+
+# 1.2.1 | 2026-10-31
+An important fix and a real Qibla compass.
+
+## The app no longer closes by itself
+Before: On some Android phones, the app closed by itself right after opening.
+After: That problem is fixed.
+
+## A real Qibla compass
+Before: The Qibla direction was only calculated from GPS.
+After: The Qibla compass uses the phone's sensor and turns green when the phone faces the Qibla exactly.
+
+## A tidier home screen
+Before: Shortcuts, prayer time and tools were scattered on the home screen.
+After: A tidier home screen, with shortcuts, prayer time and tools neatly arranged.
+
+## R&R and fuel stations along the route
+Before: R&R stops and fuel stations along the route sometimes did not appear.
+After: They now appear reliably and faster.
+
+## Weather icons and azan in the background
+Before: Plain weather icons, and the azan needed the app to be open.
+After: Colourful, animated weather icons. The azan can play in the background with one tap.
+
+# 1.2.0 | 2026-10-31
+Air quality, toll cost and EV chargers.
+
+## Air quality (API)
+Before: No air quality information.
+After: The official Air Pollutant Index from the nearest monitoring station.
+
+## Toll estimate in the route preview
+Before: Toll cost was not shown before the trip.
+After: An estimated toll cost in RM in the route preview.
+How to use: This is an estimate, not an official bill.
+
+## EV chargers along the route
+Before: Only fuel stations and R&R stops.
+After: Electric vehicle chargers along the route are shown too.
+
+## Qibla direction
+Before: No Qibla direction in the app.
+After: The Qibla direction from your GPS location.
+
+## Haze alerts
+Before: No air quality alerts during a trip.
+After: Haze alerts along the route, and short voice alerts on Android Auto.
+
+# 1.1.0 | 2026-10-31
+Prayer times, music and Easy mode.
+
+## Official prayer times
+Before: No prayer times in the app.
+After: Official JAKIM prayer times with azan notifications, even when the app is closed.
+
+## Music and radio in the app
+Before: Music had to be played from another app.
+After: Music and radio in the app (Malaysia, Indonesia, Korea and K-pop). Voice guidance always stays clear over the music.
+How to use: The free song catalogue is independent music. Songs by major-label artists can be searched straight in your own Spotify or YouTube Music.
+
+## Easy mode
+Before: The same display size for everyone.
+After: Easy mode with a bigger display and higher contrast, for older drivers.
+
+## Lane guidance and night map
+Before: No lane guidance, and the night map was less clear.
+After: Lane guidance, and a clear blue night map.
+
+## Clear roundabout icons
+Before: Roundabouts were shown with a small icon.
+After: A clear roundabout icon with the exit number in the middle.

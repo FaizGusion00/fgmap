@@ -1,7 +1,7 @@
 name: fgmap
 description: "FGMap: aplikasi navigasi komuniti Malaysia."
 publish_to: 'none'
-version: 1.7.0+24
+version: 1.8.0+25
 
 environment:
   sdk: ^3.12.0
@@ -82,6 +82,7 @@ flutter:
     - assets/map/fonts/Noto_Sans_Bold/
     - assets/map/fonts/Noto_Sans_Italic/
     - assets/legal/
+    - assets/changelog/
     - assets/audio/
 
   fonts:

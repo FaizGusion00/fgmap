@@ -39,12 +39,14 @@ void main() {
       find.byKey(const ValueKey('about-whats-new')),
       300,
     );
-    expect(find.text('Baharu dalam versi 1.7.0'), findsOneWidget);
-    expect(find.textContaining('Senarai masjid & surau'), findsOneWidget);
-    expect(
-      find.textContaining('Cari di Google dalam app'),
-      findsOneWidget,
+    expect(find.text('Baharu dalam versi 1.8.0'), findsOneWidget);
+    expect(find.textContaining('Jejambat dan jalan bawah'), findsOneWidget);
+    expect(find.textContaining('Navigasi sampai ke pintu'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('about-all-changes')),
+      200,
     );
+    expect(find.byKey(const ValueKey('about-all-changes')), findsOneWidget);
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('about-attribution')),
       300,

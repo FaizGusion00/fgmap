@@ -2102,27 +2102,27 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get aboutNew1 =>
-      'CCTV lebuh raya terus daripada Lembaga Lebuhraya Malaysia (34 lebuh raya). Dari pratonton laluan, tekan \"CCTV laluan\" untuk kamera di laluan anda';
+      'Jejambat dan jalan bawah: di simpang bertingkat, kad dan suara beritahu \"Naik jejambat\", \"Jangan naik jejambat, ikut jalan bawah\" atau \"Laluan bawah tanah\"';
 
   @override
   String get aboutNew2 =>
-      'Kalkulator tol rasmi LLM dalam app: pilih lebuh raya dan plaza, lihat kadar untuk kereta, van, lori, teksi dan bas';
+      'Navigasi sampai ke pintu: pilih pintu utama, pondok pengawal, masuk parkir atau loading bay, atau simpan pintu anda sendiri semasa tiba';
 
   @override
   String get aboutNew3 =>
-      'Anggaran tol dibetulkan: plaza dipadankan pada booth sebenar dan kadar terus daripada kalkulator LLM (cth. Setia Alam ke JB RM37.15). Jika plaza masuk/keluar tidak pasti, app beritahu, bukan teka harga rendah';
+      'Garisan laluan biru kini sentiasa kelihatan, melekat pada kereta dan tidak lagi tersorok di bawah jejantas';
 
   @override
   String get aboutNew4 =>
-      'Cari di Google dalam app: tekan \"Arah\" atau \"Buka dalam Peta\" dan FGMaps terus kira laluan ke lokasi tepat Google, tanpa carian semula';
+      'Suara tanpa internet, dan bila internet kembali laluan, cuaca, harga minyak serta had laju dikemas kini sendiri';
 
   @override
   String get aboutNew5 =>
-      'Senarai masjid & surau Malaysia (JAKIM): cari, tapis ikut negeri dan daerah, kemudian Arah atau Pergi terus';
+      'Imej satelit lebih tajam di bandar, dan muat turun peta offline boleh disambung dari tempat ia terhenti';
 
   @override
   String get aboutNew6 =>
-      'FG AI boleh buka CCTV dan kalkulator tol: cuba \"cctv plus selatan\" atau \"kalkulator tol\"';
+      'About kini ada semua sumber data, dan halaman \"Semua perubahan\" dengan perbandingan sebelum dan selepas';
 
   @override
   String get alongRouteTitle => 'Sepanjang laluan';
@@ -4058,4 +4058,39 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get offlineMapsResume => 'Sambung muat turun';
+
+  @override
+  String get aboutAllChanges => 'Lihat semua perubahan';
+
+  @override
+  String get aboutAllChangesHint =>
+      'Setiap versi, dengan perbandingan sebelum dan selepas';
+
+  @override
+  String get changelogTitle => 'Semua perubahan';
+
+  @override
+  String get changelogIntro =>
+      'Apa yang berubah dalam setiap versi FGMaps. Bagi setiap perubahan, \"Sebelum\" ialah apa yang berlaku dahulu dan \"Selepas\" ialah apa yang berlaku sekarang.';
+
+  @override
+  String get changelogBefore => 'Sebelum';
+
+  @override
+  String get changelogAfter => 'Selepas';
+
+  @override
+  String get changelogTip => 'Cara guna';
+
+  @override
+  String get changelogLatest => 'Terkini';
+
+  @override
+  String changelogVersion(String version) {
+    return 'Versi $version';
+  }
+
+  @override
+  String get changelogLoadFailed =>
+      'Senarai perubahan tidak dapat dibuka. Cuba lagi.';
 }
