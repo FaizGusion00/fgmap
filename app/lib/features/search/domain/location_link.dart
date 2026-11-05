@@ -26,6 +26,10 @@ SharedLocation? sharedLocationFromUri(Uri uri) {
         'google.com',
         'www.google.com',
         'maps.google.com',
+        // Google Malaysia (carian dalam app dihantar ke google.com.my).
+        'google.com.my',
+        'www.google.com.my',
+        'maps.google.com.my',
         'maps.app.goo.gl',
         'goo.gl',
         'waze.com',
@@ -48,6 +52,20 @@ SharedLocation? sharedLocationFromUri(Uri uri) {
           params['q'] ??
           params['query'],
   };
+  // Google Search "Arah" kadang-kadang menghantar `destination=Nama, Alamat @3.21,101.75`.
+  final at = RegExp(
+    r'@\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$',
+  ).firstMatch(params['destination'] ?? params['daddr'] ?? '');
+  if (scheme != 'geo' && scheme != 'google.navigation' && at != null) {
+    final p = _point(at.group(1), at.group(2));
+    final name = (params['destination'] ?? params['daddr'])!
+        .substring(0, at.start)
+        .trim()
+        .replaceFirst(RegExp(r',\s*$'), '');
+    if (p != null) {
+      return SharedLocation(point: p, label: sanitizeSharedLabel(name));
+    }
+  }
   final label = _placeLabel(uri, params);
   final preferredQuery = params['query'] ?? params['q'];
   final queryPoint = _coordinates(preferredQuery);
@@ -64,10 +82,62 @@ SharedLocation? sharedLocationFromUri(Uri uri) {
       queryPoint ??
       (invalidGeoQuery || geoPlaceholder
           ? null
-          : _coordinates(candidate) ?? _coordinatesFromMapPath(uri.path));
+          : _coordinates(candidate) ??
+                // Pin tempat (`!3d<lat>!4d<lng>` dalam data=) lebih tepat daripada `@` (pusat peta).
+                _pinFromData(uri) ??
+                _coordinatesFromMapPath(uri.path));
   final cleanLabel = sanitizeSharedLabel(label);
   if (point == null && (cleanLabel == null || cleanLabel.isEmpty)) return null;
   return SharedLocation(point: point, label: cleanLabel);
+}
+
+GeoPoint? _pinFromData(Uri uri) {
+  final match = RegExp(
+    r'!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)',
+  ).firstMatch(Uri.decodeFull(uri.toString()));
+  if (match == null) return null;
+  return _point(match.group(1), match.group(2));
+}
+
+/// Pautan dalam pelayar carian yang patut dibuka dalam FGMaps (bukan dimuat dalam pelayar): halaman
+/// Google Maps, pautan pendek peta, dan skema app peta. Halaman carian Google biasa (`/search?q=`)
+/// TIDAK termasuk walaupun ada `q`.
+bool isMapHandoffUrl(Uri uri) {
+  final scheme = uri.scheme.toLowerCase();
+  if (const {'geo', 'google.navigation', 'comgooglemaps'}.contains(scheme)) {
+    return true;
+  }
+  if (scheme != 'http' && scheme != 'https') return false;
+  final host = uri.host.toLowerCase();
+  if (host == 'maps.app.goo.gl') return true;
+  if (host == 'goo.gl') return uri.path.startsWith('/maps');
+  if (host.startsWith('maps.google.')) return true;
+  final google = RegExp(r'^(?:www\.)?google\.com(?:\.my)?$').hasMatch(host);
+  return google && uri.path.startsWith('/maps');
+}
+
+/// Pautan peta daripada `intent://` (butang "Arah" Google pada telefon membuka app Google Maps):
+/// `S.browser_fallback_url` jika ada, jika tidak bina semula `https://<hos><laluan>`.
+Uri? mapLinkFromIntent(String url) {
+  if (!url.startsWith('intent://')) return null;
+  final hash = url.indexOf('#Intent;');
+  final fallback = RegExp(
+    r'S\.browser_fallback_url=([^;]+)',
+  ).firstMatch(hash < 0 ? '' : url.substring(hash));
+  if (fallback != null) {
+    final u = Uri.tryParse(Uri.decodeComponent(fallback.group(1)!));
+    if (u != null && sharedLocationFromUri(u) != null) return u;
+  }
+  final body = url.substring('intent://'.length, hash < 0 ? url.length : hash);
+  final scheme = RegExp(r'scheme=([a-z.]+);').firstMatch(url)?.group(1);
+  final rebuilt = Uri.tryParse(
+    scheme == 'geo' || scheme == 'google.navigation'
+        ? '$scheme:$body'
+        : 'https://$body',
+  );
+  return rebuilt != null && sharedLocationFromUri(rebuilt) != null
+      ? rebuilt
+      : null;
 }
 
 GeoPoint? _coordinatesFromMapPath(String path) {
@@ -136,6 +206,16 @@ String? _placeLabel(Uri uri, Map<String, String> params) {
   if (placeIndex >= 0 && placeIndex + 1 < segments.length) {
     final place = segments[placeIndex + 1].replaceAll('+', ' ').trim();
     if (place.isNotEmpty) return place;
+  }
+  // `/maps/dir/<dari>/<ke>/@…`: destinasi ialah segmen bernama terakhir selepas `dir`.
+  final dirIndex = segments.indexOf('dir');
+  if (dirIndex >= 0) {
+    for (final seg in segments.skip(dirIndex + 1).toList().reversed) {
+      final t = seg.replaceAll('+', ' ').trim();
+      if (t.isEmpty || t.startsWith('@') || t.startsWith('data=')) continue;
+      if (_coordinates(t) != null) continue;
+      return t;
+    }
   }
   return null;
 }

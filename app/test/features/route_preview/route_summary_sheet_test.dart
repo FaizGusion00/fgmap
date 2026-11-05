@@ -217,7 +217,12 @@ void main() {
       'tanpa anggaran: jalan bertol sebenar dipaparkan, tiada harga direka',
       (tester) async {
         await pumpSheet(tester, ready(const {}));
-        expect(find.text('Tol: Lebuhraya Maju (E20), E6'), findsOneWidget);
+        expect(find.textContaining('Lebuhraya Maju (E20), E6'), findsOneWidget);
+        // Laluan bertol tanpa harga: kad tetap kelihatan dan berkata begitu, tiada RM direka.
+        expect(
+          find.text('Harga tol belum ada dalam data kami'),
+          findsOneWidget,
+        );
         expect(find.textContaining('RM'), findsNothing);
       },
     );
@@ -229,10 +234,18 @@ void main() {
           'x': const TollEstimate(plazaCount: 2, unknownCount: 0, knownRm: 5.5),
         }),
       );
-      expect(find.textContaining('Tol RM 5.50'), findsWidgets);
+      // Kad tol menonjol dengan harga besar, dan harga yang sama pada kad laluan.
       expect(
-        find.text(
-          'Anggaran untuk kereta (kelas 1) daripada kadar Lembaga Lebuhraya Malaysia; semak harga di plaza.',
+        find.descendant(
+          of: find.byKey(const ValueKey('toll-summary')),
+          matching: find.text('RM 5.50'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Anggaran tol'), findsOneWidget);
+      expect(
+        find.textContaining(
+          'Anggaran untuk kereta (kelas 1) daripada kadar rasmi; semak harga di plaza.',
         ),
         findsOneWidget,
       );
@@ -245,8 +258,12 @@ void main() {
           'x': const TollEstimate(plazaCount: 3, unknownCount: 1, knownRm: 4),
         }),
       );
-      expect(find.textContaining('Tol RM 4.00+ (sebahagian)'), findsOneWidget);
-      expect(find.text('RM 4.00+'), findsOneWidget, reason: 'ringkas pada kad');
+      expect(
+        find.text('RM 4.00+'),
+        findsNWidgets(2),
+        reason: 'kad tol + kad laluan',
+      );
+      expect(find.textContaining('1 plaza tiada harga'), findsOneWidget);
     });
 
     testWidgets(
@@ -259,7 +276,7 @@ void main() {
           }),
         );
         expect(
-          find.textContaining('2 plaza tol, harga tidak diketahui'),
+          find.text('Harga tol belum ada dalam data kami'),
           findsOneWidget,
         );
         expect(find.text('2 plaza'), findsOneWidget);
@@ -307,7 +324,7 @@ void main() {
       final state = RouteReady(query: _query, options: [_route(0)]);
       await pumpSheet(tester, state, fuelCostRm: 12.345);
       expect(find.byKey(const ValueKey('fuel-cost')), findsOneWidget);
-      expect(find.text('≈ RM 12.35 minyak'), findsOneWidget);
+      expect(find.text('≈ RM 12.35'), findsOneWidget);
 
       await pumpSheet(tester, state);
       expect(find.byKey(const ValueKey('fuel-cost')), findsNothing);

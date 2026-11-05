@@ -164,11 +164,14 @@ List<Tool> assistantTools() => const [
           'type': 'string',
           'description':
               'weather, qibla, air_quality, music, prayer_times, '
-              'offline_maps, settings, report, recenter, or find_place',
+              'offline_maps, settings, report, recenter, find_place, or '
+              'masjid_list (directory of mosques and surau in Malaysia)',
         },
         'place': {
           'type': 'string',
-          'description': 'Place name for weather or find_place (optional)',
+          'description':
+              'Place name for weather or find_place, or a state/area for '
+              'masjid_list (optional)',
         },
       },
       'required': ['action'],
@@ -254,5 +257,6 @@ AppScreen? appScreenForAction(String? action) => switch (action?.trim()) {
   'report' => AppScreen.report,
   'recenter' => AppScreen.recenter,
   'find_place' => AppScreen.findPlace,
+  'masjid_list' => AppScreen.masjidDirectory,
   _ => null,
 };

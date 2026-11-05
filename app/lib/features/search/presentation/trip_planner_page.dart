@@ -10,7 +10,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/utils/geo.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../domain/location_link.dart';
 import '../domain/place.dart';
+import 'web_search_page.dart';
 import '../../route_preview/presentation/route_format.dart';
 import '../data/nearby_search.dart';
 import '../domain/nearby_category.dart';
@@ -250,6 +252,35 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
     }
   }
 
+  /// Carian Google dalam app. Pautan peta yang ditekan (Arah/peta) dibaca di sini: dengan koordinat
+  /// terus dipilih; nama sahaja atau pautan pendek diserahkan kepada carian kita (yang sudah
+  /// menyokong pautan peta dan nama tempat).
+  Future<void> _openGoogle() async {
+    final l10n = AppLocalizations.of(context);
+    final typed = _destText.text.trim();
+    final uri = await showWebSearch(context, query: typed);
+    if (uri == null || !mounted) return;
+    final shared = sharedLocationFromUri(uri);
+    final point = shared?.point;
+    if (point != null) {
+      // Butang "Arah" Google selalunya meletakkan ALAMAT sebagai destinasi (`daddr=Kemensah
+      // Heights, …`), bukan nama tempat: nama yang pengguna cari lebih jelas, alamat jadi subtajuk.
+      final label = shared!.label;
+      _pick(
+        Place(
+          name: typed.isNotEmpty ? typed : (label ?? l10n.webSearchPlace),
+          subtitle: label != null && typed.isNotEmpty ? label : 'Google',
+          point: point,
+        ),
+      );
+      return;
+    }
+    final text = shared?.label ?? uri.toString();
+    _destText.text = text;
+    _destText.selection = TextSelection.collapsed(offset: text.length);
+    _onChanged(text);
+  }
+
   void _finish() {
     final destination = _destination;
     if (destination == null) return;
@@ -417,6 +448,29 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
               ),
             ),
             const Divider(),
+            // Tempat tiada dalam carian kita: cari di Google, kemudian "Arah" kembali ke FGMaps.
+            if (widget.assign == null)
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 720),
+                  child: ListTile(
+                    key: const ValueKey('planner-google'),
+                    dense: true,
+                    leading: const _PlaceIcon(
+                      icon: Icons.travel_explore_rounded,
+                    ),
+                    title: Text(
+                      _destText.text.trim().isEmpty
+                          ? l10n.webSearchOpen
+                          : l10n.webSearchFor(_destText.text.trim()),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    subtitle: Text(l10n.webSearchPlannerHint),
+                    onTap: () => unawaited(_openGoogle()),
+                  ),
+                ),
+              ),
             Expanded(
               child: Center(
                 child: ConstrainedBox(

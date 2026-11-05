@@ -2,7 +2,9 @@
 library;
 
 import 'package:fgmap/core/theme/app_theme.dart';
+import 'package:fgmap/features/route_preview/data/toll_finder.dart';
 import 'package:fgmap/features/route_preview/domain/route_option.dart';
+import 'package:fgmap/features/route_preview/domain/toll.dart';
 import 'package:fgmap/features/route_preview/domain/routing_failure.dart';
 import 'package:fgmap/features/route_preview/presentation/route_preview_controller.dart';
 import 'package:fgmap/features/route_preview/presentation/route_summary_sheet.dart';
@@ -18,10 +20,19 @@ void main() {
   setUpAll(loadAppFonts);
 
   const query = RouteQuery(origin: klcc, destination: klia);
+  final pricedRoute = sampleOption(via: 'Lebuhraya KLIA');
   final readyMany = RouteReady(
     query: query,
+    // Kad kos: tol dengan harga (RM 7.00) dan minyak.
+    tolls: {
+      routeKey(pricedRoute): const TollEstimate(
+        plazaCount: 2,
+        unknownCount: 0,
+        knownRm: 7,
+      ),
+    },
     options: [
-      sampleOption(via: 'Lebuhraya KLIA'),
+      pricedRoute,
       sampleOption(
         durationS: 3722,
         distanceM: 58100,
@@ -116,6 +127,7 @@ void main() {
                 onStart: () {},
                 onSimulate: () {},
                 now: DateTime(2026, 10, 26, 14, 5),
+                fuelCostRm: identical(state, readyMany) ? 15.54 : null,
               ),
             ),
         ],

@@ -310,33 +310,6 @@ class _ReadyBody extends StatelessWidget {
                       ),
                       if (route.source == RouteSource.offline)
                         _SourceBadge(label: l10n.routeSourceOffline),
-                      _TollSummary(
-                        route: route,
-                        estimate: state.tollOf(route),
-                        vehicle: state.query.vehicle,
-                      ),
-                      if (fuelCostRm != null)
-                        Row(
-                          key: const ValueKey('fuel-cost'),
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.local_gas_station_rounded,
-                              size: 18,
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                            const SizedBox(width: 4),
-                            Flexible(
-                              child: Text(
-                                l10n.routeFuelCost(_money(l10n, fuelCostRm!)),
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
                     ],
                   ),
                 ],
@@ -362,6 +335,13 @@ class _ReadyBody extends StatelessWidget {
               icon: const Icon(Icons.close_rounded),
             ),
           ],
+        ),
+        const SizedBox(height: 10),
+        // Kos perjalanan selebar lembaran (bukan di sebelah butang tindakan): tol dan minyak.
+        _CostStrip(
+          route: route,
+          toll: state.tollOf(route),
+          fuelCostRm: fuelCostRm,
         ),
         const SizedBox(height: 14),
         if (state.options.length > 1) ...[
@@ -1126,81 +1106,218 @@ String? _tollLong(AppLocalizations l10n, TollEstimate? e) {
   return l10n.routeTollPlazasUnknown(e.plazaCount);
 }
 
-/// Baris tol pada tajuk lembaran: ikon, jalan bertol sebenar (daripada Valhalla), anggaran harga jika
-/// ada, dan penafian. Tanpa tol: "Tiada tol".
-class _TollSummary extends StatelessWidget {
-  const _TollSummary({
+/// Kos perjalanan: dua jubin padat sebelah-menyebelah (Tol | Minyak), harga besar yang "dikira naik"
+/// bila laluan bertukar, dan satu baris kecil untuk jalan bertol serta penafian. Laluan bertol tanpa
+/// harga dalam data kita: jubin tol berkata begitu (tidak senyap). Tanpa tol: jubin "Tiada tol".
+class _CostStrip extends StatelessWidget {
+  const _CostStrip({
     required this.route,
-    required this.estimate,
-    required this.vehicle,
+    required this.toll,
+    required this.fuelCostRm,
   });
 
   final RouteOption route;
-  final TollEstimate? estimate;
-  final RouteVehicle vehicle;
+  final TollEstimate? toll;
+  final double? fuelCostRm;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final fg = context.fg;
-    final style = theme.textTheme.bodyMedium?.copyWith(
-      color: theme.colorScheme.onSurfaceVariant,
-    );
+    final e = toll;
+    final priced =
+        route.hasTolls && e != null && e.plazaCount > 0 && !e.isUnknown;
     final roads = route.tollRoads
         .map((r) => r.label)
-        .where((l) => l.isNotEmpty);
-    final priced = _tollLong(l10n, estimate);
-    // Harga dahulu (yang paling penting), kemudian paling banyak dua nama jalan bertol.
-    final text = route.hasTolls
-        ? [
-            ?priced,
-            if (roads.isNotEmpty) l10n.routeTollOn(roads.take(2).join(', ')),
-          ].join(' · ')
-        : l10n.routeNoTolls;
-    return Column(
+        .where((l) => l.isNotEmpty)
+        .take(2)
+        .join(', ');
+    final note = [
+      if (e != null && e.isPartial)
+        l10n.routeTollUnpricedPlazas(e.unknownCount),
+      if (route.hasTolls && roads.isNotEmpty) roads,
+      if (priced) l10n.routeTollDisclaimer,
+    ].join(' · ');
+
+    final tollTile = _CostTile(
       key: const ValueKey('toll-summary'),
-      mainAxisSize: MainAxisSize.min,
+      icon: Icons.toll_rounded,
+      accent: route.hasTolls ? fg.warning : theme.colorScheme.onSurfaceVariant,
+      label: route.hasTolls ? l10n.routeTollTitle : l10n.routeNoTolls,
+      amount: priced ? e.knownRm : null,
+      plus: priced && e.isPartial,
+      fallback: route.hasTolls ? l10n.routeTollPriceUnknown : null,
+      semantics: route.hasTolls
+          ? [
+              _tollLong(l10n, e) ?? l10n.routeTollPriceUnknown,
+              if (roads.isNotEmpty) l10n.routeTollOn(roads),
+            ].join(', ')
+          : l10n.routeNoTolls,
+      valueKey: 'toll-summary-amount',
+    );
+    final fuel = fuelCostRm;
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(
-              Icons.toll_rounded,
-              size: 18,
-              // Ikon sahaja berwarna amaran; teks kekal neutral kerana warna amaran
-              // tidak lulus kontras AA sebagai teks di atas permukaan cerah.
-              color: route.hasTolls
-                  ? fg.warning
-                  : theme.colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(width: 4),
-            Flexible(
-              child: Text(
-                text.isEmpty ? l10n.routeHasTolls : text,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: style,
+            Expanded(child: tollTile),
+            if (fuel != null) ...[
+              const SizedBox(width: 8),
+              Expanded(
+                child: _CostTile(
+                  key: const ValueKey('fuel-cost'),
+                  icon: Icons.local_gas_station_rounded,
+                  accent: theme.colorScheme.primary,
+                  label: l10n.routeFuelTitle,
+                  amount: fuel,
+                  approx: true,
+                  semantics: l10n.routeFuelCost(_money(l10n, fuel)),
+                ),
               ),
-            ),
+            ],
           ],
         ),
-        if (estimate != null &&
-            estimate!.plazaCount > 0 &&
-            !estimate!.isUnknown)
+        if (note.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.only(left: 22, top: 2),
-            child: Text(
-              l10n.routeTollDisclaimer,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+            padding: const EdgeInsets.fromLTRB(4, 6, 4, 0),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 220),
+              child: Text(
+                note,
+                key: ValueKey(note),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
           ),
       ],
+    );
+  }
+}
+
+/// Satu jubin kos: ikon dalam bulatan berwarna, label kecil, harga besar. Harga beranimasi dari nilai
+/// lama ke nilai baharu (cth. tukar laluan RM 3.77 -> RM 7.00) supaya perubahan jelas kelihatan.
+class _CostTile extends StatelessWidget {
+  const _CostTile({
+    super.key,
+    required this.icon,
+    required this.accent,
+    required this.label,
+    required this.semantics,
+    this.amount,
+    this.plus = false,
+    this.approx = false,
+    this.fallback,
+    this.valueKey,
+  });
+
+  final IconData icon;
+  final Color accent;
+  final String label;
+  final String semantics;
+  final double? amount;
+  final bool plus;
+  final bool approx;
+  final String? fallback;
+  final String? valueKey;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final reduce = MediaQuery.disableAnimationsOf(context);
+    final value = amount;
+    final big = theme.textTheme.titleMedium?.copyWith(
+      fontWeight: FontWeight.w800,
+      color: theme.colorScheme.onSurface,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
+    return Semantics(
+      container: true,
+      label: semantics,
+      excludeSemantics: true,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 260),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.fromLTRB(8, 8, 10, 8),
+        decoration: BoxDecoration(
+          color: accent.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: accent.withValues(alpha: 0.35)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: accent.withValues(alpha: 0.2),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 17, color: accent),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  if (value != null)
+                    TweenAnimationBuilder<double>(
+                      tween: Tween(end: value),
+                      duration: reduce
+                          ? Duration.zero
+                          : const Duration(milliseconds: 650),
+                      curve: Curves.easeOutCubic,
+                      builder: (context, v, _) {
+                        final rm = _money(l10n, v);
+                        return FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            approx
+                                ? l10n.routeCostApprox(rm)
+                                : (plus
+                                      ? l10n.routeTollRmPartial(rm)
+                                      : l10n.routeTollRm(rm)),
+                            key: valueKey == null ? null : ValueKey(valueKey),
+                            maxLines: 1,
+                            style: big,
+                          ),
+                        );
+                      },
+                    )
+                  else if (fallback != null)
+                    Text(
+                      fallback!,
+                      key: valueKey == null ? null : ValueKey(valueKey),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: theme.colorScheme.onSurface,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

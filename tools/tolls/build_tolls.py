@@ -267,6 +267,38 @@ def build_open(osm_nodes, aliases, report, verified_on):
     return out
 
 
+def build_reported(osm_nodes, report, path):
+    """Kadar daripada pengumuman yang dilaporkan (tools/tolls/reported_sources.json): tiada halaman pengendali
+    yang boleh dibaca. Setiap entri membawa pautan sumber dan tarikh pengumuman sendiri."""
+    if not os.path.exists(path):
+        return []
+    with open(path, encoding="utf-8") as f:
+        doc = json.load(f)
+    out = []
+    for src in doc.get("sources", []):
+        for label, prefixes in src["osm"].items():
+            cands = [
+                e for e in osm_nodes
+                if e.get("tags", {}).get("name") and in_malaysia(e["lat"], e["lon"])
+                and any(e["tags"]["name"].lower().startswith(pf) for pf in prefixes)
+            ]
+            clusters = cluster(cands, 600)
+            if not 1 <= len(clusters) <= 3:
+                report.append(f"- DILAPORKAN TIDAK DIPADANKAN `{src['id']}:{label}` ({len(clusters)} kelompok)")
+                continue
+            for i, c in enumerate(clusters):
+                lat, lon = c["center"]
+                out.append({
+                    "id": f"{src['id']}:{label}" + (f"#{i + 1}" if len(clusters) > 1 else ""),
+                    "name": f"{src['name']} - {label}",
+                    "lat": round(lat, 5), "lng": round(lon, 5),
+                    "type": "open", "ratesRm": {"1": round(src["rate"], 2)},
+                    "source": src["source"], "verifiedOn": src["announcedOn"], "basis": "reported",
+                })
+            report.append(f"- dilaporkan `{src['id']}:{label}` RM{src['rate']:.2f}: {len(clusters)} lokasi")
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dataset-dir")
@@ -287,6 +319,8 @@ def main():
     closed = [build_system(s, osm, aliases, report) for s in systems]
     report.append("\n## Lebuh raya harga tetap (halaman tambang pengendali)\n")
     opens = build_open(osm, aliases, report, datetime.datetime.now(datetime.timezone.utc).date().isoformat())
+    report.append("\n## Kadar dilaporkan (pengumuman kerajaan/pengendali)\n")
+    opens += build_reported(osm, report, os.path.join(os.path.dirname(os.path.abspath(__file__)), "reported_sources.json"))
     # Sistem tanpa satu pun koordinat tidak berguna dalam app; dilaporkan tetapi tetap ditulis.
     generated = index.get("generatedAt", "")
     doc = {

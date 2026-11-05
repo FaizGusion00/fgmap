@@ -48,21 +48,24 @@ void main() {
     ],
   );
 
-  test('PLUS Jalan Duta -> Ipoh (S): RM daripada dataset, tanpa rangkaian', () async {
-    final finder = DatasetTollFinder(() async => rates);
-    // Mula sebelum plaza Jalan Duta, tamat selepas Ipoh (S).
-    final points = _line(const [
-      GeoPoint(3.1700, 101.6600),
-      GeoPoint(3.17576, 101.65576),
-      GeoPoint(4.58424, 101.14421),
-      GeoPoint(4.5900, 101.1400),
-    ]);
-    final plazas = await finder.find(route(points));
-    expect(plazas.length, greaterThanOrEqualTo(2));
-    final estimate = rates.estimate(plazas, RouteVehicle.car);
-    expect(estimate.isExact, isTrue);
-    expect(estimate.knownRm, closeTo(21.73, 0.001));
-  });
+  test(
+    'PLUS Jalan Duta -> Ipoh (S): RM daripada dataset, tanpa rangkaian',
+    () async {
+      final finder = DatasetTollFinder(() async => rates);
+      // Mula sebelum plaza Jalan Duta, tamat selepas Ipoh (S).
+      final points = _line(const [
+        GeoPoint(3.1700, 101.6600),
+        GeoPoint(3.17576, 101.65576),
+        GeoPoint(4.58424, 101.14421),
+        GeoPoint(4.5900, 101.1400),
+      ]);
+      final plazas = await finder.find(route(points));
+      expect(plazas.length, greaterThanOrEqualTo(2));
+      final estimate = rates.estimate(plazas, RouteVehicle.car);
+      expect(estimate.isExact, isTrue);
+      expect(estimate.knownRm, closeTo(21.73, 0.001));
+    },
+  );
 
   test('laluan tanpa plaza berdekatan: tiada plaza', () async {
     final finder = DatasetTollFinder(() async => rates);
@@ -72,24 +75,47 @@ void main() {
     expect(plazas, isEmpty);
   });
 
-  test('hibrid: Overpass hanya bila dataset kosong dan jalan bertol panjang', () async {
-    var fallbackCalls = 0;
-    final hybrid = HybridTollFinder(
-      DatasetTollFinder(() async => rates),
-      _CountingFinder(() => fallbackCalls++),
-    );
-    await hybrid.find(
-      route(_line(const [GeoPoint(5.9, 116.0), GeoPoint(5.95, 116.1)])),
-    );
-    expect(fallbackCalls, 1);
-    await hybrid.find(
-      route(
-        _line(const [GeoPoint(5.9, 116.0), GeoPoint(5.95, 116.1)]),
-        tolls: false,
-      ),
-    );
-    expect(fallbackCalls, 1);
-  });
+  test(
+    'hibrid: Overpass hanya bila dataset kosong dan jalan bertol panjang',
+    () async {
+      var fallbackCalls = 0;
+      final hybrid = HybridTollFinder(
+        DatasetTollFinder(() async => rates),
+        _CountingFinder(() => fallbackCalls++),
+      );
+      await hybrid.find(
+        route(_line(const [GeoPoint(5.9, 116.0), GeoPoint(5.95, 116.1)])),
+      );
+      expect(fallbackCalls, 1);
+      await hybrid.find(
+        route(
+          _line(const [GeoPoint(5.9, 116.0), GeoPoint(5.95, 116.1)]),
+          tolls: false,
+        ),
+      );
+      expect(fallbackCalls, 1);
+    },
+  );
+
+  test(
+    'SPE dan Besraya (kadar diumumkan): harga terus, bukan "tidak diketahui"',
+    () async {
+      final finder = DatasetTollFinder(() async => rates);
+      // Setiawangsa -> Chan Sow Lin -> Loke Yew (Besraya).
+      final points = _line(const [
+        GeoPoint(3.1830, 101.7395),
+        GeoPoint(3.18065, 101.73793),
+        GeoPoint(3.12847, 101.71699),
+        GeoPoint(3.12079, 101.72471),
+        GeoPoint(3.1180, 101.7260),
+      ]);
+      final plazas = await finder.find(route(points));
+      final e = rates.estimate(plazas, RouteVehicle.car);
+      expect(e.plazaCount, 3);
+      expect(e.isExact, isTrue);
+      expect(e.knownRm, closeTo(3.50 + 3.50 + 1.85, 0.001));
+    },
+  );
 }
 
 class _CountingFinder implements TollPlazaFinder {

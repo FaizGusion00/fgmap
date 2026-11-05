@@ -1750,7 +1750,21 @@ final _screenWords = <(RegExp, AppScreen)>[
     AppScreen.settings,
   ),
   (RegExp(r'^(?:laporan|report|lapor)\b'), AppScreen.report),
+  (
+    RegExp(
+      // Hanya bila jelas mahu SENARAI ("buka senarai masjid", "buka masjid dan surau"): "pergi ke
+      // masjid negara" ialah destinasi, bukan direktori.
+      r'^(?:(?:senarai|direktori|list\s+of|semua)\s+(?:masjid|surau|mosques?)|masjid\s+(?:dan|&)\s+surau|mosques?\s+(?:and|&)\s+surau)\b',
+    ),
+    AppScreen.masjidDirectory,
+  ),
 ];
+
+/// "Senarai masjid Selangor", "list of mosques in Penang", "semua surau di Kuala Kedah": halaman
+/// direktori JAKIM, ditapis. Bukan "masjid terdekat" (itu carian berdekatan biasa).
+final _masjidList = RegExp(
+  r'^(?:tolong\s+|please\s+)?(?:(?:buka|tunjuk(?:kan)?|show(?:\s+me)?|cari(?:kan)?|find)\s+)?(?:senarai|direktori|list\s+of|list|semua|all)\s+(?:masjid(?:\s+(?:dan|&)\s+surau)?|surau|mosques?(?:\s+(?:and|&)\s+surau)?)(?:\s+(?:di|kat|dekat|in|at|negeri|daerah))?\s*(.*)$',
+);
 
 /// "Buka cuaca Kuantan", "tunjuk kiblat", "buka tetapan", "cari Pavilion di peta". [t] sudah dinormalkan.
 OpenScreenIntent? openScreenIntent(String t) {
@@ -1784,6 +1798,14 @@ OpenScreenIntent? openScreenIntent(String t) {
       );
     }
   }
+  final masjid = _masjidList.firstMatch(t);
+  if (masjid != null) {
+    final q = masjid.group(1)!.trim();
+    return OpenScreenIntent(
+      AppScreen.masjidDirectory,
+      arg: q.isEmpty ? null : q,
+    );
+  }
   if (RegExp(
     r'^(?:pusatkan|recenter|center|centre)\s+(?:the\s+)?(?:peta|map)|^(?:tunjuk|show)\s+(?:lokasi\s+saya\s+)?(?:di|on)\s+(?:peta|map)$',
   ).hasMatch(t)) {
@@ -1802,7 +1824,10 @@ OpenScreenIntent? openScreenIntent(String t) {
           '',
         )
         .trim();
-    if (arg.isEmpty || screen != AppScreen.weather) arg = '';
+    if (arg.isEmpty ||
+        (screen != AppScreen.weather && screen != AppScreen.masjidDirectory)) {
+      arg = '';
+    }
     return OpenScreenIntent(screen, arg: arg.isEmpty ? null : arg);
   }
   return null;

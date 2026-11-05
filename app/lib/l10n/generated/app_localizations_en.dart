@@ -142,6 +142,147 @@ class AppLocalizationsEn extends AppLocalizations {
       'Satellite needs internet. Imagery: Esri, Maxar, Earthstar Geographics.';
 
   @override
+  String get masjidOpen => 'Mosques & surau';
+
+  @override
+  String get masjidDirectoryTitle => 'Mosques & surau in Malaysia';
+
+  @override
+  String get masjidDirectoryLoadFailed =>
+      'The list couldn\'t be loaded. Try opening it again.';
+
+  @override
+  String get masjidSearchHint => 'Search name, village, district or postcode';
+
+  @override
+  String get masjidClear => 'Clear';
+
+  @override
+  String get masjidAll => 'All';
+
+  @override
+  String get masjidTypeMasjid => 'Mosque';
+
+  @override
+  String get masjidTypeSurau => 'Surau';
+
+  @override
+  String get masjidAllStates => 'All states';
+
+  @override
+  String get masjidAllDistricts => 'All districts';
+
+  @override
+  String get masjidStateTitle => 'State';
+
+  @override
+  String get masjidDistrictTitle => 'District';
+
+  @override
+  String get masjidFilterSearch => 'Search';
+
+  @override
+  String get masjidFilterEmpty => 'No match';
+
+  @override
+  String masjidCount(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString places',
+      one: '1 place',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get masjidNoResults =>
+      'No mosque or surau matches. Try other words or remove a filter.';
+
+  @override
+  String get masjidAttribution =>
+      'List: JAKIM via data.gov.my (CC BY), 2019 data, some details may have changed. Exact locations: OpenStreetMap.';
+
+  @override
+  String get masjidApproximateHint =>
+      'No exact location yet: FGMaps will look up this address (approximate location).';
+
+  @override
+  String get masjidNotFound =>
+      'Location not found. Try searching this place\'s name in map search.';
+
+  @override
+  String get masjidDirections => 'Directions';
+
+  @override
+  String get masjidGo => 'Go';
+
+  @override
+  String masjidApproximateSnack(String name) {
+    return 'Approximate location from address: $name';
+  }
+
+  @override
+  String get webSearchOpen => 'Search on Google';
+
+  @override
+  String webSearchFor(String query) {
+    return 'Search \"$query\" on Google';
+  }
+
+  @override
+  String get webSearchPlannerHint =>
+      'Tap Directions on a place to open the route in FGMaps';
+
+  @override
+  String get webSearchHint => 'Search Google';
+
+  @override
+  String get webSearchReload => 'Reload';
+
+  @override
+  String get webSearchClear => 'Clear browsing data';
+
+  @override
+  String get webSearchCleared => 'Browsing data cleared';
+
+  @override
+  String get webSearchBanner =>
+      'Tap \"Directions\" or the map on a place: the route opens in FGMaps.';
+
+  @override
+  String get webSearchPlace => 'Place from Google';
+
+  @override
+  String get routeTollTitle => 'Toll estimate';
+
+  @override
+  String get routeTollPriceUnknown => 'Toll price not in our data yet';
+
+  @override
+  String routeTollUnpricedPlazas(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count plazas without a price',
+      one: '1 plaza without a price',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get routeFuelTitle => 'Fuel';
+
+  @override
+  String routeCostApprox(String amount) {
+    return '≈ RM $amount';
+  }
+
+  @override
   String get appearanceTooltip => 'Settings';
 
   @override
@@ -1618,7 +1759,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String routeTollPlazaCount(int count) {
-    return '$count plazas';
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count plazas',
+      one: '1 plaza',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -1649,7 +1796,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get routeTollDisclaimer =>
-      'Estimate for cars (class 1) from Malaysian Highway Authority rates; check the price at the plaza.';
+      'Car (class 1) estimate from official rates; check the price at the plaza.';
 
   @override
   String get settingsClearAll => 'Delete all my data';
@@ -1941,26 +2088,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutNew1 =>
-      'Satellite map type (like Google Maps): satellite imagery with roads, place names and your route on top. Tap the layers button on the map';
+      'Malaysia mosque & surau directory (JAKIM): search, filter by state and district, then Directions or Go';
 
   @override
-  String get aboutNew2 => 'New FGMaps logo, with a new opening animation';
+  String get aboutNew2 =>
+      'Search on Google inside the app: tap \"Directions\" on a place and the route opens in FGMaps';
 
   @override
   String get aboutNew3 =>
-      'Real junction view before a turn: T-junctions, crossroads and roundabouts with the exit number. A white arrow on the map shows where to turn';
+      'Satellite map type (like Google Maps) with roads, place names and your route on top';
 
   @override
   String get aboutNew4 =>
-      'Better landscape mode, a smoother navigation start and smarter auto-zoom';
+      'New FGMaps logo with an opening animation, and real junction views before turns';
 
   @override
   String get aboutNew5 =>
-      'FG AI fetches the latest news right away when asked and no longer repeats old answers';
+      'FG AI can open the mosque list for you: try \"list of mosques in Selangor\"';
 
   @override
   String get aboutNew6 =>
-      'Music keeps playing in the background with media controls; Android Auto keeps moving when your phone is locked';
+      'Clearer, more complete toll estimates (now incl. SPE, Besraya and NPE); music keeps playing in the background';
 
   @override
   String get alongRouteTitle => 'Along the route';

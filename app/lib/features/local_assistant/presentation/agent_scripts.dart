@@ -45,6 +45,16 @@ List<AgentStep> agentStepsFor(OpenScreenIntent intent, AppLocalizations l10n) {
           ),
         ],
       ];
+    case AppScreen.masjidDirectory:
+      return [
+        toMap,
+        tool(l10n.agentStepOpen(l10n.masjidOpen), 'tool.masjid'),
+        if (arg != null && arg.isNotEmpty)
+          AgentStep(
+            l10n.agentStepSearch(arg),
+            (r) => r.type('masjid.search.input', arg),
+          ),
+      ];
     case AppScreen.qibla:
       return [toMap, tool(l10n.agentStepOpen(l10n.qiblaOpen), 'tool.qibla')];
     case AppScreen.airQuality:
@@ -142,6 +152,8 @@ String agentTitleFor(OpenScreenIntent intent, AppLocalizations l10n) {
     AppScreen.weather =>
       arg.isEmpty ? l10n.weatherOpen : '${l10n.weatherOpen}: $arg',
     AppScreen.qibla => l10n.qiblaOpen,
+    AppScreen.masjidDirectory =>
+      arg.isEmpty ? l10n.masjidOpen : '${l10n.masjidOpen}: $arg',
     AppScreen.airQuality => l10n.airQualityOpen,
     AppScreen.music => l10n.musicOpen,
     AppScreen.prayerTimes => l10n.azanTitle,

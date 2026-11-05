@@ -43,6 +43,7 @@ void main() {
           for (final party in [
             'OpenFreeMap',
             'Esri',
+            'JAKIM',
             'DuckDuckGo',
             'Google News',
             'Bank Negara Malaysia',

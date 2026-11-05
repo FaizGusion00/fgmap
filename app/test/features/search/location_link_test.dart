@@ -67,4 +67,99 @@ void main() {
       expect(sharedLocationFromUri(Uri.parse('https://example.com')), isNull);
     });
   });
+
+  group('pautan Google daripada carian dalam app', () {
+    test('pin data=!3d!4d lebih tepat daripada @ (pusat peta)', () {
+      final s = sharedLocationFromUri(
+        Uri.parse(
+          'https://www.google.com/maps/place/Pavilion+Kuala+Lumpur/@3.1488,101.7100,17z/data=!3m1!4b1!4m6!3m5!1s0x31cc37d12d669c1f:0x9e3afdd17c8a9056!8m2!3d3.1489!4d101.7131!16s%2Fm%2F02pxbxt',
+        ),
+      )!;
+      expect(s.point, const GeoPoint(3.1489, 101.7131));
+      expect(s.label, 'Pavilion Kuala Lumpur');
+    });
+
+    test('/maps/dir//NAMA/@… memberi nama destinasi', () {
+      final s = sharedLocationFromUri(
+        Uri.parse(
+          'https://www.google.com.my/maps/dir//Masjid+Negara,+Jalan+Perdana,+Kuala+Lumpur/@3.1420,101.6917,17z/data=!4m8!4m7!1m0!1m5!1m1!1s0x31cc49!2m2!1d101.6917!2d3.1420',
+        ),
+      )!;
+      expect(s.label, 'Masjid Negara, Jalan Perdana, Kuala Lumpur');
+      expect(s.point, isNotNull);
+    });
+
+    test('butang Arah Google Search: "Nama, Alamat @lat,lng"', () {
+      final s = sharedLocationFromUri(
+        Uri.parse(
+          'https://www.google.com/maps/dir/?api=1&destination=Zoo+Negara+Malaysia%2C+Kemensah+Heights%2C+68000+Ampang+Jaya%2C+Selangor+%403.210301%2C101.758821',
+        ),
+      )!;
+      expect(s.point, const GeoPoint(3.210301, 101.758821));
+      expect(
+        s.label,
+        'Zoo Negara Malaysia, Kemensah Heights, 68000 Ampang Jaya, Selangor',
+      );
+    });
+
+    test(
+      'butang Arah sebenar Google Search (maps.google.com daddr=…@lat,lng)',
+      () {
+        final s = sharedLocationFromUri(
+          Uri.parse(
+            'https://maps.google.com/maps?hl=en&gl=my&um=1&ie=UTF-8&fb=1&entry=s&sa=X&geocode=KeEfgwq2OcwxMS972wLHAMjy&daddr=Kemensah+Heights,+68000+Ampang+Jaya,+Selangor+@3.210301,101.758821',
+          ),
+        )!;
+        expect(s.point, const GeoPoint(3.210301, 101.758821));
+        expect(s.label, 'Kemensah Heights, 68000 Ampang Jaya, Selangor');
+      },
+    );
+
+    test('butang Arah: destination tanpa koordinat = nama untuk dicari', () {
+      final s = sharedLocationFromUri(
+        Uri.parse(
+          'https://www.google.com/maps/dir/?api=1&destination=Masjid+Wilayah+Persekutuan&destination_place_id=ChIJ',
+        ),
+      )!;
+      expect(s.point, isNull);
+      expect(s.label, 'Masjid Wilayah Persekutuan');
+    });
+
+    test('intent:// app Google Maps ditukar kepada pautan yang boleh dibaca', () {
+      final fromFallback = mapLinkFromIntent(
+        'intent://maps.google.com/maps?daddr=3.1579,101.7117#Intent;scheme=https;package=com.google.android.apps.maps;S.browser_fallback_url=https%3A%2F%2Fmaps.google.com%2Fmaps%3Fdaddr%3D3.1579%2C101.7117;end',
+      )!;
+      expect(
+        sharedLocationFromUri(fromFallback)!.point,
+        const GeoPoint(3.1579, 101.7117),
+      );
+      final rebuilt = mapLinkFromIntent(
+        'intent://maps.google.com/maps?daddr=3.1,101.6#Intent;scheme=https;package=com.google.android.apps.maps;end',
+      )!;
+      expect(sharedLocationFromUri(rebuilt)!.point, const GeoPoint(3.1, 101.6));
+      expect(mapLinkFromIntent('intent://example.com/x#Intent;end'), isNull);
+      expect(mapLinkFromIntent('https://maps.google.com'), isNull);
+    });
+
+    test(
+      'pelayar: hanya pautan peta diserahkan ke FGMaps, carian biasa kekal',
+      () {
+        bool handoff(String u) => isMapHandoffUrl(Uri.parse(u));
+        expect(handoff('https://www.google.com/search?q=pavilion+kl'), isFalse);
+        expect(handoff('https://www.google.com.my/search?q=masjid'), isFalse);
+        expect(
+          handoff('https://www.google.com/maps/dir/?api=1&destination=x'),
+          isTrue,
+        );
+        expect(
+          handoff('https://www.google.com.my/maps/place/X/@3,101,17z'),
+          isTrue,
+        );
+        expect(handoff('https://maps.google.com/maps?daddr=3,101'), isTrue);
+        expect(handoff('https://maps.app.goo.gl/abc123'), isTrue);
+        expect(handoff('geo:3.1,101.6'), isTrue);
+        expect(handoff('https://www.youtube.com/watch?v=1'), isFalse);
+      },
+    );
+  });
 }

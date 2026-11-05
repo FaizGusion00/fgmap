@@ -1,0 +1,15 @@
+{
+  "source": "Jabatan Kemajuan Islam Malaysia (JAKIM) via data.gov.my",
+  "licence": "Creative Commons Attribution (CC BY)",
+  "urls": [
+    "https://archive.data.gov.my/data/dataset/4c22c771-ba28-4ce8-ae16-e5605675261e/resource/328a7b33-131c-4bd4-a49f-8b2376a7fb78/download/5senarai-masjid-di-malaysia.csv",
+    "https://archive.data.gov.my/data/dataset/b6ba1723-106a-4cd7-ac94-ab5706d62a0a/resource/19f62777-c10f-46b2-be1b-158e9081f17a/download/3senarai-surau-di-malaysia.csv"
+  ],
+  "dataYear": 2019,
+  "coordinates": "OpenStreetMap contributors (ODbL), name-matched near district centre",
+  "builtAt": "2026-11-05",
+  "count": 23038,
+  "masjid": 6481,
+  "surau": 16557,
+  "withCoordinates": 1595
+}

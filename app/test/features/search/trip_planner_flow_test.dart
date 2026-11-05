@@ -478,6 +478,9 @@ void main() {
           .read(savedPlacesControllerProvider.notifier)
           .setHome(klia1);
       await tester.pumpAndSettle();
+      // Baris "Cari di Google" di atas senarai: pastikan kad Rumah kelihatan sebelum diketuk.
+      await tester.ensureVisible(find.byKey(const ValueKey('saved-home')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('saved-home')));
       await tester.pumpAndSettle();
       expect((result.value! as TripSelection).destination, klia1);

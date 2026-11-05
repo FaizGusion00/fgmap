@@ -1,0 +1,26 @@
+{
+  "_doc": "Kadar kelas 1 lebuh raya harga tetap yang halaman pengendalinya tidak dapat dibaca secara automatik, daripada PENGUMUMAN KERAJAAN/PENGENDALI yang dilaporkan media arus perdana (pautan dan tarikh setiap entri). Koordinat daripada nod OSM barrier=toll_booth bernama. Kerajaan mengekalkan kadar tol sedia ada bagi 2026 (pengumuman Disember 2025). Semak semula setiap kali ada pengumuman kadar baharu.",
+  "sources": [
+    {
+      "id": "besraya", "name": "Besraya (Lebuhraya Sungai Besi)", "rate": 1.85,
+      "announcedOn": "2022-12-31",
+      "source": "https://www.freemalaysiatoday.com/category/nation/2022/12/31/lower-toll-rates-at-besraya-lekas-from-jan-1",
+      "note": "Kelas 1 di plaza Loke Yew dan Mines (arah utara dan selatan) RM1.85 mulai 1 Jan 2023, sepanjang tempoh konsesi.",
+      "osm": {"Loke Yew": ["plaza tol loke yew"], "Mines": ["plaza tol mines"]}
+    },
+    {
+      "id": "npe", "name": "NPE (Lebuhraya Baru Pantai)", "rate": 2.30,
+      "announcedOn": "2025-08-27",
+      "source": "https://www.freemalaysiatoday.com/category/nation/2025/08/27/ijm-signs-deal-with-govt-for-npe-extension-toll-rate-revision",
+      "note": "Kadar kelas 1 RM2.30 dikekalkan hingga akhir konsesi (2057). Plaza Pantai Dalam dan PJS 5.",
+      "osm": {"Pantai Dalam": ["plaza tol pantai dalam"], "PJS 5": ["plaza tol pjs 5"]}
+    },
+    {
+      "id": "spe", "name": "SPE (Lebuhraya Setiawangsa-Pantai)", "rate": 3.50,
+      "announcedOn": "2023-12-08",
+      "source": "https://paultan.org/2023/12/08/setiawangsa-pantai-expressway-spe-toll-starts-rm3-50-at-chan-sow-lin-ampang-and-setiawangsa/",
+      "note": "Kelas 1 RM3.50 di plaza Chan Sow Lin, Ampang dan Setiawangsa. Ampang tidak dipadankan (nama OSM sama dengan AKLEH).",
+      "osm": {"Chan Sow Lin": ["plaza tol chan sow lin"], "Setiawangsa": ["plaza tol setiawangsa"]}
+    }
+  ]
+}

@@ -320,6 +320,222 @@ abstract class AppLocalizations {
   /// **'Satelit perlukan internet. Imej: Esri, Maxar, Earthstar Geographics.'**
   String get mapLayerSatelliteHint;
 
+  /// No description provided for @masjidOpen.
+  ///
+  /// In ms, this message translates to:
+  /// **'Masjid & surau'**
+  String get masjidOpen;
+
+  /// No description provided for @masjidDirectoryTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Masjid & surau Malaysia'**
+  String get masjidDirectoryTitle;
+
+  /// No description provided for @masjidDirectoryLoadFailed.
+  ///
+  /// In ms, this message translates to:
+  /// **'Senarai tidak dapat dimuat. Cuba buka semula.'**
+  String get masjidDirectoryLoadFailed;
+
+  /// No description provided for @masjidSearchHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Cari nama, kampung, daerah atau poskod'**
+  String get masjidSearchHint;
+
+  /// No description provided for @masjidClear.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kosongkan'**
+  String get masjidClear;
+
+  /// No description provided for @masjidAll.
+  ///
+  /// In ms, this message translates to:
+  /// **'Semua'**
+  String get masjidAll;
+
+  /// No description provided for @masjidTypeMasjid.
+  ///
+  /// In ms, this message translates to:
+  /// **'Masjid'**
+  String get masjidTypeMasjid;
+
+  /// No description provided for @masjidTypeSurau.
+  ///
+  /// In ms, this message translates to:
+  /// **'Surau'**
+  String get masjidTypeSurau;
+
+  /// No description provided for @masjidAllStates.
+  ///
+  /// In ms, this message translates to:
+  /// **'Semua negeri'**
+  String get masjidAllStates;
+
+  /// No description provided for @masjidAllDistricts.
+  ///
+  /// In ms, this message translates to:
+  /// **'Semua daerah'**
+  String get masjidAllDistricts;
+
+  /// No description provided for @masjidStateTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Negeri'**
+  String get masjidStateTitle;
+
+  /// No description provided for @masjidDistrictTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Daerah'**
+  String get masjidDistrictTitle;
+
+  /// No description provided for @masjidFilterSearch.
+  ///
+  /// In ms, this message translates to:
+  /// **'Cari'**
+  String get masjidFilterSearch;
+
+  /// No description provided for @masjidFilterEmpty.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tiada padanan'**
+  String get masjidFilterEmpty;
+
+  /// No description provided for @masjidCount.
+  ///
+  /// In ms, this message translates to:
+  /// **'{count, plural, =1{1 tempat} other{{count} tempat}}'**
+  String masjidCount(int count);
+
+  /// No description provided for @masjidNoResults.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tiada masjid atau surau sepadan. Cuba perkataan lain atau buang penapis.'**
+  String get masjidNoResults;
+
+  /// No description provided for @masjidAttribution.
+  ///
+  /// In ms, this message translates to:
+  /// **'Senarai: JAKIM melalui data.gov.my (CC BY), data 2019, mungkin ada yang sudah berubah. Lokasi tepat: OpenStreetMap.'**
+  String get masjidAttribution;
+
+  /// No description provided for @masjidApproximateHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Lokasi tepat belum ada: FGMaps akan cari alamat ini (lokasi anggaran).'**
+  String get masjidApproximateHint;
+
+  /// No description provided for @masjidNotFound.
+  ///
+  /// In ms, this message translates to:
+  /// **'Lokasi tidak ditemui. Cuba cari nama tempat ini dalam carian peta.'**
+  String get masjidNotFound;
+
+  /// No description provided for @masjidDirections.
+  ///
+  /// In ms, this message translates to:
+  /// **'Arah'**
+  String get masjidDirections;
+
+  /// No description provided for @masjidGo.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pergi'**
+  String get masjidGo;
+
+  /// No description provided for @masjidApproximateSnack.
+  ///
+  /// In ms, this message translates to:
+  /// **'Lokasi anggaran daripada alamat: {name}'**
+  String masjidApproximateSnack(String name);
+
+  /// No description provided for @webSearchOpen.
+  ///
+  /// In ms, this message translates to:
+  /// **'Cari di Google'**
+  String get webSearchOpen;
+
+  /// No description provided for @webSearchFor.
+  ///
+  /// In ms, this message translates to:
+  /// **'Cari \"{query}\" di Google'**
+  String webSearchFor(String query);
+
+  /// No description provided for @webSearchPlannerHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tekan Arah pada tempat untuk buka laluan dalam FGMaps'**
+  String get webSearchPlannerHint;
+
+  /// No description provided for @webSearchHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Cari di Google'**
+  String get webSearchHint;
+
+  /// No description provided for @webSearchReload.
+  ///
+  /// In ms, this message translates to:
+  /// **'Muat semula'**
+  String get webSearchReload;
+
+  /// No description provided for @webSearchClear.
+  ///
+  /// In ms, this message translates to:
+  /// **'Padam data pelayar'**
+  String get webSearchClear;
+
+  /// No description provided for @webSearchCleared.
+  ///
+  /// In ms, this message translates to:
+  /// **'Data pelayar dipadam'**
+  String get webSearchCleared;
+
+  /// No description provided for @webSearchBanner.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tekan \"Arah\" atau peta pada tempat: laluan dibuka dalam FGMaps.'**
+  String get webSearchBanner;
+
+  /// No description provided for @webSearchPlace.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tempat daripada Google'**
+  String get webSearchPlace;
+
+  /// No description provided for @routeTollTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Anggaran tol'**
+  String get routeTollTitle;
+
+  /// No description provided for @routeTollPriceUnknown.
+  ///
+  /// In ms, this message translates to:
+  /// **'Harga tol belum ada dalam data kami'**
+  String get routeTollPriceUnknown;
+
+  /// No description provided for @routeTollUnpricedPlazas.
+  ///
+  /// In ms, this message translates to:
+  /// **'{count} plaza tiada harga'**
+  String routeTollUnpricedPlazas(int count);
+
+  /// No description provided for @routeFuelTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Minyak'**
+  String get routeFuelTitle;
+
+  /// No description provided for @routeCostApprox.
+  ///
+  /// In ms, this message translates to:
+  /// **'≈ RM {amount}'**
+  String routeCostApprox(String amount);
+
   /// No description provided for @appearanceTooltip.
   ///
   /// In ms, this message translates to:
@@ -2927,7 +3143,7 @@ abstract class AppLocalizations {
   /// No description provided for @routeTollPlazaCount.
   ///
   /// In ms, this message translates to:
-  /// **'{count} plaza'**
+  /// **'{count, plural, =1{1 plaza} other{{count} plaza}}'**
   String routeTollPlazaCount(int count);
 
   /// No description provided for @routeTollEstimateExact.
@@ -2957,7 +3173,7 @@ abstract class AppLocalizations {
   /// No description provided for @routeTollDisclaimer.
   ///
   /// In ms, this message translates to:
-  /// **'Anggaran untuk kereta (kelas 1) daripada kadar Lembaga Lebuhraya Malaysia; semak harga di plaza.'**
+  /// **'Anggaran untuk kereta (kelas 1) daripada kadar rasmi; semak harga di plaza.'**
   String get routeTollDisclaimer;
 
   /// No description provided for @settingsClearAll.
@@ -3443,37 +3659,37 @@ abstract class AppLocalizations {
   /// No description provided for @aboutNew1.
   ///
   /// In ms, this message translates to:
-  /// **'Jenis peta Satelit (seperti Google Maps): imej satelit dengan jalan, nama tempat dan laluan navigasi di atasnya. Tekan butang lapisan di peta'**
+  /// **'Senarai masjid & surau Malaysia (JAKIM): cari, tapis ikut negeri dan daerah, kemudian Arah atau Pergi terus'**
   String get aboutNew1;
 
   /// No description provided for @aboutNew2.
   ///
   /// In ms, this message translates to:
-  /// **'Logo baharu FGMaps, dengan animasi pembuka yang baharu'**
+  /// **'Cari di Google dalam app: tekan \"Arah\" pada tempat dan laluan terus dibuka dalam FGMaps'**
   String get aboutNew2;
 
   /// No description provided for @aboutNew3.
   ///
   /// In ms, this message translates to:
-  /// **'Gambar simpang sebenar ketika hendak belok: simpang 3, simpang 4 dan bulatan dengan nombor keluar. Anak panah putih di peta tunjuk tempat belok'**
+  /// **'Jenis peta Satelit (seperti Google Maps) dengan jalan, nama tempat dan laluan di atasnya'**
   String get aboutNew3;
 
   /// No description provided for @aboutNew4.
   ///
   /// In ms, this message translates to:
-  /// **'Mod mendatar diperbaiki, mula navigasi lebih licin, dan zum automatik lebih pandai'**
+  /// **'Logo baharu FGMaps dengan animasi pembuka, dan gambar simpang sebenar ketika hendak belok'**
   String get aboutNew4;
 
   /// No description provided for @aboutNew5.
   ///
   /// In ms, this message translates to:
-  /// **'FG AI terus cari berita terkini bila diminta dan tidak lagi mengulang jawapan lama'**
+  /// **'FG AI boleh buka senarai masjid untuk anda: cuba \"senarai masjid Selangor\"'**
   String get aboutNew5;
 
   /// No description provided for @aboutNew6.
   ///
   /// In ms, this message translates to:
-  /// **'Muzik terus dimainkan di latar dengan kawalan media; Android Auto terus bergerak walaupun telefon dikunci'**
+  /// **'Anggaran tol lebih jelas dan lengkap (termasuk SPE, Besraya dan NPE); muzik terus dimainkan di latar'**
   String get aboutNew6;
 
   /// No description provided for @alongRouteTitle.

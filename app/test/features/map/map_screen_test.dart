@@ -155,6 +155,8 @@ void main() {
     expect(find.byTooltip('Zum masuk'), findsOneWidget);
     expect(find.byTooltip('Zum keluar'), findsOneWidget);
     expect(find.byTooltip('Tetapan'), findsOneWidget);
+    expect(find.byKey(const ValueKey('map-browser')), findsOneWidget);
+    expect(find.byTooltip('Cari di Google'), findsOneWidget);
     expect(
       tester.getSize(find.byKey(const ValueKey('search-pill'))).height,
       lessThanOrEqualTo(64),
@@ -292,7 +294,8 @@ void main() {
         findsWidgets,
       ); // tajuk lembaran + chip laluan 1
       expect(find.text('67.0 km'), findsWidgets); // tajuk + kad laluan 1
-      expect(find.text('Ada tol'), findsOneWidget);
+      // Laluan bertol tanpa harga dalam data: kad tol tetap dipaparkan dan berkata begitu.
+      expect(find.text('Harga tol belum ada dalam data kami'), findsOneWidget);
       expect(find.byKey(const ValueKey('route-option-0')), findsOneWidget);
       expect(find.byKey(const ValueKey('route-option-1')), findsOneWidget);
       // Semua pilihan terpapar serta-merta dengan label bermakna, tanpa menekan sebarang butang.

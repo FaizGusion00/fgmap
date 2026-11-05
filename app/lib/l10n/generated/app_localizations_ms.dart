@@ -142,6 +142,141 @@ class AppLocalizationsMs extends AppLocalizations {
       'Satelit perlukan internet. Imej: Esri, Maxar, Earthstar Geographics.';
 
   @override
+  String get masjidOpen => 'Masjid & surau';
+
+  @override
+  String get masjidDirectoryTitle => 'Masjid & surau Malaysia';
+
+  @override
+  String get masjidDirectoryLoadFailed =>
+      'Senarai tidak dapat dimuat. Cuba buka semula.';
+
+  @override
+  String get masjidSearchHint => 'Cari nama, kampung, daerah atau poskod';
+
+  @override
+  String get masjidClear => 'Kosongkan';
+
+  @override
+  String get masjidAll => 'Semua';
+
+  @override
+  String get masjidTypeMasjid => 'Masjid';
+
+  @override
+  String get masjidTypeSurau => 'Surau';
+
+  @override
+  String get masjidAllStates => 'Semua negeri';
+
+  @override
+  String get masjidAllDistricts => 'Semua daerah';
+
+  @override
+  String get masjidStateTitle => 'Negeri';
+
+  @override
+  String get masjidDistrictTitle => 'Daerah';
+
+  @override
+  String get masjidFilterSearch => 'Cari';
+
+  @override
+  String get masjidFilterEmpty => 'Tiada padanan';
+
+  @override
+  String masjidCount(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString tempat',
+      one: '1 tempat',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get masjidNoResults =>
+      'Tiada masjid atau surau sepadan. Cuba perkataan lain atau buang penapis.';
+
+  @override
+  String get masjidAttribution =>
+      'Senarai: JAKIM melalui data.gov.my (CC BY), data 2019, mungkin ada yang sudah berubah. Lokasi tepat: OpenStreetMap.';
+
+  @override
+  String get masjidApproximateHint =>
+      'Lokasi tepat belum ada: FGMaps akan cari alamat ini (lokasi anggaran).';
+
+  @override
+  String get masjidNotFound =>
+      'Lokasi tidak ditemui. Cuba cari nama tempat ini dalam carian peta.';
+
+  @override
+  String get masjidDirections => 'Arah';
+
+  @override
+  String get masjidGo => 'Pergi';
+
+  @override
+  String masjidApproximateSnack(String name) {
+    return 'Lokasi anggaran daripada alamat: $name';
+  }
+
+  @override
+  String get webSearchOpen => 'Cari di Google';
+
+  @override
+  String webSearchFor(String query) {
+    return 'Cari \"$query\" di Google';
+  }
+
+  @override
+  String get webSearchPlannerHint =>
+      'Tekan Arah pada tempat untuk buka laluan dalam FGMaps';
+
+  @override
+  String get webSearchHint => 'Cari di Google';
+
+  @override
+  String get webSearchReload => 'Muat semula';
+
+  @override
+  String get webSearchClear => 'Padam data pelayar';
+
+  @override
+  String get webSearchCleared => 'Data pelayar dipadam';
+
+  @override
+  String get webSearchBanner =>
+      'Tekan \"Arah\" atau peta pada tempat: laluan dibuka dalam FGMaps.';
+
+  @override
+  String get webSearchPlace => 'Tempat daripada Google';
+
+  @override
+  String get routeTollTitle => 'Anggaran tol';
+
+  @override
+  String get routeTollPriceUnknown => 'Harga tol belum ada dalam data kami';
+
+  @override
+  String routeTollUnpricedPlazas(int count) {
+    return '$count plaza tiada harga';
+  }
+
+  @override
+  String get routeFuelTitle => 'Minyak';
+
+  @override
+  String routeCostApprox(String amount) {
+    return '≈ RM $amount';
+  }
+
+  @override
   String get appearanceTooltip => 'Tetapan';
 
   @override
@@ -1618,7 +1753,13 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String routeTollPlazaCount(int count) {
-    return '$count plaza';
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count plaza',
+      one: '1 plaza',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -1649,7 +1790,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get routeTollDisclaimer =>
-      'Anggaran untuk kereta (kelas 1) daripada kadar Lembaga Lebuhraya Malaysia; semak harga di plaza.';
+      'Anggaran untuk kereta (kelas 1) daripada kadar rasmi; semak harga di plaza.';
 
   @override
   String get settingsClearAll => 'Padam semua data saya';
@@ -1940,27 +2081,27 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get aboutNew1 =>
-      'Jenis peta Satelit (seperti Google Maps): imej satelit dengan jalan, nama tempat dan laluan navigasi di atasnya. Tekan butang lapisan di peta';
+      'Senarai masjid & surau Malaysia (JAKIM): cari, tapis ikut negeri dan daerah, kemudian Arah atau Pergi terus';
 
   @override
   String get aboutNew2 =>
-      'Logo baharu FGMaps, dengan animasi pembuka yang baharu';
+      'Cari di Google dalam app: tekan \"Arah\" pada tempat dan laluan terus dibuka dalam FGMaps';
 
   @override
   String get aboutNew3 =>
-      'Gambar simpang sebenar ketika hendak belok: simpang 3, simpang 4 dan bulatan dengan nombor keluar. Anak panah putih di peta tunjuk tempat belok';
+      'Jenis peta Satelit (seperti Google Maps) dengan jalan, nama tempat dan laluan di atasnya';
 
   @override
   String get aboutNew4 =>
-      'Mod mendatar diperbaiki, mula navigasi lebih licin, dan zum automatik lebih pandai';
+      'Logo baharu FGMaps dengan animasi pembuka, dan gambar simpang sebenar ketika hendak belok';
 
   @override
   String get aboutNew5 =>
-      'FG AI terus cari berita terkini bila diminta dan tidak lagi mengulang jawapan lama';
+      'FG AI boleh buka senarai masjid untuk anda: cuba \"senarai masjid Selangor\"';
 
   @override
   String get aboutNew6 =>
-      'Muzik terus dimainkan di latar dengan kawalan media; Android Auto terus bergerak walaupun telefon dikunci';
+      'Anggaran tol lebih jelas dan lengkap (termasuk SPE, Besraya dan NPE); muzik terus dimainkan di latar';
 
   @override
   String get alongRouteTitle => 'Sepanjang laluan';

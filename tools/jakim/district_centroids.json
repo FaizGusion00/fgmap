@@ -1,0 +1,736 @@
+{
+"Alor Gajah|Johor": [
+2.1032319,
+102.5197574
+],
+"Alor Gajah|Melaka": [
+2.3834528,
+102.2107805
+],
+"Arau|Perlis": [
+6.4307281,
+100.2718795
+],
+"Asa Jaya|Sarawak": null,
+"Bachok|Kelantan": [
+5.9951191,
+102.3867413
+],
+"Bagan Serai|Perak": [
+5.028455,
+100.5273669
+],
+"Baling|Kedah": [
+5.5507199,
+100.797587
+],
+"Bandar Baharu|Kedah": [
+5.1672991,
+100.5849347
+],
+"Banggi|Sabah": [
+7.2316455,
+117.1711562
+],
+"Barat Daya|Pulau Pinang": [
+5.3356587,
+100.2389496
+],
+"Batu Gajah|Perak": [
+4.4599038,
+101.0492579
+],
+"Batu Pahat|Johor": [
+1.933333,
+103.0
+],
+"Bau|Sarawak": [
+1.417864,
+110.1553336
+],
+"Beaufort|Sabah": [
+5.2911244,
+115.672474
+],
+"Beluran|Sabah": [
+6.1366933,
+117.3629228
+],
+"Beluru|Sarawak": [
+3.5515153,
+114.1290552
+],
+"Bentong|Pahang": [
+3.3624708,
+102.0172675
+],
+"Bera|Pahang": [
+3.2366738,
+102.5417723
+],
+"Besut|Terengganu": [
+5.5833333,
+102.5
+],
+"Betong|Sarawak": [
+1.4818834,
+111.550659
+],
+"Bintulu|Sarawak": [
+3.1874261,
+113.0472803
+],
+"Butterworth|Pulau Pinang": [
+5.4082015,
+100.3697208
+],
+"Cameron Highlands|Pahang": [
+4.4710791,
+101.3751732
+],
+"Chenor|Pahang": [
+3.4799065,
+102.5923104
+],
+"Dalat|Sarawak": [
+2.701079,
+111.960895
+],
+"Daro|Sarawak": [
+2.5139835,
+111.432287
+],
+"Dungun|Terengganu": [
+4.7643972,
+103.4184463
+],
+"Gerik|Perak": [
+5.4306632,
+101.1296386
+],
+"Gombak|Selangor": [
+3.3,
+101.7
+],
+"Gua Musang|Kelantan": [
+5.0198136,
+102.0382663
+],
+"Hilir Perak|Perak": [
+4.0,
+101.0
+],
+"Hulu Langat|Selangor": [
+3.083333,
+101.833333
+],
+"Hulu Selangor|Selangor": [
+3.5367441,
+101.5949347
+],
+"Hulu Terengganu|Terengganu": [
+4.910689,
+102.7650701
+],
+"Ipoh|Perak": [
+4.5986817,
+101.0900236
+],
+"Jasin|Melaka": [
+2.3058097,
+102.422339
+],
+"Jelebu|Negeri Sembilan": [
+3.0366264,
+102.1179206
+],
+"Jeli|Kelantan": [
+5.5900186,
+101.8171685
+],
+"Jempol|Negeri Sembilan": [
+2.8502724,
+102.5081957
+],
+"Jengka|Pahang": [
+3.7671652,
+102.5480747
+],
+"Jerantut|Pahang": [
+4.2834137,
+102.5575232
+],
+"Johor Bahru|Johor": [
+1.4581986,
+103.7649059
+],
+"Julau|Sarawak": [
+1.8198041,
+111.8990022
+],
+"Kabong|Sarawak": [
+1.8821753,
+111.2694506
+],
+"Kampar|Perak": [
+4.3,
+101.15
+],
+"Kangar|Perlis": [
+6.4389312,
+100.1944838
+],
+"Kanowit|Sarawak": [
+1.9353302,
+112.2098575
+],
+"Kapit|Sarawak": [
+2.0139027,
+112.9356766
+],
+"Kemaman|Terengganu": [
+4.2345863,
+103.4235854
+],
+"Keningau|Sabah": [
+5.2179477,
+116.2463149
+],
+"Kepala Batas|Pulau Pinang": [
+5.5167642,
+100.4255309
+],
+"Kg. Gajah|Perak": [
+4.1815449,
+100.9372537
+],
+"Kinabatangan|Sabah": [
+5.332648,
+118.1212915
+],
+"Klang|Selangor": [
+3.0448394,
+101.4447363
+],
+"Kluang|Johor": [
+2.0323472,
+103.3190766
+],
+"Kota Belud|Sabah": [
+6.3347195,
+116.4835961
+],
+"Kota Bharu|Kelantan": [
+6.1247911,
+102.2378065
+],
+"Kota Kinabalu|Sabah": [
+5.9780066,
+116.0728988
+],
+"Kota Marudu|Sabah": [
+6.4465546,
+116.828293
+],
+"Kota Setar|Kedah": [
+6.122603,
+100.3690317
+],
+"Kota Tinggi|Johor": [
+1.7336743,
+103.9006975
+],
+"Kuala Kangsar|Perak": [
+4.7720713,
+100.9408776
+],
+"Kuala Krai|Kelantan": [
+5.5311582,
+102.1993666
+],
+"Kuala Langat|Selangor": [
+2.8365619,
+101.4961821
+],
+"Kuala Muda|Kedah": [
+5.7073152,
+100.4952892
+],
+"Kuala Penyu|Sabah": [
+5.4401919,
+115.4949313
+],
+"Kuala Pilah|Negeri Sembilan": [
+2.7430758,
+102.2154881
+],
+"Kuala Selangor|Selangor": [
+3.3621022,
+101.3455503
+],
+"Kuala Terengganu|Terengganu": [
+5.3296461,
+103.1383265
+],
+"Kuantan|Pahang": [
+3.7974493,
+103.3219191
+],
+"Kubang Pasu|Kedah": [
+6.3356376,
+100.3723218
+],
+"Kuching|Sarawak": [
+1.5597561,
+110.345397
+],
+"Kudat|Sabah": [
+7.2316455,
+117.1711562
+],
+"Kulai|Johor": [
+1.6666667,
+103.6
+],
+"Kulim|Kedah": [
+5.3707128,
+100.6172071
+],
+"Kunak|Sabah": [
+4.6857678,
+118.0170657
+],
+"Labuan|Labuan": [
+5.3024064,
+115.2506489
+],
+"Lahad Datu|Sabah": [
+5.1155093,
+118.4306361
+],
+"Langkawi|Kedah": [
+6.3700386,
+99.7928634
+],
+"Lawas|Sarawak": [
+4.4551211,
+115.427188
+],
+"Lenggong|Perak": [
+5.1094869,
+100.9678905
+],
+"Limbang|Sarawak": [
+4.3519985,
+115.0602417
+],
+"Lipis|Pahang": [
+4.3242506,
+101.9085845
+],
+"Lojing|Kelantan": [
+4.6316088,
+101.4604317
+],
+"Lundu|Sarawak": [
+1.747985,
+109.7771848
+],
+"Machang|Kelantan": [
+5.7676702,
+102.2380822
+],
+"Manjung|Perak": [
+4.334761,
+100.6342662
+],
+"Marang|Terengganu": [
+5.1666667,
+103.1666667
+],
+"Maran|Pahang": [
+3.601443,
+102.6410048
+],
+"Marudi|Sarawak": [
+4.1766125,
+114.3604754
+],
+"Matunggung|Sabah": null,
+"Matu|Sarawak": [
+2.6541259,
+111.6853186
+],
+"Melaka Tengah|Melaka": [
+2.2301451,
+102.2453068
+],
+"Membakut|Sabah": [
+5.4726679,
+115.7966926
+],
+"Menumbok|Sabah": [
+5.3040795,
+115.3690652
+],
+"Meradong|Sarawak": [
+2.1676316,
+111.6779884
+],
+"Mersing|Johor": [
+2.4298532,
+103.835494
+],
+"Miri|Sarawak": [
+4.3940102,
+113.9880199
+],
+"Muadzam Shah|Pahang": [
+3.0645499,
+103.0813444
+],
+"Muar|Johor": [
+2.05,
+102.5666667
+],
+"Mukah|Sarawak": [
+2.8118528,
+112.291206
+],
+"Nabawan|Sabah": [
+4.6955329,
+116.4837611
+],
+"Padang Besar|Perlis": [
+6.6626841,
+100.3201982
+],
+"Padang Terap|Kedah": [
+6.2566513,
+100.6645805
+],
+"Padawan|Sarawak": [
+1.4276862,
+110.325596
+],
+"Pakan|Sarawak": [
+1.7829988,
+111.6625798
+],
+"Papar|Sabah": [
+5.7461495,
+116.0449789
+],
+"Parit Buntar|Perak": [
+5.0919792,
+100.4863072
+],
+"Pasir Mas|Kelantan": [
+6.0080942,
+102.0925134
+],
+"Pasir Puteh|Kelantan": [
+5.8346168,
+102.3829644
+],
+"Pbs - Kota Kinabalu|Sabah": null,
+"Pbs - Papar|Sabah": null,
+"Pbs - Penampang|Sabah": null,
+"Pbs - Putatan|Sabah": null,
+"Pbs - Tuaran|Sabah": null,
+"Pbu - Banggi|Sabah": null,
+"Pbu - Kota Belud|Sabah": null,
+"Pbu - Kota Marudu|Sabah": null,
+"Pbu - Kudat|Sabah": null,
+"Pbu - Matunggung|Sabah": null,
+"Pbu - Pitas|Sabah": null,
+"Pbu - Ranau|Sabah": null,
+"Pekan|Pahang": [
+3.3781961,
+103.2096122
+],
+"Penampang|Sabah": [
+5.8626228,
+116.1138146
+],
+"Pendang|Kedah": [
+5.9720841,
+100.5501852
+],
+"Pengkalan Hulu|Perak": [
+5.7057571,
+100.9994459
+],
+"Petaling|Selangor": [
+3.083333,
+101.583333
+],
+"Pitas|Sabah": [
+6.731706,
+117.1254051
+],
+"Pokok Sena (Daerah Kecil)|Kedah": null,
+"Pontian|Johor": [
+1.5,
+103.5
+],
+"Port Dickson|Negeri Sembilan": [
+2.5262491,
+101.8106156
+],
+"Pusa|Sarawak": [
+1.5708079,
+111.180311
+],
+"Putatan|Sabah": [
+5.8814478,
+116.0656182
+],
+"Putrajaya|Putrajaya": [
+2.9179726,
+101.6840801
+],
+"Ranau|Sabah": [
+5.8980313,
+116.6696079
+],
+"Raub|Pahang": [
+3.8843564,
+101.7920275
+],
+"Rembau|Negeri Sembilan": [
+2.5578923,
+102.1081637
+],
+"Rompin|Pahang": [
+2.8245772,
+103.0993556
+],
+"Sabak Bernam|Selangor": [
+3.6871153,
+101.0580588
+],
+"Samarahan|Sarawak": [
+1.4329694,
+110.4675931
+],
+"San - Beluran|Sabah": null,
+"San - Kinabatangan|Sabah": null,
+"San - Sandakan|Sabah": [
+5.8391002,
+118.0963858
+],
+"San - Telupid|Sabah": null,
+"San - Tongod|Sabah": null,
+"Sandakan|Sabah": [
+5.8391274,
+118.1158598
+],
+"Saratok|Sarawak": [
+1.7636065,
+111.4440968
+],
+"Sarikei|Sarawak": [
+2.0507707,
+111.4176
+],
+"Sebauh|Sarawak": [
+3.1089346,
+113.2692428
+],
+"Seberang Perai Selatan|Pulau Pinang": [
+5.2169636,
+100.4804658
+],
+"Seberang Perai Tengah|Pulau Pinang": [
+5.3610703,
+100.4573584
+],
+"Segamat|Johor": [
+2.4922096,
+102.8449219
+],
+"Selama|Perak": [
+5.2180903,
+100.69166
+],
+"Semporna|Sabah": [
+4.4790765,
+118.4297732
+],
+"Sepang|Selangor": [
+2.8008619,
+101.7094012
+],
+"Seremban|Negeri Sembilan": [
+2.723099,
+101.9400601
+],
+"Seri Iskandar / Parit|Perak": null,
+"Serian|Sarawak": [
+1.1008615,
+110.7103736
+],
+"Setiu|Terengganu": [
+5.5500806,
+102.7355111
+],
+"Shah Alam|Selangor": [
+3.0739429,
+101.5185278
+],
+"Sibu|Sarawak": [
+2.2996601,
+111.8710012
+],
+"Sik|Kedah": [
+5.9239011,
+100.8231021
+],
+"Simunjan|Sarawak": [
+1.3609323,
+110.8383263
+],
+"Sipitang|Sabah": [
+4.634452,
+115.6861012
+],
+"Slim River|Perak": [
+3.826957,
+101.4023026
+],
+"Sook|Sabah": [
+5.1423979,
+116.289617
+],
+"Sri Aman|Sarawak": [
+1.2088355,
+111.4080293
+],
+"Subis|Sarawak": [
+3.7596364,
+113.7142176
+],
+"T.p. Garang|Selangor": [
+2.8907132,
+101.4542107
+],
+"Taiping / Larut Matang|Perak": [
+4.8551923,
+100.7421339
+],
+"Tambunan|Sabah": [
+5.6860031,
+116.4119595
+],
+"Tamparuli|Sabah": [
+6.1358087,
+116.2689572
+],
+"Tampin|Negeri Sembilan": [
+2.5542371,
+102.4459956
+],
+"Tanah Merah|Kelantan": [
+5.7663046,
+102.0341478
+],
+"Tangkak|Johor": [
+2.25,
+102.5833333
+],
+"Tanjung Manis|Sarawak": [
+2.1338299,
+111.335745
+],
+"Tapah|Perak": [
+4.1990915,
+101.2599231
+],
+"Tatau|Sarawak": [
+2.6234392,
+113.1503927
+],
+"Taw - Kunak|Sabah": null,
+"Taw - Lahad Datu|Sabah": null,
+"Taw - Semporna|Sabah": null,
+"Taw - Tawau|Sabah": null,
+"Taw - Tungku|Sabah": null,
+"Tawau|Sabah": [
+4.2435206,
+117.885331
+],
+"Telupid|Sabah": [
+5.7903116,
+117.1697573
+],
+"Temerloh|Pahang": [
+3.6124468,
+102.2566818
+],
+"Tenom|Sabah": [
+4.9104025,
+115.9050951
+],
+"Tiada Maklumat Daerah|Kuala Lumpur": null,
+"Tiada Maklumat Daerah|Perak": null,
+"Tiada Maklumat Daerah|Perlis": null,
+"Tiada Maklumat Daerah|Sabah": null,
+"Tiada Maklumat Daerah|Terengganu": null,
+"Tiada Maklumat|Johor": null,
+"Tiada Maklumat|Kedah": null,
+"Tiada Maklumat|Kelantan": null,
+"Tiada Maklumat|Pahang": null,
+"Tiada Maklumat|Perak": null,
+"Tiada Maklumat|Perlis": null,
+"Tiada Maklumat|Sabah": null,
+"Tiada Maklumat|Sarawak": null,
+"Timur Laut|Pulau Pinang": [
+5.4103136,
+100.2870311
+],
+"Tongod|Sabah": [
+5.0657911,
+116.9941053
+],
+"Tuaran|Sabah": [
+6.0659214,
+116.3198111
+],
+"Tumpat|Kelantan": [
+6.176396,
+102.1663281
+],
+"Tungku|Sabah": [
+5.0205336,
+118.8891255
+],
+"Yan|Kedah": [
+5.8482755,
+100.4151899
+],
+"Zon 1|Kuala Lumpur": [
+3.0708339,
+101.6928576
+],
+"Zon 2|Kuala Lumpur": [
+3.0729194,
+101.6946177
+],
+"Zon 3|Kuala Lumpur": [
+3.0729194,
+101.6946177
+],
+"Zon 4|Kuala Lumpur": [
+3.0698899,
+101.6875359
+],
+"Zon 5|Kuala Lumpur": [
+3.0729194,
+101.6946177
+],
+"Zon 6|Kuala Lumpur": [
+3.0698899,
+101.6875359
+]
+}

@@ -345,6 +345,9 @@ enum AppScreen {
 
   /// Kategori berdekatan dalam perancang (arg = nama enum NearbyCategory), pilih yang pertama dan mula.
   nearbyGo,
+
+  /// Senarai masjid & surau JAKIM (arg = carian, cth. negeri atau nama kampung).
+  masjidDirectory,
 }
 
 /// "Buka cuaca Kuantan", "tunjuk kiblat", "buka tetapan", "cari Pavilion di peta": ejen menekan

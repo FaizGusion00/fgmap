@@ -40,6 +40,8 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../route_preview/data/route_planner.dart' show routeVehicleProvider;
 import '../../route_preview/domain/route_option.dart' show RouteVehicle;
 import '../domain/turn_label.dart';
+import '../../masjid/data/masjid_directory.dart' show MasjidQuery;
+import '../../masjid/presentation/masjid_directory_page.dart';
 import '../data/map_layer.dart';
 import 'map_layer_sheet.dart';
 import '../../route_preview/domain/route_options_merge.dart';
@@ -56,6 +58,7 @@ import '../../search/domain/location_link.dart';
 import '../../search/presentation/recent_places_bar.dart';
 import '../../search/presentation/search_pill.dart';
 import '../../search/presentation/trip_planner_page.dart';
+import '../../search/presentation/web_search_page.dart';
 import '../../settings/presentation/settings_page.dart';
 import '../../air_quality/presentation/air_quality_sheet.dart';
 import '../../air_quality/presentation/route_haze_banner.dart';
@@ -489,6 +492,38 @@ class _MapScreenState extends ConsumerState<MapScreen>
     unawaited(_planToDestination(point));
   }
 
+  /// Pelayar Google dalam app, sama seperti dari perancang. Pautan "Arah" dengan koordinat
+  /// terus dikira; nama sahaja dibuka semula dalam carian FGMaps.
+  Future<void> _openWebSearch() async {
+    final l10n = AppLocalizations.of(context);
+    final uri = await showWebSearch(context);
+    if (uri == null || !mounted) return;
+    final shared = sharedLocationFromUri(uri);
+    final point = shared?.point;
+    if (point != null) {
+      await _planSelection(
+        TripSelection(
+          destination: Place(
+            name: shared!.label ?? l10n.webSearchPlace,
+            subtitle: 'Google',
+            point: point,
+          ),
+        ),
+      );
+      return;
+    }
+    final text = (shared?.label ?? uri.toString()).trim();
+    if (text.isEmpty || !mounted) return;
+    final selection = await TripPlannerPage.open(
+      context,
+      near: _userPoint() ?? _cameraCenterOrDefault(),
+      userLocation: _userPoint(),
+      initialDestinationQuery: text,
+    );
+    if (selection == null || !mounted) return;
+    await _planSelection(selection);
+  }
+
   /// Membuka perancang destinasi, kemudian mengira laluan dari lokasi pengguna.
   Future<void> _openPlanner({SavedKind? assign}) async {
     final user = _userPoint();
@@ -500,6 +535,34 @@ class _MapScreenState extends ConsumerState<MapScreen>
     );
     if (selection == null || !mounted) return;
     await _planSelection(selection);
+  }
+
+  /// Senarai masjid dan surau (JAKIM): Arah = pratonton laluan, Pergi = mula navigasi.
+  Future<void> _openMasjidDirectory({
+    MasjidQuery initial = const MasjidQuery(),
+  }) async {
+    final pick = await showMasjidDirectory(
+      context,
+      near: _userPoint(),
+      initial: initial,
+    );
+    if (pick == null || !mounted) return;
+    if (pick.approximate) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(
+              context,
+            ).masjidApproximateSnack(pick.place.name),
+          ),
+        ),
+      );
+    }
+    if (pick.go) {
+      await _goNow(pick.place);
+    } else {
+      await _planSelection(TripSelection(destination: pick.place));
+    }
   }
 
   Future<void> _planSelection(TripSelection selection) async {
@@ -1543,6 +1606,15 @@ class _MapScreenState extends ConsumerState<MapScreen>
                               ),
                             ),
                           ),
+                          const SizedBox(width: 8),
+                          _GlassIconButton(
+                            agentId: 'map.browser',
+                            buttonKey: const ValueKey('map-browser'),
+                            icon: Icons.public_rounded,
+                            tooltip: l10n.webSearchOpen,
+                            iconColor: theme.colorScheme.primary,
+                            onPressed: () => unawaited(_openWebSearch()),
+                          ),
                         ],
                       ),
                       // Pintasan (Rumah, Kerja, terkini) terus di bawah carian, seragam setinggi satu
@@ -1596,6 +1668,13 @@ class _MapScreenState extends ConsumerState<MapScreen>
                             label: l10n.qiblaOpen,
                             color: const Color(0xFFD97706),
                             onPressed: () => unawaited(showQibla(context)),
+                          ),
+                          MapToolSpec(
+                            agentId: 'tool.masjid',
+                            icon: Icons.mosque_rounded,
+                            label: l10n.masjidOpen,
+                            color: const Color(0xFF059669),
+                            onPressed: () => unawaited(_openMasjidDirectory()),
                           ),
                           MapToolSpec(
                             agentId: 'tool.music',
@@ -2462,6 +2541,8 @@ class _GlassIconButton extends StatelessWidget {
     required this.onPressed,
     this.loading = false,
     this.agentId,
+    this.iconColor,
+    this.buttonKey,
   });
 
   /// Id ejen FG AI (cth. `map.settings`).
@@ -2471,6 +2552,8 @@ class _GlassIconButton extends StatelessWidget {
   final String tooltip;
   final VoidCallback onPressed;
   final bool loading;
+  final Color? iconColor;
+  final Key? buttonKey;
 
   @override
   Widget build(BuildContext context) {
@@ -2484,6 +2567,7 @@ class _GlassIconButton extends StatelessWidget {
           elevation: 2,
           shadowColor: Colors.black.withValues(alpha: 0.16),
           child: IconButton(
+            key: buttonKey,
             tooltip: tooltip,
             onPressed: loading ? null : onPressed,
             icon: loading
@@ -2492,7 +2576,7 @@ class _GlassIconButton extends StatelessWidget {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : Icon(icon),
-            color: Theme.of(context).colorScheme.onSurface,
+            color: iconColor ?? Theme.of(context).colorScheme.onSurface,
           ),
         ),
       ),
