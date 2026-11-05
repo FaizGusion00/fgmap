@@ -3935,4 +3935,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get navOfflineVoiceSnack =>
       'Offline voice isn\'t installed: directions may go silent where there\'s no signal.';
+
+  @override
+  String get netBackOnline => 'Back online: data refreshed';
+
+  @override
+  String get netWentOffline =>
+      'Offline: offline map, search and routing are used if installed';
 }

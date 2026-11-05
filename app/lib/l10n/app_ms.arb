@@ -1610,5 +1610,7 @@
   "navOfflineVoiceMissing": "Suara tanpa internet: belum dipasang",
   "navOfflineVoiceMissingHint": "Tanpa internet, arahan mungkin senyap. Muat turun suara bahasa ini dalam tetapan suara telefon.",
   "navOfflineVoiceInstall": "Pasang",
-  "navOfflineVoiceSnack": "Suara tanpa internet belum dipasang: arahan mungkin senyap di kawasan tiada liputan."
+  "navOfflineVoiceSnack": "Suara tanpa internet belum dipasang: arahan mungkin senyap di kawasan tiada liputan.",
+  "netBackOnline": "Kembali dalam talian: data dikemas kini",
+  "netWentOffline": "Luar talian: peta, carian dan laluan offline digunakan jika dipasang"
 }

@@ -1474,5 +1474,7 @@
   "navOfflineVoiceMissing": "Offline voice: not installed",
   "navOfflineVoiceMissingHint": "Without internet, directions may be silent. Download this language's voice in your phone's speech settings.",
   "navOfflineVoiceInstall": "Install",
-  "navOfflineVoiceSnack": "Offline voice isn't installed: directions may go silent where there's no signal."
+  "navOfflineVoiceSnack": "Offline voice isn't installed: directions may go silent where there's no signal.",
+  "netBackOnline": "Back online: data refreshed",
+  "netWentOffline": "Offline: offline map, search and routing are used if installed"
 }

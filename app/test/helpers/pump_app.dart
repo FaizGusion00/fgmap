@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:fgmap/core/network/connectivity_watch.dart';
 import 'package:fgmap/core/theme/app_theme.dart';
 import 'package:fgmap/features/doorstep/data/osm_entrances.dart';
 import 'package:fgmap/features/navigation/data/flyover_service.dart';
@@ -55,6 +56,7 @@ Future<void> pumpApp(
   ThemeData? theme,
   Locale locale = const Locale('ms'),
   List<Override> overrides = const [],
+  bool online = true,
 }) async {
   await tester.pumpWidget(
     ProviderScope(
@@ -70,6 +72,7 @@ Future<void> pumpApp(
         osmEntranceSearchProvider.overrideWithValue(
           OsmEntranceSearch(Dio(), const []),
         ),
+        onlineStatusProvider.overrideWith((ref) => Stream.value(online)),
         ...overrides,
       ],
       child: MaterialApp(

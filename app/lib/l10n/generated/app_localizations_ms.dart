@@ -3933,4 +3933,11 @@ class AppLocalizationsMs extends AppLocalizations {
   @override
   String get navOfflineVoiceSnack =>
       'Suara tanpa internet belum dipasang: arahan mungkin senyap di kawasan tiada liputan.';
+
+  @override
+  String get netBackOnline => 'Kembali dalam talian: data dikemas kini';
+
+  @override
+  String get netWentOffline =>
+      'Luar talian: peta, carian dan laluan offline digunakan jika dipasang';
 }

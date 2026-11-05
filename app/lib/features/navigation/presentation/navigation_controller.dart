@@ -885,6 +885,32 @@ class NavigationController extends Notifier<NavigationState> {
   /// Jejambat OSM ("jalan bawah") berjaya dimuat bagi laluan semasa.
   bool _levelsOnline = false;
 
+  /// Internet kembali semasa navigasi: muat semula data sokongan yang gagal semasa luar talian (had laju,
+  /// jejambat/jalan bawah, kamera, tempat sepanjang laluan). Laluan sendiri tidak ditukar.
+  void refreshAfterReconnect() {
+    final route = state.route;
+    final query = state.query;
+    if (!state.isActive ||
+        state.phase == NavPhase.arrived ||
+        route == null ||
+        query == null) {
+      return;
+    }
+    final generation = _generation;
+    final version = state.routeVersion;
+    if (state.speedLimits.isEmpty) {
+      unawaited(_loadSpeedLimits(route.option, query, generation, version));
+    } else if (!_levelsOnline) {
+      unawaited(_loadLevelHints(state.speedLimits, generation, version));
+    }
+    if (_cameras.isEmpty) {
+      unawaited(_loadCameras(route.option, generation, version));
+    }
+    if (_alongPois.isEmpty) {
+      unawaited(_loadAlongPois(route.option, generation, version));
+    }
+  }
+
   /// Had laju ialah maklumat sokongan: kegagalan atau data kosong tidak menjejas navigasi.
   Future<void> _loadSpeedLimits(
     RouteOption route,

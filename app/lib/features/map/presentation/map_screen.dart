@@ -22,13 +22,17 @@ import '../../widgets/eta_widget_updater.dart';
 import '../../music/presentation/music_sheet.dart';
 import '../../music/presentation/player_controller.dart';
 import '../../../core/location/location_service.dart';
+import '../../../core/network/connectivity_watch.dart';
 import '../../../core/network/dio_provider.dart';
 import '../../../core/network/retry_interceptor.dart';
 import '../../../core/theme/fgmap_theme_extension.dart';
 import '../../../core/platform/external_actions.dart';
 import '../../../core/utils/map_links.dart';
 import '../../fuel/data/fuel_settings.dart';
+import '../../weather/domain/weather_snapshot.dart';
 import '../../navigation/data/offline_voice.dart';
+import '../../route_preview/domain/routing_failure.dart';
+import '../../fuel/data/fuel_price_service.dart';
 import '../../fuel/domain/fuel.dart';
 import '../../route_preview/presentation/route_format.dart';
 import '../../safety/presentation/emergency_sheet.dart';
@@ -154,6 +158,11 @@ class _MapScreenState extends ConsumerState<MapScreen>
   );
   DateTime? _backgroundedAt;
 
+  /// Bila sambungan terputus (null = dalam talian). Untuk "kembali dalam talian" tanpa bising pada kelipan
+  /// rangkaian sekejap.
+  DateTime? _offlineSince;
+  Timer? _offlineNotice;
+
   /// Amaran "suara offline belum dipasang" sekali sahaja setiap sesi app.
   bool _offlineVoiceWarned = false;
 
@@ -214,6 +223,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
 
   @override
   void dispose() {
+    _offlineNotice?.cancel();
     unawaited(_azanTapSub?.cancel());
     _tracker.location.removeListener(_feedSunLocation);
     _tracker.location.removeListener(_feedCruise);
@@ -543,6 +553,55 @@ class _MapScreenState extends ConsumerState<MapScreen>
     );
     if (selection == null || !mounted) return;
     await _planSelection(selection);
+  }
+
+  /// Internet kembali: muat semula apa yang gagal semasa luar talian, tanpa mengganggu yang berjaya
+  /// (laluan sedia ada, peta, navigasi kekal).
+  void _refreshAfterReconnect() {
+    final fuel = ref.read(fuelPricesProvider);
+    if (fuel.hasError || (fuel.hasValue && fuel.value == null)) {
+      ref.invalidate(fuelPricesProvider);
+    }
+    // Gaya malam yang jatuh ke URL (gagal dimuat luar talian): bina semula versi kontras tinggi.
+    final night = ref.read(mapStyleProvider(true)).value;
+    if (night != null && night.key == 'url:${AppConfig.mapStyleDark}') {
+      ref.invalidate(mapStyleProvider(true));
+    }
+    final preview = ref.read(routePreviewControllerProvider);
+    if (preview is RouteFailed &&
+        const {
+          RoutingFailureKind.network,
+          RoutingFailureKind.timeout,
+          RoutingFailureKind.unavailable,
+          RoutingFailureKind.offlineRequired,
+        }.contains(preview.kind)) {
+      unawaited(ref.read(routePreviewControllerProvider.notifier).retry());
+    } else if (preview is RouteReady) {
+      if (ref.read(weatherControllerProvider) is WeatherUiUnavailable) {
+        unawaited(
+          ref
+              .read(weatherControllerProvider.notifier)
+              .loadForRoute(
+                preview.selected,
+                preview.query.destination,
+                destinationLabel: preview.query.destinationLabel,
+              ),
+        );
+      }
+      final along = ref.read(alongRouteControllerProvider);
+      if (along.error != null || along.pois.isEmpty) {
+        unawaited(
+          ref
+              .read(alongRouteControllerProvider.notifier)
+              .loadForRoute(preview.selected),
+        );
+      }
+    }
+    ref.read(navigationControllerProvider.notifier).refreshAfterReconnect();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(AppLocalizations.of(context).netBackOnline)),
+    );
   }
 
   /// Sekali setiap sesi: suara bahasa navigasi belum dipasang untuk luar talian -> beritahu, dengan
@@ -1436,6 +1495,32 @@ class _MapScreenState extends ConsumerState<MapScreen>
       _onNavigationChanged,
     );
     ref.listen<CruiseState>(cruiseControllerProvider, _onCruiseChanged);
+    ref.listen<AsyncValue<bool>>(onlineStatusProvider, (prev, next) {
+      final was = prev?.value;
+      final now = next.value;
+      if (was == null || now == null || was == now) return;
+      if (!now) {
+        _offlineSince = DateTime.now();
+        // Beritahu hanya jika luar talian berterusan (bukan kelipan pertukaran Wi-Fi/data).
+        _offlineNotice?.cancel();
+        _offlineNotice = Timer(const Duration(seconds: 4), () {
+          if (!mounted || _offlineSince == null) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(AppLocalizations.of(context).netWentOffline),
+            ),
+          );
+        });
+      } else {
+        _offlineNotice?.cancel();
+        final since = _offlineSince;
+        _offlineSince = null;
+        if (since != null &&
+            DateTime.now().difference(since) >= const Duration(seconds: 4)) {
+          _refreshAfterReconnect();
+        }
+      }
+    });
     // Pintu masuk: pengawal destinasi mesti hidup sejak laluan pertama (pintu lalai pengguna digunakan
     // terus), bukan hanya bila bahagian "Pintu masuk" dipaparkan.
     ref.listen<DoorstepState>(doorstepProvider, (_, _) {});

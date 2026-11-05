@@ -6737,6 +6737,18 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'Suara tanpa internet belum dipasang: arahan mungkin senyap di kawasan tiada liputan.'**
   String get navOfflineVoiceSnack;
+
+  /// No description provided for @netBackOnline.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kembali dalam talian: data dikemas kini'**
+  String get netBackOnline;
+
+  /// No description provided for @netWentOffline.
+  ///
+  /// In ms, this message translates to:
+  /// **'Luar talian: peta, carian dan laluan offline digunakan jika dipasang'**
+  String get netWentOffline;
 }
 
 class _AppLocalizationsDelegate

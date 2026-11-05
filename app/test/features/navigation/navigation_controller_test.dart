@@ -117,6 +117,31 @@ void main() {
 
   group('NavigationController', () {
     test(
+      'internet kembali: had laju (dan jejambat) yang gagal dimuat semula; selepas tamat tiada apa',
+      () async {
+        await setUpContainer();
+        await begin();
+        await pumpEventQueue();
+        final limits =
+            container.read(speedLimitServiceProvider) as FakeSpeedLimitService;
+        expect(limits.calls, 1);
+        limits.limits = uniformLimit(90, navRoute.totalM);
+        controller().refreshAfterReconnect();
+        await pumpEventQueue();
+        expect(limits.calls, 2);
+        expect(state().speedLimits.isEmpty, isFalse);
+        // Sudah ada had laju: tidak diminta lagi.
+        controller().refreshAfterReconnect();
+        await pumpEventQueue();
+        expect(limits.calls, 2);
+        await controller().stop();
+        controller().refreshAfterReconnect();
+        await pumpEventQueue();
+        expect(limits.calls, 2);
+      },
+    );
+
+    test(
       'mula: aktif, skrin dijaga hidup, pengumuman pembukaan disebut',
       () async {
         await setUpContainer();
