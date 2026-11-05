@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:dio/dio.dart';
 import 'package:fgmap/core/config/app_config.dart';
 import 'package:fgmap/features/map/data/map_style_loader.dart';
+import 'package:fgmap/features/map/domain/night_style.dart';
 import 'package:fgmap/features/map/presentation/maplibre_view.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -50,6 +52,94 @@ void main() {
       expect(firstSymbolLayerId('{rosak'), isNull);
     },
   );
+
+  group('routeAnchorLayerId', () {
+    // Susunan Liberty: simbol (anak panah sehala) datang SEBELUM jejantas dan bangunan.
+    String liberty() => jsonEncode({
+      'layers': [
+        {
+          'id': 'road_primary',
+          'type': 'line',
+          'source-layer': 'transportation',
+        },
+        {
+          'id': 'road_one_way_arrow',
+          'type': 'symbol',
+          'source-layer': 'transportation',
+        },
+        {
+          'id': 'bridge_motorway',
+          'type': 'line',
+          'source-layer': 'transportation',
+        },
+        {'id': 'building', 'type': 'fill', 'source-layer': 'building'},
+        {'id': 'boundary_2', 'type': 'line', 'source-layer': 'boundary'},
+        {'id': 'water_name', 'type': 'symbol', 'source-layer': 'water_name'},
+        {'id': 'label_city', 'type': 'symbol', 'source-layer': 'place'},
+      ],
+    });
+
+    test('di atas jejantas dan bangunan, di bawah label pertama', () {
+      expect(routeAnchorLayerId(liberty()), 'water_name');
+      // Lapisan simbol pertama (lama) ialah anak panah sehala: laluan di bawah jejantas.
+      expect(firstSymbolLayerId(liberty()), 'road_one_way_arrow');
+    });
+
+    test(
+      'null untuk URL, JSON rosak, atau gaya tanpa label selepas geometri',
+      () {
+        expect(routeAnchorLayerId('https://x.example/style'), isNull);
+        expect(routeAnchorLayerId('{rosak'), isNull);
+        expect(
+          routeAnchorLayerId('{"layers":[{"id":"a","type":"fill"}]}'),
+          isNull,
+        );
+      },
+    );
+
+    test('gaya semuanya simbol: lapisan pertama', () {
+      expect(
+        routeAnchorLayerId('{"layers":[{"id":"s","type":"symbol"}]}'),
+        's',
+      );
+    });
+
+    List<String> idsOf(String style) => [
+      for (final l in (jsonDecode(style) as Map)['layers'] as List)
+        (l as Map)['id'] as String,
+    ];
+
+    // Gaya Liberty sebenar yang dibundel (asas gaya luar talian, malam dan satelit): laluan tidak
+    // boleh berada di bawah mana-mana jejantas.
+    test('Liberty dibundel: selepas setiap lapisan bridge_*', () {
+      final raw = File('assets/map/liberty.json').readAsStringSync();
+      final ids = idsOf(raw);
+      final anchor = routeAnchorLayerId(raw);
+      expect(anchor, isNotNull);
+      final bridges = [
+        for (final id in ids)
+          if (id.startsWith('bridge_')) ids.indexOf(id),
+      ];
+      expect(bridges, isNotEmpty);
+      expect(ids.indexOf(anchor!), greaterThan(bridges.reduce(math.max)));
+    });
+
+    test('gaya malam daripada Liberty dibundel: masih selepas jejantas', () {
+      final night = NightStyle.apply(
+        File('assets/map/liberty.json').readAsStringSync(),
+      );
+      expect(night, isNotNull);
+      final ids = idsOf(night!);
+      final anchor = routeAnchorLayerId(night);
+      expect(anchor, isNotNull);
+      final bridges = [
+        for (final id in ids)
+          if (id.startsWith('bridge_')) ids.indexOf(id),
+      ];
+      expect(bridges, isNotEmpty);
+      expect(ids.indexOf(anchor!), greaterThan(bridges.reduce(math.max)));
+    });
+  });
 
   late Directory dir;
   var now = DateTime(2026, 10, 26, 12);

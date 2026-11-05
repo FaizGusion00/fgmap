@@ -335,7 +335,7 @@ class _MapLibreViewState extends State<MapLibreView> {
     final c = _controller;
     if (c == null) return;
     final colors = widget.config.colors;
-    _labelAnchor = firstSymbolLayerId(widget.config.styleUrl);
+    _labelAnchor = routeAnchorLayerId(widget.config.styleUrl);
     if (MapFramePump.diagnostics) {
       // Untuk menala gaya peta (cth. kontras mod gelap) tanpa meneka id lapisan.
       logDiag('FGDIAG lapisan gaya: ${(await c.getLayerIds()).join(', ')}');
@@ -731,8 +731,8 @@ class _MapLibreViewState extends State<MapLibreView> {
     }
   }
 
-  /// Lapisan simbol pertama dalam gaya JSON: garisan laluan dipasang DI BAWAHNYA supaya label jalan dan
-  /// tempat kekal terbaca di atas laluan. Null untuk gaya URL (id tidak diketahui): di atas semua.
+  /// Lapisan tempat garisan laluan dipasang DI BAWAHNYA ([routeAnchorLayerId]): di atas semua jalan, jejantas
+  /// dan bangunan, di bawah semua label. Null untuk gaya URL (id tidak diketahui): di atas semua.
   String? _labelAnchor;
 
   Future<void> _addMainLayers(
@@ -1445,6 +1445,37 @@ Map<String, dynamic> _reportFeatures(List<MapReport> reports) => {
       },
   ],
 };
+
+/// Id lapisan untuk menambat garisan laluan (dipasang di bawahnya): lapisan simbol pertama SELEPAS lapisan
+/// geometri terakhir. Laluan duduk di atas semua jalan, jejantas, bangunan dan sempadan, tetapi di bawah
+/// semua label.
+///
+/// Lapisan simbol PERTAMA tidak boleh digunakan: dalam gaya Liberty ia ialah `road_one_way_arrow`
+/// (anak panah sehala jalan) yang datang SEBELUM semua lapisan `bridge_*`. Laluan yang ditambat di situ
+/// tersembunyi di bawah setiap jejantas, lebuh raya tinggi dan ramp, lalu muncul semula selepasnya.
+///
+/// Null jika [style] ialah URL/tidak dapat dihuraikan, atau tiada simbol selepas geometri terakhir.
+@visibleForTesting
+String? routeAnchorLayerId(String style) {
+  if (!style.trimLeft().startsWith('{')) return null;
+  try {
+    final decoded = jsonDecode(style);
+    final layers = decoded is Map ? decoded['layers'] : null;
+    if (layers is! List) return null;
+    final lastGeometry = layers.lastIndexWhere(
+      (l) => l is Map && l['type'] != 'symbol',
+    );
+    for (var i = lastGeometry + 1; i < layers.length; i++) {
+      final l = layers[i];
+      if (l is Map && l['type'] == 'symbol' && l['id'] is String) {
+        return l['id'] as String;
+      }
+    }
+  } on FormatException {
+    return null;
+  }
+  return null;
+}
 
 /// Id lapisan simbol pertama dalam gaya JSON, atau null jika [style] ialah URL/tidak dapat dihuraikan.
 @visibleForTesting
