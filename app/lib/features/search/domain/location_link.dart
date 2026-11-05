@@ -92,11 +92,40 @@ SharedLocation? sharedLocationFromUri(Uri uri) {
 }
 
 GeoPoint? _pinFromData(Uri uri) {
+  final text = Uri.decodeFull(uri.toString());
   final match = RegExp(
     r'!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)',
-  ).firstMatch(Uri.decodeFull(uri.toString()));
-  if (match == null) return null;
-  return _point(match.group(1), match.group(2));
+  ).firstMatch(text);
+  if (match != null) return _point(match.group(1), match.group(2));
+  // Halaman arah `/maps/dir/…/data=…!1d<lng>!2d<lat>`: titik laluan; yang terakhir ialah destinasi.
+  if (uri.pathSegments.contains('dir')) {
+    final points = RegExp(
+      r'!1d(-?\d+(?:\.\d+)?)!2d(-?\d+(?:\.\d+)?)',
+    ).allMatches(text).toList();
+    if (points.isNotEmpty) {
+      return _point(points.last.group(2), points.last.group(1));
+    }
+  }
+  return null;
+}
+
+/// Koordinat PIN tempat dalam pautan peta (bukan pusat paparan `@lat,lng`): `!3d!4d` tempat, titik
+/// destinasi halaman arah, atau koordinat jelas dalam `destination`/`daddr`/`q`. Null jika pautan hanya
+/// tahu pusat peta, iaitu belum tepat untuk dijadikan destinasi.
+GeoPoint? mapPinFromUri(Uri uri) {
+  final pin = _pinFromData(uri);
+  if (pin != null) return pin;
+  final p = uri.queryParameters;
+  for (final v in [p['destination'], p['daddr'], p['q'], p['query'], p['ll']]) {
+    if (v == null) continue;
+    final c = _coordinates(v);
+    if (c != null) return c;
+    final at = RegExp(
+      r'@\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$',
+    ).firstMatch(v);
+    if (at != null) return _point(at.group(1), at.group(2));
+  }
+  return null;
 }
 
 /// Pautan dalam pelayar carian yang patut dibuka dalam FGMaps (bukan dimuat dalam pelayar): halaman

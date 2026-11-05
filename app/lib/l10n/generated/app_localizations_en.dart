@@ -283,6 +283,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get webSearchResolving => 'Getting the exact location from Google…';
+
+  @override
   String get appearanceTooltip => 'Settings';
 
   @override
@@ -2092,7 +2095,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutNew2 =>
-      'Search on Google inside the app: tap \"Directions\" on a place and the route opens in FGMaps';
+      'Search on Google inside the app: tap \"Directions\" or \"Open in Maps\" and FGMaps routes straight to Google\'s exact pin, no re-search';
 
   @override
   String get aboutNew3 =>

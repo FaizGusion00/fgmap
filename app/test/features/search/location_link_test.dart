@@ -162,4 +162,56 @@ void main() {
       },
     );
   });
+
+  group('pin tepat untuk carian Google (bukan pusat paparan)', () {
+    test('halaman arah: titik destinasi terakhir !1d<lng>!2d<lat>', () {
+      final u = Uri.parse(
+        'https://www.google.com/maps/dir//Zoo+Negara+Malaysia/@3.2105,101.7380,13z/data=!4m8!4m7!1m0!1m5!1m1!1s0x31cc3a9:0x9b!2m2!1d101.758821!2d3.210301',
+      );
+      expect(mapPinFromUri(u), const GeoPoint(3.210301, 101.758821));
+      expect(
+        sharedLocationFromUri(u)!.point,
+        const GeoPoint(3.210301, 101.758821),
+      );
+    });
+
+    test('hanya @pusat paparan atau nama: tiada pin (perlu diselesaikan)', () {
+      expect(
+        mapPinFromUri(
+          Uri.parse(
+            'https://www.google.com/maps/dir//Zoo+Negara/@3.21,101.73,13z',
+          ),
+        ),
+        isNull,
+      );
+      expect(
+        mapPinFromUri(
+          Uri.parse(
+            'https://www.google.com/maps/dir/?api=1&destination=Zoo+Negara',
+          ),
+        ),
+        isNull,
+      );
+      expect(mapPinFromUri(Uri.parse('https://maps.app.goo.gl/AbC')), isNull);
+    });
+
+    test('pin daripada place !3d!4d dan daddr "Nama @lat,lng"', () {
+      expect(
+        mapPinFromUri(
+          Uri.parse(
+            'https://www.google.com/maps/place/X/@3.1,101.7,17z/data=!3m1!4b1!8m2!3d3.1489!4d101.7131',
+          ),
+        ),
+        const GeoPoint(3.1489, 101.7131),
+      );
+      expect(
+        mapPinFromUri(
+          Uri.parse(
+            'https://maps.google.com/maps?daddr=Kemensah+Heights+@3.210301,101.758821',
+          ),
+        ),
+        const GeoPoint(3.210301, 101.758821),
+      );
+    });
+  });
 }

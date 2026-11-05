@@ -277,6 +277,9 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
+  String get webSearchResolving => 'Mendapatkan lokasi tepat daripada Google…';
+
+  @override
   String get appearanceTooltip => 'Tetapan';
 
   @override
@@ -2085,7 +2088,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get aboutNew2 =>
-      'Cari di Google dalam app: tekan \"Arah\" pada tempat dan laluan terus dibuka dalam FGMaps';
+      'Cari di Google dalam app: tekan \"Arah\" atau \"Buka dalam Peta\" dan FGMaps terus kira laluan ke lokasi tepat Google, tanpa carian semula';
 
   @override
   String get aboutNew3 =>

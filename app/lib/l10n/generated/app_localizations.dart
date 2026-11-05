@@ -536,6 +536,12 @@ abstract class AppLocalizations {
   /// **'≈ RM {amount}'**
   String routeCostApprox(String amount);
 
+  /// No description provided for @webSearchResolving.
+  ///
+  /// In ms, this message translates to:
+  /// **'Mendapatkan lokasi tepat daripada Google…'**
+  String get webSearchResolving;
+
   /// No description provided for @appearanceTooltip.
   ///
   /// In ms, this message translates to:
@@ -3665,7 +3671,7 @@ abstract class AppLocalizations {
   /// No description provided for @aboutNew2.
   ///
   /// In ms, this message translates to:
-  /// **'Cari di Google dalam app: tekan \"Arah\" pada tempat dan laluan terus dibuka dalam FGMaps'**
+  /// **'Cari di Google dalam app: tekan \"Arah\" atau \"Buka dalam Peta\" dan FGMaps terus kira laluan ke lokasi tepat Google, tanpa carian semula'**
   String get aboutNew2;
 
   /// No description provided for @aboutNew3.
