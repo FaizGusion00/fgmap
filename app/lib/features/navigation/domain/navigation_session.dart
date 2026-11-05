@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../../../core/location/location_service.dart';
 import '../../../core/utils/geo.dart';
 import 'announcement_planner.dart';
+import 'road_level.dart';
 import 'fix_filter.dart';
 import 'instruction_text.dart';
 import 'nav_route.dart';
@@ -186,6 +187,9 @@ class NavigationSession {
   DateTime? _stoppedSince;
 
   set language(VoiceLanguage l) => _planner.language = l;
+
+  /// Petunjuk jejambat / jalan bawah / terowong bagi manuver laluan ini (disebut dalam arahan).
+  set levelHints(Map<int, LevelHint> hints) => _planner.levelHints = hints;
 
   /// Pengumuman pembukaan (sekali). Dipanggil sebaik sesi bermula.
   List<Announcement> takeStartAnnouncements() {

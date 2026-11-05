@@ -54,6 +54,9 @@ Map<String, Object?> buildTraceAttributesRequest(
       'edge.length',
       'edge.begin_shape_index',
       'edge.end_shape_index',
+      // Jambatan/terowong: petunjuk "naik jejambat" / "terowong" pada manuver (juga offline).
+      'edge.bridge',
+      'edge.tunnel',
     ],
     'action': 'include',
   },
@@ -107,6 +110,8 @@ SpeedLimits parseSpeedLimits(Object? body) {
         endShapeIndex: end,
         lengthM: length * 1000.0,
         limitKmh: limit is int && limit > 0 ? limit : null,
+        bridge: e['bridge'] == true,
+        tunnel: e['tunnel'] == true,
       ),
     );
   }

@@ -28,6 +28,7 @@ import '../../air_quality/domain/air_quality.dart';
 import '../../along_route/domain/along_route_projector.dart';
 import '../../weather/domain/weather_snapshot.dart';
 import '../../weather/presentation/weather_controller.dart';
+import '../data/flyover_service.dart';
 import '../data/location_sources.dart';
 import '../data/navigation_settings.dart';
 import '../data/screen_awake.dart';
@@ -38,6 +39,7 @@ import '../domain/announcement_planner.dart';
 import '../domain/instruction_text.dart';
 import '../domain/nav_route.dart';
 import '../domain/navigation_session.dart';
+import '../domain/road_level.dart';
 import '../domain/restored_progress.dart';
 import '../domain/route_tracker.dart';
 import '../domain/vehicle_model.dart';
@@ -64,6 +66,7 @@ class NavigationState {
     this.weatherSevere = false,
     this.hazeAlert,
     this.upcomingAlongPoi,
+    this.levelHints = const {},
   });
 
   final NavPhase phase;
@@ -102,6 +105,9 @@ class NavigationState {
   /// R&R / minyak paling hampir di hadapan (≤8 km), untuk chip HUD.
   final AlongRoutePoi? upcomingAlongPoi;
 
+  /// Petunjuk aras (jejambat / jalan bawah / terowong) mengikut indeks manuver laluan semasa.
+  final Map<int, LevelHint> levelHints;
+
   /// Had laju di kedudukan semasa, atau null jika tidak diketahui.
   int? get currentLimitKmh {
     final along = progress?.alongM;
@@ -128,6 +134,7 @@ class NavigationState {
     bool clearHazeAlert = false,
     AlongRoutePoi? upcomingAlongPoi,
     bool clearUpcomingAlongPoi = false,
+    Map<int, LevelHint>? levelHints,
   }) {
     return NavigationState(
       phase: phase ?? this.phase,
@@ -149,6 +156,7 @@ class NavigationState {
       upcomingAlongPoi: clearUpcomingAlongPoi
           ? null
           : (upcomingAlongPoi ?? this.upcomingAlongPoi),
+      levelHints: levelHints ?? this.levelHints,
     );
   }
 }
@@ -874,6 +882,9 @@ class NavigationController extends Notifier<NavigationState> {
     }
   }
 
+  /// Jejambat OSM ("jalan bawah") berjaya dimuat bagi laluan semasa.
+  bool _levelsOnline = false;
+
   /// Had laju ialah maklumat sokongan: kegagalan atau data kosong tidak menjejas navigasi.
   Future<void> _loadSpeedLimits(
     RouteOption route,
@@ -889,8 +900,66 @@ class NavigationController extends Notifier<NavigationState> {
         return;
       }
       state = state.copyWith(speedLimits: limits);
+      _levelsOnline = false;
+      unawaited(_loadLevelHints(limits, generation, routeVersion));
     } on Object catch (e) {
       logDiag('Had laju tidak dapat dimuat: $e');
+    }
+  }
+
+  /// Petunjuk jejambat / jalan bawah / terowong. Dua langkah: segera daripada jambatan/terowong laluan
+  /// sendiri (juga offline), kemudian dilengkapkan dengan jejambat OSM berhampiran cabang ("jalan bawah")
+  /// jika dalam talian. Maklumat sokongan: kegagalan tidak menjejas navigasi.
+  Future<void> _loadLevelHints(
+    SpeedLimits limits,
+    int generation,
+    int routeVersion, {
+    int retry = 0,
+  }) async {
+    final route = state.route;
+    if (route == null) return;
+    bool current() =>
+        ref.mounted &&
+        generation == _generation &&
+        state.routeVersion == routeVersion;
+    try {
+      final spans = structureSpansFor(route, [
+        for (final s in limits.segments)
+          (
+            beginShapeIndex: s.beginShapeIndex,
+            endShapeIndex: s.endShapeIndex,
+            bridge: s.bridge,
+            tunnel: s.tunnel,
+          ),
+      ]);
+      void apply(Map<int, LevelHint> hints) {
+        if (!current()) return;
+        _session?.levelHints = hints;
+        state = state.copyWith(levelHints: hints);
+      }
+
+      apply(levelHintsFor(route, spans));
+      final bridges = await ref.read(flyoverServiceProvider).bridgesFor(route);
+      if (!current()) return;
+      _levelsOnline = bridges != null;
+      if (bridges != null && bridges.isNotEmpty) {
+        apply(levelHintsFor(route, spans, osmBridges: bridges));
+      } else if (bridges == null && retry < 2) {
+        // Overpass awam sibuk: cuba lagi kemudian (laluan yang sama sahaja).
+        unawaited(
+          Future<void>.delayed(Duration(seconds: 45 * (retry + 1)), () async {
+            if (!ref.mounted || !current()) return;
+            await _loadLevelHints(
+              limits,
+              generation,
+              routeVersion,
+              retry: retry + 1,
+            );
+          }),
+        );
+      }
+    } on Object catch (e) {
+      logDiag('Petunjuk jejambat tidak dapat dimuat: $e');
     }
   }
 

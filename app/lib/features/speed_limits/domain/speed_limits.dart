@@ -9,12 +9,18 @@ class SpeedLimitSegment {
     required this.endShapeIndex,
     required this.lengthM,
     required this.limitKmh,
+    this.bridge = false,
+    this.tunnel = false,
   });
 
   final int beginShapeIndex;
   final int endShapeIndex;
   final double lengthM;
   final int? limitKmh;
+
+  /// Tepi ini jambatan (jejambat) / terowong menurut OSM.
+  final bool bridge;
+  final bool tunnel;
 }
 
 /// Had laju sepanjang satu laluan, boleh ditanya mengikut indeks titik atau jarak sepanjang laluan.

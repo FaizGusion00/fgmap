@@ -5,6 +5,7 @@ import '../../reports/domain/report.dart';
 import 'lane_guidance.dart';
 import 'lane_plan.dart';
 import 'nav_route.dart';
+import 'road_level.dart';
 
 /// Bahasa arahan. Ayat dijana sendiri daripada jenis manuver (Bahagian 8.2 pelan), bukan teks
 /// Valhalla, supaya sebutan dan nada terkawal.
@@ -111,6 +112,25 @@ class InstructionText {
       null => null,
     };
   }
+
+  /// Ayat aras jalan untuk suara: "Naik jejambat." / "Jangan naik jejambat, ikut jalan bawah.".
+  String levelPhrase(LevelHint hint) => switch (hint) {
+    LevelHint.flyover => _ms ? 'Naik jejambat.' : 'Take the flyover.',
+    LevelHint.underFlyover =>
+      _ms
+          ? 'Jangan naik jejambat, ikut jalan bawah.'
+          : 'Stay on the lower road, not the flyover.',
+    LevelHint.tunnel =>
+      _ms ? 'Ikut laluan bawah tanah.' : 'Take the underpass.',
+  };
+
+  /// Label pendek kad: "Naik jejambat" / "Ikut jalan bawah" / "Laluan bawah tanah".
+  String levelLabel(LevelHint hint) => switch (hint) {
+    LevelHint.flyover => _ms ? 'Naik jejambat' : 'Take the flyover',
+    LevelHint.underFlyover =>
+      _ms ? 'Ikut jalan bawah' : 'Stay low, not the flyover',
+    LevelHint.tunnel => _ms ? 'Laluan bawah tanah' : 'Underpass',
+  };
 
   /// "Guna lorong paling kanan" untuk kad dan skrin kereta (tanpa noktah). Daripada pelan lorong
   /// (data sebenar atau anggaran sisi); bulatan tanpa pelan jatuh kepada sisi bulatan. Null jika

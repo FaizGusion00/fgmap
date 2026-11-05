@@ -192,9 +192,14 @@ class CarSessionHub {
     final language = VoiceLanguage.fromCode(
       WidgetsBinding.instance.platformDispatcher.locale.languageCode,
     );
+    final level = maneuver == null ? null : nav.levelHints[maneuver.index];
     final text = maneuver == null
         ? null
-        : InstructionText(language).action(maneuver);
+        : level == null
+        ? InstructionText(language).action(maneuver)
+        // Persimpangan bertingkat di skrin kereta: "Kekal di sebelah kanan · Naik jejambat".
+        : '${InstructionText(language).action(maneuver)} · '
+              '${InstructionText(language).levelLabel(level)}';
     final now = ref.read(navClockProvider)();
     final settings = ref.read(navigationSettingsProvider);
     final moving = _vehicleAt(nav, cruise, now);

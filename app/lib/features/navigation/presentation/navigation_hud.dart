@@ -11,6 +11,7 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../route_preview/presentation/route_format.dart';
 import '../domain/camera_planner.dart';
 import '../domain/instruction_text.dart';
+import '../domain/road_level.dart';
 import '../domain/junction.dart';
 import '../domain/nav_route.dart';
 import '../domain/navigation_session.dart';
@@ -217,9 +218,13 @@ class ManeuverBanner extends StatelessWidget {
     this.liveAlongM,
     this.motorcycle = false,
     this.junction,
+    this.levelHints = const {},
   });
 
   final NavProgress progress;
+
+  /// Petunjuk jejambat / jalan bawah / terowong mengikut indeks manuver.
+  final Map<int, LevelHint> levelHints;
 
   /// Bentuk sebenar simpang untuk manuver seterusnya (null = belum dimuat / tiada data).
   final Junction? junction;
@@ -265,6 +270,7 @@ class ManeuverBanner extends StatelessWidget {
                 metrics: metrics,
                 colors: colors,
                 junction: junction,
+                levelHint: levelHints[next.index],
               );
             },
           );
@@ -343,7 +349,11 @@ class _BannerContent extends StatelessWidget {
     required this.metrics,
     required this.colors,
     this.junction,
+    this.levelHint,
   });
+
+  /// Aras jalan selepas manuver ini (jejambat / jalan bawah / terowong); null = tiada petunjuk.
+  final LevelHint? levelHint;
 
   final double speedMps;
   final bool motorcycle;
@@ -484,6 +494,17 @@ class _BannerContent extends StatelessWidget {
                                   height: 1.3,
                                 ),
                       ),
+                    // Persimpangan bertingkat: cip menonjol (warna terbalik) supaya jelas sekilas.
+                    if (levelHint != null && !maneuver.isArrival)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4, bottom: 2),
+                        child: _LevelChip(
+                          hint: levelHint!,
+                          label: text.levelLabel(levelHint!),
+                          background: onPrimary,
+                          foreground: colors.background,
+                        ),
+                      ),
                     // Panduan lorong: lorong sebenar jika ada data, jika tidak "Guna lorong kanan".
                     LaneGuidance(
                       maneuver: maneuver,
@@ -581,6 +602,56 @@ class _BannerContent extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// Cip aras jalan pada kad manuver: "↑ Naik jejambat", "↓ Ikut jalan bawah", "Laluan bawah tanah".
+class _LevelChip extends StatelessWidget {
+  const _LevelChip({
+    required this.hint,
+    required this.label,
+    required this.background,
+    required this.foreground,
+  });
+
+  final LevelHint hint;
+  final String label;
+  final Color background;
+  final Color foreground;
+
+  @override
+  Widget build(BuildContext context) {
+    final icon = switch (hint) {
+      LevelHint.flyover => Icons.north_rounded,
+      LevelHint.underFlyover => Icons.south_rounded,
+      LevelHint.tunnel => Icons.subway_rounded,
+    };
+    return Container(
+      key: ValueKey('nav-level-${hint.name}'),
+      padding: const EdgeInsets.fromLTRB(6, 3, 10, 3),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: foreground),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: foreground,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

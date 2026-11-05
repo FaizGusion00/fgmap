@@ -2039,6 +2039,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
           junction: progress.next == null
               ? null
               : liveRef.watch(junctionForProvider(progress.next!)),
+          levelHints: nav.levelHints,
         ),
       if (camera != null && !arrived)
         Material(

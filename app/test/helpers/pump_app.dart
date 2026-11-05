@@ -1,4 +1,6 @@
+import 'package:dio/dio.dart';
 import 'package:fgmap/core/theme/app_theme.dart';
+import 'package:fgmap/features/navigation/data/flyover_service.dart';
 import 'package:fgmap/core/utils/geo.dart';
 import 'package:fgmap/features/navigation/domain/camera_planner.dart';
 import 'package:fgmap/features/fuel/data/fuel_price_service.dart';
@@ -60,6 +62,10 @@ Future<void> pumpApp(
       overrides: [
         fuelPricesProvider.overrideWith((ref) async => null),
         tollLookupEnabledProvider.overrideWithValue(false),
+        // Jejambat (Overpass) dan pintu masuk (Overpass): tiada cermin = tiada rangkaian.
+        flyoverServiceProvider.overrideWithValue(
+          FlyoverService(Dio(), const []),
+        ),
         ...overrides,
       ],
       child: MaterialApp(

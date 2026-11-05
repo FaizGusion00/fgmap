@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'instruction_text.dart';
+import 'road_level.dart';
 import 'nav_route.dart';
 
 /// Bunyi isyarat pendek sebelum suara (atau sendiri).
@@ -75,6 +76,10 @@ class AnnouncementPlanner {
   InstructionText _text;
 
   set language(VoiceLanguage language) => _text = InstructionText(language);
+
+  /// Petunjuk aras (jejambat / jalan bawah / terowong) mengikut indeks manuver; dikemas kini apabila data
+  /// jalan tiba selepas navigasi bermula.
+  Map<int, LevelHint> levelHints = const {};
 
   final Set<(int, _Stage)> _fired = {};
   final Set<int> _keepGoingFired = {};
@@ -173,14 +178,17 @@ class AnnouncementPlanner {
       case _Stage.far:
         return Announcement(
           kind: AnnouncementKind.far,
-          text: _withLane(_text.spoken(m, distanceM: distance), m),
+          text: _withLevel(
+            _withLane(_text.spoken(m, distanceM: distance), m),
+            m,
+          ),
           chime: ChimeKind.early,
         );
       case _Stage.near:
         return Announcement(
           kind: AnnouncementKind.near,
-          text: _withLane(
-            _text.spoken(m, distanceM: distance, then: chained),
+          text: _withLevel(
+            _withLane(_text.spoken(m, distanceM: distance, then: chained), m),
             m,
           ),
           chime: ChimeKind.early,
@@ -188,7 +196,7 @@ class AnnouncementPlanner {
       case _Stage.now:
         return Announcement(
           kind: AnnouncementKind.now,
-          text: _text.spoken(m, then: chained),
+          text: _withLevel(_text.spoken(m, then: chained), m),
           chime: m.isArrival ? ChimeKind.arrive : ChimeKind.now,
           interrupt: true,
         );
@@ -200,6 +208,13 @@ class AnnouncementPlanner {
   String _withLane(String sentence, NavManeuver m) {
     final lane = _text.lanePhrase(m);
     return lane == null ? sentence : '$sentence $lane';
+  }
+
+  /// Persimpangan bertingkat: "... Naik jejambat." / "... Jangan naik jejambat, ikut jalan bawah." pada
+  /// setiap peringkat (penting juga pada "sekarang": di situlah pemandu memilih aras).
+  String _withLevel(String sentence, NavManeuver m) {
+    final hint = levelHints[m.index];
+    return hint == null ? sentence : '$sentence ${_text.levelPhrase(hint)}';
   }
 
   /// Dipanggil sesi apabila destinasi dicapai. Sekali sahaja.
