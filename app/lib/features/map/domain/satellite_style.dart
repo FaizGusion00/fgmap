@@ -4,6 +4,17 @@ import 'dart:convert';
 const satelliteSourceId = 'fg-satellite-src';
 const satelliteLayerId = 'fg-satellite';
 
+/// Lapisan imej asli tahap 19 (~0.3 m/piksel) di atas lapisan asas. Tersembunyi lalai: ia hanya
+/// dinyalakan oleh peta apabila ketersediaan z19 di kawasan itu telah disahkan (lihat
+/// `SatelliteCoverage`), kerana di tempat tiada imej Esri menghantar jubin "Map data not yet
+/// available" yang lebih buruk daripada membesarkan jubin z18.
+const satelliteHiSourceId = 'fg-satellite-hi-src';
+const satelliteHiLayerId = 'fg-satellite-hi';
+
+/// Awalan kunci gaya satelit (lihat `MapStyleLoader.satellite`), supaya peta tahu gaya mana yang
+/// menggunakan lapisan z19.
+const satelliteStyleKeyPrefix = 'satellite:';
+
 /// Atribusi wajib Esri World Imagery ("Powered by Esri" + sumber data), dipaparkan oleh butang
 /// atribusi peta.
 const satelliteAttribution =
@@ -22,9 +33,21 @@ abstract final class SatelliteStyle {
   static const labelColor = '#FFFFFF';
   static const haloColor = 'rgba(0,0,0,0.78)';
 
-  /// Imej asli Esri di Malaysia sehingga ~zum 18; di atas itu MapLibre membesarkan jubin terakhir
-  /// (lebih baik daripada jubin "Map data not yet available").
+  /// Imej asli Esri hampir di mana-mana di Malaysia sehingga zum 18; di atas itu MapLibre
+  /// membesarkan jubin terakhir (lebih baik daripada jubin "Map data not yet available").
   static const maxZoom = 18;
+
+  /// Di bandar dan pinggir bandar Esri ada imej asli zum 19 (dua kali lebih terperinci). Lihat
+  /// [satelliteHiLayerId].
+  static const hiMaxZoom = 19;
+
+  /// Saiz jubin yang diisytiharkan bagi sumber z19 (lihat komen dalam [apply]).
+  static const hiTileSize = 128;
+
+  /// Penambahbaikan kejelasan imej Esri yang agak berkabus: sedikit kontras dan ketepuan. Nilai
+  /// kecil sengaja; terlalu banyak memecahkan warna kawasan hijau dan bumbung.
+  static const rasterContrast = 0.14;
+  static const rasterSaturation = 0.1;
 
   static String? apply(String source, {required String tilesUrl}) {
     final Object? decoded;
@@ -112,6 +135,19 @@ abstract final class SatelliteStyle {
       'maxzoom': maxZoom,
       'attribution': satelliteAttribution,
     };
+    // Sumber z19: jubin yang sama, hanya tahap 19 (tiada jubin lebih rendah diminta). Atribusi
+    // sudah ada pada sumber asas. `tileSize: 128` (bukan 256) menjadikan MapLibre meminta tahap
+    // 19 mulai zum peta 17 dan bukan 18: pemanduan biasa berlaku pada zum 16.2-18.2, jadi dengan 256
+    // lapisan ini hampir tidak pernah kelihatan. Imej z19 dipaparkan 2x lebih padat pada zum 17-18.
+    // Sumber asas tidak diubah: ia tidak disemak ketersediaannya dan tidak patut meminta tahap
+    // lebih tinggi lebih awal.
+    sources[satelliteHiSourceId] = {
+      'type': 'raster',
+      'tiles': [tilesUrl],
+      'tileSize': hiTileSize,
+      'minzoom': hiMaxZoom,
+      'maxzoom': hiMaxZoom,
+    };
     decoded['layers'] = [
       // Warna di bawah imej semasa jubin dimuat (gelap, seperti gambar satelit).
       {
@@ -124,7 +160,22 @@ abstract final class SatelliteStyle {
         'id': satelliteLayerId,
         'type': 'raster',
         'source': satelliteSourceId,
-        'paint': {'raster-fade-duration': 150},
+        'paint': {
+          'raster-fade-duration': 150,
+          'raster-contrast': rasterContrast,
+          'raster-saturation': rasterSaturation,
+        },
+      },
+      {
+        'id': satelliteHiLayerId,
+        'type': 'raster',
+        'source': satelliteHiSourceId,
+        'layout': {'visibility': 'none'},
+        'paint': {
+          'raster-fade-duration': 150,
+          'raster-contrast': rasterContrast,
+          'raster-saturation': rasterSaturation,
+        },
       },
       ...kept,
     ];

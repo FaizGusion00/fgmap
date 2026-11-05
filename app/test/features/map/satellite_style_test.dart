@@ -54,8 +54,9 @@ void main() {
     'di atas imej: tiada isian/bangunan/relief; jalan lut sinar; label kekal',
     () {
       final layers = (hybrid()['layers'] as List).cast<Map<String, dynamic>>();
-      final sat = layers.indexWhere((l) => l['id'] == satelliteLayerId);
-      final rest = layers.skip(sat + 1);
+      // Lapisan z19 ialah raster kedua tepat di atas imej asas; semuanya selepas itu ialah vektor.
+      final hi = layers.indexWhere((l) => l['id'] == satelliteHiLayerId);
+      final rest = layers.skip(hi + 1);
       expect(
         rest.where(
           (l) => [
@@ -91,6 +92,54 @@ void main() {
       expect(rest.firstWhere((l) => l['type'] == 'symbol'), isNotNull);
     },
   );
+
+  test(
+    'lapisan imej asli z19: tersembunyi lalai, hanya tahap 19, di atas imej asas',
+    () {
+      final style = hybrid();
+      final layers = (style['layers'] as List).cast<Map<String, dynamic>>();
+      final sat = layers.indexWhere((l) => l['id'] == satelliteLayerId);
+      final hi = layers.indexWhere((l) => l['id'] == satelliteHiLayerId);
+      expect(hi, sat + 1);
+      expect(layers[hi]['type'], 'raster');
+      expect(layers[hi]['source'], satelliteHiSourceId);
+      // Tersembunyi sehingga peta mengesahkan imej z19 wujud (jubin kelabu di tempat lain).
+      expect((layers[hi]['layout'] as Map)['visibility'], 'none');
+      final src = (style['sources'] as Map)[satelliteHiSourceId] as Map;
+      expect(src['type'], 'raster');
+      // 128: tahap 19 diminta mulai zum peta 17 (pemanduan biasa 16.2-18.2); asas kekal 256.
+      expect(src['tileSize'], SatelliteStyle.hiTileSize);
+      expect(SatelliteStyle.hiTileSize, 128);
+      final baseSrc = (style['sources'] as Map)[satelliteSourceId] as Map;
+      expect(baseSrc['tileSize'], 256);
+      expect(src['minzoom'], SatelliteStyle.hiMaxZoom);
+      expect(src['maxzoom'], SatelliteStyle.hiMaxZoom);
+      // Jubin sama dengan lapisan asas; asas kekal z18 yang selamat di mana-mana.
+      final base = (style['sources'] as Map)[satelliteSourceId] as Map;
+      expect(src['tiles'], base['tiles']);
+      expect(base['maxzoom'], SatelliteStyle.maxZoom);
+      expect(SatelliteStyle.hiMaxZoom, SatelliteStyle.maxZoom + 1);
+    },
+  );
+
+  test(
+    'kejelasan: kontras dan ketepuan sederhana pada kedua-dua lapisan imej',
+    () {
+      final layers = (hybrid()['layers'] as List).cast<Map<String, dynamic>>();
+      for (final id in [satelliteLayerId, satelliteHiLayerId]) {
+        final paint = layers.firstWhere((l) => l['id'] == id)['paint'] as Map;
+        expect(paint['raster-contrast'], SatelliteStyle.rasterContrast);
+        expect(paint['raster-saturation'], SatelliteStyle.rasterSaturation);
+      }
+      // Sederhana: terlalu banyak memecahkan warna hijau dan bumbung.
+      expect(SatelliteStyle.rasterContrast, inInclusiveRange(0.0, 0.25));
+      expect(SatelliteStyle.rasterSaturation, inInclusiveRange(0.0, 0.2));
+    },
+  );
+
+  test('kunci gaya satelit memakai awalan yang dikenali peta', () {
+    expect('${satelliteStyleKeyPrefix}online:1:2', startsWith('satellite:'));
+  });
 
   test('gaya rosak atau bukan OpenMapTiles: null (peta biasa digunakan)', () {
     expect(SatelliteStyle.apply('x', tilesUrl: 'https://t/{z}'), isNull);

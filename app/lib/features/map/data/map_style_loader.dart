@@ -132,7 +132,7 @@ class MapStyleLoader {
       if (styled == null) return null;
       return ResolvedMapStyle(
         styled,
-        'satellite:${basemap?.version ?? 'online'}:${styled.length}:${styled.hashCode}',
+        '$satelliteStyleKeyPrefix${basemap?.version ?? 'online'}:${styled.length}:${styled.hashCode}',
       );
     } on Object catch (e) {
       logDiag('Gaya satelit gagal: $e');

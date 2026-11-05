@@ -8,7 +8,11 @@ import 'package:maplibre_gl/maplibre_gl.dart';
 
 import '../../../core/theme/motion.dart';
 import '../../../core/utils/geo.dart';
+import '../../../core/config/app_config.dart';
+import '../data/satellite_coverage_service.dart';
 import '../domain/poi_category.dart';
+import '../domain/satellite_style.dart'
+    show satelliteHiLayerId, satelliteStyleKeyPrefix;
 import '../domain/turn_label.dart';
 import '../../reports/domain/report.dart';
 import '../../reports/presentation/report_icon.dart';
@@ -132,6 +136,21 @@ class _MapLibreViewState extends State<MapLibreView> {
   Timer? _userLocationHeartbeat;
   static const _userLocationHeartbeatEvery = Duration(seconds: 15);
 
+  // Imej satelit z19: lapisan imej asli tahap 19 dinyalakan hanya di tempat Esri mengesahkan ia ada
+  // (di tempat lain z19 ialah jubin kelabu "tiada data"). Diperiksa berkala pada pusat kamera, dengan
+  // cache setiap ~300 m.
+  late final SatelliteCoverageService _satCoverage = SatelliteCoverageService(
+    tilesUrl: AppConfig.satelliteTilesUrl,
+  );
+  Timer? _satTimer;
+  bool _satHiOn = false;
+  bool _satProbing = false;
+  static const _satEvery = Duration(seconds: 2);
+
+  /// Zum peta paling rendah di mana z19 mula relevan (jubin z19 diminta mulai ~18; bersedia lebih awal
+  /// supaya keputusan sudah ada bila kamera sampai).
+  static const _satProbeMinZoom = 16.5;
+
   @override
   void initState() {
     super.initState();
@@ -148,6 +167,7 @@ class _MapLibreViewState extends State<MapLibreView> {
       }
       _pushUserLocation();
     });
+    _satTimer = Timer.periodic(_satEvery, (_) => unawaited(_syncSatelliteHi()));
   }
 
   @override
@@ -263,6 +283,8 @@ class _MapLibreViewState extends State<MapLibreView> {
   @override
   void dispose() {
     _userLocationHeartbeat?.cancel();
+    _satTimer?.cancel();
+    _satCoverage.dispose();
     widget.config.navAlong?.removeListener(_onNavAlong);
     widget.config.userLocation?.removeListener(_pushUserLocation);
     _pump.dispose();
@@ -346,6 +368,8 @@ class _MapLibreViewState extends State<MapLibreView> {
   Future<void> _initOverlays() async {
     final c = _controller;
     if (c == null) return;
+    // Gaya dimuat semula: lapisan z19 kembali tersembunyi; pemeriksaan berkala menyalakannya semula.
+    _satHiOn = false;
     final colors = widget.config.colors;
     _labelAnchor = routeAnchorLayerId(widget.config.styleUrl);
     if (MapFramePump.diagnostics) {
@@ -513,6 +537,37 @@ class _MapLibreViewState extends State<MapLibreView> {
 
     _overlaysReady = true;
     await _pushData();
+  }
+
+  /// Menyalakan lapisan imej z19 jika Esri mengesahkan imej asli z19 di pusat kamera, dan memadamkannya
+  /// jika tidak. Rangkaian gagal (null): keadaan terakhir dikekalkan, lalai z18 yang selamat.
+  Future<void> _syncSatelliteHi() async {
+    final c = _controller;
+    if (c == null || !_overlaysReady || _satProbing) return;
+    if (!widget.config.styleId.startsWith(satelliteStyleKeyPrefix)) return;
+    final lifecycle = WidgetsBinding.instance.lifecycleState;
+    if (lifecycle == AppLifecycleState.paused ||
+        lifecycle == AppLifecycleState.hidden) {
+      return;
+    }
+    final pos = c.cameraPosition;
+    if (pos == null || pos.zoom < _satProbeMinZoom) return;
+    _satProbing = true;
+    try {
+      final ok = await _satCoverage.hiAvailableAt(
+        GeoPoint(pos.target.latitude, pos.target.longitude),
+      );
+      if (ok == null || !mounted || !identical(c, _controller)) return;
+      if (ok != _satHiOn) {
+        _satHiOn = ok;
+        logDiag('Satelit z19: ${ok ? 'hidup' : 'padam'}');
+        _enqueue(() => c.setLayerVisibility(satelliteHiLayerId, ok));
+      }
+    } on Object catch (e) {
+      logDiag('Lapisan satelit z19 gagal ditukar: $e');
+    } finally {
+      _satProbing = false;
+    }
   }
 
   double get _iconScale =>
