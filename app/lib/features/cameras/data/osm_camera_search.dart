@@ -75,8 +75,8 @@ class OsmCameraSearch {
       if (lat == null || lng == null || id == null) continue;
       final tags = e['tags'];
       final name = tags is Map
-          ? (tags['name'] as String?) ?? 'Kamera OSM'
-          : 'Kamera OSM';
+          ? (tags['name'] as String?) ?? 'Kamera kelajuan'
+          : 'Kamera kelajuan';
       out.add(
         SpeedCamera(
           id: 'osm-$id',

@@ -195,7 +195,7 @@ void main() {
         await tester.pump(const Duration(milliseconds: 500));
         await settle(tester);
         expect(find.text('Lagu Raya Aidilfitri'), findsOneWidget);
-        expect(find.textContaining('via Audius'), findsWidgets);
+        expect(find.textContaining('Muzik bebas'), findsWidgets);
         await tester.tap(find.text('Lagu Raya Aidilfitri'));
         await settle(tester);
         expect(engine.calls, contains('setQueue:2:0'));
@@ -228,7 +228,7 @@ void main() {
       audius.error = StateError('offline');
       await pump(tester, const MusicSheet());
       expect(
-        find.textContaining('Audius tidak dapat dihubungi'),
+        find.textContaining('Muzik bebas tidak dapat dihubungi'),
         findsOneWidget,
       );
       await tester.tap(find.text('Radio'));

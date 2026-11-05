@@ -142,8 +142,7 @@ class AppLocalizationsMs extends AppLocalizations {
       'Satelit tidak dapat dimuat (perlukan internet). Peta biasa dipaparkan.';
 
   @override
-  String get mapLayerSatelliteHint =>
-      'Satelit perlukan internet. Imej: Esri, Maxar, Earthstar Geographics.';
+  String get mapLayerSatelliteHint => 'Satelit perlukan internet.';
 
   @override
   String get masjidOpen => 'Masjid & surau';
@@ -209,7 +208,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get masjidAttribution =>
-      'Senarai: JAKIM melalui data.gov.my (CC BY), data 2019, mungkin ada yang sudah berubah. Lokasi tepat: OpenStreetMap.';
+      'Senarai rasmi (data 2019), mungkin ada yang sudah berubah. Tempat bertanda \"anggaran\" dicari ikut alamat.';
 
   @override
   String get masjidApproximateHint =>
@@ -520,7 +519,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String searchNoNearby(String category) {
-    return 'Tiada “$category” ditemui berhampiran dalam OpenStreetMap. Cuba kawasan lain atau cari mengikut nama.';
+    return 'Tiada “$category” ditemui berhampiran. Cuba kawasan lain atau cari mengikut nama.';
   }
 
   @override
@@ -1021,7 +1020,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get onbPrivacyServers =>
-      'Untuk carian dan laluan, app menghantar teks carian dan koordinat perjalanan ke perkhidmatan awam OpenStreetMap. Tiada yang lain dihantar.';
+      'Untuk carian dan laluan, app menghantar teks carian dan koordinat perjalanan ke perkhidmatan peta awam. Tiada yang lain dihantar. Butiran penuh dalam Dasar Privasi.';
 
   @override
   String get onbPrivacyLocation =>
@@ -1312,7 +1311,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get musicEmptySongs =>
-      'Taip nama lagu atau artis, atau ketik cadangan di atas. Katalog percuma Audius ialah muzik bebas; lagu artis label besar tiada di sini. Untuk lagu penuh artis label besar, ketik Spotify atau YouTube Music di atas untuk cari dalam app anda sendiri, atau cuba tab Radio.';
+      'Taip nama lagu atau artis, atau ketik cadangan di atas. Katalog percuma ialah muzik bebas; lagu artis label besar tiada di sini. Untuk lagu penuh artis label besar, ketik Spotify atau YouTube Music di atas untuk cari dalam app anda sendiri, atau cuba tab Radio.';
 
   @override
   String get musicEmptyRadio =>
@@ -1350,11 +1349,10 @@ class AppLocalizationsMs extends AppLocalizations {
   String get musicLive => 'LANGSUNG';
 
   @override
-  String get musicViaAudius => 'via Audius';
+  String get musicViaAudius => 'Muzik bebas';
 
   @override
-  String get musicAttribution =>
-      'Lagu daripada Audius · Radio daripada Radio Browser · Fail anda kekal pada telefon';
+  String get musicAttribution => 'Fail anda kekal pada telefon';
 
   @override
   String get musicNowPlaying => 'Sedang dimainkan';
@@ -1428,7 +1426,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get musicClearLocal => 'Padam semua fail saya';
 
   @override
-  String get musicSourceAudius => 'Audius';
+  String get musicSourceAudius => 'Muzik bebas';
 
   @override
   String get musicSourceAppleMusic => 'Apple Music';
@@ -1492,7 +1490,7 @@ class AppLocalizationsMs extends AppLocalizations {
       'Akses muzik ditolak. Hidupkan untuk FGMaps dalam Tetapan telefon anda.';
 
   @override
-  String get musicSourceRadio => 'Radio Browser';
+  String get musicSourceRadio => 'Radio';
 
   @override
   String get musicSourceLocal => 'Fail saya';
@@ -1869,7 +1867,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get fuelManualPriceHint =>
-      'Kosongkan untuk guna harga data.gov.my. Isi jika harga yang anda bayar berbeza (cth. RON95 subsidi).';
+      'Kosongkan untuk guna harga rasmi mingguan. Isi jika harga yang anda bayar berbeza (cth. RON95 subsidi).';
 
   @override
   String get fuelPriceUnavailable =>
@@ -1932,7 +1930,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String fuelPriceSource(String price, String date) {
-    return 'Harga data.gov.my: RM $price/L ($date)';
+    return 'Harga rasmi: RM $price/L ($date)';
   }
 
   @override
@@ -2092,7 +2090,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get musicNoResultsSongsHint =>
-      'Katalog percuma Audius ialah muzik bebas; lagu artis label besar tiada di sini. Ketik Spotify atau YouTube Music di atas untuk cari dalam app anda sendiri, atau cuba Radio.';
+      'Katalog percuma ialah muzik bebas; lagu artis label besar tiada di sini. Ketik Spotify atau YouTube Music di atas untuk cari dalam app anda sendiri, atau cuba Radio.';
 
   @override
   String get musicTryRadio => 'Cari dalam Radio';
@@ -2130,7 +2128,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get alongRouteTitle => 'Sepanjang laluan';
 
   @override
-  String get alongRouteDisclaimer => 'Data OpenStreetMap; mungkin tak lengkap.';
+  String get alongRouteDisclaimer => 'Data mungkin tidak lengkap.';
 
   @override
   String get alongRouteUnavailable =>
@@ -2188,7 +2186,8 @@ class AppLocalizationsMs extends AppLocalizations {
   String get cameraAwasAhead => 'Kamera AwAS di hadapan — patuhi had laju';
 
   @override
-  String get cameraOsmAhead => 'Kamera (OSM) di hadapan — patuhi had laju';
+  String get cameraOsmAhead =>
+      'Kamera (data komuniti) di hadapan — patuhi had laju';
 
   @override
   String get settingsCameras => 'Amaran kamera';
@@ -2198,7 +2197,7 @@ class AppLocalizationsMs extends AppLocalizations {
       'Amaran AwAS rasmi (JPJ). Bukan semua kamera Malaysia.';
 
   @override
-  String get settingsCamerasOsm => 'Termasuk kamera OSM';
+  String get settingsCamerasOsm => 'Termasuk kamera data komuniti';
 
   @override
   String get settingsCamerasOsmHint =>
@@ -2261,7 +2260,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get weatherTitle => 'Cuaca';
 
   @override
-  String get weatherAttribution => 'Cuaca: Open-Meteo · lokasi GPS';
+  String get weatherAttribution => 'Ramalan cuaca · lokasi GPS';
 
   @override
   String get weatherUnavailable => 'Cuaca tidak tersedia';
@@ -2305,7 +2304,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get airQualityDisclaimer =>
-      'Indeks Pencemar Udara rasmi daripada stesen pemantauan JAS yang terdekat.';
+      'Indeks Pencemar Udara rasmi daripada stesen pemantauan terdekat.';
 
   @override
   String get airQualityHere => 'Di sini';
@@ -2321,8 +2320,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get airQualityCached => 'Cache';
 
   @override
-  String get airQualityAttribution =>
-      'Sumber: Jabatan Alam Sekitar (APIMS/EQMS)';
+  String get airQualityAttribution => 'Data rasmi kerajaan';
 
   @override
   String airQualityStation(String name, String distance) {
@@ -2350,7 +2348,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get airBandHazardous => 'Berbahaya';
 
   @override
-  String get airQualityScale => 'Skala rasmi JAS';
+  String get airQualityScale => 'Skala rasmi IPU';
 
   @override
   String airQualityDominant(String name) {
@@ -2799,7 +2797,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get aiCapabilitiesOffline =>
-      'Ciri pada telefon (luar talian): rancang laluan jika peta offline sudah dimuat turun, arah kiblat, dan waktu solat hari ini. Carian tempat, cuaca, IPU, muzik dan Wikipedia perlukan internet. Arahan seperti \"Laluan ke KLCC\" atau \"Di mana saya\" tidak akan memaparkan senarai alat.';
+      'Ciri pada telefon (luar talian): carian tempat dan rancang laluan jika pek peta offline sudah dimuat turun, senarai masjid & surau, arah kiblat, dan waktu solat hari ini. Cuaca, IPU, muzik dan carian internet perlukan talian. Arahan seperti \"Laluan ke KLCC\" atau \"Di mana saya\" tidak akan memaparkan senarai alat.';
 
   @override
   String aiWeatherNow(
@@ -3642,7 +3640,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get assistantAutoWebSubtitle =>
-      'FG AI menyemak berita, Wikipedia dan data rasmi bila soalan perlukan maklumat terkini. Permintaan \"cari online\" sentiasa dijalankan.';
+      'FG AI menyemak berita dan data rasmi bila soalan perlukan maklumat terkini. Permintaan \"cari online\" sentiasa dijalankan.';
 
   @override
   String get aiModelRecommended => 'Disyorkan untuk telefon ini';
@@ -3744,7 +3742,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get cctvLoadFailed =>
-      'CCTV tidak dapat dimuat daripada laman LLM. Semak internet dan cuba lagi.';
+      'CCTV tidak dapat dimuat. Semak internet dan cuba lagi.';
 
   @override
   String get cctvEmpty => 'Tiada kamera untuk lebuh raya ini buat masa ini.';
@@ -3754,10 +3752,10 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get cctvFooter =>
-      'Imej CCTV sebenar daripada Lembaga Lebuhraya Malaysia (llm.gov.my): snapshot yang LLM kemas kini kira-kira setiap minit, dimuat semula automatik setiap 30 saat (cap masa pada imej). Bukan video: LLM tiada strim video awam. Laman awam LLM memaparkan 3 kamera bagi setiap lebuh raya; video penuh hanya dalam app TuJu/PLUS.';
+      'Imej kamera sebenar, dikemas kini kira-kira setiap minit dan dimuat semula sendiri setiap 30 saat (cap masa pada imej). Bukan video. 3 kamera dipaparkan bagi setiap lebuh raya.';
 
   @override
-  String get cctvOpenLlm => 'Buka laman LLM';
+  String get cctvOpenLlm => 'Buka laman rasmi';
 
   @override
   String get cctvDrivingWarning =>
@@ -3794,14 +3792,14 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get tollCalcFailed =>
-      'Kalkulator tol LLM tidak dapat dicapai. Cuba lagi.';
+      'Kalkulator tol rasmi tidak dapat dicapai. Cuba lagi.';
 
   @override
   String get tollCalcNoRate => 'Tiada kadar untuk pilihan ini.';
 
   @override
   String get tollCalcSource =>
-      'Kadar rasmi Lembaga Lebuhraya Malaysia (llm.gov.my), terus daripada kalkulator tol LLM. Perlu internet.';
+      'Kadar tol rasmi, terus daripada kalkulator tol kerajaan. Perlu internet.';
 
   @override
   String get tollCalcClass1 => 'Kelas 1 · Kereta';
@@ -3819,19 +3817,19 @@ class AppLocalizationsMs extends AppLocalizations {
   String get tollCalcClass5 => 'Kelas 5 · Bas';
 
   @override
-  String get routeTollCheckLlm => 'Semak kalkulator LLM';
+  String get routeTollCheckLlm => 'Semak kalkulator tol';
 
   @override
   String get routeCctv => 'CCTV laluan';
 
   @override
-  String get cctvKlVideo => 'Video langsung jalan KL (KLCCC DBKL)';
+  String get cctvKlVideo => 'Video langsung jalan bandar KL';
 
   @override
   String get cctvSnapshotBadge => 'SNAPSHOT';
 
   @override
-  String get cctvUpdateEvery => 'Imej sebenar · LLM kemas kini ~1 min sekali';
+  String get cctvUpdateEvery => 'Imej sebenar · dikemas kini ~1 min sekali';
 
   @override
   String cctvLoadedAgo(int seconds) {
@@ -3859,7 +3857,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get cctvLiveVideoBody =>
-      'LLM tiada strim video awam untuk lebuh raya; video lebuh raya hanya dalam app TuJu dan PLUS (tertutup). Video langsung awam yang ada: kamera jalan bandar KL oleh KLCCC (DBKL), dimainkan di laman mereka.';
+      'Tiada strim video awam untuk lebuh raya; video lebuh raya hanya dalam app rasmi pengendali (tertutup). Video langsung awam yang ada: kamera jalan bandar Kuala Lumpur, dimainkan di laman rasmi bandar raya.';
 
   @override
   String cctvFullscreenLoaded(String time) {
@@ -3940,6 +3938,118 @@ class AppLocalizationsMs extends AppLocalizations {
   @override
   String get netWentOffline =>
       'Luar talian: peta, carian dan laluan offline digunakan jika dipasang';
+
+  @override
+  String get aboutSrcMapTitle => 'Peta';
+
+  @override
+  String get aboutSrcMap =>
+      '© penyumbang OpenStreetMap (ODbL). Gaya dan jubin: OpenFreeMap, OpenMapTiles. Peta offline dibina daripada data OpenStreetMap.';
+
+  @override
+  String get aboutSrcSatelliteTitle => 'Imej satelit';
+
+  @override
+  String get aboutSrcSatellite =>
+      'Powered by Esri (Esri, Maxar, Earthstar Geographics, GIS User Community).';
+
+  @override
+  String get aboutSrcRoutingTitle => 'Laluan dan navigasi';
+
+  @override
+  String get aboutSrcRouting =>
+      'Valhalla (FOSSGIS e.V.) dalam talian dan dalam telefon. Had laju, lorong, jejambat dan terowong daripada OpenStreetMap.';
+
+  @override
+  String get aboutSrcSearchTitle => 'Carian tempat';
+
+  @override
+  String get aboutSrcSearch =>
+      'Photon (komoot) dan Nominatim (Yayasan OpenStreetMap). Carian offline daripada data OpenStreetMap. \"Cari di Google\" dibuka di Google.';
+
+  @override
+  String get aboutSrcTollsTitle => 'Tol';
+
+  @override
+  String get aboutSrcTolls =>
+      'Kadar rasmi Lembaga Lebuhraya Malaysia (kalkulator tol LLM). Kedudukan plaza daripada OpenStreetMap.';
+
+  @override
+  String get aboutSrcCctvTitle => 'CCTV lebuh raya';
+
+  @override
+  String get aboutSrcCctv =>
+      'Imej daripada Lembaga Lebuhraya Malaysia (llm.gov.my), kedudukan kamera daripada lapisan GIS LLM. Video bandar KL: KLCCC (DBKL).';
+
+  @override
+  String get aboutSrcOsmTitle =>
+      'Pintu masuk, tempat sepanjang laluan, kamera komuniti';
+
+  @override
+  String get aboutSrcOsm => 'OpenStreetMap melalui Overpass API.';
+
+  @override
+  String get aboutSrcMasjidTitle => 'Masjid dan surau';
+
+  @override
+  String get aboutSrcMasjid =>
+      'JAKIM melalui data.gov.my (CC BY, data 2019). Lokasi tepat daripada OpenStreetMap.';
+
+  @override
+  String get aboutSrcPrayerTitle => 'Waktu solat';
+
+  @override
+  String get aboutSrcPrayer =>
+      'JAKIM e-Solat melalui WaktuSolat API (api.waktusolat.app), dan pengiraan Adhan dalam telefon. Rakaman azan: Aaqib Azeez / Atcovi, Wikimedia Commons, CC BY-SA 4.0.';
+
+  @override
+  String get aboutSrcFuelTitle => 'Harga minyak';
+
+  @override
+  String get aboutSrcFuel => 'data.gov.my (Kerajaan Malaysia).';
+
+  @override
+  String get aboutSrcWeatherTitle => 'Cuaca';
+
+  @override
+  String get aboutSrcWeather => 'Open-Meteo.';
+
+  @override
+  String get aboutSrcAirTitle => 'Kualiti udara (IPU)';
+
+  @override
+  String get aboutSrcAir => 'Jabatan Alam Sekitar (APIMS / EQMS).';
+
+  @override
+  String get aboutSrcMusicTitle => 'Muzik';
+
+  @override
+  String get aboutSrcMusic =>
+      'Audius (Open Music License), Radio Browser, dan Apple Music di iPhone (melalui MusicKit). Strim radio daripada stesen masing-masing.';
+
+  @override
+  String get aboutSrcAiTitle => 'FG AI';
+
+  @override
+  String get aboutSrcAi =>
+      'Model dalam telefon (Qwen, Gemma; dimuat turun dari Hugging Face). Carian web: DuckDuckGo, Google News, Wikipedia, Bank Negara Malaysia. FGMuslim AI: islamic.app, deen.ai.';
+
+  @override
+  String get aboutBuild => 'Binaan';
+
+  @override
+  String get aboutReleased => 'Tarikh keluaran';
+
+  @override
+  String get aboutLicenses => 'Lesen sumber terbuka';
+
+  @override
+  String get aboutLicensesHint =>
+      'Pakej perisian yang digunakan oleh FGMaps dan lesennya';
+
+  @override
+  String get aboutDataSourcesHint =>
+      'Semua sumber data, peta dan kandungan pihak ketiga yang digunakan oleh FGMaps.';
 
   @override
   String offlineMapsPaused(int percent) {

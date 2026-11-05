@@ -142,8 +142,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Satellite couldn\'t load (needs internet). Showing the standard map.';
 
   @override
-  String get mapLayerSatelliteHint =>
-      'Satellite needs internet. Imagery: Esri, Maxar, Earthstar Geographics.';
+  String get mapLayerSatelliteHint => 'Satellite needs internet.';
 
   @override
   String get masjidOpen => 'Mosques & surau';
@@ -209,7 +208,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get masjidAttribution =>
-      'List: JAKIM via data.gov.my (CC BY), 2019 data, some details may have changed. Exact locations: OpenStreetMap.';
+      'Official list (2019 data); some details may have changed. Places marked \"approx.\" are located by address.';
 
   @override
   String get masjidApproximateHint =>
@@ -528,7 +527,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String searchNoNearby(String category) {
-    return 'No “$category” found nearby in OpenStreetMap. Try a larger area or search by name.';
+    return 'No “$category” found nearby. Try a larger area or search by name.';
   }
 
   @override
@@ -1027,7 +1026,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onbPrivacyServers =>
-      'To search and plan routes, the app sends your search text and trip coordinates to public OpenStreetMap services. Nothing else is sent.';
+      'To search and plan routes, the app sends your search text and trip coordinates to public map services. Nothing else is sent. Full details are in the Privacy Policy.';
 
   @override
   String get onbPrivacyLocation =>
@@ -1318,7 +1317,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get musicEmptySongs =>
-      'Type a song or artist, or tap a suggestion above. The free Audius catalogue is independent music; major-label songs are not here. For those, tap Spotify or YouTube Music above to search in your own app, or try the Radio tab.';
+      'Type a song or artist, or tap a suggestion above. The free catalogue is independent music; major-label songs are not here. For those, tap Spotify or YouTube Music above to search in your own app, or try the Radio tab.';
 
   @override
   String get musicEmptyRadio =>
@@ -1356,11 +1355,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get musicLive => 'LIVE';
 
   @override
-  String get musicViaAudius => 'via Audius';
+  String get musicViaAudius => 'Indie music';
 
   @override
-  String get musicAttribution =>
-      'Songs from Audius · Radio from Radio Browser · Your files stay on your phone';
+  String get musicAttribution => 'Your files stay on your phone';
 
   @override
   String get musicNowPlaying => 'Now playing';
@@ -1435,7 +1433,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get musicClearLocal => 'Delete all my files';
 
   @override
-  String get musicSourceAudius => 'Audius';
+  String get musicSourceAudius => 'Indie music';
 
   @override
   String get musicSourceAppleMusic => 'Apple Music';
@@ -1499,7 +1497,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Music access was declined. Turn it on for FGMaps in your phone\'s Settings.';
 
   @override
-  String get musicSourceRadio => 'Radio Browser';
+  String get musicSourceRadio => 'Radio';
 
   @override
   String get musicSourceLocal => 'My files';
@@ -1875,7 +1873,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get fuelManualPriceHint =>
-      'Leave empty to use the data.gov.my price. Fill it in if you pay a different price (e.g. subsidised RON95).';
+      'Leave empty to use the official weekly price. Fill it in if you pay a different price (e.g. subsidised RON95).';
 
   @override
   String get fuelPriceUnavailable =>
@@ -1938,7 +1936,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String fuelPriceSource(String price, String date) {
-    return 'data.gov.my price: RM $price/L ($date)';
+    return 'Official price: RM $price/L ($date)';
   }
 
   @override
@@ -2099,7 +2097,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get musicNoResultsSongsHint =>
-      'The free Audius catalogue is independent music; major-label songs are not here. Tap Spotify or YouTube Music above to search in your own app, or try Radio.';
+      'The free catalogue is independent music; major-label songs are not here. Tap Spotify or YouTube Music above to search in your own app, or try Radio.';
 
   @override
   String get musicTryRadio => 'Search in Radio';
@@ -2137,7 +2135,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get alongRouteTitle => 'Along the route';
 
   @override
-  String get alongRouteDisclaimer => 'OpenStreetMap data; may be incomplete.';
+  String get alongRouteDisclaimer => 'Data may be incomplete.';
 
   @override
   String get alongRouteUnavailable =>
@@ -2194,7 +2192,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cameraAwasAhead => 'AwAS camera ahead — observe the speed limit';
 
   @override
-  String get cameraOsmAhead => 'Camera (OSM) ahead — observe the speed limit';
+  String get cameraOsmAhead =>
+      'Camera (community data) ahead — keep to the limit';
 
   @override
   String get settingsCameras => 'Camera alerts';
@@ -2204,7 +2203,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Official AwAS (JPJ) alerts. Not every camera in Malaysia.';
 
   @override
-  String get settingsCamerasOsm => 'Include OSM cameras';
+  String get settingsCamerasOsm => 'Include community-data cameras';
 
   @override
   String get settingsCamerasOsmHint =>
@@ -2267,7 +2266,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get weatherTitle => 'Weather';
 
   @override
-  String get weatherAttribution => 'Weather: Open-Meteo · GPS location';
+  String get weatherAttribution => 'Weather forecast · GPS location';
 
   @override
   String get weatherUnavailable => 'Weather unavailable';
@@ -2311,7 +2310,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get airQualityDisclaimer =>
-      'Official Air Pollutant Index from the nearest DOE (JAS) monitoring station.';
+      'Official Air Pollutant Index from the nearest monitoring station.';
 
   @override
   String get airQualityHere => 'Here';
@@ -2327,8 +2326,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get airQualityCached => 'Cached';
 
   @override
-  String get airQualityAttribution =>
-      'Source: Jabatan Alam Sekitar (APIMS/EQMS)';
+  String get airQualityAttribution => 'Official government data';
 
   @override
   String airQualityStation(String name, String distance) {
@@ -2356,7 +2354,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get airBandHazardous => 'Hazardous';
 
   @override
-  String get airQualityScale => 'Official JAS scale';
+  String get airQualityScale => 'Official API scale';
 
   @override
   String airQualityDominant(String name) {
@@ -2803,7 +2801,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiCapabilitiesOffline =>
-      'On-device (offline) features: plan routes if you\'ve downloaded offline maps, qibla direction, and today\'s prayer times. Place search, weather, air quality, music, and Wikipedia need internet. Map commands like \"Route to KLCC\" or \"Where am I\" work without dumping tool lists.';
+      'On-device (offline) features: place search and route planning if you have downloaded the offline map pack, the mosque & surau list, qibla direction, and today\'s prayer times. Weather, air quality, music and web search need internet. Map commands like \"Route to KLCC\" or \"Where am I\" work without dumping tool lists.';
 
   @override
   String aiWeatherNow(
@@ -3645,7 +3643,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get assistantAutoWebSubtitle =>
-      'FG AI checks news, Wikipedia and official data when a question needs up-to-date facts. \'Search online\' requests always run.';
+      'FG AI checks news and official data when a question needs up-to-date facts. \'Search online\' requests always run.';
 
   @override
   String get aiModelRecommended => 'Recommended for this phone';
@@ -3747,7 +3745,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cctvLoadFailed =>
-      'Couldn\'t load CCTV from the LLM website. Check your connection and try again.';
+      'Couldn\'t load CCTV. Check your connection and try again.';
 
   @override
   String get cctvEmpty => 'No cameras for this highway right now.';
@@ -3757,10 +3755,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cctvFooter =>
-      'Real CCTV images from the Malaysian Highway Authority (llm.gov.my): snapshots LLM updates about every minute, reloaded automatically every 30 seconds (timestamp on the image). Not video: LLM has no public video stream. LLM\'s public site shows 3 cameras per highway; full video is only in the TuJu/PLUS apps.';
+      'Real camera images, updated about every minute and reloaded automatically every 30 seconds (timestamp on the image). Not video. 3 cameras are shown per highway.';
 
   @override
-  String get cctvOpenLlm => 'Open LLM website';
+  String get cctvOpenLlm => 'Open official site';
 
   @override
   String get cctvDrivingWarning =>
@@ -3796,14 +3794,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tollCalcFailed =>
-      'Couldn\'t reach the LLM toll calculator. Try again.';
+      'Couldn\'t reach the official toll calculator. Try again.';
 
   @override
   String get tollCalcNoRate => 'No rate for this choice.';
 
   @override
   String get tollCalcSource =>
-      'Official Malaysian Highway Authority rates (llm.gov.my), straight from the LLM toll calculator. Needs internet.';
+      'Official toll rates, straight from the government toll calculator. Needs internet.';
 
   @override
   String get tollCalcClass1 => 'Class 1 · Car';
@@ -3821,19 +3819,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tollCalcClass5 => 'Class 5 · Bus';
 
   @override
-  String get routeTollCheckLlm => 'Check LLM calculator';
+  String get routeTollCheckLlm => 'Check toll calculator';
 
   @override
   String get routeCctv => 'Route CCTV';
 
   @override
-  String get cctvKlVideo => 'Live video, KL city roads (KLCCC DBKL)';
+  String get cctvKlVideo => 'Live video, KL city roads';
 
   @override
   String get cctvSnapshotBadge => 'SNAPSHOT';
 
   @override
-  String get cctvUpdateEvery => 'Real images · LLM updates ~once a minute';
+  String get cctvUpdateEvery => 'Real images · updated ~once a minute';
 
   @override
   String cctvLoadedAgo(int seconds) {
@@ -3861,7 +3859,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cctvLiveVideoBody =>
-      'LLM has no public video stream for highways; highway video is only in the TuJu and PLUS apps (closed). Public live video that exists: KL city-road cameras by KLCCC (DBKL), played on their site.';
+      'There is no public video stream for highways; highway video is only in the operators\' own apps (closed). Public live video that exists: Kuala Lumpur city-road cameras, played on the city\'s official site.';
 
   @override
   String cctvFullscreenLoaded(String time) {
@@ -3942,6 +3940,118 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get netWentOffline =>
       'Offline: offline map, search and routing are used if installed';
+
+  @override
+  String get aboutSrcMapTitle => 'Map';
+
+  @override
+  String get aboutSrcMap =>
+      '© OpenStreetMap contributors (ODbL). Style and tiles: OpenFreeMap, OpenMapTiles. Offline maps are built from OpenStreetMap data.';
+
+  @override
+  String get aboutSrcSatelliteTitle => 'Satellite imagery';
+
+  @override
+  String get aboutSrcSatellite =>
+      'Powered by Esri (Esri, Maxar, Earthstar Geographics, GIS User Community).';
+
+  @override
+  String get aboutSrcRoutingTitle => 'Routing and navigation';
+
+  @override
+  String get aboutSrcRouting =>
+      'Valhalla (FOSSGIS e.V.) online and on the phone. Speed limits, lanes, flyovers and tunnels from OpenStreetMap.';
+
+  @override
+  String get aboutSrcSearchTitle => 'Place search';
+
+  @override
+  String get aboutSrcSearch =>
+      'Photon (komoot) and Nominatim (OpenStreetMap Foundation). Offline search from OpenStreetMap data. \"Search on Google\" opens Google.';
+
+  @override
+  String get aboutSrcTollsTitle => 'Tolls';
+
+  @override
+  String get aboutSrcTolls =>
+      'Official rates from the Malaysian Highway Authority (LLM toll calculator). Plaza positions from OpenStreetMap.';
+
+  @override
+  String get aboutSrcCctvTitle => 'Highway CCTV';
+
+  @override
+  String get aboutSrcCctv =>
+      'Images from the Malaysian Highway Authority (llm.gov.my); camera positions from the LLM GIS layer. KL city video: KLCCC (DBKL).';
+
+  @override
+  String get aboutSrcOsmTitle =>
+      'Entrances, along-route places, community cameras';
+
+  @override
+  String get aboutSrcOsm => 'OpenStreetMap via the Overpass API.';
+
+  @override
+  String get aboutSrcMasjidTitle => 'Mosques and surau';
+
+  @override
+  String get aboutSrcMasjid =>
+      'JAKIM via data.gov.my (CC BY, 2019 data). Exact locations from OpenStreetMap.';
+
+  @override
+  String get aboutSrcPrayerTitle => 'Prayer times';
+
+  @override
+  String get aboutSrcPrayer =>
+      'JAKIM e-Solat via the WaktuSolat API (api.waktusolat.app), and on-phone Adhan calculation. Azan recording: Aaqib Azeez / Atcovi, Wikimedia Commons, CC BY-SA 4.0.';
+
+  @override
+  String get aboutSrcFuelTitle => 'Fuel prices';
+
+  @override
+  String get aboutSrcFuel => 'data.gov.my (Government of Malaysia).';
+
+  @override
+  String get aboutSrcWeatherTitle => 'Weather';
+
+  @override
+  String get aboutSrcWeather => 'Open-Meteo.';
+
+  @override
+  String get aboutSrcAirTitle => 'Air quality (API)';
+
+  @override
+  String get aboutSrcAir => 'Department of Environment (APIMS / EQMS).';
+
+  @override
+  String get aboutSrcMusicTitle => 'Music';
+
+  @override
+  String get aboutSrcMusic =>
+      'Audius (Open Music License), Radio Browser, and Apple Music on iPhone (via MusicKit). Radio streams from each station.';
+
+  @override
+  String get aboutSrcAiTitle => 'FG AI';
+
+  @override
+  String get aboutSrcAi =>
+      'On-phone models (Qwen, Gemma; downloaded from Hugging Face). Web search: DuckDuckGo, Google News, Wikipedia, Bank Negara Malaysia. FGMuslim AI: islamic.app, deen.ai.';
+
+  @override
+  String get aboutBuild => 'Build';
+
+  @override
+  String get aboutReleased => 'Release date';
+
+  @override
+  String get aboutLicenses => 'Open-source licences';
+
+  @override
+  String get aboutLicensesHint =>
+      'Software packages FGMaps uses and their licences';
+
+  @override
+  String get aboutDataSourcesHint =>
+      'All data, map and third-party content sources FGMaps uses.';
 
   @override
   String offlineMapsPaused(int percent) {

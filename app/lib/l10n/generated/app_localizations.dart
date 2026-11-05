@@ -323,7 +323,7 @@ abstract class AppLocalizations {
   /// No description provided for @mapLayerSatelliteHint.
   ///
   /// In ms, this message translates to:
-  /// **'Satelit perlukan internet. Imej: Esri, Maxar, Earthstar Geographics.'**
+  /// **'Satelit perlukan internet.'**
   String get mapLayerSatelliteHint;
 
   /// No description provided for @masjidOpen.
@@ -425,7 +425,7 @@ abstract class AppLocalizations {
   /// No description provided for @masjidAttribution.
   ///
   /// In ms, this message translates to:
-  /// **'Senarai: JAKIM melalui data.gov.my (CC BY), data 2019, mungkin ada yang sudah berubah. Lokasi tepat: OpenStreetMap.'**
+  /// **'Senarai rasmi (data 2019), mungkin ada yang sudah berubah. Tempat bertanda \"anggaran\" dicari ikut alamat.'**
   String get masjidAttribution;
 
   /// No description provided for @masjidApproximateHint.
@@ -959,7 +959,7 @@ abstract class AppLocalizations {
   /// No description provided for @searchNoNearby.
   ///
   /// In ms, this message translates to:
-  /// **'Tiada “{category}” ditemui berhampiran dalam OpenStreetMap. Cuba kawasan lain atau cari mengikut nama.'**
+  /// **'Tiada “{category}” ditemui berhampiran. Cuba kawasan lain atau cari mengikut nama.'**
   String searchNoNearby(String category);
 
   /// No description provided for @searchNearbyRefining.
@@ -1841,7 +1841,7 @@ abstract class AppLocalizations {
   /// No description provided for @onbPrivacyServers.
   ///
   /// In ms, this message translates to:
-  /// **'Untuk carian dan laluan, app menghantar teks carian dan koordinat perjalanan ke perkhidmatan awam OpenStreetMap. Tiada yang lain dihantar.'**
+  /// **'Untuk carian dan laluan, app menghantar teks carian dan koordinat perjalanan ke perkhidmatan peta awam. Tiada yang lain dihantar. Butiran penuh dalam Dasar Privasi.'**
   String get onbPrivacyServers;
 
   /// No description provided for @onbPrivacyLocation.
@@ -2351,7 +2351,7 @@ abstract class AppLocalizations {
   /// No description provided for @musicEmptySongs.
   ///
   /// In ms, this message translates to:
-  /// **'Taip nama lagu atau artis, atau ketik cadangan di atas. Katalog percuma Audius ialah muzik bebas; lagu artis label besar tiada di sini. Untuk lagu penuh artis label besar, ketik Spotify atau YouTube Music di atas untuk cari dalam app anda sendiri, atau cuba tab Radio.'**
+  /// **'Taip nama lagu atau artis, atau ketik cadangan di atas. Katalog percuma ialah muzik bebas; lagu artis label besar tiada di sini. Untuk lagu penuh artis label besar, ketik Spotify atau YouTube Music di atas untuk cari dalam app anda sendiri, atau cuba tab Radio.'**
   String get musicEmptySongs;
 
   /// No description provided for @musicEmptyRadio.
@@ -2411,13 +2411,13 @@ abstract class AppLocalizations {
   /// No description provided for @musicViaAudius.
   ///
   /// In ms, this message translates to:
-  /// **'via Audius'**
+  /// **'Muzik bebas'**
   String get musicViaAudius;
 
   /// No description provided for @musicAttribution.
   ///
   /// In ms, this message translates to:
-  /// **'Lagu daripada Audius · Radio daripada Radio Browser · Fail anda kekal pada telefon'**
+  /// **'Fail anda kekal pada telefon'**
   String get musicAttribution;
 
   /// No description provided for @musicNowPlaying.
@@ -2561,7 +2561,7 @@ abstract class AppLocalizations {
   /// No description provided for @musicSourceAudius.
   ///
   /// In ms, this message translates to:
-  /// **'Audius'**
+  /// **'Muzik bebas'**
   String get musicSourceAudius;
 
   /// No description provided for @musicSourceAppleMusic.
@@ -2675,7 +2675,7 @@ abstract class AppLocalizations {
   /// No description provided for @musicSourceRadio.
   ///
   /// In ms, this message translates to:
-  /// **'Radio Browser'**
+  /// **'Radio'**
   String get musicSourceRadio;
 
   /// No description provided for @musicSourceLocal.
@@ -3311,7 +3311,7 @@ abstract class AppLocalizations {
   /// No description provided for @fuelManualPriceHint.
   ///
   /// In ms, this message translates to:
-  /// **'Kosongkan untuk guna harga data.gov.my. Isi jika harga yang anda bayar berbeza (cth. RON95 subsidi).'**
+  /// **'Kosongkan untuk guna harga rasmi mingguan. Isi jika harga yang anda bayar berbeza (cth. RON95 subsidi).'**
   String get fuelManualPriceHint;
 
   /// No description provided for @fuelPriceUnavailable.
@@ -3419,7 +3419,7 @@ abstract class AppLocalizations {
   /// No description provided for @fuelPriceSource.
   ///
   /// In ms, this message translates to:
-  /// **'Harga data.gov.my: RM {price}/L ({date})'**
+  /// **'Harga rasmi: RM {price}/L ({date})'**
   String fuelPriceSource(String price, String date);
 
   /// No description provided for @emergencyConfirmTitle.
@@ -3677,7 +3677,7 @@ abstract class AppLocalizations {
   /// No description provided for @musicNoResultsSongsHint.
   ///
   /// In ms, this message translates to:
-  /// **'Katalog percuma Audius ialah muzik bebas; lagu artis label besar tiada di sini. Ketik Spotify atau YouTube Music di atas untuk cari dalam app anda sendiri, atau cuba Radio.'**
+  /// **'Katalog percuma ialah muzik bebas; lagu artis label besar tiada di sini. Ketik Spotify atau YouTube Music di atas untuk cari dalam app anda sendiri, atau cuba Radio.'**
   String get musicNoResultsSongsHint;
 
   /// No description provided for @musicTryRadio.
@@ -3737,7 +3737,7 @@ abstract class AppLocalizations {
   /// No description provided for @alongRouteDisclaimer.
   ///
   /// In ms, this message translates to:
-  /// **'Data OpenStreetMap; mungkin tak lengkap.'**
+  /// **'Data mungkin tidak lengkap.'**
   String get alongRouteDisclaimer;
 
   /// No description provided for @alongRouteUnavailable.
@@ -3839,7 +3839,7 @@ abstract class AppLocalizations {
   /// No description provided for @cameraOsmAhead.
   ///
   /// In ms, this message translates to:
-  /// **'Kamera (OSM) di hadapan — patuhi had laju'**
+  /// **'Kamera (data komuniti) di hadapan — patuhi had laju'**
   String get cameraOsmAhead;
 
   /// No description provided for @settingsCameras.
@@ -3857,7 +3857,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsCamerasOsm.
   ///
   /// In ms, this message translates to:
-  /// **'Termasuk kamera OSM'**
+  /// **'Termasuk kamera data komuniti'**
   String get settingsCamerasOsm;
 
   /// No description provided for @settingsCamerasOsmHint.
@@ -3965,7 +3965,7 @@ abstract class AppLocalizations {
   /// No description provided for @weatherAttribution.
   ///
   /// In ms, this message translates to:
-  /// **'Cuaca: Open-Meteo · lokasi GPS'**
+  /// **'Ramalan cuaca · lokasi GPS'**
   String get weatherAttribution;
 
   /// No description provided for @weatherUnavailable.
@@ -4049,7 +4049,7 @@ abstract class AppLocalizations {
   /// No description provided for @airQualityDisclaimer.
   ///
   /// In ms, this message translates to:
-  /// **'Indeks Pencemar Udara rasmi daripada stesen pemantauan JAS yang terdekat.'**
+  /// **'Indeks Pencemar Udara rasmi daripada stesen pemantauan terdekat.'**
   String get airQualityDisclaimer;
 
   /// No description provided for @airQualityHere.
@@ -4079,7 +4079,7 @@ abstract class AppLocalizations {
   /// No description provided for @airQualityAttribution.
   ///
   /// In ms, this message translates to:
-  /// **'Sumber: Jabatan Alam Sekitar (APIMS/EQMS)'**
+  /// **'Data rasmi kerajaan'**
   String get airQualityAttribution;
 
   /// No description provided for @airQualityStation.
@@ -4127,7 +4127,7 @@ abstract class AppLocalizations {
   /// No description provided for @airQualityScale.
   ///
   /// In ms, this message translates to:
-  /// **'Skala rasmi JAS'**
+  /// **'Skala rasmi IPU'**
   String get airQualityScale;
 
   /// No description provided for @airQualityDominant.
@@ -4871,7 +4871,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiCapabilitiesOffline.
   ///
   /// In ms, this message translates to:
-  /// **'Ciri pada telefon (luar talian): rancang laluan jika peta offline sudah dimuat turun, arah kiblat, dan waktu solat hari ini. Carian tempat, cuaca, IPU, muzik dan Wikipedia perlukan internet. Arahan seperti \"Laluan ke KLCC\" atau \"Di mana saya\" tidak akan memaparkan senarai alat.'**
+  /// **'Ciri pada telefon (luar talian): carian tempat dan rancang laluan jika pek peta offline sudah dimuat turun, senarai masjid & surau, arah kiblat, dan waktu solat hari ini. Cuaca, IPU, muzik dan carian internet perlukan talian. Arahan seperti \"Laluan ke KLCC\" atau \"Di mana saya\" tidak akan memaparkan senarai alat.'**
   String get aiCapabilitiesOffline;
 
   /// No description provided for @aiWeatherNow.
@@ -6237,7 +6237,7 @@ abstract class AppLocalizations {
   /// No description provided for @assistantAutoWebSubtitle.
   ///
   /// In ms, this message translates to:
-  /// **'FG AI menyemak berita, Wikipedia dan data rasmi bila soalan perlukan maklumat terkini. Permintaan \"cari online\" sentiasa dijalankan.'**
+  /// **'FG AI menyemak berita dan data rasmi bila soalan perlukan maklumat terkini. Permintaan \"cari online\" sentiasa dijalankan.'**
   String get assistantAutoWebSubtitle;
 
   /// No description provided for @aiModelRecommended.
@@ -6411,7 +6411,7 @@ abstract class AppLocalizations {
   /// No description provided for @cctvLoadFailed.
   ///
   /// In ms, this message translates to:
-  /// **'CCTV tidak dapat dimuat daripada laman LLM. Semak internet dan cuba lagi.'**
+  /// **'CCTV tidak dapat dimuat. Semak internet dan cuba lagi.'**
   String get cctvLoadFailed;
 
   /// No description provided for @cctvEmpty.
@@ -6429,13 +6429,13 @@ abstract class AppLocalizations {
   /// No description provided for @cctvFooter.
   ///
   /// In ms, this message translates to:
-  /// **'Imej CCTV sebenar daripada Lembaga Lebuhraya Malaysia (llm.gov.my): snapshot yang LLM kemas kini kira-kira setiap minit, dimuat semula automatik setiap 30 saat (cap masa pada imej). Bukan video: LLM tiada strim video awam. Laman awam LLM memaparkan 3 kamera bagi setiap lebuh raya; video penuh hanya dalam app TuJu/PLUS.'**
+  /// **'Imej kamera sebenar, dikemas kini kira-kira setiap minit dan dimuat semula sendiri setiap 30 saat (cap masa pada imej). Bukan video. 3 kamera dipaparkan bagi setiap lebuh raya.'**
   String get cctvFooter;
 
   /// No description provided for @cctvOpenLlm.
   ///
   /// In ms, this message translates to:
-  /// **'Buka laman LLM'**
+  /// **'Buka laman rasmi'**
   String get cctvOpenLlm;
 
   /// No description provided for @cctvDrivingWarning.
@@ -6501,7 +6501,7 @@ abstract class AppLocalizations {
   /// No description provided for @tollCalcFailed.
   ///
   /// In ms, this message translates to:
-  /// **'Kalkulator tol LLM tidak dapat dicapai. Cuba lagi.'**
+  /// **'Kalkulator tol rasmi tidak dapat dicapai. Cuba lagi.'**
   String get tollCalcFailed;
 
   /// No description provided for @tollCalcNoRate.
@@ -6513,7 +6513,7 @@ abstract class AppLocalizations {
   /// No description provided for @tollCalcSource.
   ///
   /// In ms, this message translates to:
-  /// **'Kadar rasmi Lembaga Lebuhraya Malaysia (llm.gov.my), terus daripada kalkulator tol LLM. Perlu internet.'**
+  /// **'Kadar tol rasmi, terus daripada kalkulator tol kerajaan. Perlu internet.'**
   String get tollCalcSource;
 
   /// No description provided for @tollCalcClass1.
@@ -6549,7 +6549,7 @@ abstract class AppLocalizations {
   /// No description provided for @routeTollCheckLlm.
   ///
   /// In ms, this message translates to:
-  /// **'Semak kalkulator LLM'**
+  /// **'Semak kalkulator tol'**
   String get routeTollCheckLlm;
 
   /// No description provided for @routeCctv.
@@ -6561,7 +6561,7 @@ abstract class AppLocalizations {
   /// No description provided for @cctvKlVideo.
   ///
   /// In ms, this message translates to:
-  /// **'Video langsung jalan KL (KLCCC DBKL)'**
+  /// **'Video langsung jalan bandar KL'**
   String get cctvKlVideo;
 
   /// No description provided for @cctvSnapshotBadge.
@@ -6573,7 +6573,7 @@ abstract class AppLocalizations {
   /// No description provided for @cctvUpdateEvery.
   ///
   /// In ms, this message translates to:
-  /// **'Imej sebenar · LLM kemas kini ~1 min sekali'**
+  /// **'Imej sebenar · dikemas kini ~1 min sekali'**
   String get cctvUpdateEvery;
 
   /// No description provided for @cctvLoadedAgo.
@@ -6603,7 +6603,7 @@ abstract class AppLocalizations {
   /// No description provided for @cctvLiveVideoBody.
   ///
   /// In ms, this message translates to:
-  /// **'LLM tiada strim video awam untuk lebuh raya; video lebuh raya hanya dalam app TuJu dan PLUS (tertutup). Video langsung awam yang ada: kamera jalan bandar KL oleh KLCCC (DBKL), dimainkan di laman mereka.'**
+  /// **'Tiada strim video awam untuk lebuh raya; video lebuh raya hanya dalam app rasmi pengendali (tertutup). Video langsung awam yang ada: kamera jalan bandar Kuala Lumpur, dimainkan di laman rasmi bandar raya.'**
   String get cctvLiveVideoBody;
 
   /// No description provided for @cctvFullscreenLoaded.
@@ -6749,6 +6749,204 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'Luar talian: peta, carian dan laluan offline digunakan jika dipasang'**
   String get netWentOffline;
+
+  /// No description provided for @aboutSrcMapTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Peta'**
+  String get aboutSrcMapTitle;
+
+  /// No description provided for @aboutSrcMap.
+  ///
+  /// In ms, this message translates to:
+  /// **'© penyumbang OpenStreetMap (ODbL). Gaya dan jubin: OpenFreeMap, OpenMapTiles. Peta offline dibina daripada data OpenStreetMap.'**
+  String get aboutSrcMap;
+
+  /// No description provided for @aboutSrcSatelliteTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Imej satelit'**
+  String get aboutSrcSatelliteTitle;
+
+  /// No description provided for @aboutSrcSatellite.
+  ///
+  /// In ms, this message translates to:
+  /// **'Powered by Esri (Esri, Maxar, Earthstar Geographics, GIS User Community).'**
+  String get aboutSrcSatellite;
+
+  /// No description provided for @aboutSrcRoutingTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Laluan dan navigasi'**
+  String get aboutSrcRoutingTitle;
+
+  /// No description provided for @aboutSrcRouting.
+  ///
+  /// In ms, this message translates to:
+  /// **'Valhalla (FOSSGIS e.V.) dalam talian dan dalam telefon. Had laju, lorong, jejambat dan terowong daripada OpenStreetMap.'**
+  String get aboutSrcRouting;
+
+  /// No description provided for @aboutSrcSearchTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Carian tempat'**
+  String get aboutSrcSearchTitle;
+
+  /// No description provided for @aboutSrcSearch.
+  ///
+  /// In ms, this message translates to:
+  /// **'Photon (komoot) dan Nominatim (Yayasan OpenStreetMap). Carian offline daripada data OpenStreetMap. \"Cari di Google\" dibuka di Google.'**
+  String get aboutSrcSearch;
+
+  /// No description provided for @aboutSrcTollsTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tol'**
+  String get aboutSrcTollsTitle;
+
+  /// No description provided for @aboutSrcTolls.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kadar rasmi Lembaga Lebuhraya Malaysia (kalkulator tol LLM). Kedudukan plaza daripada OpenStreetMap.'**
+  String get aboutSrcTolls;
+
+  /// No description provided for @aboutSrcCctvTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'CCTV lebuh raya'**
+  String get aboutSrcCctvTitle;
+
+  /// No description provided for @aboutSrcCctv.
+  ///
+  /// In ms, this message translates to:
+  /// **'Imej daripada Lembaga Lebuhraya Malaysia (llm.gov.my), kedudukan kamera daripada lapisan GIS LLM. Video bandar KL: KLCCC (DBKL).'**
+  String get aboutSrcCctv;
+
+  /// No description provided for @aboutSrcOsmTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pintu masuk, tempat sepanjang laluan, kamera komuniti'**
+  String get aboutSrcOsmTitle;
+
+  /// No description provided for @aboutSrcOsm.
+  ///
+  /// In ms, this message translates to:
+  /// **'OpenStreetMap melalui Overpass API.'**
+  String get aboutSrcOsm;
+
+  /// No description provided for @aboutSrcMasjidTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Masjid dan surau'**
+  String get aboutSrcMasjidTitle;
+
+  /// No description provided for @aboutSrcMasjid.
+  ///
+  /// In ms, this message translates to:
+  /// **'JAKIM melalui data.gov.my (CC BY, data 2019). Lokasi tepat daripada OpenStreetMap.'**
+  String get aboutSrcMasjid;
+
+  /// No description provided for @aboutSrcPrayerTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Waktu solat'**
+  String get aboutSrcPrayerTitle;
+
+  /// No description provided for @aboutSrcPrayer.
+  ///
+  /// In ms, this message translates to:
+  /// **'JAKIM e-Solat melalui WaktuSolat API (api.waktusolat.app), dan pengiraan Adhan dalam telefon. Rakaman azan: Aaqib Azeez / Atcovi, Wikimedia Commons, CC BY-SA 4.0.'**
+  String get aboutSrcPrayer;
+
+  /// No description provided for @aboutSrcFuelTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Harga minyak'**
+  String get aboutSrcFuelTitle;
+
+  /// No description provided for @aboutSrcFuel.
+  ///
+  /// In ms, this message translates to:
+  /// **'data.gov.my (Kerajaan Malaysia).'**
+  String get aboutSrcFuel;
+
+  /// No description provided for @aboutSrcWeatherTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Cuaca'**
+  String get aboutSrcWeatherTitle;
+
+  /// No description provided for @aboutSrcWeather.
+  ///
+  /// In ms, this message translates to:
+  /// **'Open-Meteo.'**
+  String get aboutSrcWeather;
+
+  /// No description provided for @aboutSrcAirTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kualiti udara (IPU)'**
+  String get aboutSrcAirTitle;
+
+  /// No description provided for @aboutSrcAir.
+  ///
+  /// In ms, this message translates to:
+  /// **'Jabatan Alam Sekitar (APIMS / EQMS).'**
+  String get aboutSrcAir;
+
+  /// No description provided for @aboutSrcMusicTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Muzik'**
+  String get aboutSrcMusicTitle;
+
+  /// No description provided for @aboutSrcMusic.
+  ///
+  /// In ms, this message translates to:
+  /// **'Audius (Open Music License), Radio Browser, dan Apple Music di iPhone (melalui MusicKit). Strim radio daripada stesen masing-masing.'**
+  String get aboutSrcMusic;
+
+  /// No description provided for @aboutSrcAiTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'FG AI'**
+  String get aboutSrcAiTitle;
+
+  /// No description provided for @aboutSrcAi.
+  ///
+  /// In ms, this message translates to:
+  /// **'Model dalam telefon (Qwen, Gemma; dimuat turun dari Hugging Face). Carian web: DuckDuckGo, Google News, Wikipedia, Bank Negara Malaysia. FGMuslim AI: islamic.app, deen.ai.'**
+  String get aboutSrcAi;
+
+  /// No description provided for @aboutBuild.
+  ///
+  /// In ms, this message translates to:
+  /// **'Binaan'**
+  String get aboutBuild;
+
+  /// No description provided for @aboutReleased.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tarikh keluaran'**
+  String get aboutReleased;
+
+  /// No description provided for @aboutLicenses.
+  ///
+  /// In ms, this message translates to:
+  /// **'Lesen sumber terbuka'**
+  String get aboutLicenses;
+
+  /// No description provided for @aboutLicensesHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pakej perisian yang digunakan oleh FGMaps dan lesennya'**
+  String get aboutLicensesHint;
+
+  /// No description provided for @aboutDataSourcesHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Semua sumber data, peta dan kandungan pihak ketiga yang digunakan oleh FGMaps.'**
+  String get aboutDataSourcesHint;
 
   /// No description provided for @offlineMapsPaused.
   ///

@@ -65,7 +65,7 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('onboarding-next')));
       await tester.pumpAndSettle();
       expect(find.text('Privasi anda'), findsOneWidget);
-      expect(find.textContaining('OpenStreetMap'), findsOneWidget);
+      expect(find.textContaining('perkhidmatan peta awam'), findsOneWidget);
       expect(find.textContaining('Tiada akaun'), findsOneWidget);
 
       await tester.tap(find.byKey(const ValueKey('onboarding-next')));

@@ -38,7 +38,7 @@ void main() {
     expect(find.text('90'), findsOneWidget);
     expect(find.textContaining('PM2.5'), findsOneWidget);
     expect(find.textContaining('20:00'), findsOneWidget);
-    expect(find.text('Skala rasmi JAS'), findsOneWidget);
+    expect(find.text('Skala rasmi IPU'), findsOneWidget);
     expect(find.text('0–50'), findsOneWidget);
     expect(find.text('51–100'), findsOneWidget);
     expect(find.text('101–200'), findsOneWidget);

@@ -28,6 +28,6 @@ void main() {
     ]).searchAlong(const [GeoPoint(3.0, 101.4), GeoPoint(3.3, 101.7)]);
     expect(cams.map((c) => c.id), ['osm-7', 'osm-8']);
     expect(cams.first.name, 'Kamera Persekutuan');
-    expect(cams.last.name, 'Kamera OSM');
+    expect(cams.last.name, 'Kamera kelajuan');
   });
 }

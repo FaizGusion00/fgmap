@@ -12,6 +12,9 @@ final appPackageInfoProvider = FutureProvider<PackageInfo>(
 /// `about_page_test.dart` gagal jika berbeza.
 const aboutWhatsNewVersion = '1.7.0';
 
+/// Tarikh keluaran versi [aboutWhatsNewVersion] (dipaparkan dalam About).
+final aboutReleaseDate = DateTime(2026, 11, 6);
+
 class AboutPage extends ConsumerWidget {
   const AboutPage({super.key});
 
@@ -22,12 +25,50 @@ class AboutPage extends ConsumerWidget {
     final packageInfo = ref.watch(appPackageInfoProvider);
 
     final version = packageInfo.when(
-      data: (info) => info.buildNumber.isEmpty
-          ? info.version
-          : '${info.version}+${info.buildNumber}',
+      data: (info) => info.version,
       loading: () => l10n.aboutVersionLoading,
       error: (_, _) => l10n.aboutVersionUnavailable,
     );
+    final build = packageInfo.value?.buildNumber;
+    final released = MaterialLocalizations.of(
+      context,
+    ).formatMediumDate(aboutReleaseDate);
+    final sources = <(IconData, String, String)>[
+      (Icons.map_rounded, l10n.aboutSrcMapTitle, l10n.aboutSrcMap),
+      (
+        Icons.satellite_alt_rounded,
+        l10n.aboutSrcSatelliteTitle,
+        l10n.aboutSrcSatellite,
+      ),
+      (
+        Icons.alt_route_rounded,
+        l10n.aboutSrcRoutingTitle,
+        l10n.aboutSrcRouting,
+      ),
+      (Icons.search_rounded, l10n.aboutSrcSearchTitle, l10n.aboutSrcSearch),
+      (Icons.toll_rounded, l10n.aboutSrcTollsTitle, l10n.aboutSrcTolls),
+      (Icons.videocam_rounded, l10n.aboutSrcCctvTitle, l10n.aboutSrcCctv),
+      (Icons.door_front_door_rounded, l10n.aboutSrcOsmTitle, l10n.aboutSrcOsm),
+      (Icons.mosque_rounded, l10n.aboutSrcMasjidTitle, l10n.aboutSrcMasjid),
+      (
+        Icons.access_time_rounded,
+        l10n.aboutSrcPrayerTitle,
+        l10n.aboutSrcPrayer,
+      ),
+      (
+        Icons.local_gas_station_rounded,
+        l10n.aboutSrcFuelTitle,
+        l10n.aboutSrcFuel,
+      ),
+      (
+        Icons.wb_cloudy_rounded,
+        l10n.aboutSrcWeatherTitle,
+        l10n.aboutSrcWeather,
+      ),
+      (Icons.air_rounded, l10n.aboutSrcAirTitle, l10n.aboutSrcAir),
+      (Icons.music_note_rounded, l10n.aboutSrcMusicTitle, l10n.aboutSrcMusic),
+      (Icons.auto_awesome_rounded, l10n.aboutSrcAiTitle, l10n.aboutSrcAi),
+    ];
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.aboutTitle)),
@@ -100,6 +141,20 @@ class AboutPage extends ConsumerWidget {
                         icon: Icons.info_outline_rounded,
                         label: l10n.aboutVersion,
                         value: version,
+                      ),
+                      if (build != null && build.isNotEmpty) ...[
+                        const Divider(height: 1, indent: 56, endIndent: 16),
+                        _AboutRow(
+                          icon: Icons.build_circle_outlined,
+                          label: l10n.aboutBuild,
+                          value: build,
+                        ),
+                      ],
+                      const Divider(height: 1, indent: 56, endIndent: 16),
+                      _AboutRow(
+                        icon: Icons.event_rounded,
+                        label: l10n.aboutReleased,
+                        value: released,
                       ),
                       const Divider(height: 1, indent: 56, endIndent: 16),
                       _AboutRow(
@@ -175,14 +230,71 @@ class AboutPage extends ConsumerWidget {
                           l10n.aboutAttributionTitle,
                           style: theme.textTheme.titleSmall,
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 2),
                         Text(
-                          l10n.legalAttribution,
+                          l10n.aboutDataSourcesHint,
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
+                        const SizedBox(height: 10),
+                        for (final (icon, title, detail) in sources)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(
+                                  icon,
+                                  size: 18,
+                                  color: theme.colorScheme.primary,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        title,
+                                        style: theme.textTheme.labelLarge,
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        detail,
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                              color: theme
+                                                  .colorScheme
+                                                  .onSurfaceVariant,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                       ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Card(
+                  margin: EdgeInsets.zero,
+                  child: ListTile(
+                    key: const ValueKey('about-licenses'),
+                    leading: Icon(
+                      Icons.description_outlined,
+                      color: theme.colorScheme.primary,
+                    ),
+                    title: Text(l10n.aboutLicenses),
+                    subtitle: Text(l10n.aboutLicensesHint),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => showLicensePage(
+                      context: context,
+                      applicationName: l10n.appName,
+                      applicationVersion: version,
                     ),
                   ),
                 ),

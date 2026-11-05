@@ -31,7 +31,8 @@ void main() {
     expect(find.text('Tentang FGMaps'), findsOneWidget);
     expect(find.byKey(const ValueKey('about-logo')), findsOneWidget);
     expect(find.byIcon(Icons.navigation_rounded), findsNothing);
-    expect(find.text('1.2.3+42'), findsOneWidget);
+    expect(find.text('1.2.3'), findsOneWidget);
+    expect(find.text('42'), findsOneWidget);
     expect(find.text('Faiz Nasir'), findsOneWidget);
     expect(find.text('FG Universal Empire Company'), findsOneWidget);
     await tester.scrollUntilVisible(
@@ -49,9 +50,16 @@ void main() {
       300,
     );
     expect(find.byKey(const ValueKey('about-attribution')), findsOneWidget);
-    expect(find.textContaining('OpenStreetMap'), findsOneWidget);
-    expect(find.textContaining('data.gov.my'), findsOneWidget);
+    // Semua sumber data dalam senarai berstruktur (satu baris setiap jenis data).
+    expect(find.textContaining('OpenStreetMap'), findsWidgets);
+    expect(find.textContaining('data.gov.my'), findsWidgets);
+    await tester.scrollUntilVisible(find.textContaining('WaktuSolat'), 200);
     expect(find.textContaining('WaktuSolat'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('about-licenses')),
+      200,
+    );
+    expect(find.byKey(const ValueKey('about-licenses')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
