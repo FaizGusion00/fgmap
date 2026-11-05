@@ -60,6 +60,7 @@ void main() {
             'Spotify',
             'YouTube Music',
             'WaktuSolat',
+            'Lembaga Lebuhraya Malaysia',
           ]) {
             expect(text, contains(party), reason: '$doc tidak menyebut $party');
           }

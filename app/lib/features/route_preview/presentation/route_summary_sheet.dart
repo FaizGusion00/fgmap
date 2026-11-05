@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -16,6 +18,8 @@ import '../domain/routing_failure.dart';
 import 'route_format.dart';
 import 'route_preview_controller.dart';
 import '../../../core/agent/agent_targets.dart';
+import '../../highway/domain/highways.dart';
+import '../../highway/presentation/highway_page.dart';
 
 /// Lembaran ringkasan laluan di bahagian bawah peta. Widget ini tulen (tiada Riverpod) supaya
 /// mudah diuji golden dalam setiap tema; [RoutePreviewSheet] di map_screen menyambungkannya.
@@ -1149,6 +1153,17 @@ class _CostStrip extends ConsumerWidget {
         e == null &&
         !motorcycle &&
         ref.watch(tollLookupEnabledProvider);
+    // Lebuh raya laluan (nombor E) untuk CCTV LLM; kalkulator LLM bila anggaran tidak lengkap.
+    final cctvCodes = route.hasTolls && !motorcycle
+        ? highwayCodesForStreetNames(
+            route.maneuvers.expand((m) => m.streetNames),
+          )
+        : const <String>[];
+    final checkLlm =
+        route.hasTolls &&
+        !motorcycle &&
+        !loading &&
+        (e == null || e.isUnknown || e.isPartial);
     final note = [
       if (e != null && e.isPartial)
         l10n.routeTollUnpricedPlazas(e.unknownCount),
@@ -1224,6 +1239,40 @@ class _CostStrip extends ConsumerWidget {
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
+            ),
+          ),
+        if (cctvCodes.isNotEmpty || checkLlm)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                if (cctvCodes.isNotEmpty)
+                  ActionChip(
+                    key: const ValueKey('route-cctv'),
+                    visualDensity: VisualDensity.compact,
+                    avatar: const Icon(Icons.videocam_rounded, size: 18),
+                    label: Text(l10n.routeCctv),
+                    onPressed: () => unawaited(
+                      showHighwayPage(
+                        context,
+                        routeCodes: cctvCodes,
+                        routePoints: route.points,
+                      ),
+                    ),
+                  ),
+                if (checkLlm)
+                  ActionChip(
+                    key: const ValueKey('route-toll-llm'),
+                    visualDensity: VisualDensity.compact,
+                    avatar: const Icon(Icons.calculate_rounded, size: 18),
+                    label: Text(l10n.routeTollCheckLlm),
+                    onPressed: () => unawaited(
+                      showHighwayPage(context, tab: HighwayTab.toll),
+                    ),
+                  ),
+              ],
             ),
           ),
       ],

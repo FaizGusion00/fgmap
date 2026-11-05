@@ -4,10 +4,27 @@
 
 | Liputan | Sumber | Status |
 |---|---|---|
-| Sistem **tertutup**: PLUS (Utara-Selatan, ELITE, KLIA), LPT1, WCE, LEKAS, SKVE, SDE | Kalkulator tol rasmi Lembaga Lebuhraya Malaysia (LLM), melalui rangkak awam `mohdsyahid/kadar-tol-malaysia` (MIT) | Ada, kelas 1 (kereta) |
-| Lebuh raya **harga tetap** yang pengendalinya menyiarkan jadual teks: LDP, SPRINT (LITRAK), KESAS, LLB (Butterworth), MEX, GCE, LKSA, AKLEH, SILK (Sungai Balak), DASH (Kota Damansara) | Halaman tambang rasmi pengendali (URL dan tarikh ambil disimpan bagi setiap entri) | Ada, kelas 1 |
-| Lain-lain harga tetap (NPE, BESRAYA, DUKE, SPE, SUKE, LATAR, KLK, jambatan Pulau Pinang, SMART, plaza SILK/DASH lain, dll.) | Tiada jadual teks rasmi ditemui (DUKE hanya imej tidak bertarikh; LLM tiada kadarnya) | **Tidak diketahui** |
+| Sistem **tertutup**: PLUS (Utara-Selatan, ELITE, KLIA), LPT1, WCE, LEKAS, SKVE, SDE | Kalkulator tol rasmi Lembaga Lebuhraya Malaysia (LLM), **dirangkak terus** (`tools/tolls/llm_api.py`) | Ada, kelas 1 (kereta) |
+| Semua lebuh raya **harga tetap** dalam kalkulator LLM (KESAS, LDP, SPRINT, NPE, BESRAYA, DUKE, SUKE, LATAR, KLK, SMART, LINKEDUA, BKE, SPDH, GRANDSAGA, jambatan Pulau Pinang, dll.) | Kalkulator LLM (`getTollRate/<lebuh raya>/<plaza>/null`) | Ada, kelas 1, jika plaza dapat dipadankan dengan OSM |
+| Sandaran jika LLM tidak dapat dicapai | `mohdsyahid/kadar-tol-malaysia` + halaman tambang pengendali (`open_sources.py`, `reported_sources.json`) | Sandaran sahaja |
 | Motosikal | LLM tiada kelas motosikal | **Tidak diketahui** (bukan percuma, bukan kelas lain) |
+
+Dalam app, halaman **CCTV & tol** juga ada kalkulator LLM langsung (semua 5 kelas) untuk semakan tepat.
+
+### Padanan plaza: titik booth, bukan purata (1.7.0)
+
+Plaza persimpangan ada booth di kedua-dua belah lebuh raya. Sebelum 1.7.0 koordinat plaza ialah purata semua
+booth dalam 1.5 km, yang bagi plaza seperti Port Dickson, Seremban dan Ebor jatuh **di atas laluan utama**:
+setiap kenderaan yang lalu "melalui" plaza itu. Jika plaza masuk/keluar sebenar tidak dikesan, plaza palsu ini
+menjadi masuk/keluar dan harga jatuh ke pasangan bersebelahan (laporan penguji: Setia Alam ke JB "RM1.72").
+
+Sekarang setiap plaza membawa `booths` (titik booth OSM sebenar). Booth yang ialah nod jalan OSM (`boothsOnWay`,
+~98%) dipadankan dalam 6 m: garisan Valhalla mengikut jalan yang sama dan melalui nod itu (< 1 m), jadi laluan
+utama yang lalu 10-20 m di sebelah booth susur (cth. SPE di Setiawangsa) tidak dikira. Booth lain: 25 m. Booth
+yang sudah menjadi plaza sistem tertutup tidak dipakai semula oleh plaza harga tetap yang sama nama (Bukit Raja
+NKVE lawan Grand Sepadu). Jaring keselamatan: jika jalan bertol berterusan > 15 km sebelum plaza masuk atau selepas plaza keluar
+tanpa plaza lain, perjalanan itu **tidak diketahui** (bukan harga rendah). Ujian regresi:
+`test/features/route_preview/toll_booths_test.dart` (laluan Valhalla sebenar Setia Alam ke JB = RM37.15).
 
 Tiada angka direka. Sumber pihak ketiga yang menyenaraikan kadar saling **bercanggah** (cth. Jalan Duta ke
 Ipoh Kelas 1: RM21.73 pada satu tapak, RM17.50 pada yang lain), jadi tiada satu pun dipakai.
@@ -19,10 +36,12 @@ kelas 5 RM1.23). Pembetulan: versi 0.5.0 tersilap memetakan motosikal ke kelas 4
 ## Cara data dijana
 
 `tools/tolls/build_tolls.py` (tanpa kebergantungan) dijalankan oleh `.github/workflows/tolls-data.yml`
-(setiap Isnin, atau apabila skrip/alias berubah, atau secara manual). Runner GitHub boleh mencapai Overpass;
-persekitaran pembangunan tidak boleh.
+(setiap Isnin, atau apabila skrip/alias berubah, atau secara manual). Boleh juga dijalankan setempat:
+`python3 tools/tolls/llm_api.py --cache c.json --out llm.json` kemudian
+`python3 tools/tolls/build_tolls.py --llm-dataset llm.json --overpass-file overpass.json --out ... --report ...`.
 
-1. Muat turun JSON kadar (setiap pasangan plaza masuk-keluar) daripada `mohdsyahid/kadar-tol-malaysia`.
+1. Rangkak kalkulator LLM (`llm_api.py`: getHighway, getPlazaEnter, getPlazaExit, getTollRate; 4 permintaan
+   serentak dengan jeda, ~7k permintaan). Jika gagal: JSON `mohdsyahid/kadar-tol-malaysia`.
 2. Muat turun nod plaza OSM Malaysia (`barrier=toll_booth` / `highway=toll_gantry`) melalui Overpass.
 3. Padankan nama plaza LLM dengan nama nod OSM (singkatan dinormalkan, arah S/U/B/T dipadankan, kelompok
    <= 1.5 km, pengendali digunakan untuk memutuskan kembar) untuk mendapatkan **koordinat**. Pengecualian

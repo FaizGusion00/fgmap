@@ -1,6 +1,7 @@
 import '../../../core/agent/agent_controller.dart';
 import '../../../core/agent/agent_targets.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../highway/domain/highways.dart';
 import '../../search/domain/nearby_category.dart';
 import '../domain/intent_router.dart';
 import 'ai_reply_builder.dart' show nearbyCategoryLabel;
@@ -54,6 +55,32 @@ List<AgentStep> agentStepsFor(OpenScreenIntent intent, AppLocalizations l10n) {
             l10n.agentStepSearch(arg),
             (r) => r.type('masjid.search.input', arg),
           ),
+      ];
+    case AppScreen.highwayCctv:
+      // Kod daripada penghala, atau nama lebuh raya daripada model ("PLUS Selatan").
+      final codes = arg == null || arg.isEmpty
+          ? const <String>[]
+          : arg.split(',').every((c) => llmHighwayByCode(c.trim()) != null)
+          ? arg.split(',').map((c) => c.trim()).toList()
+          : highwayCodesInText(arg);
+      final first = codes.firstOrNull;
+      return [
+        toMap,
+        tool(l10n.agentStepOpen(l10n.highwayOpen), 'tool.cctv'),
+        if (first != null && first.isNotEmpty)
+          AgentStep(
+            l10n.agentStepOpen(llmHighwayByCode(first)?.short ?? first),
+            (r) => r.tap('cctv.hw.$first'),
+          ),
+      ];
+    case AppScreen.tollCalculator:
+      return [
+        toMap,
+        tool(l10n.agentStepOpen(l10n.highwayOpen), 'tool.cctv'),
+        AgentStep(
+          l10n.agentStepOpen(l10n.highwayTabToll),
+          (r) => r.tap('highway.tab.toll'),
+        ),
       ];
     case AppScreen.qibla:
       return [toMap, tool(l10n.agentStepOpen(l10n.qiblaOpen), 'tool.qibla')];
@@ -152,6 +179,11 @@ String agentTitleFor(OpenScreenIntent intent, AppLocalizations l10n) {
     AppScreen.weather =>
       arg.isEmpty ? l10n.weatherOpen : '${l10n.weatherOpen}: $arg',
     AppScreen.qibla => l10n.qiblaOpen,
+    AppScreen.highwayCctv =>
+      arg.isEmpty
+          ? l10n.highwayTabCctv
+          : '${l10n.highwayTabCctv}: ${arg.split(',').map((c) => llmHighwayByCode(c)?.short ?? c).join(', ')}',
+    AppScreen.tollCalculator => l10n.highwayTabToll,
     AppScreen.masjidDirectory =>
       arg.isEmpty ? l10n.masjidOpen : '${l10n.masjidOpen}: $arg',
     AppScreen.airQuality => l10n.airQualityOpen,

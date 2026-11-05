@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../highway/domain/highways.dart';
 import '../../route_preview/domain/route_preference.dart';
 import '../../search/domain/nearby_category.dart';
 import 'nlu/fuzzy.dart';
@@ -1760,6 +1761,14 @@ final _screenWords = <(RegExp, AppScreen)>[
   ),
 ];
 
+final _cctv = RegExp(
+  r'^(?:tolong\s+|please\s+)?(?:(?:buka(?:kan)?|bukak|open|show(?:\s+me)?|tunjuk(?:kan)?|lihat|tengok|tgk|view|check|semak)\s+)?(?:cctv|kamera\s+(?:cctv|trafik|lebuh\s*raya)|traffic\s+cam(?:era)?s?|highway\s+cam(?:era)?s?)\b(.*)$',
+);
+
+final _tollCalc = RegExp(
+  r'^(?:tolong\s+|please\s+)?(?:(?:buka(?:kan)?|bukak|open|show(?:\s+me)?|guna|use)\s+)?(?:kalkulator\s+tol|toll\s+calculator|kira(?:kan)?\s+(?:harga\s+)?tol|calculate\s+toll)\b',
+);
+
 /// "Senarai masjid Selangor", "list of mosques in Penang", "semua surau di Kuala Kedah": halaman
 /// direktori JAKIM, ditapis. Bukan "masjid terdekat" (itu carian berdekatan biasa).
 final _masjidList = RegExp(
@@ -1841,6 +1850,18 @@ OpenScreenIntent? openScreenIntent(String t) {
         start: true,
       );
     }
+  }
+  // "cctv plus selatan", "tengok cctv nkve", "traffic camera elite": CCTV LLM, ditapis ikut lebuh raya.
+  final cctv = _cctv.firstMatch(t);
+  if (cctv != null) {
+    final codes = highwayCodesInText(cctv.group(1) ?? '');
+    return OpenScreenIntent(
+      AppScreen.highwayCctv,
+      arg: codes.isEmpty ? null : codes.join(','),
+    );
+  }
+  if (_tollCalc.hasMatch(t)) {
+    return const OpenScreenIntent(AppScreen.tollCalculator);
   }
   final masjid = _masjidList.firstMatch(t);
   // "Semua masjid sepanjang laluan" ialah carian sepanjang laluan, bukan direktori.

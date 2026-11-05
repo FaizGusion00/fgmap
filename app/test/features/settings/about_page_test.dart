@@ -38,7 +38,7 @@ void main() {
       find.byKey(const ValueKey('about-whats-new')),
       300,
     );
-    expect(find.text('Baharu dalam versi 1.6.2'), findsOneWidget);
+    expect(find.text('Baharu dalam versi 1.7.0'), findsOneWidget);
     expect(find.textContaining('Senarai masjid & surau'), findsOneWidget);
     expect(
       find.textContaining('Cari di Google dalam app'),

@@ -14,5 +14,52 @@
   "open:mex:Putrajaya": {
     "lat": 2.95009,
     "lon": 101.65189
+  },
+  "llm:13:KERAMAT": {
+    "osmName": "Plaza Tol Dato' Keramat"
+  },
+  "llm:17:PETALING JAYA (S) 5": {
+    "osmName": "Plaza Tol PJS 5"
+  },
+  "llm:17:PETALING JAYA (S) 2": {
+    "osmName": "Plaza Tol PJS 2"
+  },
+  "llm:22:TEROWONG SMART": {
+    "osmName": "Plaza Toll SMART Sungai Besi"
+  },
+  "llm:29:ECO GRANDUER": {
+    "osmName": "Plaza Tol Eco Grandeur"
+  },
+  "llm:29:TAMAN RIMBA TEMPLAR": {
+    "osmName": "Plaza Tol Taman Rimba Templer"
+  },
+  "llm:35:KWASA DAMANSARA": {
+    "osmName": "Plaza Tol RRIM (Kwasa Damansara)"
+  },
+  "llm:31:PB2X": {
+    "osmName": "Plaza Tol Jambatan Sultan Abdul Halim Mu'adzam Shah"
+  },
+  "26:TIRAM": {
+    "osmName": "Ulu Tiram Toll Plaza"
+  },
+  "28:SAUJANA PUTRA": {
+    "osmName": "Plaza Tol SKVE Saujana Putra"
+  },
+  "33:SAUJANA PUTRA": {
+    "osmName": "Plaza Tol SKVE Saujana Putra"
+  },
+  "28:SAE": {
+    "osmName": "Plaza Tol SAE/KESAS"
+  },
+  "33:SAE": {
+    "osmName": "Plaza Tol SAE/KESAS"
+  },
+  "28:AYER HITAM": {
+    "lat": 2.97648,
+    "lon": 101.65181
+  },
+  "33:AYER HITAM": {
+    "lat": 2.97648,
+    "lon": 101.65181
   }
 }

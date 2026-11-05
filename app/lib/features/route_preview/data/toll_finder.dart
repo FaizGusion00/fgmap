@@ -155,7 +155,12 @@ class DatasetTollFinder implements TollPlazaFinder {
             node.point.lng <= e + pad)
           node,
     ];
-    return matchTollPlazas(route.points, nodes, toleranceM: toleranceM);
+    return matchTollPlazas(
+      route.points,
+      nodes,
+      toleranceM: toleranceM,
+      toleranceById: rates.plazaTolerances,
+    );
   }
 }
 

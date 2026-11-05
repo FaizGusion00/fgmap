@@ -348,6 +348,12 @@ enum AppScreen {
 
   /// Senarai masjid & surau JAKIM (arg = carian, cth. negeri atau nama kampung).
   masjidDirectory,
+
+  /// CCTV lebuh raya LLM (arg = kod lebuh raya dipisah koma, cth. `SPL`; null = senarai).
+  highwayCctv,
+
+  /// Kalkulator tol rasmi LLM.
+  tollCalculator,
 }
 
 /// "Buka cuaca Kuantan", "tunjuk kiblat", "buka tetapan", "cari Pavilion di peta": ejen menekan

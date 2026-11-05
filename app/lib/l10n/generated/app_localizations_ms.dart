@@ -1841,7 +1841,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get legalAttribution =>
-      'Data peta © penyumbang OpenStreetMap (ODbL). Gaya dan jubin: OpenFreeMap, OpenMapTiles. Imej satelit: Powered by Esri (Esri, Maxar, Earthstar Geographics, GIS User Community). Senarai masjid dan surau: JAKIM melalui data.gov.my (CC BY). Laluan: Valhalla. Carian: Photon (komoot) dan Nominatim. Harga petrol: data.gov.my. Waktu solat: JAKIM e-Solat melalui WaktuSolat API (api.waktusolat.app), dan pengiraan Adhan. Muzik: Audius (Open Music License), Radio Browser, dan Apple Music di iPhone (pelanggan, melalui MusicKit Apple); strim radio daripada stesen masing-masing. Rakaman azan: Aaqib Azeez / Atcovi, Wikimedia Commons, CC BY-SA 4.0.';
+      'Data peta © penyumbang OpenStreetMap (ODbL). Gaya dan jubin: OpenFreeMap, OpenMapTiles. Imej satelit: Powered by Esri (Esri, Maxar, Earthstar Geographics, GIS User Community). Senarai masjid dan surau: JAKIM melalui data.gov.my (CC BY). Kadar tol, imej CCTV lebuh raya dan kedudukan kamera: Lembaga Lebuhraya Malaysia (llm.gov.my). Laluan: Valhalla. Carian: Photon (komoot) dan Nominatim. Harga petrol: data.gov.my. Waktu solat: JAKIM e-Solat melalui WaktuSolat API (api.waktusolat.app), dan pengiraan Adhan. Muzik: Audius (Open Music License), Radio Browser, dan Apple Music di iPhone (pelanggan, melalui MusicKit Apple); strim radio daripada stesen masing-masing. Rakaman azan: Aaqib Azeez / Atcovi, Wikimedia Commons, CC BY-SA 4.0.';
 
   @override
   String get aboutAttributionTitle => 'Sumber data';
@@ -2104,27 +2104,27 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get aboutNew1 =>
-      'Senarai masjid & surau Malaysia (JAKIM): cari, tapis ikut negeri dan daerah, kemudian Arah atau Pergi terus';
+      'CCTV lebuh raya terus daripada Lembaga Lebuhraya Malaysia (34 lebuh raya). Dari pratonton laluan, tekan \"CCTV laluan\" untuk kamera di laluan anda';
 
   @override
   String get aboutNew2 =>
-      'Cari di Google dalam app: tekan \"Arah\" atau \"Buka dalam Peta\" dan FGMaps terus kira laluan ke lokasi tepat Google, tanpa carian semula';
+      'Kalkulator tol rasmi LLM dalam app: pilih lebuh raya dan plaza, lihat kadar untuk kereta, van, lori, teksi dan bas';
 
   @override
   String get aboutNew3 =>
-      'Jenis peta Satelit (seperti Google Maps) dengan jalan, nama tempat dan laluan di atasnya';
+      'Anggaran tol dibetulkan: plaza dipadankan pada booth sebenar dan kadar terus daripada kalkulator LLM (cth. Setia Alam ke JB RM37.15). Jika plaza masuk/keluar tidak pasti, app beritahu, bukan teka harga rendah';
 
   @override
   String get aboutNew4 =>
-      'Logo baharu FGMaps dengan animasi pembuka, dan gambar simpang sebenar ketika hendak belok';
+      'Cari di Google dalam app: tekan \"Arah\" atau \"Buka dalam Peta\" dan FGMaps terus kira laluan ke lokasi tepat Google, tanpa carian semula';
 
   @override
   String get aboutNew5 =>
-      'FG AI boleh buka senarai masjid untuk anda: cuba \"senarai masjid Selangor\"';
+      'Senarai masjid & surau Malaysia (JAKIM): cari, tapis ikut negeri dan daerah, kemudian Arah atau Pergi terus';
 
   @override
   String get aboutNew6 =>
-      'Anggaran tol lebih jelas dan lengkap (termasuk SPE, Besraya dan NPE); muzik terus dimainkan di latar';
+      'FG AI boleh buka CCTV dan kalkulator tol: cuba \"cctv plus selatan\" atau \"kalkulator tol\"';
 
   @override
   String get alongRouteTitle => 'Sepanjang laluan';
@@ -3723,4 +3723,146 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get agentFailed => 'Saya tidak dapat menyiapkannya. Ini yang berlaku:';
+
+  @override
+  String get highwayOpen => 'CCTV & tol';
+
+  @override
+  String get highwayTitle => 'Lebuh raya';
+
+  @override
+  String get highwayTabCctv => 'CCTV';
+
+  @override
+  String get highwayTabToll => 'Kalkulator tol';
+
+  @override
+  String get highwayRetry => 'Cuba lagi';
+
+  @override
+  String get cctvOnRoute => 'Di laluan';
+
+  @override
+  String get cctvLoadFailed =>
+      'CCTV tidak dapat dimuat daripada laman LLM. Semak internet dan cuba lagi.';
+
+  @override
+  String get cctvEmpty => 'Tiada kamera untuk lebuh raya ini buat masa ini.';
+
+  @override
+  String get cctvImageUnavailable => 'Imej tidak tersedia';
+
+  @override
+  String get cctvFooter =>
+      'Imej CCTV sebenar daripada Lembaga Lebuhraya Malaysia (llm.gov.my): snapshot yang LLM kemas kini kira-kira setiap minit, dimuat semula automatik setiap 30 saat (cap masa pada imej). Bukan video: LLM tiada strim video awam. Laman awam LLM memaparkan 3 kamera bagi setiap lebuh raya; video penuh hanya dalam app TuJu/PLUS.';
+
+  @override
+  String get cctvOpenLlm => 'Buka laman LLM';
+
+  @override
+  String get cctvDrivingWarning =>
+      'Jangan tonton CCTV semasa memandu. Berhenti dahulu atau minta penumpang lihat.';
+
+  @override
+  String get cctvDirN => 'Arah utara';
+
+  @override
+  String get cctvDirS => 'Arah selatan';
+
+  @override
+  String get cctvDirE => 'Arah timur';
+
+  @override
+  String get cctvDirW => 'Arah barat';
+
+  @override
+  String get tollCalcHighway => 'Lebuh raya';
+
+  @override
+  String get tollCalcEntry => 'Plaza masuk';
+
+  @override
+  String get tollCalcExit => 'Plaza keluar';
+
+  @override
+  String get tollCalcOpenPlaza =>
+      'Plaza harga tetap: bayar sekali di plaza ini.';
+
+  @override
+  String get tollCalcPick =>
+      'Pilih lebuh raya dan plaza untuk melihat kadar rasmi.';
+
+  @override
+  String get tollCalcFailed =>
+      'Kalkulator tol LLM tidak dapat dicapai. Cuba lagi.';
+
+  @override
+  String get tollCalcNoRate => 'Tiada kadar untuk pilihan ini.';
+
+  @override
+  String get tollCalcSource =>
+      'Kadar rasmi Lembaga Lebuhraya Malaysia (llm.gov.my), terus daripada kalkulator tol LLM. Perlu internet.';
+
+  @override
+  String get tollCalcClass1 => 'Kelas 1 · Kereta';
+
+  @override
+  String get tollCalcClass2 => 'Kelas 2 · Van & lori kecil';
+
+  @override
+  String get tollCalcClass3 => 'Kelas 3 · Lori besar';
+
+  @override
+  String get tollCalcClass4 => 'Kelas 4 · Teksi';
+
+  @override
+  String get tollCalcClass5 => 'Kelas 5 · Bas';
+
+  @override
+  String get routeTollCheckLlm => 'Semak kalkulator LLM';
+
+  @override
+  String get routeCctv => 'CCTV laluan';
+
+  @override
+  String get cctvKlVideo => 'Video langsung jalan KL (KLCCC DBKL)';
+
+  @override
+  String get cctvSnapshotBadge => 'SNAPSHOT';
+
+  @override
+  String get cctvUpdateEvery => 'Imej sebenar · LLM kemas kini ~1 min sekali';
+
+  @override
+  String cctvLoadedAgo(int seconds) {
+    return 'Dimuat $seconds s lalu';
+  }
+
+  @override
+  String cctvNextIn(int seconds) {
+    return 'muat semula dalam $seconds s';
+  }
+
+  @override
+  String cctvCameraCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count kamera',
+      one: '1 kamera',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cctvLiveVideoTitle => 'Video langsung?';
+
+  @override
+  String get cctvLiveVideoBody =>
+      'LLM tiada strim video awam untuk lebuh raya; video lebuh raya hanya dalam app TuJu dan PLUS (tertutup). Video langsung awam yang ada: kamera jalan bandar KL oleh KLCCC (DBKL), dimainkan di laman mereka.';
+
+  @override
+  String cctvFullscreenLoaded(String time) {
+    return 'dimuat $time';
+  }
 }

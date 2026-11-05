@@ -42,6 +42,7 @@ import '../../route_preview/domain/route_option.dart' show RouteVehicle;
 import '../domain/turn_label.dart';
 import '../../masjid/data/masjid_directory.dart' show MasjidQuery;
 import '../../masjid/presentation/masjid_directory_page.dart';
+import '../../highway/presentation/highway_page.dart';
 import '../data/map_layer.dart';
 import 'map_layer_sheet.dart';
 import '../../route_preview/domain/route_options_merge.dart';
@@ -1689,6 +1690,15 @@ class _MapScreenState extends ConsumerState<MapScreen>
                             label: l10n.masjidOpen,
                             color: const Color(0xFF059669),
                             onPressed: () => unawaited(_openMasjidDirectory()),
+                          ),
+                          MapToolSpec(
+                            agentId: 'tool.cctv',
+                            icon: Icons.videocam_rounded,
+                            label: l10n.highwayOpen,
+                            color: const Color(0xFF7C3AED),
+                            onPressed: () => unawaited(
+                              showHighwayPage(context, near: _userPoint()),
+                            ),
                           ),
                           MapToolSpec(
                             agentId: 'tool.music',

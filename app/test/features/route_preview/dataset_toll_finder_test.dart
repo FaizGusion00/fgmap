@@ -52,11 +52,11 @@ void main() {
     'PLUS Jalan Duta -> Ipoh (S): RM daripada dataset, tanpa rangkaian',
     () async {
       final finder = DatasetTollFinder(() async => rates);
-      // Mula sebelum plaza Jalan Duta, tamat selepas Ipoh (S).
+      // Mula sebelum plaza Jalan Duta, tamat selepas Ipoh (S); melalui titik booth sebenar.
       final points = _line(const [
         GeoPoint(3.1700, 101.6600),
-        GeoPoint(3.17576, 101.65576),
-        GeoPoint(4.58424, 101.14421),
+        GeoPoint(3.17575, 101.65576),
+        GeoPoint(4.58326, 101.14367),
         GeoPoint(4.5900, 101.1400),
       ]);
       final plazas = await finder.find(route(points));
@@ -101,12 +101,12 @@ void main() {
     'SPE dan Besraya (kadar diumumkan): harga terus, bukan "tidak diketahui"',
     () async {
       final finder = DatasetTollFinder(() async => rates);
-      // Setiawangsa -> Chan Sow Lin -> Loke Yew (Besraya).
+      // Setiawangsa -> Chan Sow Lin -> Loke Yew (Besraya), melalui satu booth setiap plaza (satu arah).
       final points = _line(const [
         GeoPoint(3.1830, 101.7395),
-        GeoPoint(3.18065, 101.73793),
-        GeoPoint(3.12847, 101.71699),
-        GeoPoint(3.12079, 101.72471),
+        GeoPoint(3.18126, 101.73837),
+        GeoPoint(3.12845, 101.71702),
+        GeoPoint(3.12099, 101.7246),
         GeoPoint(3.1180, 101.7260),
       ]);
       final plazas = await finder.find(route(points));

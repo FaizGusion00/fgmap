@@ -1847,7 +1847,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get legalAttribution =>
-      'Map data © OpenStreetMap contributors (ODbL). Style and tiles: OpenFreeMap, OpenMapTiles. Satellite imagery: Powered by Esri (Esri, Maxar, Earthstar Geographics, GIS User Community). Mosque & surau list: JAKIM via data.gov.my (CC BY). Routing: Valhalla. Search: Photon (komoot) and Nominatim. Fuel prices: data.gov.my. Prayer times: JAKIM e-Solat via the WaktuSolat API (api.waktusolat.app), and Adhan calculation. Music: Audius (Open Music License), Radio Browser, and Apple Music on iPhone (subscribers, via Apple\'s MusicKit); radio streams come from the stations themselves. Azan recording: Aaqib Azeez / Atcovi, Wikimedia Commons, CC BY-SA 4.0.';
+      'Map data © OpenStreetMap contributors (ODbL). Style and tiles: OpenFreeMap, OpenMapTiles. Satellite imagery: Powered by Esri (Esri, Maxar, Earthstar Geographics, GIS User Community). Mosque & surau list: JAKIM via data.gov.my (CC BY). Toll rates, highway CCTV images and camera positions: Malaysian Highway Authority (LLM, llm.gov.my). Routing: Valhalla. Search: Photon (komoot) and Nominatim. Fuel prices: data.gov.my. Prayer times: JAKIM e-Solat via the WaktuSolat API (api.waktusolat.app), and Adhan calculation. Music: Audius (Open Music License), Radio Browser, and Apple Music on iPhone (subscribers, via Apple\'s MusicKit); radio streams come from the stations themselves. Azan recording: Aaqib Azeez / Atcovi, Wikimedia Commons, CC BY-SA 4.0.';
 
   @override
   String get aboutAttributionTitle => 'Data sources';
@@ -2111,27 +2111,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutNew1 =>
-      'Malaysia mosque & surau directory (JAKIM): search, filter by state and district, then Directions or Go';
+      'Highway CCTV straight from the Malaysian Highway Authority (34 highways). From the route preview, tap \"Route CCTV\" for cameras on your route';
 
   @override
   String get aboutNew2 =>
-      'Search on Google inside the app: tap \"Directions\" or \"Open in Maps\" and FGMaps routes straight to Google\'s exact pin, no re-search';
+      'Official LLM toll calculator in the app: pick a highway and plazas to see rates for cars, vans, lorries, taxis and buses';
 
   @override
   String get aboutNew3 =>
-      'Satellite map type (like Google Maps) with roads, place names and your route on top';
+      'Toll estimates fixed: plazas are matched on their real booths and rates come straight from the LLM calculator (e.g. Setia Alam to JB RM37.15). If the entry/exit plaza is unclear, the app says so instead of guessing low';
 
   @override
   String get aboutNew4 =>
-      'New FGMaps logo with an opening animation, and real junction views before turns';
+      'Search on Google inside the app: tap \"Directions\" or \"Open in Maps\" and FGMaps routes straight to Google\'s exact pin, no re-search';
 
   @override
   String get aboutNew5 =>
-      'FG AI can open the mosque list for you: try \"list of mosques in Selangor\"';
+      'Malaysia mosque & surau directory (JAKIM): search, filter by state and district, then Directions or Go';
 
   @override
   String get aboutNew6 =>
-      'Clearer, more complete toll estimates (now incl. SPE, Besraya and NPE); music keeps playing in the background';
+      'FG AI can open CCTV and the toll calculator: try \"cctv plus selatan\" or \"toll calculator\"';
 
   @override
   String get alongRouteTitle => 'Along the route';
@@ -3726,4 +3726,145 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get agentFailed => 'I couldn\'t finish that. Here\'s what happened:';
+
+  @override
+  String get highwayOpen => 'CCTV & tolls';
+
+  @override
+  String get highwayTitle => 'Highways';
+
+  @override
+  String get highwayTabCctv => 'CCTV';
+
+  @override
+  String get highwayTabToll => 'Toll calculator';
+
+  @override
+  String get highwayRetry => 'Try again';
+
+  @override
+  String get cctvOnRoute => 'On route';
+
+  @override
+  String get cctvLoadFailed =>
+      'Couldn\'t load CCTV from the LLM website. Check your connection and try again.';
+
+  @override
+  String get cctvEmpty => 'No cameras for this highway right now.';
+
+  @override
+  String get cctvImageUnavailable => 'Image unavailable';
+
+  @override
+  String get cctvFooter =>
+      'Real CCTV images from the Malaysian Highway Authority (llm.gov.my): snapshots LLM updates about every minute, reloaded automatically every 30 seconds (timestamp on the image). Not video: LLM has no public video stream. LLM\'s public site shows 3 cameras per highway; full video is only in the TuJu/PLUS apps.';
+
+  @override
+  String get cctvOpenLlm => 'Open LLM website';
+
+  @override
+  String get cctvDrivingWarning =>
+      'Don\'t watch CCTV while driving. Stop first or ask a passenger.';
+
+  @override
+  String get cctvDirN => 'Northbound';
+
+  @override
+  String get cctvDirS => 'Southbound';
+
+  @override
+  String get cctvDirE => 'Eastbound';
+
+  @override
+  String get cctvDirW => 'Westbound';
+
+  @override
+  String get tollCalcHighway => 'Highway';
+
+  @override
+  String get tollCalcEntry => 'Entry plaza';
+
+  @override
+  String get tollCalcExit => 'Exit plaza';
+
+  @override
+  String get tollCalcOpenPlaza => 'Flat-rate plaza: pay once at this plaza.';
+
+  @override
+  String get tollCalcPick =>
+      'Pick a highway and plazas to see the official rates.';
+
+  @override
+  String get tollCalcFailed =>
+      'Couldn\'t reach the LLM toll calculator. Try again.';
+
+  @override
+  String get tollCalcNoRate => 'No rate for this choice.';
+
+  @override
+  String get tollCalcSource =>
+      'Official Malaysian Highway Authority rates (llm.gov.my), straight from the LLM toll calculator. Needs internet.';
+
+  @override
+  String get tollCalcClass1 => 'Class 1 · Car';
+
+  @override
+  String get tollCalcClass2 => 'Class 2 · Van & small lorry';
+
+  @override
+  String get tollCalcClass3 => 'Class 3 · Large lorry';
+
+  @override
+  String get tollCalcClass4 => 'Class 4 · Taxi';
+
+  @override
+  String get tollCalcClass5 => 'Class 5 · Bus';
+
+  @override
+  String get routeTollCheckLlm => 'Check LLM calculator';
+
+  @override
+  String get routeCctv => 'Route CCTV';
+
+  @override
+  String get cctvKlVideo => 'Live video, KL city roads (KLCCC DBKL)';
+
+  @override
+  String get cctvSnapshotBadge => 'SNAPSHOT';
+
+  @override
+  String get cctvUpdateEvery => 'Real images · LLM updates ~once a minute';
+
+  @override
+  String cctvLoadedAgo(int seconds) {
+    return 'Loaded ${seconds}s ago';
+  }
+
+  @override
+  String cctvNextIn(int seconds) {
+    return 'refresh in ${seconds}s';
+  }
+
+  @override
+  String cctvCameraCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count cameras',
+      one: '1 camera',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cctvLiveVideoTitle => 'Live video?';
+
+  @override
+  String get cctvLiveVideoBody =>
+      'LLM has no public video stream for highways; highway video is only in the TuJu and PLUS apps (closed). Public live video that exists: KL city-road cameras by KLCCC (DBKL), played on their site.';
+
+  @override
+  String cctvFullscreenLoaded(String time) {
+    return 'loaded $time';
+  }
 }

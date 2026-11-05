@@ -3257,7 +3257,7 @@ abstract class AppLocalizations {
   /// No description provided for @legalAttribution.
   ///
   /// In ms, this message translates to:
-  /// **'Data peta © penyumbang OpenStreetMap (ODbL). Gaya dan jubin: OpenFreeMap, OpenMapTiles. Imej satelit: Powered by Esri (Esri, Maxar, Earthstar Geographics, GIS User Community). Senarai masjid dan surau: JAKIM melalui data.gov.my (CC BY). Laluan: Valhalla. Carian: Photon (komoot) dan Nominatim. Harga petrol: data.gov.my. Waktu solat: JAKIM e-Solat melalui WaktuSolat API (api.waktusolat.app), dan pengiraan Adhan. Muzik: Audius (Open Music License), Radio Browser, dan Apple Music di iPhone (pelanggan, melalui MusicKit Apple); strim radio daripada stesen masing-masing. Rakaman azan: Aaqib Azeez / Atcovi, Wikimedia Commons, CC BY-SA 4.0.'**
+  /// **'Data peta © penyumbang OpenStreetMap (ODbL). Gaya dan jubin: OpenFreeMap, OpenMapTiles. Imej satelit: Powered by Esri (Esri, Maxar, Earthstar Geographics, GIS User Community). Senarai masjid dan surau: JAKIM melalui data.gov.my (CC BY). Kadar tol, imej CCTV lebuh raya dan kedudukan kamera: Lembaga Lebuhraya Malaysia (llm.gov.my). Laluan: Valhalla. Carian: Photon (komoot) dan Nominatim. Harga petrol: data.gov.my. Waktu solat: JAKIM e-Solat melalui WaktuSolat API (api.waktusolat.app), dan pengiraan Adhan. Muzik: Audius (Open Music License), Radio Browser, dan Apple Music di iPhone (pelanggan, melalui MusicKit Apple); strim radio daripada stesen masing-masing. Rakaman azan: Aaqib Azeez / Atcovi, Wikimedia Commons, CC BY-SA 4.0.'**
   String get legalAttribution;
 
   /// No description provided for @aboutAttributionTitle.
@@ -3695,37 +3695,37 @@ abstract class AppLocalizations {
   /// No description provided for @aboutNew1.
   ///
   /// In ms, this message translates to:
-  /// **'Senarai masjid & surau Malaysia (JAKIM): cari, tapis ikut negeri dan daerah, kemudian Arah atau Pergi terus'**
+  /// **'CCTV lebuh raya terus daripada Lembaga Lebuhraya Malaysia (34 lebuh raya). Dari pratonton laluan, tekan \"CCTV laluan\" untuk kamera di laluan anda'**
   String get aboutNew1;
 
   /// No description provided for @aboutNew2.
   ///
   /// In ms, this message translates to:
-  /// **'Cari di Google dalam app: tekan \"Arah\" atau \"Buka dalam Peta\" dan FGMaps terus kira laluan ke lokasi tepat Google, tanpa carian semula'**
+  /// **'Kalkulator tol rasmi LLM dalam app: pilih lebuh raya dan plaza, lihat kadar untuk kereta, van, lori, teksi dan bas'**
   String get aboutNew2;
 
   /// No description provided for @aboutNew3.
   ///
   /// In ms, this message translates to:
-  /// **'Jenis peta Satelit (seperti Google Maps) dengan jalan, nama tempat dan laluan di atasnya'**
+  /// **'Anggaran tol dibetulkan: plaza dipadankan pada booth sebenar dan kadar terus daripada kalkulator LLM (cth. Setia Alam ke JB RM37.15). Jika plaza masuk/keluar tidak pasti, app beritahu, bukan teka harga rendah'**
   String get aboutNew3;
 
   /// No description provided for @aboutNew4.
   ///
   /// In ms, this message translates to:
-  /// **'Logo baharu FGMaps dengan animasi pembuka, dan gambar simpang sebenar ketika hendak belok'**
+  /// **'Cari di Google dalam app: tekan \"Arah\" atau \"Buka dalam Peta\" dan FGMaps terus kira laluan ke lokasi tepat Google, tanpa carian semula'**
   String get aboutNew4;
 
   /// No description provided for @aboutNew5.
   ///
   /// In ms, this message translates to:
-  /// **'FG AI boleh buka senarai masjid untuk anda: cuba \"senarai masjid Selangor\"'**
+  /// **'Senarai masjid & surau Malaysia (JAKIM): cari, tapis ikut negeri dan daerah, kemudian Arah atau Pergi terus'**
   String get aboutNew5;
 
   /// No description provided for @aboutNew6.
   ///
   /// In ms, this message translates to:
-  /// **'Anggaran tol lebih jelas dan lengkap (termasuk SPE, Besraya dan NPE); muzik terus dimainkan di latar'**
+  /// **'FG AI boleh buka CCTV dan kalkulator tol: cuba \"cctv plus selatan\" atau \"kalkulator tol\"'**
   String get aboutNew6;
 
   /// No description provided for @alongRouteTitle.
@@ -6371,6 +6371,246 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'Saya tidak dapat menyiapkannya. Ini yang berlaku:'**
   String get agentFailed;
+
+  /// No description provided for @highwayOpen.
+  ///
+  /// In ms, this message translates to:
+  /// **'CCTV & tol'**
+  String get highwayOpen;
+
+  /// No description provided for @highwayTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Lebuh raya'**
+  String get highwayTitle;
+
+  /// No description provided for @highwayTabCctv.
+  ///
+  /// In ms, this message translates to:
+  /// **'CCTV'**
+  String get highwayTabCctv;
+
+  /// No description provided for @highwayTabToll.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kalkulator tol'**
+  String get highwayTabToll;
+
+  /// No description provided for @highwayRetry.
+  ///
+  /// In ms, this message translates to:
+  /// **'Cuba lagi'**
+  String get highwayRetry;
+
+  /// No description provided for @cctvOnRoute.
+  ///
+  /// In ms, this message translates to:
+  /// **'Di laluan'**
+  String get cctvOnRoute;
+
+  /// No description provided for @cctvLoadFailed.
+  ///
+  /// In ms, this message translates to:
+  /// **'CCTV tidak dapat dimuat daripada laman LLM. Semak internet dan cuba lagi.'**
+  String get cctvLoadFailed;
+
+  /// No description provided for @cctvEmpty.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tiada kamera untuk lebuh raya ini buat masa ini.'**
+  String get cctvEmpty;
+
+  /// No description provided for @cctvImageUnavailable.
+  ///
+  /// In ms, this message translates to:
+  /// **'Imej tidak tersedia'**
+  String get cctvImageUnavailable;
+
+  /// No description provided for @cctvFooter.
+  ///
+  /// In ms, this message translates to:
+  /// **'Imej CCTV sebenar daripada Lembaga Lebuhraya Malaysia (llm.gov.my): snapshot yang LLM kemas kini kira-kira setiap minit, dimuat semula automatik setiap 30 saat (cap masa pada imej). Bukan video: LLM tiada strim video awam. Laman awam LLM memaparkan 3 kamera bagi setiap lebuh raya; video penuh hanya dalam app TuJu/PLUS.'**
+  String get cctvFooter;
+
+  /// No description provided for @cctvOpenLlm.
+  ///
+  /// In ms, this message translates to:
+  /// **'Buka laman LLM'**
+  String get cctvOpenLlm;
+
+  /// No description provided for @cctvDrivingWarning.
+  ///
+  /// In ms, this message translates to:
+  /// **'Jangan tonton CCTV semasa memandu. Berhenti dahulu atau minta penumpang lihat.'**
+  String get cctvDrivingWarning;
+
+  /// No description provided for @cctvDirN.
+  ///
+  /// In ms, this message translates to:
+  /// **'Arah utara'**
+  String get cctvDirN;
+
+  /// No description provided for @cctvDirS.
+  ///
+  /// In ms, this message translates to:
+  /// **'Arah selatan'**
+  String get cctvDirS;
+
+  /// No description provided for @cctvDirE.
+  ///
+  /// In ms, this message translates to:
+  /// **'Arah timur'**
+  String get cctvDirE;
+
+  /// No description provided for @cctvDirW.
+  ///
+  /// In ms, this message translates to:
+  /// **'Arah barat'**
+  String get cctvDirW;
+
+  /// No description provided for @tollCalcHighway.
+  ///
+  /// In ms, this message translates to:
+  /// **'Lebuh raya'**
+  String get tollCalcHighway;
+
+  /// No description provided for @tollCalcEntry.
+  ///
+  /// In ms, this message translates to:
+  /// **'Plaza masuk'**
+  String get tollCalcEntry;
+
+  /// No description provided for @tollCalcExit.
+  ///
+  /// In ms, this message translates to:
+  /// **'Plaza keluar'**
+  String get tollCalcExit;
+
+  /// No description provided for @tollCalcOpenPlaza.
+  ///
+  /// In ms, this message translates to:
+  /// **'Plaza harga tetap: bayar sekali di plaza ini.'**
+  String get tollCalcOpenPlaza;
+
+  /// No description provided for @tollCalcPick.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pilih lebuh raya dan plaza untuk melihat kadar rasmi.'**
+  String get tollCalcPick;
+
+  /// No description provided for @tollCalcFailed.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kalkulator tol LLM tidak dapat dicapai. Cuba lagi.'**
+  String get tollCalcFailed;
+
+  /// No description provided for @tollCalcNoRate.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tiada kadar untuk pilihan ini.'**
+  String get tollCalcNoRate;
+
+  /// No description provided for @tollCalcSource.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kadar rasmi Lembaga Lebuhraya Malaysia (llm.gov.my), terus daripada kalkulator tol LLM. Perlu internet.'**
+  String get tollCalcSource;
+
+  /// No description provided for @tollCalcClass1.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kelas 1 · Kereta'**
+  String get tollCalcClass1;
+
+  /// No description provided for @tollCalcClass2.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kelas 2 · Van & lori kecil'**
+  String get tollCalcClass2;
+
+  /// No description provided for @tollCalcClass3.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kelas 3 · Lori besar'**
+  String get tollCalcClass3;
+
+  /// No description provided for @tollCalcClass4.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kelas 4 · Teksi'**
+  String get tollCalcClass4;
+
+  /// No description provided for @tollCalcClass5.
+  ///
+  /// In ms, this message translates to:
+  /// **'Kelas 5 · Bas'**
+  String get tollCalcClass5;
+
+  /// No description provided for @routeTollCheckLlm.
+  ///
+  /// In ms, this message translates to:
+  /// **'Semak kalkulator LLM'**
+  String get routeTollCheckLlm;
+
+  /// No description provided for @routeCctv.
+  ///
+  /// In ms, this message translates to:
+  /// **'CCTV laluan'**
+  String get routeCctv;
+
+  /// No description provided for @cctvKlVideo.
+  ///
+  /// In ms, this message translates to:
+  /// **'Video langsung jalan KL (KLCCC DBKL)'**
+  String get cctvKlVideo;
+
+  /// No description provided for @cctvSnapshotBadge.
+  ///
+  /// In ms, this message translates to:
+  /// **'SNAPSHOT'**
+  String get cctvSnapshotBadge;
+
+  /// No description provided for @cctvUpdateEvery.
+  ///
+  /// In ms, this message translates to:
+  /// **'Imej sebenar · LLM kemas kini ~1 min sekali'**
+  String get cctvUpdateEvery;
+
+  /// No description provided for @cctvLoadedAgo.
+  ///
+  /// In ms, this message translates to:
+  /// **'Dimuat {seconds} s lalu'**
+  String cctvLoadedAgo(int seconds);
+
+  /// No description provided for @cctvNextIn.
+  ///
+  /// In ms, this message translates to:
+  /// **'muat semula dalam {seconds} s'**
+  String cctvNextIn(int seconds);
+
+  /// No description provided for @cctvCameraCount.
+  ///
+  /// In ms, this message translates to:
+  /// **'{count, plural, =1{1 kamera} other{{count} kamera}}'**
+  String cctvCameraCount(int count);
+
+  /// No description provided for @cctvLiveVideoTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Video langsung?'**
+  String get cctvLiveVideoTitle;
+
+  /// No description provided for @cctvLiveVideoBody.
+  ///
+  /// In ms, this message translates to:
+  /// **'LLM tiada strim video awam untuk lebuh raya; video lebuh raya hanya dalam app TuJu dan PLUS (tertutup). Video langsung awam yang ada: kamera jalan bandar KL oleh KLCCC (DBKL), dimainkan di laman mereka.'**
+  String get cctvLiveVideoBody;
+
+  /// No description provided for @cctvFullscreenLoaded.
+  ///
+  /// In ms, this message translates to:
+  /// **'dimuat {time}'**
+  String cctvFullscreenLoaded(String time);
 }
 
 class _AppLocalizationsDelegate

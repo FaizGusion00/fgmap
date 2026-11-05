@@ -1,7 +1,7 @@
 name: fgmap
 description: "FGMap: aplikasi navigasi komuniti Malaysia."
 publish_to: 'none'
-version: 1.6.2+23
+version: 1.7.0+24
 
 environment:
   sdk: ^3.12.0
@@ -73,6 +73,7 @@ flutter:
     - assets/fonts/OFL-PlusJakartaSans.txt
     - assets/tolls/my_tolls.json
     - assets/cameras/
+    - assets/cctv/llm_cctv_positions.json
     - assets/jakim/masjid_surau.json.gz
     - assets/map/liberty.json
     - assets/map/LICENSE-map.txt

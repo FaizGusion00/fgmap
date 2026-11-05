@@ -164,14 +164,16 @@ List<Tool> assistantTools() => const [
           'type': 'string',
           'description':
               'weather, qibla, air_quality, music, prayer_times, '
-              'offline_maps, settings, report, recenter, find_place, or '
-              'masjid_list (directory of mosques and surau in Malaysia)',
+              'offline_maps, settings, report, recenter, find_place, '
+              'masjid_list (directory of mosques and surau in Malaysia), '
+              'highway_cctv (live highway CCTV), or toll_calculator '
+              '(official LLM toll rates)',
         },
         'place': {
           'type': 'string',
           'description':
-              'Place name for weather or find_place, or a state/area for '
-              'masjid_list (optional)',
+              'Place name for weather or find_place, a state/area for '
+              'masjid_list, or a highway name for highway_cctv (optional)',
         },
       },
       'required': ['action'],
@@ -258,5 +260,7 @@ AppScreen? appScreenForAction(String? action) => switch (action?.trim()) {
   'recenter' => AppScreen.recenter,
   'find_place' => AppScreen.findPlace,
   'masjid_list' => AppScreen.masjidDirectory,
+  'highway_cctv' => AppScreen.highwayCctv,
+  'toll_calculator' => AppScreen.tollCalculator,
   _ => null,
 };

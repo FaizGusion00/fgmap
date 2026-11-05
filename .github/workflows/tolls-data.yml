@@ -1,12 +1,13 @@
 name: tolls-data
 
-# Membina app/assets/tolls/my_tolls.json (kadar tol rasmi LLM + koordinat plaza OSM) dan laporan padanan.
+# Membina app/assets/tolls/my_tolls.json (kadar tol rasmi LLM, dirangkak terus daripada llm.gov.my/Calculator,
+# + titik booth plaza OSM) dan laporan padanan.
 # Runner GitHub boleh mencapai Overpass; container pembangunan tidak. Hasilnya di-commit ke branch yang
 # sama supaya perubahan data kelihatan dalam kajian kod (bukan senyap).
 on:
   push:
     branches: [claude/practical-bardeen-kmtow6]
-    paths: ["tools/tolls/build_tolls.py", "tools/tolls/aliases.json", ".github/workflows/tolls-data.yml"]
+    paths: ["tools/tolls/build_tolls.py", "tools/tolls/llm_api.py", "tools/tolls/aliases.json", ".github/workflows/tolls-data.yml"]
   schedule:
     - cron: "17 3 * * 1"
   workflow_dispatch:
@@ -45,8 +46,39 @@ jobs:
                       time.sleep(5 * (attempt + 1))
           raise SystemExit(f"Overpass gagal: {last!r}")
           PY
+      - name: Muat turun jalan yang mengandungi booth (Overpass way(bn))
+        # Booth yang ialah nod jalan dipadankan ketat (6 m) dalam app. Gagal = tiada tanda (toleransi 25 m).
+        continue-on-error: true
+        run: |
+          python3 - <<'PY'
+          import json, time, urllib.parse, urllib.request
+          q = ('[out:json][timeout:180];area["ISO3166-1"="MY"]->.a;'
+               '(node(area.a)["barrier"="toll_booth"];node(area.a)["highway"="toll_gantry"];)->.b;'
+               'way(bn.b)["highway"];out body;')
+          for host in ("https://overpass-api.de/api/interpreter", "https://overpass.private.coffee/api/interpreter"):
+              for attempt in range(3):
+                  try:
+                      req = urllib.request.Request(host, data=urllib.parse.urlencode({"data": q}).encode(),
+                                                   headers={"User-Agent": "fgmap-tolls/0.2 (+https://github.com/FaizGusion00/fgmap)"})
+                      with urllib.request.urlopen(req, timeout=240) as r:
+                          data = json.loads(r.read())
+                      assert data.get("elements"), "0 jalan"
+                      json.dump(data, open("booth_ways.json", "w"))
+                      print("jalan:", len(data["elements"]))
+                      raise SystemExit(0)
+                  except SystemExit:
+                      raise
+                  except Exception as e:  # noqa: BLE001
+                      print("cuba semula:", host, attempt, repr(e))
+                      time.sleep(5 * (attempt + 1))
+          raise SystemExit(1)
+          PY
       - name: Bina dataset
-        run: python3 tools/tolls/build_tolls.py --overpass-file overpass.json --out app/assets/tolls/my_tolls.json --report tolls-report.md
+        # Tanpa --llm-dataset: kalkulator LLM dirangkak terus (tools/tolls/llm_api.py, ~7k permintaan).
+        run: |
+          WAYS=""
+          if [ -f booth_ways.json ]; then WAYS="--booth-ways booth_ways.json"; fi
+          python3 tools/tolls/build_tolls.py --overpass-file overpass.json $WAYS --llm-cache llm_cache.json --out app/assets/tolls/my_tolls.json --report tolls-report.md
       - uses: actions/upload-artifact@v7
         with:
           name: tolls-report

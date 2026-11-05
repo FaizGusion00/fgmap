@@ -32,7 +32,7 @@ menghantar borang; jawapan mesti sepadan dengan apa yang app lakukan pada versi 
 
 "Dikongsi" bermaksud dihantar kepada pihak ketiga yang bukan pemproses bagi pihak kita (OpenStreetMap
 Foundation, komoot, FOSSGIS, OpenFreeMap, Esri (peta satelit), Google (hanya jika pengguna membuka "Cari di Google" dalam app), GitHub, Google untuk pautan pendek, Audius dan Radio Browser untuk
-Muzik, WaktuSolat API untuk jadual rasmi JAKIM, Open-Meteo untuk cuaca, Jabatan Alam Sekitar/EQMS untuk IPU, DuckDuckGo, Google News, Wikipedia, Bank Negara Malaysia dan data.gov.my untuk carian web FG AI, Hugging Face untuk muat turun model FG AI sekali sahaja; sembang tidak dihantar ke mana-mana pelayan AI). Pengiraan waktu solat pada peranti (kaedah sandaran) tidak menghantar data. Tiada data dijual atau digunakan untuk iklan.
+Muzik, WaktuSolat API untuk jadual rasmi JAKIM, Open-Meteo untuk cuaca, Jabatan Alam Sekitar/EQMS untuk IPU, DuckDuckGo, Google News, Wikipedia, Bank Negara Malaysia dan data.gov.my untuk carian web FG AI, Lembaga Lebuhraya Malaysia (llm.gov.my) untuk CCTV lebuh raya dan kalkulator tol (hanya kod lebuh raya/plaza, tiada lokasi), Hugging Face untuk muat turun model FG AI sekali sahaja; sembang tidak dihantar ke mana-mana pelayan AI). Pengiraan waktu solat pada peranti (kaedah sandaran) tidak menghantar data. Tiada data dijual atau digunakan untuk iklan.
 
 ## Kebenaran dan pengisytiharan lain
 
