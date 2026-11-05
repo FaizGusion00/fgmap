@@ -3707,7 +3707,7 @@ abstract class AppLocalizations {
   /// No description provided for @aboutNew3.
   ///
   /// In ms, this message translates to:
-  /// **'Garisan laluan biru kini sentiasa kelihatan, melekat pada kereta dan tidak lagi tersorok di bawah jejantas'**
+  /// **'Kotak lorong baharu: tunjuk lorong yang patut diambil (termasuk bulatan), dengan anak panah arah dan nama jalan di peta'**
   String get aboutNew3;
 
   /// No description provided for @aboutNew4.

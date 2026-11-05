@@ -2117,7 +2117,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutNew3 =>
-      'The blue route line now always stays visible, sticks to the car and no longer hides under flyovers';
+      'New lane view: shows which lane to take (roundabouts too), with direction arrows and the street name on the map';
 
   @override
   String get aboutNew4 =>

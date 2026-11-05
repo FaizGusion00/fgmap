@@ -1004,7 +1004,7 @@
   "@aboutWhatsNewTitle": {"placeholders": {"version": {"type": "String"}}},
   "aboutNew1": "Jejambat dan jalan bawah: di simpang bertingkat, kad dan suara beritahu \"Naik jejambat\", \"Jangan naik jejambat, ikut jalan bawah\" atau \"Laluan bawah tanah\"",
   "aboutNew2": "Navigasi sampai ke pintu: pilih pintu utama, pondok pengawal, masuk parkir atau loading bay, atau simpan pintu anda sendiri semasa tiba",
-  "aboutNew3": "Garisan laluan biru kini sentiasa kelihatan, melekat pada kereta dan tidak lagi tersorok di bawah jejantas",
+  "aboutNew3": "Kotak lorong baharu: tunjuk lorong yang patut diambil (termasuk bulatan), dengan anak panah arah dan nama jalan di peta",
   "aboutNew4": "Suara tanpa internet, dan bila internet kembali laluan, cuaca, harga minyak serta had laju dikemas kini sendiri",
   "aboutNew5": "Imej satelit lebih tajam di bandar, dan muat turun peta offline boleh disambung dari tempat ia terhenti",
   "aboutNew6": "About kini ada semua sumber data, dan halaman \"Semua perubahan\" dengan perbandingan sebelum dan selepas",

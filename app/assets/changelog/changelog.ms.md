@@ -1,6 +1,21 @@
 # 1.8.0 | 2026-11-06
 Versi ini fokus pada pemanduan sebenar di Malaysia: simpang bertingkat, sampai tepat ke pintu, suara yang tetap berfungsi tanpa internet, dan garisan laluan yang tidak lagi hilang.
 
+## Kotak lorong dan gambar bulatan
+Sebelum: Panduan lorong hanya ikon kecil atau ayat "Guna lorong kanan". Di bulatan, kad hanya menunjukkan nombor keluar tanpa gambar bulatan.
+Selepas: Sebelum simpang, kotak berperspektif menunjukkan jalan di hadapan dengan anak panah setiap lorong, dan lorong yang patut diambil disorot biru. Dalam lorong "lurus + kanan", hanya anak panah yang perlu diambil menyala. Di bulatan, gambar dari atas menunjukkan keluar yang diambil. Penunggang motosikal nampak kotak lebih awal daripada kereta kerana bertukar lorong lebih berisiko.
+Cara guna: Muncul sendiri sebelum simpang (skrin potret sahaja; skrin mendatar kekal dengan jalur ringkas). Di kebanyakan jalan Malaysia data lorong sebenar tiada, jadi kotak dilukis daripada jenis belokan dan ditanda "Anggaran lorong": ia hanya menunjuk sisi (kiri atau kanan), bukan lorong yang tepat.
+
+## Anak panah arah, nama jalan dan tempat di peta
+Sebelum: Laluan di peta ialah garisan biasa tanpa penunjuk arah. Nama jalan yang dimasuki hanya ada dalam kad, dan ikon tempat kecil serta sukar dikenali.
+Selepas: Anak panah putih di atas laluan menunjukkan arah, nama jalan yang akan dimasuki dipaparkan di titik belok, dan semasa navigasi tempat dilukis sebagai pin berwarna dengan nama (stesen minyak, makan, kedai, sekolah, klinik, bank, masjid, hotel dan parkir).
+Cara guna: Muncul sendiri semasa navigasi. Pin tempat hanya dipaparkan ketika navigasi dan bila peta dizum cukup dekat.
+
+## Android Auto dan CarPlay: lorong dan peta lebih jelas
+Sebelum: Skrin kereta menunjukkan arahan belok tanpa panduan lorong. Peta Android Auto sentiasa peta biasa dengan satu garis biru nipis yang sukar dilihat di atas peta gelap.
+Selepas: Android Auto menunjukkan lorong sebenar bila data ada, dan peta kereta mengikut pilihan Satelit di telefon. Laluan lebih tebal dengan tepi putih dan anak panah arah di hadapan kereta. Android Auto dan CarPlay juga menunjukkan ayat "Guna lorong paling kanan" bila belokan menghampiri.
+Cara guna: Lorong tekaan tidak dihantar ke kereta kerana skrin lorong kereta tidak boleh menandakan ia anggaran. CarPlay belum ada peta dan belum ada gambar lorong; ia hanya menunjukkan arahan dan ayat lorong.
+
 ## Garisan laluan biru sentiasa kelihatan dan melekat pada kereta
 Sebelum: Pada sesetengah telefon dan jalan, garisan biru hilang di depan kereta dan muncul semula jauh di hadapan. Dalam peta gelap, peta offline dan satelit, garisan juga tersembunyi di bawah jejantas, lebuh raya bertingkat dan susur, lalu muncul semula selepas jejantas.
 Selepas: Garisan biru kini dilukis di atas semua jalan dan jejantas (label nama jalan kekal di atasnya). Ia bermula tepat di bawah kereta dan bergerak lancar bersama kereta, termasuk di selekoh. Ada juga garisan sandaran yang sentiasa bermula sedikit di depan kereta, supaya laluan tetap kelihatan walaupun telefon gagal melukis bahagian yang dipangkas.

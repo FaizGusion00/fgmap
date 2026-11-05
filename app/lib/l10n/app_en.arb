@@ -904,7 +904,7 @@
   "@aboutWhatsNewTitle": {"placeholders": {"version": {"type": "String"}}},
   "aboutNew1": "Flyovers and the road below: at multi-level junctions the card and voice say \"Take the flyover\", \"Stay on the lower road\" or \"Underpass\"",
   "aboutNew2": "Navigation to the entrance: pick the main entrance, guardhouse, car park entrance or loading bay, or save your own entrance when you arrive",
-  "aboutNew3": "The blue route line now always stays visible, sticks to the car and no longer hides under flyovers",
+  "aboutNew3": "New lane view: shows which lane to take (roundabouts too), with direction arrows and the street name on the map",
   "aboutNew4": "Voice guidance without internet, and when you are back online the route, weather, fuel prices and speed limits refresh by themselves",
   "aboutNew5": "Sharper satellite imagery in towns, and the offline map download can resume where it stopped",
   "aboutNew6": "About now lists every data source, plus an \"All changes\" page with before and after comparisons",

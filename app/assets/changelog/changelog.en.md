@@ -1,6 +1,21 @@
 # 1.8.0 | 2026-11-06
 This release focuses on real driving in Malaysia: multi-level junctions, getting to the right door, voice guidance that keeps working without internet, and a route line that no longer disappears.
 
+## Lane view and roundabout picture
+Before: Lane guidance was a small icon or the text "Use the right lane". At roundabouts the card only showed the exit number, with no picture of the roundabout.
+After: Before a junction, a perspective view shows the road ahead with an arrow for each lane, and the lane you should take is highlighted in blue. In a "straight + right" lane, only the arrow you need lights up. At roundabouts, a top-down picture shows the exit to take. Motorcycle riders see the view earlier than cars because changing lanes is riskier for them.
+How to use: It appears on its own before a junction (portrait only; landscape keeps the compact strip). Most Malaysian roads have no real lane data, so the view is drawn from the turn type and labelled "Estimated lane": it only points to a side (left or right), not an exact lane.
+
+## Direction arrows, street names and places on the map
+Before: The route on the map was a plain line with no direction cues. The street you were turning into was only in the card, and place icons were small and hard to recognise.
+After: White arrows on the route show the direction, the street you will turn into is shown at the turn point, and during navigation places are drawn as coloured pins with names (fuel, food, shops, schools, clinics, banks, mosques, hotels and parking).
+How to use: They appear on their own during navigation. Place pins only show while navigating and when the map is zoomed in enough.
+
+## Android Auto and CarPlay: lanes and a clearer map
+Before: The car screen showed turn instructions without lane guidance. The Android Auto map was always the standard map with one thin blue line that was hard to see on the dark map.
+After: Android Auto shows real lanes when data exists, and the car map follows the Satellite choice on your phone. The route is thicker with a white edge and direction arrows ahead of the car. Android Auto and CarPlay also show "Use the rightmost lane" as a turn approaches.
+How to use: Estimated lanes are not sent to the car because the car lane screen cannot mark them as estimates. CarPlay still has no map and no lane picture; it only shows instructions and the lane sentence.
+
 ## The blue route line stays visible and sticks to the car
 Before: On some phones and roads, the blue line disappeared in front of the car and reappeared far ahead. On the dark, offline and satellite maps it was also hidden under flyovers, elevated highways and ramps, and came back after the flyover.
 After: The blue line is now drawn above every road and flyover (street names still sit on top). It starts right under the car and moves smoothly with it, including through corners. A backup line that always starts just ahead of the car keeps the route visible even if a phone fails to draw the trimmed part.

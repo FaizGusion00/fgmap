@@ -2110,7 +2110,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get aboutNew3 =>
-      'Garisan laluan biru kini sentiasa kelihatan, melekat pada kereta dan tidak lagi tersorok di bawah jejantas';
+      'Kotak lorong baharu: tunjuk lorong yang patut diambil (termasuk bulatan), dengan anak panah arah dan nama jalan di peta';
 
   @override
   String get aboutNew4 =>
