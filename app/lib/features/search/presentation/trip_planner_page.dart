@@ -8,6 +8,7 @@ import '../../../core/settings/easy_mode_scope.dart';
 import '../../../core/widgets/skeleton.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/network/connectivity_watch.dart';
 import '../../../core/utils/geo.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../domain/location_link.dart';
@@ -295,6 +296,8 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
     final theme = Theme.of(context);
     final search = ref.watch(placeSearchControllerProvider);
     final history = ref.watch(searchHistoryControllerProvider);
+    // Google perlukan internet: tanpa pautan rangkaian baris itu disembunyikan (carian offline kekal).
+    final online = ref.watch(onlineStatusProvider).value ?? true;
 
     return Scaffold(
       appBar: AppBar(
@@ -449,7 +452,7 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
             ),
             const Divider(),
             // Tempat tiada dalam carian kita: cari di Google, kemudian "Arah" kembali ke FGMaps.
-            if (widget.assign == null)
+            if (widget.assign == null && online)
               Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 720),

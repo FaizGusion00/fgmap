@@ -47,7 +47,7 @@ class OpenMeteoClient {
 
       final destData = await destFuture;
       if (destData == null || destData['current'] is! Map) {
-        return _cachedNear(destination);
+        return _cachedNear(destination, destinationLabel);
       }
 
       WeatherPoint? originPoint;
@@ -108,7 +108,7 @@ class OpenMeteoClient {
       _cachePoint = destination;
       return snap;
     } catch (_) {
-      return _cachedNear(destination);
+      return _cachedNear(destination, destinationLabel);
     }
   }
 
@@ -163,10 +163,14 @@ class OpenMeteoClient {
     }
   }
 
-  WeatherSnapshot? _cachedNear(GeoPoint destination) {
+  /// Cuaca terakhir yang berjaya, hanya jika destinasi baharu dalam [cacheRadiusM] (cuaca serupa). Label
+  /// mengikut destinasi SEMASA: cache KLIA tidak boleh dipaparkan sebagai "cuaca KLIA" untuk laluan ke KLCC.
+  static const cacheRadiusM = 10000.0;
+
+  WeatherSnapshot? _cachedNear(GeoPoint destination, String? label) {
     if (_cache != null &&
         _cachePoint != null &&
-        distanceMeters(_cachePoint!, destination) < 50000) {
+        distanceMeters(_cachePoint!, destination) < cacheRadiusM) {
       return WeatherSnapshot(
         destination: _cache!.destination,
         origin: _cache!.origin,
@@ -175,7 +179,7 @@ class OpenMeteoClient {
         rainAlongRoute: _cache!.rainAlongRoute,
         severe: _cache!.severe,
         fromCache: true,
-        destinationLabel: _cache!.destinationLabel,
+        destinationLabel: label ?? _cache!.destinationLabel,
       );
     }
     return null;

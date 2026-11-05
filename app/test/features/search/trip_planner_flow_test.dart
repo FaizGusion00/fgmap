@@ -82,6 +82,7 @@ void main() {
     List<Override> extraOverrides = const [],
     SavedKind? assign,
     bool warmUp = false,
+    bool online = true,
   }) async {
     usePhoneSurface(tester);
     reduceMotion(tester);
@@ -108,6 +109,7 @@ void main() {
         nearbyWarmUpProvider.overrideWithValue(warmUp),
         ...extraOverrides,
       ],
+      online: online,
     );
     await tester.tap(find.text('buka'));
     await tester.pumpAndSettle();
@@ -139,6 +141,23 @@ void main() {
         expect(geocoder.queries, isEmpty);
       },
     );
+
+    testWidgets(
+      'luar talian: baris "Cari di Google" disembunyikan (carian offline kekal)',
+      (tester) async {
+        await pumpHost(tester, online: false);
+        await type(tester, 'destination-field', 'klcc');
+        expect(find.text('KLCC'), findsOneWidget);
+        expect(find.byKey(const ValueKey('planner-google')), findsNothing);
+      },
+    );
+
+    testWidgets('dalam talian: baris "Cari di Google" dipaparkan', (
+      tester,
+    ) async {
+      await pumpHost(tester);
+      expect(find.byKey(const ValueKey('planner-google')), findsOneWidget);
+    });
 
     testWidgets('cari destinasi, pilih -> hasil hanya membawa destinasi', (
       tester,
