@@ -24,9 +24,6 @@ import '../../../core/settings/device_tier.dart';
 
 const _altSource = 'fg-route-alt-src';
 const _mainSource = 'fg-route-main-src';
-// Potongan laluan navigasi dari kereta hingga hujung keping seterusnya (dihantar semula semasa bergerak),
-// atau laluan utama pratonton apabila tidak menavigasi.
-const _nearSource = 'fg-route-near-src';
 const _destSource = 'fg-destination-src';
 const _legSource = 'fg-route-leg-src';
 const _legLayer = 'fg-route-leg';
@@ -38,9 +35,13 @@ const _vehicleImage = 'fg-vehicle-icon';
 const _altLayer = 'fg-route-alt';
 const _casingLayer = 'fg-route-casing';
 const _mainLayer = 'fg-route-main';
-// Keping laluan navigasi selepas potongan kereta: dilukis penuh daripada sumber utama. Lihat NavRouteLine.
+// Keping laluan navigasi selepas keping semasa: dilukis penuh (tanpa gradient). Lihat NavRouteLine.chunkM.
 const _casingFarLayer = 'fg-route-casing-far';
 const _mainFarLayer = 'fg-route-main-far';
+// Sandaran keping semasa: geometri sebenar bermula SEDIKIT DI DEPAN kereta. Lihat _updateAhead.
+const _aheadSource = 'fg-route-ahead-src';
+const _casingAheadLayer = 'fg-route-casing-ahead';
+const _mainAheadLayer = 'fg-route-main-ahead';
 const _destLayer = 'fg-destination';
 const _chevronSource = 'fg-route-chevron-src';
 const _chevronLayer = 'fg-route-chevrons';
@@ -109,13 +110,21 @@ class _MapLibreViewState extends State<MapLibreView> {
   NavManeuverArrow? _sentManeuver;
   bool? _sentPoiPins;
 
-  // Laluan navigasi: keping penuh dalam sumber utama (lapisan jauh), potongan kereta dalam sumber dekat.
+  // Pemangkasan laluan navigasi. `line-gradient` memangkas bahagian yang telah dilalui tanpa menjana
+  // semula geometri; jika platform menolaknya, jatuh balik ke menghantar baki laluan (jarang-jarang).
+  bool _gradientOk = true;
   NavRouteLine? _sentNav;
   double? _trimAlong;
-
-  /// Lapisan jauh memaparkan keping dengan indeks lebih besar daripada nilai ini.
-  int? _farAfter;
+  int? _trimChunk;
   bool _trimQueued = false;
+
+  // Lapisan sandaran di depan kereta (_updateAhead): permulaan yang dihantar, keping semasa dan
+  // anggaran laju sepanjang laluan (m/s) daripada perubahan kedudukan.
+  double? _aheadFrom;
+  int? _aheadChunk;
+  double _aheadSpeed = 0;
+  double? _speedAlong;
+  DateTime? _speedAt;
 
   /// Titik lokasi asli peta bertukar kelabu ("lapuk") jika tiada kemas kini selama 30 saat. Pengguna
   /// yang pegun memang tidak menerima fix baharu (penapis jarak), jadi kedudukan semasa dihantar semula
@@ -357,8 +366,10 @@ class _MapLibreViewState extends State<MapLibreView> {
       _destLayer,
       _legLayer,
       _mainLayer,
+      _mainAheadLayer,
       _mainFarLayer,
       _casingLayer,
+      _casingAheadLayer,
       _casingFarLayer,
       _altLayer,
     ]) {
@@ -372,7 +383,7 @@ class _MapLibreViewState extends State<MapLibreView> {
       _reportSource,
       _destSource,
       _legSource,
-      _nearSource,
+      _aheadSource,
       _mainSource,
       _altSource,
     ]) {
@@ -380,8 +391,8 @@ class _MapLibreViewState extends State<MapLibreView> {
     }
 
     await c.addGeoJsonSource(_altSource, _emptyCollection);
-    await c.addGeoJsonSource(_mainSource, _emptyCollection);
-    await c.addGeoJsonSource(_nearSource, _emptyCollection);
+    await _addMainSource(c);
+    await c.addGeoJsonSource(_aheadSource, _emptyCollection);
     await c.addGeoJsonSource(_legSource, _emptyCollection);
     await c.addGeoJsonSource(_destSource, _emptyCollection);
     await c.addGeoJsonSource(_reportSource, _emptyCollection);
@@ -394,7 +405,8 @@ class _MapLibreViewState extends State<MapLibreView> {
     _sentNav = null;
     _sentLeg = const [];
     _trimAlong = null;
-    _farAfter = null;
+    _trimChunk = null;
+    _resetAhead();
     _sentDestination = null;
     _sentReports = const [];
     _chevronNav = null;
@@ -716,6 +728,26 @@ class _MapLibreViewState extends State<MapLibreView> {
     }
   }
 
+  /// Sumber laluan utama dengan `lineMetrics` (diperlukan oleh `line-gradient`). Jika platform
+  /// menolaknya, sumber biasa digunakan dan laluan dipangkas dengan menghantar baki (sandaran).
+  Future<void> _addMainSource(MapLibreMapController c) async {
+    _gradientOk = true;
+    try {
+      await c.addSource(
+        _mainSource,
+        const GeojsonSourceProperties(
+          data: _emptyCollection,
+          lineMetrics: true,
+        ),
+      );
+    } on Object catch (e) {
+      logDiag('Sumber lineMetrics tidak disokong, guna sandaran: $e');
+      _gradientOk = false;
+      await _tryRemoveSource(c, _mainSource);
+      await c.addGeoJsonSource(_mainSource, _emptyCollection);
+    }
+  }
+
   /// Lapisan tempat garisan laluan dipasang DI BAWAHNYA ([routeAnchorLayerId]): di atas semua jalan, jejantas
   /// dan bangunan, di bawah semua label. Null untuk gaya URL (id tidak diketahui): di atas semua.
   String? _labelAnchor;
@@ -724,100 +756,127 @@ class _MapLibreViewState extends State<MapLibreView> {
     MapLibreMapController c,
     MapOverlayColors colors,
   ) async {
-    // Urutan: tepi (jauh, dekat) di bawah, kemudian laluan (jauh, dekat). Lapisan "jauh" memaparkan
-    // keping navigasi selepas potongan kereta; lapisan "dekat" memaparkan potongan kereta atau laluan
-    // pratonton. Tiada `line-gradient`: geometri sebenar dilukis pada setiap peranti.
-    await c.addLineLayer(
-      _mainSource,
-      _casingFarLayer,
-      _casingProps(colors),
-      belowLayerId: _labelAnchor,
-      filter: _farFilter(_noChunk),
-      enableInteraction: false,
-    );
-    await c.addLineLayer(
-      _nearSource,
-      _casingLayer,
-      _casingProps(colors),
-      belowLayerId: _labelAnchor,
-      enableInteraction: false,
-    );
-    await c.addLineLayer(
-      _mainSource,
-      _mainFarLayer,
-      _mainProps(colors),
-      belowLayerId: _labelAnchor,
-      filter: _farFilter(_noChunk),
-      enableInteraction: false,
-    );
-    await c.addLineLayer(
-      _nearSource,
-      _mainLayer,
-      _mainProps(colors),
-      belowLayerId: _labelAnchor,
-      enableInteraction: false,
-    );
+    Future<void> add(bool gradient) async {
+      // Urutan: tepi (jauh, dekat) di bawah, kemudian laluan (jauh, dekat). Lapisan "dekat" memuat keping
+      // semasa (atau laluan tanpa keping, cth. pratonton) dan ialah satu-satunya yang dipangkas.
+      await c.addLineLayer(
+        _mainSource,
+        _casingFarLayer,
+        _plainProps(_hex(colors.routeCasing), 12),
+        belowLayerId: _labelAnchor,
+        filter: _farFilter(_noChunk),
+        enableInteraction: false,
+      );
+      await c.addLineLayer(
+        _aheadSource,
+        _casingAheadLayer,
+        _plainProps(_hex(colors.routeCasing), 12),
+        belowLayerId: _labelAnchor,
+        enableInteraction: false,
+      );
+      await c.addLineLayer(
+        _mainSource,
+        _casingLayer,
+        _casingProps(colors, gradient ? 1.0 : null, gradient: gradient),
+        belowLayerId: _labelAnchor,
+        filter: _nearFilter(_noChunk),
+        enableInteraction: false,
+      );
+      await c.addLineLayer(
+        _mainSource,
+        _mainFarLayer,
+        _plainProps(_hex(colors.mainRoute), 7),
+        belowLayerId: _labelAnchor,
+        filter: _farFilter(_noChunk),
+        enableInteraction: false,
+      );
+      await c.addLineLayer(
+        _aheadSource,
+        _mainAheadLayer,
+        _plainProps(_hex(colors.mainRoute), 7),
+        belowLayerId: _labelAnchor,
+        enableInteraction: false,
+      );
+      await c.addLineLayer(
+        _mainSource,
+        _mainLayer,
+        _mainProps(colors, gradient ? 1.0 : null, gradient: gradient),
+        belowLayerId: _labelAnchor,
+        filter: _nearFilter(_noChunk),
+        enableInteraction: false,
+      );
+    }
+
+    try {
+      await add(_gradientOk);
+    } on Object catch (e) {
+      if (!_gradientOk) rethrow;
+      logDiag('line-gradient ditolak, guna sandaran: $e');
+      _gradientOk = false;
+      for (final id in [
+        _mainLayer,
+        _mainAheadLayer,
+        _mainFarLayer,
+        _casingLayer,
+        _casingAheadLayer,
+        _casingFarLayer,
+      ]) {
+        await _tryRemoveLayer(c, id);
+      }
+      await _tryRemoveSource(c, _mainSource);
+      await c.addGeoJsonSource(_mainSource, _emptyCollection);
+      await add(false);
+    }
   }
 
-  /// Lebar laluan mengikut zum: sama seperti dahulu (7 / tepi 12) pada zum 15, lebih tebal pada zum
-  /// navigasi dekat supaya laluan kekal jelas di atas lebuh raya berlorong banyak dan jejantas.
-  static const _mainWidth = <Object>[
-    'interpolate',
-    ['linear'],
-    ['zoom'],
-    12,
-    5,
-    15,
-    7,
-    18,
-    10,
-  ];
-  static const _casingWidth = <Object>[
-    'interpolate',
-    ['linear'],
-    ['zoom'],
-    12,
-    9,
-    15,
-    12,
-    18,
-    16,
-  ];
+  LineLayerProperties _plainProps(
+    String hex,
+    double width, {
+    double? opacity,
+  }) => LineLayerProperties(
+    lineColor: hex,
+    lineOpacity: opacity ?? _routeOpacity,
+    lineWidth: width,
+    lineCap: 'round',
+    lineJoin: 'round',
+  );
 
-  LineLayerProperties _lineProps(String hex, Object width) =>
-      LineLayerProperties(
-        lineColor: hex,
-        lineOpacity: _routeOpacity,
-        lineWidth: width,
-        lineCap: 'round',
-        lineJoin: 'round',
-      );
-
-  LineLayerProperties _mainProps(MapOverlayColors colors) =>
-      _lineProps(_hex(colors.mainRoute), _mainWidth);
-
-  LineLayerProperties _casingProps(MapOverlayColors colors) =>
-      _lineProps(_hex(colors.routeCasing), _casingWidth);
-
-  /// Indeks "tiada navigasi": tiada keping sepadan, jadi lapisan jauh kosong.
+  /// Indeks keping "tiada navigasi": tiada keping sepadan, jadi lapisan jauh kosong dan lapisan dekat
+  /// hanya memaparkan ciri tanpa indeks (laluan pratonton).
   static const _noChunk = 1 << 30;
 
-  /// Keping selepas [after] (lapisan jauh).
-  static List<Object> _farFilter(int after) => [
+  /// Keping selepas [chunk] (lapisan jauh).
+  static List<Object> _farFilter(int chunk) => [
     'all',
     ['has', 'i'],
     [
       '>',
       ['get', 'i'],
-      after,
+      chunk,
     ],
   ];
 
-  /// Memindah penapis lapisan jauh (geometri tidak dihantar semula).
-  Future<void> _setFarFilter(MapLibreMapController c, int after) async {
-    await c.setFilter(_casingFarLayer, _farFilter(after));
-    await c.setFilter(_mainFarLayer, _farFilter(after));
-    _farAfter = after;
+  /// Keping [chunk] atau ciri tanpa indeks (lapisan dekat, dipangkas dengan gradient).
+  static List<Object> _nearFilter(int chunk) => [
+    'any',
+    [
+      '!',
+      ['has', 'i'],
+    ],
+    [
+      '==',
+      ['get', 'i'],
+      chunk,
+    ],
+  ];
+
+  /// Menukar keping semasa pada keempat-empat lapisan (penapis sahaja; geometri tidak dihantar semula).
+  Future<void> _setChunkFilters(MapLibreMapController c, int chunk) async {
+    await c.setFilter(_casingFarLayer, _farFilter(chunk));
+    await c.setFilter(_mainFarLayer, _farFilter(chunk));
+    await c.setFilter(_casingLayer, _nearFilter(chunk));
+    await c.setFilter(_mainLayer, _nearFilter(chunk));
+    _trimChunk = chunk;
   }
 
   /// Kelegapan garisan laluan navigasi: pudar apabila lapuk (lihat [MapViewConfig.navStale]).
@@ -828,13 +887,39 @@ class _MapLibreViewState extends State<MapLibreView> {
   /// semula sifat yang tidak dihantar, jadi setiap lapisan dihantar lengkap.
   Future<void> _applyStale() async {
     final c = _controller;
-    if (c == null || !_overlaysReady || _sentNav == null) return;
+    final nav = _sentNav;
+    if (c == null || !_overlaysReady || nav == null) return;
     final colors = widget.config.colors;
+    final fraction = _gradientOk
+        ? nav.chunkFractionAt(widget.config.navAlong?.value ?? 0)
+        : null;
     try {
-      await c.setLayerProperties(_casingFarLayer, _casingProps(colors));
-      await c.setLayerProperties(_mainFarLayer, _mainProps(colors));
-      await c.setLayerProperties(_casingLayer, _casingProps(colors));
-      await c.setLayerProperties(_mainLayer, _mainProps(colors));
+      await c.setLayerProperties(
+        _casingFarLayer,
+        _plainProps(_hex(colors.routeCasing), 12),
+      );
+      await c.setLayerProperties(
+        _mainFarLayer,
+        _plainProps(_hex(colors.mainRoute), 7),
+      );
+      // Sandaran disembunyikan semasa lapuk: bertindih dengan garisan pudar ia menjadi jalur gelap.
+      final ahead = widget.config.navStale ? 0.0 : 1.0;
+      await c.setLayerProperties(
+        _casingAheadLayer,
+        _plainProps(_hex(colors.routeCasing), 12, opacity: ahead),
+      );
+      await c.setLayerProperties(
+        _mainAheadLayer,
+        _plainProps(_hex(colors.mainRoute), 7, opacity: ahead),
+      );
+      await c.setLayerProperties(
+        _casingLayer,
+        _casingProps(colors, fraction, gradient: _gradientOk),
+      );
+      await c.setLayerProperties(
+        _mainLayer,
+        _mainProps(colors, fraction, gradient: _gradientOk),
+      );
       // Anak panah arah menuding ke laluan yang tidak lagi diikut: disembunyikan bersama garisan
       // pudar. Terakhir, kerana lapisan ini pilihan (boleh gagal dicipta).
       await c.setLayerProperties(
@@ -850,6 +935,46 @@ class _MapLibreViewState extends State<MapLibreView> {
     }
   }
 
+  LineLayerProperties _mainProps(
+    MapOverlayColors colors,
+    double? fraction, {
+    required bool gradient,
+  }) {
+    final hex = _hex(colors.mainRoute);
+    return LineLayerProperties(
+      lineColor: hex,
+      lineOpacity: _routeOpacity,
+      lineWidth: 7,
+      lineCap: 'round',
+      lineJoin: 'round',
+      lineGradient: !gradient
+          ? null
+          : (fraction == null || fraction >= 1
+                ? solidGradient(hex)
+                : trimGradient(fraction, hex)),
+    );
+  }
+
+  LineLayerProperties _casingProps(
+    MapOverlayColors colors,
+    double? fraction, {
+    required bool gradient,
+  }) {
+    final hex = _hex(colors.routeCasing);
+    return LineLayerProperties(
+      lineColor: hex,
+      lineOpacity: _routeOpacity,
+      lineWidth: 12,
+      lineCap: 'round',
+      lineJoin: 'round',
+      lineGradient: !gradient
+          ? null
+          : (fraction == null || fraction >= 1
+                ? solidGradient(hex)
+                : trimGradient(fraction, hex)),
+    );
+  }
+
   void _onNavAlong() {
     if (_trimQueued) return;
     _trimQueued = true;
@@ -859,8 +984,8 @@ class _MapLibreViewState extends State<MapLibreView> {
     });
   }
 
-  /// Menghantar semula potongan laluan di bawah kereta mengikut kedudukan semasa. Dikumpulkan: banyak
-  /// perubahan kecil menghasilkan satu panggilan yang membaca nilai terkini.
+  /// Memangkas laluan navigasi pada kedudukan kenderaan semasa. Dikumpulkan: banyak perubahan kecil
+  /// menghasilkan satu panggilan yang membaca nilai terkini.
   Future<void> _applyTrim() async {
     final c = _controller;
     final nav = widget.config.navRoute;
@@ -873,28 +998,110 @@ class _MapLibreViewState extends State<MapLibreView> {
     final along = widget.config.navAlong?.value ?? 0;
     await _updateChevrons(c, nav, along);
     final last = _trimAlong;
-    if (last != null && (along - last).abs() < 0.5) return;
+    if (last != null && (along - last).abs() < (_gradientOk ? 0.5 : 5)) return;
     _trimAlong = along;
-    await _sendNear(c, nav, along);
+    if (_gradientOk) {
+      try {
+        final chunk = nav.chunkIndexAt(along);
+        if (_trimChunk != chunk) await _setChunkFilters(c, chunk);
+        await _setTrim(c, nav.chunkFractionAt(along));
+        await _updateAhead(c, nav, along);
+        return;
+      } on Object catch (e) {
+        logDiag('Pemangkasan line-gradient gagal, guna sandaran: $e');
+        _gradientOk = false;
+        await _resetChunkFilters(c);
+        await c.setGeoJsonSource(_aheadSource, _emptyCollection);
+      }
+    }
+    await c.setGeoJsonSource(
+      _mainSource,
+      _lines([MapRouteLine(points: nav.remainingFrom(along), isMain: true)]),
+    );
   }
 
-  /// Potongan dari kereta hingga hujung keping SELEPAS keping semasa (<= ~2 km), kemudian penapis jauh
-  /// dipindah ke selepas keping itu. Potongan dihantar dahulu: semasa bertukar keping kedua-duanya
-  /// bertindih seketika, tetapi tidak pernah ada jurang di depan kereta.
-  Future<void> _sendNear(
+  /// Jarak di depan kereta tempat lapisan sandaran bermula: [_aheadLeadS] saat perjalanan, dihad.
+  static const _aheadLeadS = 0.8;
+  static const _aheadMinM = 12.0;
+  static const _aheadMaxM = 150.0;
+
+  /// Lapisan sandaran: geometri sebenar dari SEDIKIT DI DEPAN kereta hingga hujung keping semasa (keping
+  /// seterusnya dilukis oleh lapisan jauh).
+  ///
+  /// Pada sesetengah GPU/peranti keping semasa yang dipangkas dengan `line-gradient` tidak dilukis langsung
+  /// (tanpa ralat), lalu garisan hilang dari kereta hingga keping seterusnya. Sandaran ini memastikan
+  /// laluan tetap kelihatan sejurus di depan kereta. Ia sentiasa bermula di depan kereta, jadi walaupun
+  /// kemas kini sumber GeoJSON lewat ia tidak pernah meninggalkan ekor di belakang kereta; apabila
+  /// gradient berfungsi ia terlindung di bawah garisan yang dipangkas tepat pada kereta. Dihantar semula
+  /// hanya apabila kereta menghampiri permulaannya atau keping bertukar, supaya saluran platform lapang.
+  Future<void> _updateAhead(
     MapLibreMapController c,
     NavRouteLine nav,
     double along,
   ) async {
-    final after = nav.chunkIndexAt(along) + 1;
-    final near = nav.slice(along, nav.chunkEndM(after));
+    final now = DateTime.now();
+    final prevAt = _speedAt;
+    final prevAlong = _speedAlong;
+    if (prevAt == null || prevAlong == null) {
+      _speedAt = now;
+      _speedAlong = along;
+    } else {
+      final dt = now.difference(prevAt).inMicroseconds / 1e6;
+      if (dt >= 0.1) {
+        final v = ((along - prevAlong) / dt).clamp(0.0, 200.0);
+        _aheadSpeed += (v - _aheadSpeed) * 0.5;
+        _speedAt = now;
+        _speedAlong = along;
+      }
+    }
+    final lead = (_aheadSpeed * _aheadLeadS).clamp(_aheadMinM, _aheadMaxM);
+    final chunk = nav.chunkIndexAt(along);
+    final sent = _aheadFrom;
+    if (sent != null && _aheadChunk == chunk && sent - along >= lead / 2) {
+      return;
+    }
+    final from = along + lead;
+    final pts = nav.slice(from, nav.chunkEndM(chunk));
+    _aheadFrom = from;
+    _aheadChunk = chunk;
     await c.setGeoJsonSource(
-      _nearSource,
-      near.length < 2
+      _aheadSource,
+      pts.length < 2
           ? _emptyCollection
-          : _lines([MapRouteLine(points: near, isMain: true)]),
+          : _lines([MapRouteLine(points: pts, isMain: true)]),
     );
-    if (_farAfter != after) await _setFarFilter(c, after);
+  }
+
+  void _resetAhead() {
+    _aheadFrom = null;
+    _aheadChunk = null;
+    _aheadSpeed = 0;
+    _speedAlong = null;
+    _speedAt = null;
+  }
+
+  /// Menetapkan pemangkasan pada lapisan laluan dan tepinya. Plugin menghantar semua sifat (termasuk
+  /// yang null, yang menetapkannya semula), jadi sifat garisan dihantar lengkap setiap kali.
+  Future<void> _setTrim(MapLibreMapController c, double? fraction) async {
+    final colors = widget.config.colors;
+    await c.setLayerProperties(
+      _casingLayer,
+      _casingProps(colors, fraction, gradient: true),
+    );
+    await c.setLayerProperties(
+      _mainLayer,
+      _mainProps(colors, fraction, gradient: true),
+    );
+  }
+
+  /// Kembalikan penapis ke keadaan tanpa navigasi (lapisan jauh kosong, lapisan dekat = ciri tanpa indeks).
+  Future<void> _resetChunkFilters(MapLibreMapController c) async {
+    try {
+      await _setChunkFilters(c, _noChunk);
+    } on Object catch (e) {
+      logDiag('Tetapan semula penapis keping gagal: $e');
+    }
+    _trimChunk = null;
   }
 
   Future<void> _pushData() async {
@@ -910,33 +1117,54 @@ class _MapLibreViewState extends State<MapLibreView> {
     }
     final nav = cfg.navRoute;
     if (nav != null) {
-      // Keping penuh dihantar SEKALI setiap laluan; selepas itu hanya potongan kereta dan penapis berubah.
+      // Geometri penuh dihantar SEKALI setiap laluan; selepas itu hanya pemangkasan berubah.
       if (!identical(_sentNav, nav)) {
         _sentNav = nav;
         _sentMain = const [];
+        _trimAlong = null;
+        _resetAhead();
         final along = cfg.navAlong?.value ?? 0;
-        // Potongan dan penapis dahulu, kemudian keping: jika tidak, seluruh laluan kelihatan seketika.
-        await _sendNear(c, nav, along);
-        _trimAlong = along;
-        await c.setGeoJsonSource(_mainSource, _chunkCollection(nav));
+        if (_gradientOk) {
+          // Penapis dahulu, kemudian data: jika tidak, seluruh laluan kelihatan seketika (lapisan jauh).
+          try {
+            await _setChunkFilters(c, nav.chunkIndexAt(along));
+            await _setTrim(c, nav.chunkFractionAt(along));
+          } on Object catch (e) {
+            logDiag('Penapis keping ditolak, guna sandaran: $e');
+            _gradientOk = false;
+            await _resetChunkFilters(c);
+          }
+        }
+        await c.setGeoJsonSource(
+          _mainSource,
+          _gradientOk
+              ? _chunkCollection(nav)
+              : _lines([
+                  MapRouteLine(points: nav.remainingFrom(along), isMain: true),
+                ]),
+        );
       }
       await _applyTrim();
     } else {
       if (_sentNav != null) {
-        // Navigasi tamat: kosongkan laluan navigasi; laluan pratonton kembali ke sumber dekat.
+        // Navigasi tamat: kosongkan laluan dan pulihkan warna penuh (tanpa pemangkasan).
         _sentNav = null;
         _sentMain = const [];
         _trimAlong = null;
         await c.setGeoJsonSource(_mainSource, _emptyCollection);
-        await c.setGeoJsonSource(_nearSource, _emptyCollection);
+        await c.setGeoJsonSource(_aheadSource, _emptyCollection);
+        _resetAhead();
         _chevronNav = null;
         _chevronFirst = null;
         await c.setGeoJsonSource(_chevronSource, _emptyCollection);
-        await _setFarFilter(c, _noChunk);
+        if (_gradientOk) {
+          await _resetChunkFilters(c);
+          await _setTrim(c, null);
+        }
       }
       if (!_sameRoutes(_sentMain, main)) {
         _sentMain = main;
-        await c.setGeoJsonSource(_nearSource, _lines(main));
+        await c.setGeoJsonSource(_mainSource, _lines(main));
       }
     }
     if (!_sameLeg(_sentLeg, cfg.finalLeg)) {
