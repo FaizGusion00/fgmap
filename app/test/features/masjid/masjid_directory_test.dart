@@ -182,6 +182,84 @@ void main() {
   );
 
   test(
+    'geokod: tolak nama jalan, kawasan besar, nama lain dan hasil terlalu jauh',
+    () async {
+      final perak = MasjidEntry(
+        type: MasjidType.masjid,
+        name: 'Masjid Al-Ikhlas',
+        state: 'Perak',
+        district: 'Kinta',
+      );
+      final geo = _FakeGeocoder()
+        ..results = const [
+          // "Jalan Perak" di KL: nama jalan, bukan negeri Perak.
+          Place(
+            name: 'Masjid Al-Ikhlas',
+            subtitle: 'Jalan Perak, Kuala Lumpur, Malaysia',
+            point: GeoPoint(3.16, 101.71),
+          ),
+          // Negeri itu sendiri: pusatnya bukan lokasi masjid.
+          Place(
+            name: 'Perak',
+            subtitle: 'Malaysia',
+            point: GeoPoint(4.6, 101.1),
+            category: 'state',
+            osmKey: 'place',
+          ),
+          // Nama masjid lain di Perak (carian nama mesti sepadan).
+          Place(
+            name: 'Masjid Sultan Idris',
+            subtitle: 'Ipoh, Kinta, Perak',
+            point: GeoPoint(4.59, 101.08),
+          ),
+          Place(
+            name: 'Masjid Al Ikhlas',
+            subtitle: 'Ipoh, Kinta, Perak, Malaysia',
+            point: GeoPoint(4.61, 101.09),
+          ),
+        ];
+      expect(
+        await findMasjidLocation(geo, perak),
+        const GeoPoint(4.61, 101.09),
+      );
+      // Pusat daerah diketahui (Kinta) dan hasil 300 km jauhnya: ditolak.
+      geo.results = const [
+        Place(
+          name: 'Masjid Al-Ikhlas',
+          subtitle: 'Kinta, Perak',
+          point: GeoPoint(1.9, 103.3),
+        ),
+      ];
+      expect(
+        await findMasjidLocation(
+          geo,
+          perak,
+          areaCentre: const GeoPoint(4.6, 101.1),
+        ),
+        isNull,
+      );
+    },
+  );
+
+  test('geokod: ejaan Photon "Penang" diterima untuk Pulau Pinang', () async {
+    final e = MasjidEntry(
+      type: MasjidType.surau,
+      name: 'Surau Nurul Iman',
+      state: 'Pulau Pinang',
+      district: 'Timur Laut',
+    );
+    final geo = _FakeGeocoder()
+      ..results = const [
+        Place(
+          name: 'Surau Nurul Iman',
+          subtitle: 'George Town, Penang, Malaysia',
+          point: GeoPoint(5.41, 100.33),
+        ),
+      ];
+    expect(await findMasjidLocation(geo, e), const GeoPoint(5.41, 100.33));
+  });
+
+  test(
     'FG AI: "senarai masjid Selangor" membuka direktori; "masjid terdekat" tidak',
     () {
       OpenScreenIntent? open(String t) {

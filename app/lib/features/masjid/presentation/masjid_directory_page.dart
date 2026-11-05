@@ -662,6 +662,7 @@ class _MasjidDetailSheetState extends ConsumerState<MasjidDetailSheet> {
       ref.read(geocoderProvider),
       e,
       near: widget.near,
+      areaCentre: ref.read(masjidDirectoryProvider).value?.areaCentreOf(e),
     );
     if (!mounted) return;
     if (found == null) {
@@ -770,29 +771,132 @@ class _MasjidDetailSheetState extends ConsumerState<MasjidDetailSheet> {
 }
 
 /// Mencari lokasi tempat tanpa koordinat: nama di daerahnya dahulu, kemudian alamat, kemudian
-/// kawasan poskod. Hanya hasil dalam negeri yang sama (dalam ~80 km daripada hasil pertama yang
-/// munasabah) diterima supaya "Masjid Al-Falah" tidak dihantar ke negeri lain.
+/// kawasan poskod. Hasil diterima hanya jika:
+///  - ia bukan kawasan besar (negeri/daerah/bandar raya) yang pusatnya disangka lokasi masjid;
+///  - negeri atau daerahnya sendiri sama (bukan nama jalan: "Jalan Perak" di KL bukan Perak), dengan
+///    ejaan Photon ("Penang", "Malacca");
+///  - carian nama: nama hasil berkongsi perkataan bermakna dengan nama masjid;
+///  - dalam [maxFromAreaM] daripada [areaCentre] (pusat daerah) jika diketahui.
 Future<GeoPoint?> findMasjidLocation(
   Geocoder geocoder,
   MasjidEntry e, {
   GeoPoint? near,
+  GeoPoint? areaCentre,
+  double maxFromAreaM = 60000,
 }) async {
-  for (final q in e.geocodeQueries) {
+  final queries = e.geocodeQueries;
+  for (var qi = 0; qi < queries.length; qi++) {
+    final q = queries[qi];
     if (q.trim().length < 3) continue;
     try {
       final results = await geocoder.search(q, near: near);
       for (final r in results) {
-        final sub = '${r.name} ${r.subtitle}'.toLowerCase();
-        if (sub.contains(e.state.toLowerCase()) ||
-            (e.district != null && sub.contains(e.district!.toLowerCase()))) {
-          return r.point;
+        if (_tooCoarse(r) || !_inArea(r, e)) continue;
+        if (areaCentre != null &&
+            distanceMeters(areaCentre, r.point) > maxFromAreaM) {
+          continue;
         }
+        if (qi == 0 && !_sharesNameWord(r.name, e.name)) continue;
+        return r.point;
       }
     } on Object {
       // Rangkaian gagal: cuba pertanyaan seterusnya, kemudian beritahu pengguna.
     }
   }
   return null;
+}
+
+const _coarsePlaces = {
+  'country',
+  'state',
+  'region',
+  'province',
+  'county',
+  'district',
+  'municipality',
+  'city',
+};
+
+/// Negeri/daerah/bandar raya: pusatnya bukan lokasi sebuah masjid.
+bool _tooCoarse(Place r) =>
+    (r.osmKey == 'place' || r.osmKey == 'boundary') &&
+    _coarsePlaces.contains(r.category);
+
+const _stateSpellings = {
+  'Pulau Pinang': ['pulau pinang', 'penang', 'pinang'],
+  'Melaka': ['melaka', 'malacca'],
+  'Negeri Sembilan': ['negeri sembilan', 'negri sembilan'],
+  'Johor': ['johor', 'johore'],
+  'Terengganu': ['terengganu', 'trengganu'],
+  'Kuala Lumpur': ['kuala lumpur'],
+};
+
+final _roadPart = RegExp(
+  r'^(?:\d+[a-z]?\s+)?(?:jalan|jln|lorong|lrg|persiaran|lebuh|lebuhraya|lingkaran|road|street|lane|avenue)\b',
+);
+
+/// Bahagian alamat hasil (selepas nama) yang menyebut negeri atau daerah masjid sebagai kawasan,
+/// bukan sebagai nama jalan.
+bool _inArea(Place r, MasjidEntry e) {
+  final parts = [
+    for (final p in r.subtitle.toLowerCase().split(','))
+      if (p.trim().isNotEmpty && !_roadPart.hasMatch(p.trim())) p.trim(),
+  ];
+  final names = [
+    ...(_stateSpellings[e.state] ?? [e.state.toLowerCase()]),
+    if (e.district != null) e.district!.toLowerCase(),
+  ];
+  for (final part in parts) {
+    for (final n in names) {
+      if (RegExp('(^|\\s)${RegExp.escape(n)}(\$|\\s)').hasMatch(part)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+const _genericNameWords = {
+  'masjid',
+  'surau',
+  'musolla',
+  'musalla',
+  'musollah',
+  'mosque',
+  'jamek',
+  'jamik',
+  'jami',
+  'al',
+  'ar',
+  'as',
+  'an',
+  'at',
+  'ad',
+  'ash',
+  'asy',
+  'el',
+  'dan',
+  'kampung',
+  'taman',
+  'bandar',
+  'jalan',
+};
+
+bool _sharesNameWord(String found, String wanted) {
+  Set<String> words(String s) => {
+    for (final w in foldMasjidText(s).trim().split(' '))
+      if (w.length >= 3 && !_genericNameWords.contains(w)) w,
+  };
+  final want = words(wanted);
+  // Nama masjid tanpa perkataan khusus (cth. "Masjid Jamek"): tidak boleh disemak, terima.
+  if (want.isEmpty) return true;
+  final got = words(
+    found,
+  ).map((w) => w.replaceAll(RegExp('^(al|as|ar|an|at|asy)'), ''));
+  final wantBare = want.map(
+    (w) => w.replaceAll(RegExp('^(al|as|ar|an|at|asy)'), ''),
+  );
+  return got.any(wantBare.contains);
 }
 
 class _InfoRow extends StatelessWidget {

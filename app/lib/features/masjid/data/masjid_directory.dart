@@ -179,6 +179,10 @@ class MasjidDirectory {
     };
   }
 
+  /// Pusat anggaran daerah [e] (purata tempat berkoordinat di daerah itu); null jika tidak diketahui.
+  GeoPoint? areaCentreOf(MasjidEntry e) =>
+      e.district == null ? null : _areaCentres['${e.state}|${e.district}'];
+
   GeoPoint? _approxPoint(MasjidEntry e) =>
       e.point ??
       (e.district == null ? null : _areaCentres['${e.state}|${e.district}']);
