@@ -1612,5 +1612,8 @@
   "navOfflineVoiceInstall": "Pasang",
   "navOfflineVoiceSnack": "Suara tanpa internet belum dipasang: arahan mungkin senyap di kawasan tiada liputan.",
   "netBackOnline": "Kembali dalam talian: data dikemas kini",
-  "netWentOffline": "Luar talian: peta, carian dan laluan offline digunakan jika dipasang"
+  "netWentOffline": "Luar talian: peta, carian dan laluan offline digunakan jika dipasang",
+  "offlineMapsPaused": "Muat turun terhenti pada {percent}%. Sambung dari situ, tanpa mula semula.",
+  "offlineMapsResume": "Sambung muat turun",
+  "@offlineMapsPaused": {"placeholders": {"percent": {"type": "int"}}}
 }

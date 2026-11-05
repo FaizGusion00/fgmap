@@ -1476,5 +1476,7 @@
   "navOfflineVoiceInstall": "Install",
   "navOfflineVoiceSnack": "Offline voice isn't installed: directions may go silent where there's no signal.",
   "netBackOnline": "Back online: data refreshed",
-  "netWentOffline": "Offline: offline map, search and routing are used if installed"
+  "netWentOffline": "Offline: offline map, search and routing are used if installed",
+  "offlineMapsPaused": "Download paused at {percent}%. Resume from there, no restart.",
+  "offlineMapsResume": "Resume download"
 }

@@ -26,6 +26,7 @@ class OfflineMapState {
     this.receivedBytes = 0,
     this.totalBytes = 0,
     this.error,
+    this.pausedBytes = 0,
   });
 
   /// Benar jika URL manifest ditetapkan; jika tidak, muat turun dimatikan.
@@ -40,6 +41,17 @@ class OfflineMapState {
 
   /// Kegagalan operasi terakhir yang dimulakan pengguna; dibuang bila operasi seterusnya bermula.
   final OfflineMapFailure? error;
+
+  /// Bait pek terkini yang sudah dimuat turun sebelum terhenti (app ditutup / rangkaian putus). > 0 =
+  /// butang "Sambung muat turun" (bersambung dengan HTTP Range, bukan dari awal).
+  final int pausedBytes;
+
+  /// Peratus muat turun terhenti (0-100), atau null.
+  int? get pausedPercent {
+    final l = latest;
+    if (pausedBytes <= 0 || l == null || l.sizeBytes <= 0) return null;
+    return (pausedBytes * 100 ~/ l.sizeBytes).clamp(1, 99);
+  }
 
   bool get busy => op != OfflineOp.idle;
 
@@ -71,6 +83,7 @@ class OfflineMapState {
     int? receivedBytes,
     int? totalBytes,
     OfflineMapFailure? Function()? error,
+    int? pausedBytes,
   }) {
     return OfflineMapState(
       configured: configured ?? this.configured,
@@ -80,6 +93,7 @@ class OfflineMapState {
       receivedBytes: receivedBytes ?? this.receivedBytes,
       totalBytes: totalBytes ?? this.totalBytes,
       error: error != null ? error() : this.error,
+      pausedBytes: pausedBytes ?? this.pausedBytes,
     );
   }
 }
@@ -133,7 +147,24 @@ class OfflineMapController extends Notifier<OfflineMapState> {
           .read(offlineMapInstallerProvider)
           .fetchManifest(url);
       if (!ref.mounted) return;
-      state = state.copyWith(op: OfflineOp.idle, latest: () => manifest);
+      // Muat turun terdahulu yang terhenti (app ditutup): tunjuk "Sambung", bukan "Muat turun" semula.
+      var paused = 0;
+      if (installed == null || installed.version != manifest.version) {
+        try {
+          paused = await store.partialBytesFor(
+            manifest.version,
+            manifest.sha256,
+          );
+        } on Object {
+          paused = 0;
+        }
+        if (!ref.mounted) return;
+      }
+      state = state.copyWith(
+        op: OfflineOp.idle,
+        latest: () => manifest,
+        pausedBytes: paused,
+      );
     } on OfflineMapException catch (e) {
       if (!ref.mounted) return;
       state = state.copyWith(
@@ -163,6 +194,7 @@ class OfflineMapController extends Notifier<OfflineMapState> {
       error: () => null,
       receivedBytes: 0,
       totalBytes: 0,
+      pausedBytes: 0,
     );
     try {
       // Manifest disegarkan: ia mungkin telah berubah sejak semakan terakhir.

@@ -6749,6 +6749,18 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'Luar talian: peta, carian dan laluan offline digunakan jika dipasang'**
   String get netWentOffline;
+
+  /// No description provided for @offlineMapsPaused.
+  ///
+  /// In ms, this message translates to:
+  /// **'Muat turun terhenti pada {percent}%. Sambung dari situ, tanpa mula semula.'**
+  String offlineMapsPaused(int percent);
+
+  /// No description provided for @offlineMapsResume.
+  ///
+  /// In ms, this message translates to:
+  /// **'Sambung muat turun'**
+  String get offlineMapsResume;
 }
 
 class _AppLocalizationsDelegate

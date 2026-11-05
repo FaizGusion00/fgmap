@@ -173,6 +173,17 @@ class _StatusCard extends ConsumerWidget {
                 const SizedBox(height: 12),
                 _ErrorText(kind: state.error!),
               ],
+              if (!state.busy && state.pausedPercent != null) ...[
+                const SizedBox(height: 8),
+                Padding(
+                  padding: const EdgeInsets.only(left: 36),
+                  child: Text(
+                    l10n.offlineMapsPaused(state.pausedPercent!),
+                    key: const ValueKey('offline-paused'),
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ),
+              ],
               const SizedBox(height: 12),
               Wrap(
                 spacing: 8,
@@ -198,7 +209,9 @@ class _StatusCard extends ConsumerWidget {
                     FilledButton(
                       onPressed: () => _startDownload(context, ref, state),
                       child: Text(
-                        installed == null
+                        state.pausedPercent != null
+                            ? l10n.offlineMapsResume
+                            : installed == null
                             ? l10n.offlineMapsDownload
                             : l10n.offlineMapsUpdate,
                       ),

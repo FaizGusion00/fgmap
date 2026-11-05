@@ -3940,4 +3940,12 @@ class AppLocalizationsMs extends AppLocalizations {
   @override
   String get netWentOffline =>
       'Luar talian: peta, carian dan laluan offline digunakan jika dipasang';
+
+  @override
+  String offlineMapsPaused(int percent) {
+    return 'Muat turun terhenti pada $percent%. Sambung dari situ, tanpa mula semula.';
+  }
+
+  @override
+  String get offlineMapsResume => 'Sambung muat turun';
 }

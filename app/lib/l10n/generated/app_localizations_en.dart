@@ -3942,4 +3942,12 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get netWentOffline =>
       'Offline: offline map, search and routing are used if installed';
+
+  @override
+  String offlineMapsPaused(int percent) {
+    return 'Download paused at $percent%. Resume from there, no restart.';
+  }
+
+  @override
+  String get offlineMapsResume => 'Resume download';
 }
