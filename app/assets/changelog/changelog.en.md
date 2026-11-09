@@ -1,3 +1,16 @@
+# 1.8.1 | 2026-11-09
+This release comes from user feedback: plan a trip from anywhere, and choose for yourself whether to use tolls.
+
+## Searchable starting point
+Before: Routes always started from your GPS location. You could not study a trip starting somewhere else, and without GPS no route could be calculated at all.
+After: The "From" field can be tapped and searched. Route, time, tolls and road choices are shown from the place you pick, with a start marker on the map.
+How to use: Tap "From" in Plan a trip, or the "From" row on the route summary. This is a preview only: real navigation can only start from your location, so the main button becomes "Use my location". Simulation lets you watch that trip. If the place is not in search, pick from history or saved places, search Google in the planner, or type coordinates. Links from other apps are always calculated from your location.
+
+## With toll and No toll choices
+Before: A toll-free route only appeared as one of the cards and had to be picked every time.
+After: The route summary has All, With toll and No toll choices. "No toll" is remembered for your next trips, including when a route is recalculated and on the Android Auto screen.
+How to use: The choice appears when a trip involves tolls. If there is no toll-free road for that trip, the app tells you and still shows every route it found, with a short message on the car screen. Change the choice on your phone; Android Auto follows it.
+
 # 1.8.0 | 2026-11-06
 This release focuses on real driving in Malaysia: multi-level junctions, getting to the right door, voice guidance that keeps working without internet, and a route line that no longer disappears.
 

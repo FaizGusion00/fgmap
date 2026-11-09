@@ -29,6 +29,8 @@ import '../../../core/settings/device_tier.dart';
 const _altSource = 'fg-route-alt-src';
 const _mainSource = 'fg-route-main-src';
 const _destSource = 'fg-destination-src';
+const _originSource = 'fg-origin-src';
+const _originLayer = 'fg-origin';
 const _legSource = 'fg-route-leg-src';
 const _legLayer = 'fg-route-leg';
 const _vehicleSource = 'fg-vehicle-src';
@@ -106,6 +108,7 @@ class _MapLibreViewState extends State<MapLibreView> {
   List<MapRouteLine> _sentAlt = const [];
   List<MapRouteLine> _sentMain = const [];
   GeoPoint? _sentDestination;
+  GeoPoint? _sentOrigin;
   List<MapReport> _sentReports = const [];
   List<GeoPoint> _sentLeg = const [];
   NavRouteLine? _chevronNav;
@@ -222,6 +225,7 @@ class _MapLibreViewState extends State<MapLibreView> {
             !identical(old.navRoute, cfg.navRoute) ||
             !_sameLeg(old.finalLeg, cfg.finalLeg) ||
             old.destination != cfg.destination ||
+            old.origin != cfg.origin ||
             // Label jalan dan anak panah belokan bertukar setiap manuver: tanpa ini peta terus
             // menunjukkan anak panah belokan yang sudah dilalui.
             old.navTurnLabel != cfg.navTurnLabel ||
@@ -387,6 +391,7 @@ class _MapLibreViewState extends State<MapLibreView> {
       _maneuverCasingLayer,
       _chevronLayer,
       _reportLayer,
+      _originLayer,
       _destLayer,
       _legLayer,
       _mainLayer,
@@ -405,6 +410,7 @@ class _MapLibreViewState extends State<MapLibreView> {
       _maneuverSource,
       _chevronSource,
       _reportSource,
+      _originSource,
       _destSource,
       _legSource,
       _aheadSource,
@@ -419,6 +425,7 @@ class _MapLibreViewState extends State<MapLibreView> {
     await c.addGeoJsonSource(_aheadSource, _emptyCollection);
     await c.addGeoJsonSource(_legSource, _emptyCollection);
     await c.addGeoJsonSource(_destSource, _emptyCollection);
+    await c.addGeoJsonSource(_originSource, _emptyCollection);
     await c.addGeoJsonSource(_reportSource, _emptyCollection);
     await c.addGeoJsonSource(_chevronSource, _emptyCollection);
     await c.addGeoJsonSource(_turnLabelSource, _emptyCollection);
@@ -432,6 +439,7 @@ class _MapLibreViewState extends State<MapLibreView> {
     _trimChunk = null;
     _resetAhead();
     _sentDestination = null;
+    _sentOrigin = null;
     _sentReports = const [];
     _chevronNav = null;
     _chevronFirst = null;
@@ -478,6 +486,17 @@ class _MapLibreViewState extends State<MapLibreView> {
         circleColor: _hex(colors.destination),
         circleStrokeColor: _hex(colors.routeCasing),
         circleStrokeWidth: 3,
+      ),
+      enableInteraction: false,
+    );
+    await c.addCircleLayer(
+      _originSource,
+      _originLayer,
+      CircleLayerProperties(
+        circleRadius: 7,
+        circleColor: _hex(colors.routeCasing),
+        circleStrokeColor: _hex(colors.mainRoute),
+        circleStrokeWidth: 4,
       ),
       enableInteraction: false,
     );
@@ -1229,6 +1248,10 @@ class _MapLibreViewState extends State<MapLibreView> {
     if (_sentDestination != cfg.destination) {
       _sentDestination = cfg.destination;
       await c.setGeoJsonSource(_destSource, _point(cfg.destination));
+    }
+    if (_sentOrigin != cfg.origin) {
+      _sentOrigin = cfg.origin;
+      await c.setGeoJsonSource(_originSource, _point(cfg.origin));
     }
     if (!listEquals(_sentReports, cfg.reports)) {
       _sentReports = cfg.reports;

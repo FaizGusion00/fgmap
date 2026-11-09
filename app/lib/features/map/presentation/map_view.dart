@@ -155,6 +155,7 @@ class MapViewConfig {
     this.navManeuverArrow,
     this.poiPins = false,
     this.reports = const [],
+    this.origin,
     this.onUserGesture,
     this.onTap,
   });
@@ -174,6 +175,9 @@ class MapViewConfig {
   final double initialTilt;
   final List<MapRouteLine> routes;
   final GeoPoint? destination;
+
+  /// Titik mula yang dipilih pengguna (bukan lokasi sebenar); null = tiada penanda.
+  final GeoPoint? origin;
   final bool showUserLocation;
 
   /// Kedudukan pengguna yang telah ditapis untuk titik lokasi. Titik lokasi peta disuap daripadanya

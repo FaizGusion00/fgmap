@@ -140,6 +140,28 @@ class TollRoad {
 
 final _roadRef = RegExp(r'^[A-Z]{1,3}\d{1,3}$');
 
+/// Pilihan tol pengguna pada lembaran laluan.
+enum RouteTollFilter {
+  /// Semua pilihan laluan.
+  any,
+
+  /// Hanya laluan yang melalui tol.
+  withTolls,
+
+  /// Hanya laluan tanpa tol. Satu-satunya pilihan yang diingat untuk perjalanan seterusnya.
+  noTolls,
+}
+
+/// Pilihan yang memenuhi [filter]. Kosong jika tiada; pemanggil memutuskan apa yang dipaparkan.
+List<RouteOption> applyTollFilter(
+  List<RouteOption> options,
+  RouteTollFilter filter,
+) => switch (filter) {
+  RouteTollFilter.any => options,
+  RouteTollFilter.withTolls => options.where((o) => o.hasTolls).toList(),
+  RouteTollFilter.noTolls => options.where((o) => !o.hasTolls).toList(),
+};
+
 /// Sifat yang membezakan satu pilihan laluan daripada yang lain (dipaparkan sebagai label kad).
 enum RouteLabel {
   /// Pilihan utama: skor terbaik (masa, belokan, jalan selamat) dalam lingkungan masa terpantas.
@@ -292,9 +314,16 @@ class RouteQuery {
     this.via = const [],
     this.urgent = false,
     this.headingToleranceDegrees,
+    this.originLabel,
   });
 
   final GeoPoint origin;
+
+  /// Nama titik mula yang dipilih pengguna untuk meneliti perjalanan. Null = lokasi GPS pengguna.
+  final String? originLabel;
+
+  /// Laluan ini bermula dari tempat pilihan pengguna, bukan dari lokasi sebenar: pratonton sahaja.
+  bool get isCustomOrigin => originLabel != null;
   final GeoPoint destination;
   final int? headingDegrees;
   final bool avoidTolls;
@@ -359,6 +388,7 @@ class RouteQuery {
       via: via ?? this.via,
       urgent: urgent,
       headingToleranceDegrees: headingToleranceDegrees,
+      originLabel: originLabel,
     );
   }
 

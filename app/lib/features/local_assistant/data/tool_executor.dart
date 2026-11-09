@@ -242,9 +242,10 @@ class AssistantToolExecutor {
     String? query,
   }) async {
     final q = query ?? place.name;
+    // "Bawa saya ke X" bermaksud dari lokasi pengguna, walaupun pratonton lain sedang dibuka.
     await _ref
         .read(routePreviewControllerProvider.notifier)
-        .planTo(place.point, destinationLabel: place.name);
+        .replanFromGps(place.point, label: place.name);
 
     final ready = await _awaitRoute(
       // Pilihan selain "Disyorkan" perlu calon tambahan (cth. tanpa tol) yang tiba kemudian.
@@ -316,13 +317,15 @@ class AssistantToolExecutor {
     _ref.read(routePreviewControllerProvider.notifier).select(choice.index);
     final now = _ref.read(routePreviewControllerProvider);
     final chosen = now is RouteReady ? now : base;
-    if (start) _ref.read(aiMapRequestProvider.notifier).startNavigation();
+    // Pratonton dari titik mula lain tidak boleh dimulakan: jangan laporkan navigasi bermula.
+    final started = start && !chosen.query.isCustomOrigin;
+    if (started) _ref.read(aiMapRequestProvider.notifier).startNavigation();
     return {
       'ok': true,
       'destination': chosen.query.destinationLabel,
       ..._optionSummary(chosen.selected, chosen.tollOf(chosen.selected)),
       'reason': choice.reason.name,
-      'navigation_started': start,
+      'navigation_started': started,
     };
   }
 
@@ -814,6 +817,7 @@ String _routingKindCode(RoutingFailureKind kind, {bool? online}) =>
       RoutingFailureKind.network => online == true ? 'slow' : 'offline',
       RoutingFailureKind.offlineRequired => 'offline_pack_needed',
       RoutingFailureKind.offlineEngine => 'offline_engine',
+      RoutingFailureKind.samePoint ||
       RoutingFailureKind.invalidRequest ||
       RoutingFailureKind.generic => 'route_failed',
     };

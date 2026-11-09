@@ -12,10 +12,10 @@ final appPackageInfoProvider = FutureProvider<PackageInfo>(
 
 /// Versi yang diterangkan oleh kad "Baharu dalam versi". Mesti sama dengan `version:` dalam pubspec.yaml;
 /// `about_page_test.dart` gagal jika berbeza.
-const aboutWhatsNewVersion = '1.8.0';
+const aboutWhatsNewVersion = '1.8.1';
 
 /// Tarikh keluaran versi [aboutWhatsNewVersion] (dipaparkan dalam About).
-final aboutReleaseDate = DateTime(2026, 11, 6);
+final aboutReleaseDate = DateTime(2026, 11, 9);
 
 class AboutPage extends ConsumerWidget {
   const AboutPage({super.key});
@@ -187,14 +187,7 @@ class AboutPage extends ConsumerWidget {
                           style: theme.textTheme.titleSmall,
                         ),
                         const SizedBox(height: 8),
-                        for (final item in [
-                          l10n.aboutNew1,
-                          l10n.aboutNew2,
-                          l10n.aboutNew3,
-                          l10n.aboutNew4,
-                          l10n.aboutNew5,
-                          l10n.aboutNew6,
-                        ])
+                        for (final item in [l10n.aboutNew1, l10n.aboutNew2])
                           Padding(
                             padding: const EdgeInsets.only(bottom: 6),
                             child: Row(

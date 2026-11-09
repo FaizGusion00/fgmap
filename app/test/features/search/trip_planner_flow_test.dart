@@ -142,6 +142,24 @@ void main() {
       },
     );
 
+    testWidgets('medan "Dari" boleh dicari; destinasi kemudian menamatkan', (
+      tester,
+    ) async {
+      await pumpHost(tester);
+      await tester.tap(find.byKey(const ValueKey('origin-field')));
+      await tester.pump();
+      expect(find.text('Cari titik mula'), findsWidgets);
+
+      await type(tester, 'destination-field', 'klcc');
+      await tester.tap(find.text('KLCC'));
+      await tester.pump();
+      // Titik mula dipilih: perancang kekal terbuka untuk destinasi.
+      expect(find.text('Lokasi saya'), findsNothing);
+      expect(find.text('Cari titik mula'), findsNothing);
+      expect(find.byKey(const ValueKey('origin-reset')), findsOneWidget);
+      expect(find.text('Rancang perjalanan'), findsOneWidget);
+    });
+
     testWidgets(
       'luar talian: baris "Cari di Google" disembunyikan (carian offline kekal)',
       (tester) async {
@@ -245,10 +263,11 @@ void main() {
       },
     );
 
-    testWidgets('asal lokasi saya tidak boleh diubah', (tester) async {
+    testWidgets('asal lalai ialah lokasi saya, tanpa carian', (tester) async {
       final result = await pumpHost(tester);
 
-      expect(find.byKey(const ValueKey('origin-field')), findsNothing);
+      expect(find.byKey(const ValueKey('origin-field')), findsOneWidget);
+      expect(find.byKey(const ValueKey('origin-reset')), findsNothing);
       expect(find.text('Lokasi saya'), findsOneWidget);
       expect(geocoder.queries, isEmpty);
       expect(result.value, 'belum');

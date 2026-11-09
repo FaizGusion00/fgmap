@@ -463,7 +463,11 @@ private fun placeRows(
         list.addItem(
             row.setOnClickListener {
                 CarBridge.openPlace(place) { error ->
-                    if (error == null) {
+                    if (error == null || error == "tolls") {
+                        // "tolls": navigasi sudah bermula, cuma "Tanpa tol" tidak dapat dipenuhi.
+                        if (error != null) {
+                            CarToast.makeText(context, CarStrings.tollsOnRoute, CarToast.LENGTH_LONG).show()
+                        }
                         screen.screenManager.popToRoot()
                     } else {
                         // Kekal pada senarai supaya pemandu boleh cuba tempat lain.

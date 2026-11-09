@@ -2103,33 +2103,69 @@ class AppLocalizationsEn extends AppLocalizations {
   String get musicTryRadio => 'Search in Radio';
 
   @override
+  String routeOriginRow(String origin) {
+    return 'From: $origin';
+  }
+
+  @override
+  String get routeOriginChange => 'Change starting point';
+
+  @override
+  String get routeOriginReset => 'Use my location';
+
+  @override
+  String get routeOriginPickTitle => 'Choose starting point';
+
+  @override
+  String get routeOriginSearchHint => 'Search starting point';
+
+  @override
+  String get routeOriginPreviewNote =>
+      'Trip preview only. Navigation can only start from your location.';
+
+  @override
+  String get routeStartFromMyLocation => 'Use my location';
+
+  @override
+  String get routeTollFilterAll => 'All';
+
+  @override
+  String get routeTollFilterWith => 'With toll';
+
+  @override
+  String get routeTollFilterWithout => 'No toll';
+
+  @override
+  String get routeTollFilterNoneFree =>
+      'No toll-free route found for this trip. All the options below use tolls.';
+
+  @override
+  String get routeTollFilterNoneWith => 'No toll route for this trip.';
+
+  @override
+  String get routeTollFilterUnverified =>
+      'Could not confirm whether a toll-free route exists. The routes below use tolls.';
+
+  @override
+  String get routeErrorNoRouteFromOrigin =>
+      'No route from this starting point to the destination. Try another start closer to a road.';
+
+  @override
+  String get routeErrorSameOrigin =>
+      'The starting point is too close to the destination. Choose another start.';
+
+  @override
   String aboutWhatsNewTitle(String version) {
     return 'New in version $version';
   }
 
   @override
   String get aboutNew1 =>
-      'Flyovers and the road below: at multi-level junctions the card and voice say \"Take the flyover\", \"Stay on the lower road\" or \"Underpass\"';
+      'Searchable starting point: choose any place in the \"From\" field to study a trip before you are there';
 
   @override
   String get aboutNew2 =>
-      'Navigation to the entrance: pick the main entrance, guardhouse, car park entrance or loading bay, or save your own entrance when you arrive';
-
-  @override
-  String get aboutNew3 =>
-      'New lane view: shows which lane to take (roundabouts too), with direction arrows and the street name on the map';
-
-  @override
-  String get aboutNew4 =>
-      'Voice guidance without internet, and when you are back online the route, weather, fuel prices and speed limits refresh by themselves';
-
-  @override
-  String get aboutNew5 =>
-      'Sharper satellite imagery in towns, and the offline map download can resume where it stopped';
-
-  @override
-  String get aboutNew6 =>
-      'About now lists every data source, plus an \"All changes\" page with before and after comparisons';
+      'All, With toll and No toll choices on the route summary. \"No toll\" is remembered for your next trips, including on the car screen';
 
   @override
   String get alongRouteTitle => 'Along the route';

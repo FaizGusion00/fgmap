@@ -42,7 +42,19 @@ class RouteSummarySheet extends StatelessWidget {
     this.now,
     this.weather,
     this.alongRoute,
+    this.onPickOrigin,
+    this.onUseMyLocation,
+    this.onTollFilterChanged,
   });
+
+  /// Cari titik mula lain (untuk meneliti perjalanan); baris "Dari" tidak boleh ditekan jika null.
+  final VoidCallback? onPickOrigin;
+
+  /// Kembali ke lokasi sebenar selepas titik mula lain dipilih.
+  final VoidCallback? onUseMyLocation;
+
+  /// Tukar pilihan Semua / Dengan tol / Tanpa tol; bar tersembunyi jika null.
+  final ValueChanged<RouteTollFilter>? onTollFilterChanged;
 
   final RoutePreviewState state;
   final ValueChanged<int> onSelect;
@@ -134,6 +146,9 @@ class RouteSummarySheet extends StatelessWidget {
                       now: now ?? DateTime.now(),
                       weather: weather,
                       alongRoute: alongRoute,
+                      onPickOrigin: onPickOrigin,
+                      onUseMyLocation: onUseMyLocation,
+                      onTollFilterChanged: onTollFilterChanged,
                     ),
                     RouteFailed() => _FailedBody(
                       key: const ValueKey('failed'),
@@ -141,11 +156,14 @@ class RouteSummarySheet extends StatelessWidget {
                       onRetry: onRetry,
                       onClear: onClear,
                       onOpenOfflineMaps: onOpenOfflineMaps,
+                      onPickOrigin: onPickOrigin,
+                      onUseMyLocation: onUseMyLocation,
                     ),
                     RouteLocationUnavailable() => _LocationUnavailableBody(
                       key: const ValueKey('location-unavailable'),
                       onRetry: onRetry,
                       onClear: onClear,
+                      onPickOrigin: onPickOrigin,
                     ),
                   },
                 ),
@@ -229,8 +247,14 @@ class _ReadyBody extends StatelessWidget {
     this.fuelCostRm,
     this.weather,
     this.alongRoute,
+    this.onPickOrigin,
+    this.onUseMyLocation,
+    this.onTollFilterChanged,
   });
 
+  final VoidCallback? onPickOrigin;
+  final VoidCallback? onUseMyLocation;
+  final ValueChanged<RouteTollFilter>? onTollFilterChanged;
   final RouteReady state;
   final ValueChanged<int> onSelect;
   final ValueChanged<RouteVehicle> onVehicleChanged;
@@ -264,7 +288,14 @@ class _ReadyBody extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (destinationLabel != null) ...[
+        if (onPickOrigin != null) ...[
+          _OriginRow(
+            query: state.query,
+            onPick: onPickOrigin!,
+            onUseMyLocation: onUseMyLocation,
+          ),
+          const SizedBox(height: 8),
+        ] else if (destinationLabel != null) ...[
           Padding(
             padding: const EdgeInsets.only(right: 48),
             child: Text(
@@ -353,6 +384,12 @@ class _ReadyBody extends StatelessWidget {
         // Pintu masuk sebenar (OSM / simpanan pengguna): laluan sampai ke pintu, bukan sekadar pin.
         const EntranceSection(),
         const SizedBox(height: 14),
+        if (onTollFilterChanged != null &&
+            (state.hasTollChoice ||
+                state.tollFilter != RouteTollFilter.any)) ...[
+          _TollFilterBar(state: state, onChanged: onTollFilterChanged!),
+          const SizedBox(height: 12),
+        ],
         if (state.options.length > 1) ...[
           Padding(
             padding: const EdgeInsets.only(bottom: 6),
@@ -445,7 +482,11 @@ class _ReadyBody extends StatelessWidget {
           const SizedBox(height: 14),
           Padding(
             padding: const EdgeInsets.only(right: 8),
-            child: _StartRow(onStart: onStart, onSimulate: onSimulate),
+            child: _StartRow(
+              onStart: onStart,
+              onSimulate: onSimulate,
+              customOrigin: state.query.isCustomOrigin,
+            ),
           ),
         ],
       ],
@@ -453,13 +494,176 @@ class _ReadyBody extends StatelessWidget {
   }
 }
 
+/// Baris "Dari": lokasi sebenar atau tempat lain yang dicari untuk meneliti perjalanan.
+class _OriginRow extends StatelessWidget {
+  const _OriginRow({
+    required this.query,
+    required this.onPick,
+    this.onUseMyLocation,
+  });
+
+  final RouteQuery query;
+  final VoidCallback onPick;
+  final VoidCallback? onUseMyLocation;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final custom = query.isCustomOrigin;
+    final origin = query.originLabel ?? l10n.myLocation;
+    final destination = query.destinationLabel;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: Material(
+            color: theme.colorScheme.primary.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(12),
+            child: InkWell(
+              key: const ValueKey('route-origin'),
+              borderRadius: BorderRadius.circular(12),
+              onTap: onPick,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
+                child: Row(
+                  children: [
+                    Icon(
+                      custom
+                          ? Icons.trip_origin_rounded
+                          : Icons.my_location_rounded,
+                      size: 18,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        destination == null
+                            ? l10n.routeOriginRow(origin)
+                            : l10n.routeFromTo(origin, destination),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                    ),
+                    if (custom && onUseMyLocation != null)
+                      IconButton(
+                        key: const ValueKey('route-origin-reset'),
+                        tooltip: l10n.routeOriginReset,
+                        visualDensity: VisualDensity.compact,
+                        onPressed: onUseMyLocation,
+                        icon: const Icon(Icons.close_rounded, size: 18),
+                      )
+                    else
+                      Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: Icon(
+                          Icons.edit_rounded,
+                          size: 16,
+                          semanticLabel: l10n.routeOriginChange,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        if (custom) ...[
+          const SizedBox(height: 6),
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Text(
+              l10n.routeOriginPreviewNote,
+              key: const ValueKey('route-origin-note'),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// Pilihan Semua / Dengan tol / Tanpa tol. Jika tiada laluan memenuhi pilihan, ia dinyatakan.
+class _TollFilterBar extends StatelessWidget {
+  const _TollFilterBar({required this.state, required this.onChanged});
+
+  final RouteReady state;
+  final ValueChanged<RouteTollFilter> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    ButtonSegment<RouteTollFilter> segment(
+      RouteTollFilter value,
+      String label,
+    ) => ButtonSegment(
+      value: value,
+      label: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+    );
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SegmentedButton<RouteTollFilter>(
+            key: const ValueKey('route-toll-filter'),
+            showSelectedIcon: false,
+            style: SegmentedButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              selectedBackgroundColor: theme.colorScheme.primary.withValues(
+                alpha: 0.14,
+              ),
+              selectedForegroundColor: theme.colorScheme.primary,
+            ),
+            segments: [
+              segment(RouteTollFilter.any, l10n.routeTollFilterAll),
+              segment(RouteTollFilter.withTolls, l10n.routeTollFilterWith),
+              segment(RouteTollFilter.noTolls, l10n.routeTollFilterWithout),
+            ],
+            selected: {state.tollFilter},
+            onSelectionChanged: (v) => onChanged(v.single),
+          ),
+          if (state.tollFilterUnmet) ...[
+            const SizedBox(height: 6),
+            Text(
+              state.tollFilterUnverified
+                  ? l10n.routeTollFilterUnverified
+                  : state.tollFilter == RouteTollFilter.noTolls
+                  ? l10n.routeTollFilterNoneFree
+                  : l10n.routeTollFilterNoneWith,
+              key: const ValueKey('route-toll-filter-unmet'),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 /// Baris "Mula": satu butang besar yang jelas. Simulasi ialah alat pengguna mahir; dalam Mod mudah ia
 /// disembunyikan di sebalik "Lanjut" supaya laluan utama hanya ada satu pilihan.
 class _StartRow extends StatefulWidget {
-  const _StartRow({this.onStart, this.onSimulate});
+  const _StartRow({this.onStart, this.onSimulate, this.customOrigin = false});
 
   final VoidCallback? onStart;
   final VoidCallback? onSimulate;
+
+  /// Laluan bermula dari tempat lain: butang utama membawa kembali ke lokasi sebenar, bukan memulakan
+  /// navigasi, dan simulasi (cara meneliti perjalanan) sentiasa kelihatan.
+  final bool customOrigin;
 
   @override
   State<_StartRow> createState() => _StartRowState();
@@ -473,7 +677,8 @@ class _StartRowState extends State<_StartRow> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final easy = EasyModeScope.of(context);
-    final showSimulate = widget.onSimulate != null && (!easy || _more);
+    final showSimulate =
+        widget.onSimulate != null && (!easy || _more || widget.customOrigin);
     return Row(
       children: [
         if (showSimulate)
@@ -502,8 +707,19 @@ class _StartRowState extends State<_StartRow> {
                 child: FilledButton.icon(
                   key: const ValueKey('nav-start'),
                   onPressed: widget.onStart,
-                  icon: Icon(Icons.navigation_rounded, size: easy ? 28 : null),
-                  label: Text(l10n.navStart),
+                  icon: Icon(
+                    widget.customOrigin
+                        ? Icons.my_location_rounded
+                        : Icons.navigation_rounded,
+                    size: easy ? 28 : null,
+                  ),
+                  label: Text(
+                    widget.customOrigin
+                        ? l10n.routeStartFromMyLocation
+                        : l10n.navStart,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   style: FilledButton.styleFrom(
                     minimumSize: Size.fromHeight(easy ? 64 : 54),
                     textStyle: easy
@@ -917,10 +1133,14 @@ class _LocationUnavailableBody extends StatelessWidget {
     super.key,
     required this.onRetry,
     required this.onClear,
+    this.onPickOrigin,
   });
 
   final VoidCallback onRetry;
   final VoidCallback onClear;
+
+  /// Tanpa GPS pengguna masih boleh meneliti perjalanan dari tempat lain.
+  final VoidCallback? onPickOrigin;
 
   @override
   Widget build(BuildContext context) {
@@ -950,6 +1170,12 @@ class _LocationUnavailableBody extends StatelessWidget {
             spacing: 8,
             children: [
               TextButton(onPressed: onClear, child: Text(l10n.routeClear)),
+              if (onPickOrigin != null)
+                OutlinedButton(
+                  key: const ValueKey('route-origin-pick'),
+                  onPressed: onPickOrigin,
+                  child: Text(l10n.routeOriginPickTitle),
+                ),
               FilledButton(onPressed: onRetry, child: Text(l10n.routeRetry)),
             ],
           ),
@@ -966,12 +1192,18 @@ class _FailedBody extends StatelessWidget {
     required this.onRetry,
     required this.onClear,
     this.onOpenOfflineMaps,
+    this.onPickOrigin,
+    this.onUseMyLocation,
   });
 
   final RouteFailed state;
   final VoidCallback onRetry;
   final VoidCallback onClear;
   final VoidCallback? onOpenOfflineMaps;
+
+  /// Titik mula pilihan boleh menjadi punca kegagalan: pengguna mesti boleh menukarnya di sini.
+  final VoidCallback? onPickOrigin;
+  final VoidCallback? onUseMyLocation;
 
   @override
   Widget build(BuildContext context) {
@@ -980,7 +1212,9 @@ class _FailedBody extends StatelessWidget {
     // Mengulang tidak membantu jika tiada laluan atau permintaan memang tidak sah.
     final retryable =
         state.kind != RoutingFailureKind.noRoute &&
+        state.kind != RoutingFailureKind.samePoint &&
         state.kind != RoutingFailureKind.invalidRequest;
+    final customOrigin = state.query.isCustomOrigin;
     final offerOfflineMaps =
         state.kind == RoutingFailureKind.offlineRequired &&
         onOpenOfflineMaps != null;
@@ -1000,7 +1234,9 @@ class _FailedBody extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.only(top: 2),
                   child: Text(
-                    failureMessage(l10n, state.kind),
+                    customOrigin && state.kind == RoutingFailureKind.noRoute
+                        ? l10n.routeErrorNoRouteFromOrigin
+                        : failureMessage(l10n, state.kind),
                     style: theme.textTheme.bodyLarge,
                   ),
                 ),
@@ -1017,6 +1253,18 @@ class _FailedBody extends StatelessWidget {
             runSpacing: 4,
             children: [
               TextButton(onPressed: onClear, child: Text(l10n.routeClear)),
+              if (customOrigin && onUseMyLocation != null)
+                TextButton(
+                  key: const ValueKey('route-failed-origin-reset'),
+                  onPressed: onUseMyLocation,
+                  child: Text(l10n.routeOriginReset),
+                ),
+              if (customOrigin && onPickOrigin != null)
+                OutlinedButton(
+                  key: const ValueKey('route-failed-origin-change'),
+                  onPressed: onPickOrigin,
+                  child: Text(l10n.routeOriginChange),
+                ),
               if (offerOfflineMaps)
                 OutlinedButton(
                   onPressed: onOpenOfflineMaps,
@@ -1041,6 +1289,7 @@ String failureMessage(AppLocalizations l10n, RoutingFailureKind kind) {
     RoutingFailureKind.rateLimited => l10n.routeErrorRateLimited,
     RoutingFailureKind.offlineRequired => l10n.routeErrorOfflineRequired,
     RoutingFailureKind.offlineEngine => l10n.routeErrorOfflineEngine,
+    RoutingFailureKind.samePoint => l10n.routeErrorSameOrigin,
     RoutingFailureKind.invalidRequest ||
     RoutingFailureKind.generic => l10n.routeErrorGeneric,
   };

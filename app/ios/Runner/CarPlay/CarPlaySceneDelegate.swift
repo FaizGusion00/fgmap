@@ -247,8 +247,10 @@ final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegat
   private func open(_ place: CarPlace) {
     CarBridge.shared.openPlace(place) { [weak self] error in
       DispatchQueue.main.async {
-        if error == nil {
+        // "tolls": navigasi sudah bermula, cuma "Tanpa tol" tidak dapat dipenuhi.
+        if error == nil || error == "tolls" {
           self?.interfaceController?.popToRootTemplate(animated: true, completion: nil)
+          if error != nil { self?.placeholder.show(CarText.tollsOnRoute) }
         } else {
           self?.placeholder.show(CarText.cannotOpen)
         }
@@ -302,8 +304,10 @@ extension CarPlaySceneDelegate: CPSearchTemplateDelegate {
     }
     CarBridge.shared.openPlace(place) { [weak self] error in
       DispatchQueue.main.async {
-        if error == nil {
+        // "tolls": navigasi sudah bermula, cuma "Tanpa tol" tidak dapat dipenuhi.
+        if error == nil || error == "tolls" {
           self?.interfaceController?.popToRootTemplate(animated: true, completion: nil)
+          if error != nil { self?.placeholder.show(CarText.tollsOnRoute) }
         } else {
           self?.placeholder.show(CarText.cannotOpen)
         }
@@ -408,6 +412,9 @@ enum CarText {
   static var openPhone: String { malay ? "Buka FGMaps pada iPhone" : "Open FGMaps on your iPhone" }
   static var browse: String { "FGMaps" }
   static var cruise: String { malay ? "Mod pemanduan" : "Driving mode" }
+  static var tollsOnRoute: String {
+    malay ? "Tiada laluan tanpa tol. Laluan ini ada tol." : "No toll-free route. This route has tolls."
+  }
   static var cannotOpen: String { malay ? "Tidak dapat mulakan laluan" : "Couldn't start the route" }
 
   /// Skrin kereta ketika tidak bernavigasi: waktu solat seterusnya, IPU di bawahnya, atau nama app.

@@ -539,7 +539,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
       initialDestinationQuery: text,
     );
     if (selection == null || !mounted) return;
-    await _planSelection(selection);
+    await _planFromPlanner(selection);
   }
 
   /// Membuka perancang destinasi, kemudian mengira laluan dari lokasi pengguna.
@@ -550,9 +550,10 @@ class _MapScreenState extends ConsumerState<MapScreen>
       near: user ?? _cameraCenterOrDefault(),
       userLocation: user,
       assign: assign,
+      initialOrigin: _customOriginPlace(),
     );
     if (selection == null || !mounted) return;
-    await _planSelection(selection);
+    await _planFromPlanner(selection);
   }
 
   /// Internet kembali: muat semula apa yang gagal semasa luar talian, tanpa mengganggu yang berjaya
@@ -697,11 +698,56 @@ class _MapScreenState extends ConsumerState<MapScreen>
     }
   }
 
+  /// Titik mula pilihan semasa dalam bentuk tempat, untuk dipaparkan semula dalam perancang.
+  Place? _customOriginPlace() {
+    final origin = ref
+        .read(routePreviewControllerProvider.notifier)
+        .customOrigin;
+    return origin == null
+        ? null
+        : Place(name: origin.label, subtitle: '', point: origin.point);
+  }
+
+  /// Hasil perancang: medan "Dari" di sana menentukan titik mula (kosong = lokasi saya).
+  Future<void> _planFromPlanner(TripSelection selection) async {
+    final origin = selection.origin;
+    ref
+        .read(routePreviewControllerProvider.notifier)
+        .setStart(origin?.point, label: origin?.name);
+    await _planSelection(selection);
+  }
+
+  /// Cari titik mula lain untuk laluan yang sedang dipaparkan.
+  Future<void> _pickOrigin() async {
+    final user = _userPoint();
+    final selection = await TripPlannerPage.open(
+      context,
+      near: user ?? _cameraCenterOrDefault(),
+      userLocation: user,
+      originOnly: true,
+    );
+    if (selection == null || !mounted) return;
+    final place = selection.destination;
+    await ref
+        .read(routePreviewControllerProvider.notifier)
+        .setOrigin(place.point, label: place.name);
+  }
+
+  /// Kembali ke lokasi sebenar selepas meneliti perjalanan dari tempat lain.
+  Future<void> _useMyLocationAsOrigin() async {
+    final access = await ensureLocationAccess(context, ref);
+    if (access != LocationAccess.granted || !mounted) return;
+    await ref.read(routePreviewControllerProvider.notifier).setOrigin(null);
+  }
+
   Future<void> _planSelection(TripSelection selection) async {
     if (!mounted) return;
     setState(() => _hintDismissed = true);
-    final access = await ensureLocationAccess(context, ref);
-    if (!mounted || access != LocationAccess.granted) return;
+    // Titik mula pilihan: laluan tidak memerlukan GPS, jadi kebenaran lokasi tidak diminta.
+    if (!ref.read(routePreviewControllerProvider.notifier).hasCustomOrigin) {
+      final access = await ensureLocationAccess(context, ref);
+      if (!mounted || access != LocationAccess.granted) return;
+    }
     await ref
         .read(routePreviewControllerProvider.notifier)
         .planTo(
@@ -746,6 +792,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
     if (!mounted) return;
     final state = ref.read(routePreviewControllerProvider);
     if (state is RouteReady &&
+        !state.query.isCustomOrigin &&
         !ref.read(navigationControllerProvider).isActive) {
       unawaited(Haptics.selection());
       setState(() => _autoStart = place.name);
@@ -772,11 +819,12 @@ class _MapScreenState extends ConsumerState<MapScreen>
     GeoPoint point, {
     String? destinationLabel,
   }) async {
-    final access = await ensureLocationAccess(context, ref);
-    if (!mounted || access != LocationAccess.granted) return;
-    await ref
-        .read(routePreviewControllerProvider.notifier)
-        .planTo(point, destinationLabel: destinationLabel);
+    final controller = ref.read(routePreviewControllerProvider.notifier);
+    if (!controller.hasCustomOrigin) {
+      final access = await ensureLocationAccess(context, ref);
+      if (!mounted || access != LocationAccess.granted) return;
+    }
+    await controller.planTo(point, destinationLabel: destinationLabel);
   }
 
   Future<void> _openSharedLocation(Uri uri) async {
@@ -823,6 +871,9 @@ class _MapScreenState extends ConsumerState<MapScreen>
       return;
     }
 
+    // Pautan dari app lain (cth. tugasan pemandu) ialah perjalanan sebenar: mesti dari lokasi pengguna,
+    // bukan titik mula yang tertinggal daripada pratonton.
+    ref.read(routePreviewControllerProvider.notifier).setStart(null);
     final user = _userPoint();
     final near = user ?? _cameraCenterOrDefault();
     final point = shared.point;
@@ -845,7 +896,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
       userLocation: user,
       initialDestinationQuery: query,
     );
-    if (selection != null) await _planSelection(selection);
+    if (selection != null) await _planFromPlanner(selection);
   }
 
   static bool _isShortMapLink(Uri uri) =>
@@ -1101,6 +1152,10 @@ class _MapScreenState extends ConsumerState<MapScreen>
     RouteReady ready, {
     required bool simulate,
   }) async {
+    // Navigasi sebenar tidak boleh bermula dari tempat lain: kira semula dari lokasi pengguna dahulu.
+    if (!simulate && ready.query.isCustomOrigin) {
+      return _useMyLocationAsOrigin();
+    }
     final uiLanguage = VoiceLanguage.fromCode(
       AppLocalizations.of(context).localeName,
     );
@@ -1699,6 +1754,9 @@ class _MapScreenState extends ConsumerState<MapScreen>
         destination: navigating ? nav.query?.destination : _destination(state),
       ),
       destination: navigating ? nav.query?.destination : _destination(state),
+      origin: !navigating && state is RouteReady && state.query.isCustomOrigin
+          ? state.query.origin
+          : null,
       showUserLocation:
           access == LocationAccess.granted && !navigating && !cruising,
       userLocation: _tracker.location,
@@ -2003,9 +2061,17 @@ class _MapScreenState extends ConsumerState<MapScreen>
                                 state: state,
                                 onSelect: _selectRoute,
                                 onShowMore: controller.showMore,
-                                onShare: state is RouteReady
+                                // Masa tiba yang dikongsi hanya bermakna dari lokasi sebenar.
+                                onShare:
+                                    state is RouteReady &&
+                                        !state.query.isCustomOrigin
                                     ? () => unawaited(_shareDestination(state))
                                     : null,
+                                onPickOrigin: () => unawaited(_pickOrigin()),
+                                onUseMyLocation: () =>
+                                    unawaited(_useMyLocationAsOrigin()),
+                                onTollFilterChanged: (f) =>
+                                    unawaited(controller.setTollFilter(f)),
                                 fuelCostRm: state is RouteReady
                                     ? estimateFuelCostRm(
                                         distanceM: state.selected.distanceM,

@@ -91,6 +91,16 @@ SharedLocation? sharedLocationFromUri(Uri uri) {
   return SharedLocation(point: point, label: cleanLabel);
 }
 
+/// Koordinat yang ditaip terus (`3.1579, 101.7116`). Perpuluhan wajib supaya alamat seperti `2, 4` bukan
+/// koordinat. Tidak memerlukan rangkaian: sandaran apabila carian tempat gagal.
+GeoPoint? typedCoordinates(String text) {
+  final match = RegExp(
+    r'^\s*(-?\d{1,2}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)\s*$',
+  ).firstMatch(text);
+  if (match == null) return null;
+  return _point(match.group(1), match.group(2));
+}
+
 GeoPoint? _pinFromData(Uri uri) {
   final text = Uri.decodeFull(uri.toString());
   final match = RegExp(

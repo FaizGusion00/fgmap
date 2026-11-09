@@ -3686,6 +3686,96 @@ abstract class AppLocalizations {
   /// **'Cari dalam Radio'**
   String get musicTryRadio;
 
+  /// No description provided for @routeOriginRow.
+  ///
+  /// In ms, this message translates to:
+  /// **'Dari: {origin}'**
+  String routeOriginRow(String origin);
+
+  /// No description provided for @routeOriginChange.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tukar titik mula'**
+  String get routeOriginChange;
+
+  /// No description provided for @routeOriginReset.
+  ///
+  /// In ms, this message translates to:
+  /// **'Guna lokasi saya'**
+  String get routeOriginReset;
+
+  /// No description provided for @routeOriginPickTitle.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pilih titik mula'**
+  String get routeOriginPickTitle;
+
+  /// No description provided for @routeOriginSearchHint.
+  ///
+  /// In ms, this message translates to:
+  /// **'Cari titik mula'**
+  String get routeOriginSearchHint;
+
+  /// No description provided for @routeOriginPreviewNote.
+  ///
+  /// In ms, this message translates to:
+  /// **'Pratonton perjalanan sahaja. Navigasi hanya boleh bermula dari lokasi anda.'**
+  String get routeOriginPreviewNote;
+
+  /// No description provided for @routeStartFromMyLocation.
+  ///
+  /// In ms, this message translates to:
+  /// **'Guna lokasi saya'**
+  String get routeStartFromMyLocation;
+
+  /// No description provided for @routeTollFilterAll.
+  ///
+  /// In ms, this message translates to:
+  /// **'Semua'**
+  String get routeTollFilterAll;
+
+  /// No description provided for @routeTollFilterWith.
+  ///
+  /// In ms, this message translates to:
+  /// **'Dengan tol'**
+  String get routeTollFilterWith;
+
+  /// No description provided for @routeTollFilterWithout.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tanpa tol'**
+  String get routeTollFilterWithout;
+
+  /// No description provided for @routeTollFilterNoneFree.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tiada laluan tanpa tol ditemui untuk perjalanan ini. Semua pilihan di bawah melalui tol.'**
+  String get routeTollFilterNoneFree;
+
+  /// No description provided for @routeTollFilterNoneWith.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tiada laluan dengan tol untuk perjalanan ini.'**
+  String get routeTollFilterNoneWith;
+
+  /// No description provided for @routeTollFilterUnverified.
+  ///
+  /// In ms, this message translates to:
+  /// **'Belum dapat dipastikan sama ada laluan tanpa tol wujud. Laluan di bawah melalui tol.'**
+  String get routeTollFilterUnverified;
+
+  /// No description provided for @routeErrorNoRouteFromOrigin.
+  ///
+  /// In ms, this message translates to:
+  /// **'Tiada laluan dari titik mula ini ke destinasi. Cuba titik mula lain yang berhampiran jalan.'**
+  String get routeErrorNoRouteFromOrigin;
+
+  /// No description provided for @routeErrorSameOrigin.
+  ///
+  /// In ms, this message translates to:
+  /// **'Titik mula terlalu dekat dengan destinasi. Pilih titik mula lain.'**
+  String get routeErrorSameOrigin;
+
   /// No description provided for @aboutWhatsNewTitle.
   ///
   /// In ms, this message translates to:
@@ -3695,38 +3785,14 @@ abstract class AppLocalizations {
   /// No description provided for @aboutNew1.
   ///
   /// In ms, this message translates to:
-  /// **'Jejambat dan jalan bawah: di simpang bertingkat, kad dan suara beritahu \"Naik jejambat\", \"Jangan naik jejambat, ikut jalan bawah\" atau \"Laluan bawah tanah\"'**
+  /// **'Titik mula boleh dicari: pilih mana-mana tempat dalam medan \"Dari\" untuk meneliti perjalanan, walaupun anda belum berada di sana'**
   String get aboutNew1;
 
   /// No description provided for @aboutNew2.
   ///
   /// In ms, this message translates to:
-  /// **'Navigasi sampai ke pintu: pilih pintu utama, pondok pengawal, masuk parkir atau loading bay, atau simpan pintu anda sendiri semasa tiba'**
+  /// **'Pilihan Semua, Dengan tol dan Tanpa tol pada ringkasan laluan. \"Tanpa tol\" diingat untuk perjalanan seterusnya, termasuk di skrin kereta'**
   String get aboutNew2;
-
-  /// No description provided for @aboutNew3.
-  ///
-  /// In ms, this message translates to:
-  /// **'Kotak lorong baharu: tunjuk lorong yang patut diambil (termasuk bulatan), dengan anak panah arah dan nama jalan di peta'**
-  String get aboutNew3;
-
-  /// No description provided for @aboutNew4.
-  ///
-  /// In ms, this message translates to:
-  /// **'Suara tanpa internet, dan bila internet kembali laluan, cuaca, harga minyak serta had laju dikemas kini sendiri'**
-  String get aboutNew4;
-
-  /// No description provided for @aboutNew5.
-  ///
-  /// In ms, this message translates to:
-  /// **'Imej satelit lebih tajam di bandar, dan muat turun peta offline boleh disambung dari tempat ia terhenti'**
-  String get aboutNew5;
-
-  /// No description provided for @aboutNew6.
-  ///
-  /// In ms, this message translates to:
-  /// **'About kini ada semua sumber data, dan halaman \"Semua perubahan\" dengan perbandingan sebelum dan selepas'**
-  String get aboutNew6;
 
   /// No description provided for @alongRouteTitle.
   ///

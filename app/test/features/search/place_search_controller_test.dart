@@ -119,6 +119,16 @@ void main() {
     expect(geocoder.tokens.first!.isCancelled, isTrue);
   });
 
+  test('koordinat ditaip menjadi tempat tanpa carian rangkaian', () async {
+    ctl().onQueryChanged('3.1579, 101.7116');
+    await wait();
+
+    expect(state().status, SearchStatus.results);
+    expect(state().results.single.point.lat, 3.1579);
+    expect(state().results.single.point.lng, 101.7116);
+    expect(geocoder.queries, isEmpty);
+  });
+
   test('tiada hasil -> empty dengan teks carian', () async {
     geocoder.handler = (_) async => [];
     ctl().onQueryChanged('zzzz');

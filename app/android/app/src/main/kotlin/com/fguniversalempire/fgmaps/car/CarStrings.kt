@@ -20,6 +20,8 @@ object CarStrings {
         get() = if (malay) "Tiada hasil. Semak sambungan internet." else "No results. Check your internet connection."
     val cruise get() = if (malay) "Memandu bebas" else "Free driving"
     val cannotStart get() = if (malay) "Tidak dapat mulakan laluan" else "Couldn't start the route"
+    val tollsOnRoute
+        get() = if (malay) "Tiada laluan tanpa tol. Laluan ini ada tol." else "No toll-free route. This route has tolls."
     val place get() = if (malay) "Tempat" else "Place"
     val arrived get() = if (malay) "Anda telah tiba" else "You have arrived"
 }

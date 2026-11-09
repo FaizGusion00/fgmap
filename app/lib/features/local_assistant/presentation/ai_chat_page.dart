@@ -216,7 +216,7 @@ class _AiChatPageState extends ConsumerState<AiChatPage> {
         unawaited(
           ref
               .read(routePreviewControllerProvider.notifier)
-              .planTo(GeoPoint(lat, lng), destinationLabel: action.label),
+              .replanFromGps(GeoPoint(lat, lng), label: action.label),
         );
         bridge.showRoute();
       case AssistantActionKind.ask:

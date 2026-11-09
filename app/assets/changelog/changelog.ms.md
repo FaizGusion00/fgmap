@@ -1,3 +1,16 @@
+# 1.8.1 | 2026-11-09
+Versi ini datang daripada maklum balas pengguna: rancang perjalanan dari mana-mana tempat, dan pilih sendiri sama ada mahu melalui tol.
+
+## Titik mula boleh dicari
+Sebelum: Laluan sentiasa bermula dari lokasi GPS anda. Anda tidak boleh meneliti perjalanan yang bermula dari tempat lain, dan tanpa GPS laluan langsung tidak dapat dikira.
+Selepas: Medan "Dari" boleh ditekan dan dicari. Laluan, masa, tol dan pilihan jalan dipaparkan dari tempat yang anda pilih, dengan penanda titik mula di peta.
+Cara guna: Tekan "Dari" dalam Rancang perjalanan, atau baris "Dari" pada ringkasan laluan. Ini pratonton sahaja: navigasi sebenar hanya bermula dari lokasi anda, jadi butang utama menjadi "Guna lokasi saya". Simulasi boleh digunakan untuk melihat perjalanan itu. Jika tempat itu tiada dalam carian, pilih daripada sejarah atau tempat simpanan, cari di Google dalam perancang, atau taip koordinat. Pautan dari app lain sentiasa dikira dari lokasi anda.
+
+## Pilihan Dengan tol dan Tanpa tol
+Sebelum: Laluan tanpa tol hanya muncul sebagai salah satu kad, dan perlu dipilih setiap kali.
+Selepas: Ringkasan laluan ada pilihan Semua, Dengan tol dan Tanpa tol. "Tanpa tol" diingat untuk perjalanan seterusnya, termasuk semasa laluan dikira semula dan di skrin kereta Android Auto.
+Cara guna: Pilihan ini muncul bila perjalanan melibatkan tol. Jika tiada jalan tanpa tol untuk perjalanan itu, app memberitahu anda dan semua laluan yang ada tetap dipaparkan, termasuk mesej ringkas di skrin kereta. Pilihan ditukar di telefon; Android Auto mengikut pilihan itu.
+
 # 1.8.0 | 2026-11-06
 Versi ini fokus pada pemanduan sebenar di Malaysia: simpang bertingkat, sampai tepat ke pintu, suara yang tetap berfungsi tanpa internet, dan garisan laluan yang tidak lagi hilang.
 

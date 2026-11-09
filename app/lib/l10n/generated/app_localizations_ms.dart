@@ -2096,33 +2096,70 @@ class AppLocalizationsMs extends AppLocalizations {
   String get musicTryRadio => 'Cari dalam Radio';
 
   @override
+  String routeOriginRow(String origin) {
+    return 'Dari: $origin';
+  }
+
+  @override
+  String get routeOriginChange => 'Tukar titik mula';
+
+  @override
+  String get routeOriginReset => 'Guna lokasi saya';
+
+  @override
+  String get routeOriginPickTitle => 'Pilih titik mula';
+
+  @override
+  String get routeOriginSearchHint => 'Cari titik mula';
+
+  @override
+  String get routeOriginPreviewNote =>
+      'Pratonton perjalanan sahaja. Navigasi hanya boleh bermula dari lokasi anda.';
+
+  @override
+  String get routeStartFromMyLocation => 'Guna lokasi saya';
+
+  @override
+  String get routeTollFilterAll => 'Semua';
+
+  @override
+  String get routeTollFilterWith => 'Dengan tol';
+
+  @override
+  String get routeTollFilterWithout => 'Tanpa tol';
+
+  @override
+  String get routeTollFilterNoneFree =>
+      'Tiada laluan tanpa tol ditemui untuk perjalanan ini. Semua pilihan di bawah melalui tol.';
+
+  @override
+  String get routeTollFilterNoneWith =>
+      'Tiada laluan dengan tol untuk perjalanan ini.';
+
+  @override
+  String get routeTollFilterUnverified =>
+      'Belum dapat dipastikan sama ada laluan tanpa tol wujud. Laluan di bawah melalui tol.';
+
+  @override
+  String get routeErrorNoRouteFromOrigin =>
+      'Tiada laluan dari titik mula ini ke destinasi. Cuba titik mula lain yang berhampiran jalan.';
+
+  @override
+  String get routeErrorSameOrigin =>
+      'Titik mula terlalu dekat dengan destinasi. Pilih titik mula lain.';
+
+  @override
   String aboutWhatsNewTitle(String version) {
     return 'Baharu dalam versi $version';
   }
 
   @override
   String get aboutNew1 =>
-      'Jejambat dan jalan bawah: di simpang bertingkat, kad dan suara beritahu \"Naik jejambat\", \"Jangan naik jejambat, ikut jalan bawah\" atau \"Laluan bawah tanah\"';
+      'Titik mula boleh dicari: pilih mana-mana tempat dalam medan \"Dari\" untuk meneliti perjalanan, walaupun anda belum berada di sana';
 
   @override
   String get aboutNew2 =>
-      'Navigasi sampai ke pintu: pilih pintu utama, pondok pengawal, masuk parkir atau loading bay, atau simpan pintu anda sendiri semasa tiba';
-
-  @override
-  String get aboutNew3 =>
-      'Kotak lorong baharu: tunjuk lorong yang patut diambil (termasuk bulatan), dengan anak panah arah dan nama jalan di peta';
-
-  @override
-  String get aboutNew4 =>
-      'Suara tanpa internet, dan bila internet kembali laluan, cuaca, harga minyak serta had laju dikemas kini sendiri';
-
-  @override
-  String get aboutNew5 =>
-      'Imej satelit lebih tajam di bandar, dan muat turun peta offline boleh disambung dari tempat ia terhenti';
-
-  @override
-  String get aboutNew6 =>
-      'About kini ada semua sumber data, dan halaman \"Semua perubahan\" dengan perbandingan sebelum dan selepas';
+      'Pilihan Semua, Dengan tol dan Tanpa tol pada ringkasan laluan. \"Tanpa tol\" diingat untuk perjalanan seterusnya, termasuk di skrin kereta';
 
   @override
   String get alongRouteTitle => 'Sepanjang laluan';

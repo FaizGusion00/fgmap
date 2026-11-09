@@ -28,19 +28,26 @@ import 'search_history_controller.dart';
 import '../../../core/utils/haptics.dart';
 import '../../../core/agent/agent_targets.dart';
 
-/// Destinasi pilihan. Asal laluan sentiasa lokasi GPS pengguna.
+/// Destinasi pilihan. Asal laluan ialah lokasi GPS pengguna kecuali [origin] dipilih.
 @immutable
 class TripSelection {
-  const TripSelection({required this.destination, this.stops = const []});
+  const TripSelection({
+    required this.destination,
+    this.stops = const [],
+    this.origin,
+  });
 
   final Place destination;
+
+  /// Titik mula yang dicari pengguna untuk meneliti perjalanan; null = lokasi GPS.
+  final Place? origin;
 
   /// Perhentian tengah (Valhalla `through`), maks. 5.
   final List<Place> stops;
 }
 
-/// Halaman penuh untuk memilih destinasi. Asal lalai ialah
-/// "Lokasi saya" dan tidak boleh diubah.
+/// Halaman penuh untuk memilih destinasi. Asal lalai ialah "Lokasi saya"; pengguna boleh mencari
+/// tempat lain sebagai titik mula untuk meneliti perjalanan.
 class TripPlannerPage extends ConsumerStatefulWidget {
   const TripPlannerPage({
     super.key,
@@ -48,7 +55,15 @@ class TripPlannerPage extends ConsumerStatefulWidget {
     this.userLocation,
     this.initialDestinationQuery,
     this.assign,
+    this.initialOrigin,
+    this.originOnly = false,
   });
+
+  /// Titik mula yang sudah dipilih (dipaparkan dalam medan "Dari").
+  final Place? initialOrigin;
+
+  /// Hanya memilih titik mula: tempat yang dipilih dipulangkan sebagai [TripSelection.destination].
+  final bool originOnly;
 
   /// Jika ditetapkan, tempat yang dipilih disimpan sebagai Rumah/Kerja dan perancang ditutup tanpa
   /// mengira laluan.
@@ -67,6 +82,8 @@ class TripPlannerPage extends ConsumerStatefulWidget {
     GeoPoint? userLocation,
     String? initialDestinationQuery,
     SavedKind? assign,
+    Place? initialOrigin,
+    bool originOnly = false,
   }) {
     return Navigator.of(context).push<TripSelection>(
       PageRouteBuilder<TripSelection>(
@@ -78,6 +95,8 @@ class TripPlannerPage extends ConsumerStatefulWidget {
           userLocation: userLocation,
           initialDestinationQuery: initialDestinationQuery,
           assign: assign,
+          initialOrigin: initialOrigin,
+          originOnly: originOnly,
         ),
         // Naik dari bawah sambil pudar masuk; menghormati Reduce Motion (tempoh sifar).
         transitionsBuilder: (context, animation, _, child) {
@@ -116,6 +135,8 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
   Place? _destination;
   final List<Place> _stops = [];
   bool _pickingStop = false;
+  Place? _origin;
+  bool _pickingOrigin = false;
 
   /// Jika pengguna menambah perhentian, jangan auto-pop — biar mereka pilih destinasi lalu tekan Mula.
   bool _multiStopFlow = false;
@@ -124,6 +145,8 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
   @override
   void initState() {
     super.initState();
+    _origin = widget.initialOrigin;
+    _pickingOrigin = widget.originOnly;
     final initialQuery = widget.initialDestinationQuery?.trim();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _destFocus.requestFocus();
@@ -172,8 +195,29 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
     super.dispose();
   }
 
+  /// Medan carian kini mencari titik mula; destinasi yang sudah dipilih dipulihkan selepas itu.
+  void _startPickingOrigin() {
+    Haptics.selection();
+    setState(() {
+      _pickingOrigin = true;
+      _pickingStop = false;
+      _destText.clear();
+    });
+    ref.read(placeSearchControllerProvider.notifier).clear();
+    _destFocus.requestFocus();
+  }
+
+  void _stopPickingOrigin() {
+    setState(() {
+      _pickingOrigin = false;
+      _destText.text = _destination?.name ?? '';
+    });
+    ref.read(placeSearchControllerProvider.notifier).clear();
+    _destFocus.requestFocus();
+  }
+
   void _onChanged(String text) {
-    _destination = null;
+    if (!_pickingOrigin) _destination = null;
     ref
         .read(placeSearchControllerProvider.notifier)
         .onQueryChanged(text, near: widget.near);
@@ -230,6 +274,16 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
     }
     Haptics.selection();
     ref.read(searchHistoryControllerProvider.notifier).record(place);
+    if (widget.originOnly) {
+      ref.read(placeSearchControllerProvider.notifier).clear();
+      Navigator.of(context).pop(TripSelection(destination: place));
+      return;
+    }
+    if (_pickingOrigin) {
+      _origin = place;
+      _stopPickingOrigin();
+      return;
+    }
     if (_pickingStop) {
       if (_stops.length < _maxStops) {
         setState(() {
@@ -285,9 +339,13 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
   void _finish() {
     final destination = _destination;
     if (destination == null) return;
-    Navigator.of(
-      context,
-    ).pop(TripSelection(destination: destination, stops: List.of(_stops)));
+    Navigator.of(context).pop(
+      TripSelection(
+        destination: destination,
+        stops: List.of(_stops),
+        origin: _origin,
+      ),
+    );
   }
 
   @override
@@ -302,7 +360,9 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          widget.assign == null
+          widget.originOnly
+              ? l10n.routeOriginPickTitle
+              : widget.assign == null
               ? l10n.tripPlannerTitle
               : l10n.savedAssigning(savedKindLabel(l10n, widget.assign!)),
         ),
@@ -319,18 +379,47 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
                   constraints: const BoxConstraints(maxWidth: 720),
                   child: Column(
                     children: [
-                      _FieldBox(
-                        label: l10n.tripFrom,
-                        icon: Icons.my_location_rounded,
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            l10n.myLocation,
-                            style: theme.textTheme.bodyLarge,
+                      if (!widget.originOnly)
+                        InkWell(
+                          key: const ValueKey('origin-field'),
+                          borderRadius: BorderRadius.circular(16),
+                          onTap: widget.assign == null
+                              ? _startPickingOrigin
+                              : null,
+                          child: _FieldBox(
+                            label: l10n.tripFrom,
+                            icon: _origin == null
+                                ? Icons.my_location_rounded
+                                : Icons.trip_origin_rounded,
+                            trailing: _origin == null && !_pickingOrigin
+                                ? null
+                                : IconButton(
+                                    key: const ValueKey('origin-reset'),
+                                    tooltip: l10n.routeOriginReset,
+                                    icon: const Icon(Icons.close_rounded),
+                                    onPressed: () {
+                                      _origin = null;
+                                      _stopPickingOrigin();
+                                    },
+                                  ),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                _pickingOrigin
+                                    ? l10n.routeOriginSearchHint
+                                    : (_origin?.name ?? l10n.myLocation),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  color: _pickingOrigin
+                                      ? theme.colorScheme.primary
+                                      : null,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                      if (widget.assign == null) ...[
+                      if (widget.assign == null && !widget.originOnly) ...[
                         for (var i = 0; i < _stops.length; i++) ...[
                           const SizedBox(height: 8),
                           _FieldBox(
@@ -395,8 +484,12 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
                       ],
                       const SizedBox(height: 8),
                       _FieldBox(
-                        label: _pickingStop ? l10n.addStop : l10n.tripTo,
-                        icon: Icons.place_rounded,
+                        label: _pickingOrigin
+                            ? l10n.tripFrom
+                            : (_pickingStop ? l10n.addStop : l10n.tripTo),
+                        icon: _pickingOrigin
+                            ? Icons.trip_origin_rounded
+                            : Icons.place_rounded,
                         trailing: _destText.text.isEmpty
                             ? null
                             : IconButton(
@@ -418,7 +511,9 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
                             // Butang "Cari" papan kekunci: cari semula (cth. selepas rangkaian gagal).
                             onSubmitted: _onChanged,
                             decoration: InputDecoration(
-                              hintText: widget.assign == null
+                              hintText: _pickingOrigin
+                                  ? l10n.routeOriginSearchHint
+                                  : widget.assign == null
                                   ? (_pickingStop
                                         ? l10n.pickingStopHint
                                         : l10n.searchHint)

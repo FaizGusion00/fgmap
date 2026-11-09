@@ -551,23 +551,53 @@ class CarSessionHub {
       destination: place.point,
       headingDegrees: _heading(),
       vehicle: ref.read(routeVehicleProvider),
+      avoidTolls: ref.read(routeTollFilterProvider) == RouteTollFilter.noTolls,
       destinationLabel: place.name,
       alternates: 0,
       destinationRadiusM: place.routingRadiusM,
     );
     try {
-      final options = await ref.read(routePlannerProvider).plan(query);
+      final planner = ref.read(routePlannerProvider);
+      final options = await planner.plan(query);
       if (options.isEmpty) return 'no-route';
+      var route = options.first;
+      var tollsAhead = false;
+      if (query.avoidTolls && route.hasTolls) {
+        // Keutamaan lembut masih bertol: cuba larangan mutlak sebelum memandu pengguna melalui tol.
+        final free = await _tollFreeRoute(planner, query);
+        if (free == null) {
+          tollsAhead = true;
+        } else {
+          route = free;
+        }
+      }
       final language = VoiceLanguage.fromCode(
         WidgetsBinding.instance.platformDispatcher.locale.languageCode,
       );
       final ok = await ref
           .read(navigationControllerProvider.notifier)
-          .start(options.first, query, uiLanguage: language);
-      return ok ? null : 'no-route';
+          .start(route, query, uiLanguage: language);
+      if (!ok) return 'no-route';
+      return tollsAhead ? carRouteHasTolls : null;
     } on Object {
       return 'no-route';
     }
+  }
+
+  /// Laluan tanpa tol sebenar, atau null jika tiada (atau pelayan gagal: laluan asal tetap digunakan).
+  Future<RouteOption?> _tollFreeRoute(
+    RoutePlanner planner,
+    RouteQuery query,
+  ) async {
+    try {
+      final strict = await planner.plan(query.copyWith(excludeTolls: true));
+      for (final option in strict) {
+        if (!option.hasTolls) return option;
+      }
+    } on Object {
+      return null;
+    }
+    return null;
   }
 
   void dispose() {
@@ -579,6 +609,9 @@ class CarSessionHub {
     _dirty = false;
   }
 }
+
+/// Kod `openPlace`: navigasi BERMULA, tetapi "Tanpa tol" tidak dapat dipenuhi. Skrin kereta memaklumkan.
+const carRouteHasTolls = 'tolls';
 
 final carSessionHubProvider = Provider<CarSessionHub>((ref) {
   final hub = CarSessionHub(ref);

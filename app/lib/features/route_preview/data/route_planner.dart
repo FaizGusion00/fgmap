@@ -492,6 +492,30 @@ final routeVehicleProvider =
       RouteVehicleController.new,
     );
 
+const _avoidTollsKey = 'route.avoidTolls';
+
+/// Pilihan tol pada lembaran laluan. Hanya "Tanpa tol" diingat untuk perjalanan seterusnya; "Dengan tol"
+/// ialah penapis paparan untuk perjalanan semasa sahaja.
+class RouteTollFilterController extends Notifier<RouteTollFilter> {
+  @override
+  RouteTollFilter build() =>
+      ref.watch(sharedPreferencesProvider).getBool(_avoidTollsKey) == true
+      ? RouteTollFilter.noTolls
+      : RouteTollFilter.any;
+
+  Future<void> set(RouteTollFilter filter) async {
+    state = filter;
+    await ref
+        .read(sharedPreferencesProvider)
+        .setBool(_avoidTollsKey, filter == RouteTollFilter.noTolls);
+  }
+}
+
+final routeTollFilterProvider =
+    NotifierProvider<RouteTollFilterController, RouteTollFilter>(
+      RouteTollFilterController.new,
+    );
+
 final routingModeProvider =
     NotifierProvider<RoutingModeController, RoutingMode>(
       RoutingModeController.new,

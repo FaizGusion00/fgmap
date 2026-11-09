@@ -226,6 +226,21 @@ class PlaceSearchController extends Notifier<PlaceSearchState> {
     final cancel = CancelToken();
     _cancel = cancel;
     try {
+      final typed = typedCoordinates(query);
+      if (typed != null) {
+        final text =
+            '${typed.lat.toStringAsFixed(5)}, ${typed.lng.toStringAsFixed(5)}';
+        state = _ready(query, [
+          Place(
+            name: text,
+            subtitle: text,
+            point: typed,
+            category: 'coordinates',
+          ),
+        ]);
+        return;
+      }
+
       // Pautan pendek Google: resolve redirect → lat/lng (cara "percuma" dapat koordinat Google).
       final fromLink = await _placeFromShortMapLink(query, cancel);
       if (seq != _seq || !ref.mounted) return;

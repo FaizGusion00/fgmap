@@ -21,6 +21,9 @@ enum RoutingFailureKind {
 
   /// Enjin offline gagal (fail tile rosak, dsb.).
   offlineEngine,
+
+  /// Titik mula pilihan pengguna hampir sama dengan destinasi: tiada perjalanan untuk dikira.
+  samePoint,
   generic,
 }
 
