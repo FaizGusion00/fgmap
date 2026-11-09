@@ -951,9 +951,19 @@ void main() {
         expect(state().rerouting, isFalse);
         expect(state().progress, isNotNull, reason: 'fix terkini disuap');
 
-        final fastest = lShapedRoute(legM: 2500).withLabel(RouteLabel.fastest);
-        expect(controller().switchRoute(fastest), isTrue);
+        // Alternatif tanpa tol mengekalkan "Tanpa tol" untuk re-route seterusnya.
+        final tollFree = lShapedRoute(legM: 2200).withLabel(RouteLabel.fastest);
+        expect(controller().switchRoute(tollFree), isTrue);
         expect(state().routeVersion, 3);
+        expect(state().query!.avoidTolls, isTrue);
+
+        // Laluan bertol yang dipilih sendiri menamatkannya.
+        final tolled = lShapedRoute(
+          legM: 2500,
+          hasTolls: true,
+        ).withLabel(RouteLabel.fastest);
+        expect(controller().switchRoute(tolled), isTrue);
+        expect(state().routeVersion, 4);
         expect(state().query!.avoidTolls, isFalse);
       },
     );

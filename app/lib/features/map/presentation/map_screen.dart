@@ -711,6 +711,10 @@ class _MapScreenState extends ConsumerState<MapScreen>
   /// Hasil perancang: medan "Dari" di sana menentukan titik mula (kosong = lokasi saya).
   Future<void> _planFromPlanner(TripSelection selection) async {
     final origin = selection.origin;
+    if (origin == null) {
+      final access = await ensureLocationAccess(context, ref);
+      if (!mounted || access != LocationAccess.granted) return;
+    }
     ref
         .read(routePreviewControllerProvider.notifier)
         .setStart(origin?.point, label: origin?.name);
@@ -871,14 +875,16 @@ class _MapScreenState extends ConsumerState<MapScreen>
       return;
     }
 
-    // Pautan dari app lain (cth. tugasan pemandu) ialah perjalanan sebenar: mesti dari lokasi pengguna,
-    // bukan titik mula yang tertinggal daripada pratonton.
-    ref.read(routePreviewControllerProvider.notifier).setStart(null);
     final user = _userPoint();
     final near = user ?? _cameraCenterOrDefault();
     final point = shared.point;
     if (point != null) {
       setState(() => _hintDismissed = true);
+      // Pautan dari app lain (cth. tugasan pemandu) ialah perjalanan sebenar: mesti dari lokasi pengguna.
+      // Titik mula hanya dilupakan selepas kebenaran ada, supaya pratonton sedia ada kekal konsisten.
+      final access = await ensureLocationAccess(context, ref);
+      if (!mounted || access != LocationAccess.granted) return;
+      ref.read(routePreviewControllerProvider.notifier).setStart(null);
       await _planToDestination(
         point,
         destinationLabel:

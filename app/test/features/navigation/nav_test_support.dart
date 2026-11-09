@@ -23,7 +23,7 @@ NavRoute loadFixtureNavRoute() => NavRoute(loadFixtureRoute());
 
 /// Jalan lurus ke timur sepanjang [lengthM] meter, dengan satu belok kanan di tengah ke selatan.
 /// Digunakan untuk ujian yang perlu geometri yang diketahui tepat.
-RouteOption lShapedRoute({double legM = 1000}) {
+RouteOption lShapedRoute({double legM = 1000, bool hasTolls = false}) {
   const origin = GeoPoint(3.0, 101.0);
   final corner = destinationPoint(origin, 90, legM);
   final end = destinationPoint(corner, 180, legM);
@@ -37,7 +37,7 @@ RouteOption lShapedRoute({double legM = 1000}) {
   return RouteOption(
     distanceM: (legM * 2).round(),
     durationS: (legM * 2 / 13.9).round(),
-    hasTolls: false,
+    hasTolls: hasTolls,
     points: points,
     maneuvers: [
       const Maneuver(

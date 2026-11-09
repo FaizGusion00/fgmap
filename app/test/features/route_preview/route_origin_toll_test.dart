@@ -195,6 +195,22 @@ void main() {
       },
     );
 
+    test('"Dengan tol" tamat bila laluan dipadam; "Tanpa tol" kekal', () async {
+      final c = make(FakeRoutePlanner((_) async => [tolled, free]));
+      await ctl(c).planTo(klia);
+      await ctl(c).setTollFilter(RouteTollFilter.withTolls);
+
+      ctl(c).clear();
+      await ctl(c).planTo(klia);
+      expect(ready(c).tollFilter, RouteTollFilter.any);
+      expect(ready(c).options, hasLength(2));
+
+      await ctl(c).setTollFilter(RouteTollFilter.noTolls);
+      ctl(c).clear();
+      await ctl(c).planTo(klia);
+      expect(ready(c).tollFilter, RouteTollFilter.noTolls);
+    });
+
     test('"Dengan tol" tidak diingat', () async {
       final first = make(FakeRoutePlanner((_) async => [tolled, free]));
       await ctl(first).planTo(klia);

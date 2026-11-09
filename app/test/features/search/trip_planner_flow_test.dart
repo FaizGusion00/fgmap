@@ -170,6 +170,47 @@ void main() {
       },
     );
 
+    testWidgets(
+      'cip berdekatan dan Back semasa pilih "Dari" kekalkan destinasi',
+      (tester) async {
+        await pumpHost(
+          tester,
+          userLocation: const GeoPoint(3.2290, 101.4260),
+          extraOverrides: [
+            nearbySearchProvider.overrideWithValue(_FakeNearby()),
+          ],
+        );
+        await tester.tap(find.byKey(const ValueKey('add-stop')));
+        await tester.pump();
+        await type(tester, 'destination-field', 'klia');
+        await tester.tap(find.text('KLIA'));
+        await tester.pump();
+        await type(tester, 'destination-field', 'klcc');
+        await tester.tap(find.text('KLCC'));
+        await tester.pump();
+
+        await tester.tap(find.byKey(const ValueKey('origin-field')));
+        await tester.pump();
+        await tester.tap(find.text('Stesen minyak'));
+        await tester.pump();
+        await tester.pump();
+
+        await tester.binding.handlePopRoute();
+        await tester.pumpAndSettle();
+
+        expect(find.text('Rancang perjalanan'), findsOneWidget);
+        expect(find.text('Cari titik mula'), findsNothing);
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('destination-field')),
+            matching: find.text('KLCC'),
+            matchRoot: true,
+          ),
+          findsOneWidget,
+        );
+      },
+    );
+
     testWidgets('dalam talian: baris "Cari di Google" dipaparkan', (
       tester,
     ) async {

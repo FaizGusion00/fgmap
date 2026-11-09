@@ -384,6 +384,12 @@ class RoutePreviewController extends Notifier<RoutePreviewState> {
     _origin = null;
     _pendingVia = const [];
     _allOptions = const [];
+    // "Dengan tol" untuk satu perjalanan sahaja; hanya "Tanpa tol" kekal.
+    if (ref.read(routeTollFilterProvider) == RouteTollFilter.withTolls) {
+      unawaited(
+        ref.read(routeTollFilterProvider.notifier).set(RouteTollFilter.any),
+      );
+    }
     state = const RouteIdle();
   }
 

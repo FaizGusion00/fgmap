@@ -870,8 +870,14 @@ class NavigationController extends Notifier<NavigationState> {
     if (state.phase != NavPhase.active || query == null || _reroutePending) {
       return false;
     }
+    // Laluan alternatif tanpa tol mengekalkan kehendak "Tanpa tol"; hanya laluan bertol yang dipilih
+    // sendiri menamatkannya.
+    final noTolls =
+        option.label == RouteLabel.noTolls ||
+        ((query.avoidTolls || query.excludeTolls) && !option.hasTolls);
     final next = query.copyWith(
-      avoidTolls: option.label == RouteLabel.noTolls,
+      avoidTolls: noTolls,
+      excludeTolls: noTolls ? null : false,
       avoidHighways: option.label == RouteLabel.noHighways,
     );
     try {

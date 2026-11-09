@@ -237,7 +237,7 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
       return;
     }
     Haptics.selection();
-    _destination = null;
+    if (!_pickingOrigin) _destination = null;
     _destText.text = label;
     _destText.selection = TextSelection.collapsed(offset: label.length);
     ref
@@ -357,241 +357,250 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
     // Google perlukan internet: tanpa pautan rangkaian baris itu disembunyikan (carian offline kekal).
     final online = ref.watch(onlineStatusProvider).value ?? true;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          widget.originOnly
-              ? l10n.routeOriginPickTitle
-              : widget.assign == null
-              ? l10n.tripPlannerTitle
-              : l10n.savedAssigning(savedKindLabel(l10n, widget.assign!)),
+    return PopScope(
+      // Back semasa memilih "Dari" kembali ke perancang, bukan membuang destinasi dan perhentian.
+      canPop: !_pickingOrigin || widget.originOnly,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _stopPickingOrigin();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(
+            widget.originOnly
+                ? l10n.routeOriginPickTitle
+                : widget.assign == null
+                ? l10n.tripPlannerTitle
+                : l10n.savedAssigning(savedKindLabel(l10n, widget.assign!)),
+          ),
+          backgroundColor: theme.scaffoldBackgroundColor,
+          surfaceTintColor: Colors.transparent,
         ),
-        backgroundColor: theme.scaffoldBackgroundColor,
-        surfaceTintColor: Colors.transparent,
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 720),
-                  child: Column(
-                    children: [
-                      if (!widget.originOnly)
-                        InkWell(
-                          key: const ValueKey('origin-field'),
-                          borderRadius: BorderRadius.circular(16),
-                          onTap: widget.assign == null
-                              ? _startPickingOrigin
-                              : null,
-                          child: _FieldBox(
-                            label: l10n.tripFrom,
-                            icon: _origin == null
-                                ? Icons.my_location_rounded
-                                : Icons.trip_origin_rounded,
-                            trailing: _origin == null && !_pickingOrigin
-                                ? null
-                                : IconButton(
-                                    key: const ValueKey('origin-reset'),
-                                    tooltip: l10n.routeOriginReset,
-                                    icon: const Icon(Icons.close_rounded),
-                                    onPressed: () {
-                                      _origin = null;
-                                      _stopPickingOrigin();
-                                    },
-                                  ),
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                _pickingOrigin
-                                    ? l10n.routeOriginSearchHint
-                                    : (_origin?.name ?? l10n.myLocation),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.bodyLarge?.copyWith(
-                                  color: _pickingOrigin
-                                      ? theme.colorScheme.primary
-                                      : null,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      if (widget.assign == null && !widget.originOnly) ...[
-                        for (var i = 0; i < _stops.length; i++) ...[
-                          const SizedBox(height: 8),
-                          _FieldBox(
-                            label: '${l10n.stopsTitle} ${i + 1}',
-                            icon: Icons.flag_rounded,
-                            trailing: IconButton(
-                              tooltip: l10n.removeStop,
-                              icon: const Icon(Icons.close_rounded),
-                              onPressed: () =>
-                                  setState(() => _stops.removeAt(i)),
-                            ),
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                _stops[i].name,
-                                style: theme.textTheme.bodyLarge,
-                              ),
-                            ),
-                          ),
-                        ],
-                        if (_stops.length < _maxStops) ...[
-                          const SizedBox(height: 8),
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: TextButton.icon(
-                              key: ValueKey(
-                                _pickingStop ? 'picking-stop' : 'add-stop',
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _pickingStop = !_pickingStop;
-                                  if (_pickingStop) {
-                                    _multiStopFlow = true;
-                                    _destFocus.requestFocus();
-                                  }
-                                });
-                              },
-                              icon: Icon(
-                                _pickingStop
-                                    ? Icons.close_rounded
-                                    : Icons.add_rounded,
-                              ),
-                              label: Text(
-                                _pickingStop ? l10n.searchClear : l10n.addStop,
-                              ),
-                            ),
-                          ),
-                        ],
-                        if (_pickingStop)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                l10n.pickingStopHint,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                      const SizedBox(height: 8),
-                      _FieldBox(
-                        label: _pickingOrigin
-                            ? l10n.tripFrom
-                            : (_pickingStop ? l10n.addStop : l10n.tripTo),
-                        icon: _pickingOrigin
-                            ? Icons.trip_origin_rounded
-                            : Icons.place_rounded,
-                        trailing: _destText.text.isEmpty
-                            ? null
-                            : IconButton(
-                                tooltip: l10n.searchClear,
-                                icon: const Icon(Icons.close_rounded),
-                                onPressed: () {
-                                  _destText.clear();
-                                  _onChanged('');
-                                },
-                              ),
-                        child: AgentTarget(
-                          id: 'planner.destination',
-                          child: TextField(
-                            key: const ValueKey('destination-field'),
-                            controller: _destText,
-                            focusNode: _destFocus,
-                            textInputAction: TextInputAction.search,
-                            onChanged: _onChanged,
-                            // Butang "Cari" papan kekunci: cari semula (cth. selepas rangkaian gagal).
-                            onSubmitted: _onChanged,
-                            decoration: InputDecoration(
-                              hintText: _pickingOrigin
-                                  ? l10n.routeOriginSearchHint
-                                  : widget.assign == null
-                                  ? (_pickingStop
-                                        ? l10n.pickingStopHint
-                                        : l10n.searchHint)
-                                  : l10n.savedAssigning(
-                                      savedKindLabel(l10n, widget.assign!),
+        body: SafeArea(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 720),
+                    child: Column(
+                      children: [
+                        if (!widget.originOnly)
+                          InkWell(
+                            key: const ValueKey('origin-field'),
+                            borderRadius: BorderRadius.circular(16),
+                            onTap: widget.assign == null
+                                ? _startPickingOrigin
+                                : null,
+                            child: _FieldBox(
+                              label: l10n.tripFrom,
+                              icon: _origin == null
+                                  ? Icons.my_location_rounded
+                                  : Icons.trip_origin_rounded,
+                              trailing: _origin == null && !_pickingOrigin
+                                  ? null
+                                  : IconButton(
+                                      key: const ValueKey('origin-reset'),
+                                      tooltip: l10n.routeOriginReset,
+                                      icon: const Icon(Icons.close_rounded),
+                                      onPressed: () {
+                                        _origin = null;
+                                        _stopPickingOrigin();
+                                      },
                                     ),
-                              border: InputBorder.none,
-                              isDense: true,
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  _pickingOrigin
+                                      ? l10n.routeOriginSearchHint
+                                      : (_origin?.name ?? l10n.myLocation),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.bodyLarge?.copyWith(
+                                    color: _pickingOrigin
+                                        ? theme.colorScheme.primary
+                                        : null,
+                                  ),
+                                ),
+                              ),
                             ),
-                            style: theme.textTheme.bodyLarge,
+                          ),
+                        if (widget.assign == null && !widget.originOnly) ...[
+                          for (var i = 0; i < _stops.length; i++) ...[
+                            const SizedBox(height: 8),
+                            _FieldBox(
+                              label: '${l10n.stopsTitle} ${i + 1}',
+                              icon: Icons.flag_rounded,
+                              trailing: IconButton(
+                                tooltip: l10n.removeStop,
+                                icon: const Icon(Icons.close_rounded),
+                                onPressed: () =>
+                                    setState(() => _stops.removeAt(i)),
+                              ),
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  _stops[i].name,
+                                  style: theme.textTheme.bodyLarge,
+                                ),
+                              ),
+                            ),
+                          ],
+                          if (_stops.length < _maxStops) ...[
+                            const SizedBox(height: 8),
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: TextButton.icon(
+                                key: ValueKey(
+                                  _pickingStop ? 'picking-stop' : 'add-stop',
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _pickingStop = !_pickingStop;
+                                    if (_pickingStop) {
+                                      _multiStopFlow = true;
+                                      _destFocus.requestFocus();
+                                    }
+                                  });
+                                },
+                                icon: Icon(
+                                  _pickingStop
+                                      ? Icons.close_rounded
+                                      : Icons.add_rounded,
+                                ),
+                                label: Text(
+                                  _pickingStop
+                                      ? l10n.searchClear
+                                      : l10n.addStop,
+                                ),
+                              ),
+                            ),
+                          ],
+                          if (_pickingStop)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  l10n.pickingStopHint,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                        const SizedBox(height: 8),
+                        _FieldBox(
+                          label: _pickingOrigin
+                              ? l10n.tripFrom
+                              : (_pickingStop ? l10n.addStop : l10n.tripTo),
+                          icon: _pickingOrigin
+                              ? Icons.trip_origin_rounded
+                              : Icons.place_rounded,
+                          trailing: _destText.text.isEmpty
+                              ? null
+                              : IconButton(
+                                  tooltip: l10n.searchClear,
+                                  icon: const Icon(Icons.close_rounded),
+                                  onPressed: () {
+                                    _destText.clear();
+                                    _onChanged('');
+                                  },
+                                ),
+                          child: AgentTarget(
+                            id: 'planner.destination',
+                            child: TextField(
+                              key: const ValueKey('destination-field'),
+                              controller: _destText,
+                              focusNode: _destFocus,
+                              textInputAction: TextInputAction.search,
+                              onChanged: _onChanged,
+                              // Butang "Cari" papan kekunci: cari semula (cth. selepas rangkaian gagal).
+                              onSubmitted: _onChanged,
+                              decoration: InputDecoration(
+                                hintText: _pickingOrigin
+                                    ? l10n.routeOriginSearchHint
+                                    : widget.assign == null
+                                    ? (_pickingStop
+                                          ? l10n.pickingStopHint
+                                          : l10n.searchHint)
+                                    : l10n.savedAssigning(
+                                        savedKindLabel(l10n, widget.assign!),
+                                      ),
+                                border: InputBorder.none,
+                                isDense: true,
+                              ),
+                              style: theme.textTheme.bodyLarge,
+                            ),
                           ),
                         ),
-                      ),
-                      if (_destination != null &&
-                          (_multiStopFlow || _stops.isNotEmpty)) ...[
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          width: double.infinity,
-                          child: FilledButton.icon(
-                            key: const ValueKey('plan-with-stops'),
-                            onPressed: _finish,
-                            icon: const Icon(Icons.route_rounded),
-                            label: Text(l10n.navStart),
+                        if (_destination != null &&
+                            (_multiStopFlow || _stops.isNotEmpty)) ...[
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            child: FilledButton.icon(
+                              key: const ValueKey('plan-with-stops'),
+                              onPressed: _finish,
+                              icon: const Icon(Icons.route_rounded),
+                              label: Text(l10n.navStart),
+                            ),
                           ),
-                        ),
+                        ],
                       ],
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const Divider(),
-            // Tempat tiada dalam carian kita: cari di Google, kemudian "Arah" kembali ke FGMaps.
-            if (widget.assign == null && online)
-              Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 720),
-                  child: ListTile(
-                    key: const ValueKey('planner-google'),
-                    dense: true,
-                    leading: const _PlaceIcon(
-                      icon: Icons.travel_explore_rounded,
                     ),
-                    title: Text(
-                      _destText.text.trim().isEmpty
-                          ? l10n.webSearchOpen
-                          : l10n.webSearchFor(_destText.text.trim()),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+              const Divider(),
+              // Tempat tiada dalam carian kita: cari di Google, kemudian "Arah" kembali ke FGMaps.
+              if (widget.assign == null && online)
+                Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 720),
+                    child: ListTile(
+                      key: const ValueKey('planner-google'),
+                      dense: true,
+                      leading: const _PlaceIcon(
+                        icon: Icons.travel_explore_rounded,
+                      ),
+                      title: Text(
+                        _destText.text.trim().isEmpty
+                            ? l10n.webSearchOpen
+                            : l10n.webSearchFor(_destText.text.trim()),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Text(l10n.webSearchPlannerHint),
+                      onTap: () => unawaited(_openGoogle()),
                     ),
-                    subtitle: Text(l10n.webSearchPlannerHint),
-                    onTap: () => unawaited(_openGoogle()),
+                  ),
+                ),
+              Expanded(
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 720),
+                    child: _ResultsList(
+                      state: search,
+                      history: history,
+                      near: widget.near,
+                      userLocation: widget.userLocation,
+                      showSaved: widget.assign == null,
+                      onPick: _pick,
+                      onCategory: _searchNearby,
+                      onClearHistory: () => ref
+                          .read(searchHistoryControllerProvider.notifier)
+                          .clear(),
+                      onRetry: () => ref
+                          .read(placeSearchControllerProvider.notifier)
+                          .retry(near: widget.near),
+                    ),
                   ),
                 ),
               ),
-            Expanded(
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 720),
-                  child: _ResultsList(
-                    state: search,
-                    history: history,
-                    near: widget.near,
-                    userLocation: widget.userLocation,
-                    showSaved: widget.assign == null,
-                    onPick: _pick,
-                    onCategory: _searchNearby,
-                    onClearHistory: () => ref
-                        .read(searchHistoryControllerProvider.notifier)
-                        .clear(),
-                    onRetry: () => ref
-                        .read(placeSearchControllerProvider.notifier)
-                        .retry(near: widget.near),
-                  ),
-                ),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
