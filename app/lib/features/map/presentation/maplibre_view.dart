@@ -250,11 +250,7 @@ class _MapLibreViewState extends State<MapLibreView> {
     }
     // Peta dicipta semula selepas putaran: pengawal kamera yang sama terus digunakan.
     if (_cameraAdapter != null) return;
-    final camera = _MapLibreCamera(
-      () => _controller,
-      pump: _pump,
-      pixelRatio: () => _pixelRatio,
-    );
+    final camera = _MapLibreCamera(() => _controller, pump: _pump);
     _cameraAdapter = camera;
     widget.config.onReady(camera);
   }
@@ -1334,11 +1330,7 @@ class _MapLibreViewState extends State<MapLibreView> {
 }
 
 class _MapLibreCamera implements MapCameraController {
-  _MapLibreCamera(
-    this._current, {
-    required this.pump,
-    required this.pixelRatio,
-  });
+  _MapLibreCamera(this._current, {required this.pump});
 
   /// Benar selepas [fitTo] dengan padding. Pada Android padding `newLatLngBounds` KEKAL pada kamera
   /// dan menganjakkan pusat untuk setiap gerakan seterusnya: selepas pratonton laluan (lembaran besar
@@ -1360,7 +1352,6 @@ class _MapLibreCamera implements MapCameraController {
   final MapLibreMapController? Function() _current;
 
   final MapFramePump pump;
-  final double Function() pixelRatio;
 
   @override
   Future<Offset?> screenPointOf(GeoPoint point) async {
@@ -1370,11 +1361,8 @@ class _MapLibreCamera implements MapCameraController {
       final p = await c.toScreenLocation(LatLng(point.lat, point.lng));
       final x = p.x.toDouble(), y = p.y.toDouble();
       if (!x.isFinite || !y.isFinite) return null;
-      // Android memulangkan piksel fizikal; iOS memulangkan titik logikal.
-      final scale = defaultTargetPlatform == TargetPlatform.android
-          ? pixelRatio()
-          : 1.0;
-      return Offset(x / scale, y / scale);
+      // maplibre_gl 0.28: Android dan iOS sama-sama memulangkan piksel logikal.
+      return Offset(x, y);
     } on Object {
       return null; // peta dilupuskan atau belum bersedia
     }
