@@ -8,6 +8,7 @@ import 'package:geolocator/geolocator.dart';
 import '../utils/geo.dart';
 import '../utils/log.dart';
 import '../settings/device_tier.dart';
+import 'position_hub.dart';
 
 enum LocationAccess {
   /// Belum diberi, tetapi sistem masih membenarkan kita meminta: sama ada belum pernah diminta atau
@@ -79,6 +80,10 @@ abstract interface class LocationService {
 
   Future<bool> openAppSettings();
   Future<bool> openLocationSettings();
+
+  /// Berubah setiap kali GPS (perkhidmatan lokasi) dihidupkan atau dimatikan, termasuk dari panel
+  /// tetapan pantas yang tidak menjeda app. `true` = dihidupkan.
+  Stream<bool> serviceStatusChanges();
 }
 
 class GeolocatorLocationService implements LocationService {
@@ -88,6 +93,19 @@ class GeolocatorLocationService implements LocationService {
   static const _minSpeedForHeadingMps = 1.0;
   static const defaultMaxAccuracyMeters = 20.0;
   LocationFix? _recentFix;
+
+  /// Satu langganan GPS untuk semua pengguna (peta, navigasi, memandu bebas, `currentFix`).
+  late final PositionHub _hub = PositionHub(
+    (settings) => Geolocator.getPositionStream(locationSettings: settings),
+    (mode) => switch (mode) {
+      PositionMode.tracking => trackingSettings(defaultTargetPlatform),
+      PositionMode.navigation => navigationSettings(defaultTargetPlatform),
+      PositionMode.oneShot => const LocationSettings(
+        accuracy: LocationAccuracy.bestForNavigation,
+        distanceFilter: 0,
+      ),
+    },
+  );
 
   @override
   Future<LocationAccess> access() async {
@@ -170,13 +188,9 @@ class GeolocatorLocationService implements LocationService {
     });
 
     try {
-      subscription =
-          Geolocator.getPositionStream(
-            locationSettings: const LocationSettings(
-              accuracy: LocationAccuracy.bestForNavigation,
-              distanceFilter: 0,
-            ),
-          ).listen(
+      subscription = _hub
+          .stream(PositionMode.oneShot)
+          .listen(
             (position) {
               final fix = _toFix(position);
               final now = DateTime.now();
@@ -225,8 +239,13 @@ class GeolocatorLocationService implements LocationService {
   @visibleForTesting
   static bool isFresh(DateTime timestamp, DateTime now) {
     final age = now.difference(timestamp);
-    return !age.isNegative && age <= maxLastKnownAge;
+    // Masa fix GNSS boleh mendahului jam telefon sedikit; tolak hanya jika jauh ke hadapan
+    // (sama seperti toleransi FixFilter), jika tidak fix yang baik ditolak berselang-seli.
+    return age >= -clockSkewTolerance && age <= maxLastKnownAge;
   }
+
+  /// Toleransi jam GNSS yang mendahului jam telefon.
+  static const clockSkewTolerance = Duration(seconds: 2);
 
   @visibleForTesting
   static bool isUsableFix(
@@ -253,9 +272,7 @@ class GeolocatorLocationService implements LocationService {
 
   @override
   Stream<LocationFix> trackingFixes() {
-    return Geolocator.getPositionStream(
-      locationSettings: trackingSettings(defaultTargetPlatform),
-    ).map((position) {
+    return _hub.stream(PositionMode.tracking).map((position) {
       final fix = _toFix(position);
       // Strim yang sedang hidup juga memberi `currentFix` (asal laluan) jawapan serta-merta.
       if (isUsableFix(fix, DateTime.now())) _recentFix = fix;
@@ -297,9 +314,7 @@ class GeolocatorLocationService implements LocationService {
 
   @override
   Stream<LocationFix> navigationFixes() {
-    return Geolocator.getPositionStream(
-      locationSettings: navigationSettings(defaultTargetPlatform),
-    ).map((position) {
+    return _hub.stream(PositionMode.navigation).map((position) {
       final fix = _toFix(position);
       if (isUsableFix(fix, DateTime.now())) _recentFix = fix;
       return fix;
@@ -349,6 +364,10 @@ class GeolocatorLocationService implements LocationService {
 
   @override
   Future<bool> openLocationSettings() => Geolocator.openLocationSettings();
+
+  @override
+  Stream<bool> serviceStatusChanges() => Geolocator.getServiceStatusStream()
+      .map((status) => status == ServiceStatus.enabled);
 
   static LocationAccess _fromPermission(LocationPermission p) {
     switch (p) {

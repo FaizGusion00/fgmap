@@ -134,6 +134,28 @@ void main() {
     });
 
     test(
+      'tiada fix tepat langsung: fix kasar diterima (lemah) selepas 8 s, bukan tiada lokasi',
+      () {
+        // GPS sejuk yang lambat menumpu, atau kebenaran lokasi "anggaran" Android 12+.
+        final f = FixFilter();
+        expect(f.accept(fix(3, 101, 0, acc: 300), now: t0), isNull);
+        expect(
+          f.accept(
+            fix(3, 101, 5, acc: 300),
+            now: t0.add(const Duration(seconds: 5)),
+          ),
+          isNull,
+        );
+        final late = f.accept(
+          fix(3, 101, 8, acc: 300),
+          now: t0.add(const Duration(seconds: 8)),
+        );
+        expect(late, isNotNull);
+        expect(late!.degraded, isTrue);
+      },
+    );
+
+    test(
       'menolak ketepatan rendah, tetapi menerimanya jika sudah lama tiada fix baik',
       () {
         final f = FixFilter();

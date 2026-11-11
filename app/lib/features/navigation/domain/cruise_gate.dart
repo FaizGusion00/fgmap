@@ -1,11 +1,13 @@
 /// Masa masuk dan keluar mod memandu bebas (tiada laluan).
 ///
-/// Masuk apabila kelajuan kekal pada atau melebihi 2.5 m/s selama kira-kira 1.5 s dan arah diketahui.
+/// Masuk apabila kelajuan kekal pada atau melebihi 5.5 m/s (~20 km/j) selama 4 s dan arah diketahui.
+/// Ambang lama (2.5 m/s selama 1.5 s) tercetus ketika berjalan laju, berbasikal perlahan atau GPS
+/// melompat, lalu memegang skrin hidup dan GPS navigasi tanpa perlu (bateri).
 /// Lampu isyarat tidak menjatuhkan peta ke 2D: berhenti di bawah 1 m/s kurang daripada 45 s kekal
 /// dalam mod ini. Selepas 45 s di bawah 1 m/s, kembali ke peta biasa.
 class CruiseGate {
-  static const enterSpeedMps = 2.5;
-  static const enterHold = Duration(milliseconds: 1500);
+  static const enterSpeedMps = 5.5;
+  static const enterHold = Duration(seconds: 4);
   static const exitSpeedMps = 1.0;
   static const exitHold = Duration(seconds: 45);
 

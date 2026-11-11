@@ -8,6 +8,8 @@ import '../../../core/network/dio_provider.dart';
 import '../../../core/network/response_text.dart';
 import '../../../core/utils/geo.dart';
 import '../../along_route/domain/along_route_projector.dart';
+import '../domain/camera_alert_logic.dart';
+import '../domain/osm_camera_tags.dart';
 import '../domain/speed_camera.dart';
 
 /// Kamera `highway=speed_camera` komuniti OSM (pilihan; mungkin tak lengkap).
@@ -73,16 +75,41 @@ class OsmCameraSearch {
       final lng = (e['lon'] as num?)?.toDouble();
       final id = e['id'];
       if (lat == null || lng == null || id == null) continue;
-      final tags = e['tags'];
-      final name = tags is Map
-          ? (tags['name'] as String?) ?? 'Kamera kelajuan'
-          : 'Kamera kelajuan';
+      final tags = e['tags'] is Map ? e['tags'] as Map : const {};
+      final tagged = tags['name'] as String?;
+      final type = cameraTypeFromEnforcement(tags['enforcement'] as String?);
+      final bound =
+          boundFromText(tags['direction']?.toString()) ?? boundFromText(tagged);
+      var direction = parseOsmDirection(tags['direction']);
+      // Darjah yang bercanggah dengan "Northbound" dsb. dianggap tidak diketahui.
+      if (direction != null &&
+          bound != null &&
+          !cameraAppliesToHeading(
+            SpeedCamera(
+              id: '',
+              name: '',
+              point: GeoPoint(lat, lng),
+              source: SpeedCameraSource.osm,
+              bound: bound,
+            ),
+            direction,
+          )) {
+        direction = null;
+      }
       out.add(
         SpeedCamera(
           id: 'osm-$id',
-          name: name,
+          name:
+              tagged ??
+              (type == 'red_light'
+                  ? 'Kamera lampu isyarat'
+                  : 'Kamera kelajuan'),
           point: GeoPoint(lat, lng),
           source: SpeedCameraSource.osm,
+          type: type,
+          bound: bound,
+          directionDegrees: direction,
+          maxSpeedKmh: parseMaxspeedKmh(tags['maxspeed']),
         ),
       );
     }

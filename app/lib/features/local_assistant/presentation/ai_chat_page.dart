@@ -97,6 +97,8 @@ class _AiChatPageState extends ConsumerState<AiChatPage> {
   bool _followQueued = false;
   Timer? _keyboardScroll;
 
+  bool _warmed = false;
+
   bool get _isMuslim => widget.mode == AiMode.muslim;
 
   NotifierProvider<AiChatController, AssistantUiState> get _provider =>
@@ -105,15 +107,15 @@ class _AiChatPageState extends ConsumerState<AiChatPage> {
   @override
   void initState() {
     super.initState();
-    if (!_isMuslim) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          unawaited(ref.read(assistantControllerProvider.notifier).warmUp());
-        }
-      });
-    }
     _focus.addListener(() {
-      if (_focus.hasFocus) _scrollToEnd(delayed: true);
+      if (!_focus.hasFocus) return;
+      _scrollToEnd(delayed: true);
+      // Muat model bila pengguna mula menaip, bukan sebaik halaman dibuka: model 0.5–4 GB dalam RAM
+      // sekadar menjenguk halaman ini membebankan telefon (dan boleh menyebabkan app lain ditutup).
+      if (!_isMuslim && !_warmed) {
+        _warmed = true;
+        unawaited(ref.read(assistantControllerProvider.notifier).warmUp());
+      }
     });
   }
 

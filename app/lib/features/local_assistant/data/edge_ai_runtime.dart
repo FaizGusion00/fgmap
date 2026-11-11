@@ -19,6 +19,22 @@ String gpuPrefsKeyFor(AiModelOption m) => m.id == defaultAiModel.id
     ? assistantGpuPrefsKey
     : '$assistantGpuPrefsKey.${m.id}';
 
+/// Penanda jawapan CPU pertama bagi setiap model: `trying` sebelum jana, `ok` selepas berjaya.
+/// Ranap native (cth. SIGILL dalam libLiteRtLm) tidak boleh ditangkap Dart; penanda `trying`
+/// yang tertinggal bermakna app mati semasa menjana, jadi model itu tidak dicuba lagi
+/// ([LocalModelCrashedException]) dan bukannya ranap pada setiap mesej.
+String cpuPrefsKeyFor(AiModelOption m) => '${gpuPrefsKeyFor(m)}.cpu';
+
+/// Model pada telefon pernah mematikan app ketika menjana jawapan pada peranti ini.
+class LocalModelCrashedException implements Exception {
+  const LocalModelCrashedException(this.modelId);
+
+  final String modelId;
+
+  @override
+  String toString() => 'LocalModelCrashedException($modelId)';
+}
+
 /// Runtime sebenar melalui flutter_edge_ai + LiteRT-LM.
 ///
 /// Kelajuan pada telefon perlahan:
@@ -68,6 +84,10 @@ class EdgeAiLlmRuntime implements LocalLlmRuntime {
     if (next.id == _selected.id && _loaded?.id == next.id) return;
     await release();
     await _prefs.setString(aiModelPrefsKey, next.id);
+    // Memilih model semula = pengguna mahu cuba lagi (cth. selepas kemas kini app).
+    if (_prefs.getString(cpuPrefsKeyFor(next)) == 'crashed') {
+      await _prefs.remove(cpuPrefsKeyFor(next));
+    }
   }
 
   @override
@@ -124,7 +144,11 @@ class EdgeAiLlmRuntime implements LocalLlmRuntime {
     }
   }
 
+  /// Model semasa berjalan pada CPU (penanda ranap CPU digunakan).
+  bool _cpuBackend = false;
+
   Future<InferenceModel> _loadModel() async {
+    _cpuBackend = false;
     final watch = Stopwatch()..start();
     final m = _selected;
     // Pastikan model yang DIPILIH ialah model aktif enjin (tiada muat turun jika fail sudah ada).
@@ -151,10 +175,20 @@ class EdgeAiLlmRuntime implements LocalLlmRuntime {
       // Percubaan lalu tidak pernah selesai (app mati semasa memuat GPU).
       await _prefs.setString(key, 'failed');
     }
+    final cpuKey = cpuPrefsKeyFor(m);
+    final cpu = _prefs.getString(cpuKey);
+    if (cpu == 'trying' || cpu == 'crashed') {
+      if (cpu == 'trying') await _prefs.setString(cpuKey, 'crashed');
+      logDiag(
+        'AI: ${m.name} pernah ranap semasa menjana pada CPU; tidak dicuba',
+      );
+      throw LocalModelCrashedException(m.id);
+    }
     final model = await FlutterEdgeAi.getActiveModel(
       maxTokens: m.contextTokens,
       preferredBackend: PreferredBackend.cpu,
     );
+    _cpuBackend = true;
     logDiag('AI: ${m.name} CPU dimuat dalam ${watch.elapsedMilliseconds} ms');
     return model;
   }
@@ -229,6 +263,10 @@ class EdgeAiLlmRuntime implements LocalLlmRuntime {
 
     final buf = StringBuffer();
     int? firstTokenMs;
+    final cpuKey = cpuPrefsKeyFor(_loaded ?? _selected);
+    if (_cpuBackend && _prefs.getString(cpuKey) != 'ok') {
+      await _prefs.setString(cpuKey, 'trying');
+    }
     try {
       await for (final response in chat.generateChatResponseWithTools(
         maxToolTurns: maxToolTurns,
@@ -259,6 +297,10 @@ class EdgeAiLlmRuntime implements LocalLlmRuntime {
     } on Object {
       // Sesi mungkin rosak selepas ralat: mulakan semula pada mesej seterusnya.
       _sessionKey = null;
+      // Ralat Dart (bukan ranap native): model masih boleh dicuba lagi.
+      if (_cpuBackend && _prefs.getString(cpuKey) == 'trying') {
+        await _prefs.remove(cpuKey);
+      }
       rethrow;
     } finally {
       _scheduleRelease();
@@ -268,6 +310,9 @@ class EdgeAiLlmRuntime implements LocalLlmRuntime {
     final gpuKey = gpuPrefsKeyFor(_loaded ?? _selected);
     if (_prefs.getString(gpuKey) == 'trying') {
       await _prefs.setString(gpuKey, 'ok');
+    }
+    if (_cpuBackend && _prefs.getString(cpuKey) == 'trying') {
+      await _prefs.setString(cpuKey, 'ok');
     }
     logDiag(
       'AI: token pertama ${firstTokenMs ?? -1} ms, jumlah '

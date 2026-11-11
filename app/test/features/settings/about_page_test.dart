@@ -39,9 +39,9 @@ void main() {
       find.byKey(const ValueKey('about-whats-new')),
       300,
     );
-    expect(find.text('Baharu dalam versi 1.8.1'), findsOneWidget);
-    expect(find.textContaining('Titik mula boleh dicari'), findsOneWidget);
-    expect(find.textContaining('Pilihan Semua, Dengan tol'), findsOneWidget);
+    expect(find.text('Baharu dalam versi 1.8.2'), findsOneWidget);
+    expect(find.textContaining('Amaran kamera kelajuan'), findsOneWidget);
+    expect(find.textContaining('GPS lebih cepat'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('about-all-changes')),
       200,

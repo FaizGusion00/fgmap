@@ -1,3 +1,21 @@
+# 1.8.2 | 2026-11-11
+This release comes from tester reports: more complete speed camera alerts, faster GPS location, and lower battery use.
+
+## Speed camera alerts
+Before: Camera alerts only appeared during navigation to a destination. The app had only 30 camera locations, most of them estimates far from the road, and cameras on diagonal highways (for example PLUS at Pagoh) never triggered an alert.
+After: The app carries 95 speed and red-light camera locations placed on the road, and they work without internet. Alerts also appear when driving without a destination, with a banner at the top of the screen and the voice prompt "Camera ahead — observe the speed limit".
+How to use: On by default. Turn it on or off and pick the alert distance (400, 800 or 1,200 m) in Navigation settings. The list does not yet cover every camera in Malaysia; keep to the speed limit on every road.
+
+## Faster GPS location
+Before: Planning a route right after opening the app sometimes failed with "location not available yet" even though the blue dot was showing. The map took up to 12 seconds to follow you, and the blue dot froze after GPS was turned off and on from quick settings.
+After: Routes are calculated from the location the phone already has (navigation corrects it as soon as GPS is precise). The map follows the first blue dot straight away. GPS that is turned back on reconnects at once, and phones with "approximate" location permission still get a location.
+How to use: Nothing to do. For the best accuracy, allow "precise" location for the app.
+
+## Battery and smoothness
+Before: Free-drive mode switched on at 9 km/h (for example brisk walking or a GPS jump), sent an internet request every second and kept the screen on. The map kept drawing at full rate even when the car was stopped, GPS kept running on other pages, and navigation saved the route almost every second.
+After: Free-drive mode switches on at about 20 km/h, with road snapping every 3 seconds (5 seconds in Lite mode) and one request at a time. Map drawing pauses when the car is stopped or has arrived, GPS stops when another page covers the map, and the trip is saved at most every 10 seconds. The CCTV page only refreshes while it is visible, and the FG AI model loads when you start typing.
+How to use: Happens on its own. If an FG AI model ever closed the app while answering, it is no longer used and the app tells you; pick that model again in FG AI settings to retry once.
+
 # 1.8.1 | 2026-11-09
 This release comes from user feedback: plan a trip from anywhere, and choose for yourself whether to use tolls.
 

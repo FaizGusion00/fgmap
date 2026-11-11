@@ -60,6 +60,7 @@ class FixFilter {
   double _x = 0, _y = 0; // meter ke timur / utara dari _origin
   double _variance = 0;
   DateTime? _lastTime;
+  DateTime? _waitingSince;
   GeoPoint? _lastOutput;
   double _derivedSpeed = 0;
   double? _lastHeading;
@@ -83,7 +84,13 @@ class FixFilter {
     final accuracy = reportedAccuracy.clamp(1.0, 500.0);
     var degraded = false;
     if (accuracy > maxAccuracyM) {
-      final stale = last != null && time.difference(last) > maxStaleness;
+      // Belum ada fix diterima: kira dari fix kasar pertama, supaya GPS yang lambat menumpu (atau
+      // kebenaran lokasi "anggaran" Android 12+) masih memberi lokasi selepas [maxStaleness],
+      // bukan tiada langsung.
+      final since = last ?? (_waitingSince ??= time);
+      final stale = last == null
+          ? time.difference(since) >= maxStaleness
+          : time.difference(since) > maxStaleness;
       if (!stale) return null;
       degraded = true;
     }

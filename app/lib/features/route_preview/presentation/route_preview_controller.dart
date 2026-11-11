@@ -225,9 +225,15 @@ class RoutePreviewController extends Notifier<RoutePreviewState> {
       return;
     }
 
+    // Asal laluan tidak perlu ≤20 m: navigasi membetulkan titik mula sebaik GPS menumpu. Dulu
+    // permintaan gagal ("lokasi belum tersedia") walaupun titik biru sudah ada, lalu berjaya bila
+    // dicuba semula beberapa saat kemudian.
     final fix = await ref
         .read(locationServiceProvider)
-        .currentFix(timeout: const Duration(seconds: 6));
+        .currentFix(
+          timeout: const Duration(seconds: 10),
+          fallbackAccuracyMeters: 75,
+        );
     if (seq != _seq) return;
     if (fix == null) {
       state = RouteLocationUnavailable(

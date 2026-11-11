@@ -3785,13 +3785,13 @@ abstract class AppLocalizations {
   /// No description provided for @aboutNew1.
   ///
   /// In ms, this message translates to:
-  /// **'Titik mula boleh dicari: pilih mana-mana tempat dalam medan \"Dari\" untuk meneliti perjalanan, walaupun anda belum berada di sana'**
+  /// **'Amaran kamera kelajuan dengan 95 lokasi di atas jalan, berfungsi tanpa internet dan juga ketika memandu tanpa destinasi'**
   String get aboutNew1;
 
   /// No description provided for @aboutNew2.
   ///
   /// In ms, this message translates to:
-  /// **'Pilihan Semua, Dengan tol dan Tanpa tol pada ringkasan laluan. \"Tanpa tol\" diingat untuk perjalanan seterusnya, termasuk di skrin kereta'**
+  /// **'GPS lebih cepat dapat lokasi dan penggunaan bateri lebih rendah: mod memandu bebas, lukisan peta dan GPS di latar kini lebih jimat'**
   String get aboutNew2;
 
   /// No description provided for @alongRouteTitle.
@@ -5028,6 +5028,12 @@ abstract class AppLocalizations {
   /// In ms, this message translates to:
   /// **'Arahan peta boleh digunakan terus (laluan, tempat berdekatan, cuaca, kiblat). Untuk soalan umum, muat turun model pada telefon dahulu.'**
   String get aiNeedModel;
+
+  /// No description provided for @aiModelCrashed.
+  ///
+  /// In ms, this message translates to:
+  /// **'Model AI ini pernah menutup app semasa menjawab pada telefon ini, jadi ia tidak digunakan lagi. Cuba pilih model lain dalam tetapan FG AI, atau pilih model yang sama semula untuk mencuba sekali lagi.'**
+  String get aiModelCrashed;
 
   /// No description provided for @aiError.
   ///

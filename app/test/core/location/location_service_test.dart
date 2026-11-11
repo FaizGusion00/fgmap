@@ -55,10 +55,19 @@ void main() {
       );
     });
 
-    test('cap masa masa depan ditolak', () {
+    test('jam GNSS mendahului sedikit diterima; jauh ke hadapan ditolak', () {
+      // Fix GNSS boleh bercap masa sedikit di hadapan jam telefon; dulu fix ini ditolak
+      // berselang-seli sehingga currentFix tamat masa.
       expect(
         GeolocatorLocationService.isFresh(
           now.add(const Duration(seconds: 1)),
+          now,
+        ),
+        isTrue,
+      );
+      expect(
+        GeolocatorLocationService.isFresh(
+          now.add(const Duration(seconds: 3)),
           now,
         ),
         isFalse,

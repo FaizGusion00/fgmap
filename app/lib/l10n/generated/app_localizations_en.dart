@@ -2161,11 +2161,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutNew1 =>
-      'Searchable starting point: choose any place in the \"From\" field to study a trip before you are there';
+      'Speed camera alerts with 95 on-road locations, working without internet and also when driving without a destination';
 
   @override
   String get aboutNew2 =>
-      'All, With toll and No toll choices on the route summary. \"No toll\" is remembered for your next trips, including on the car screen';
+      'Faster GPS location and lower battery use: free-drive mode, map drawing and background GPS now use less power';
 
   @override
   String get alongRouteTitle => 'Along the route';
@@ -2905,6 +2905,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get aiNeedModel =>
       'Map commands work right away (routes, nearby places, weather, qibla). For general questions, download the on-device model first.';
+
+  @override
+  String get aiModelCrashed =>
+      'This AI model closed the app while answering on this phone, so it is no longer used. Try another model in FG AI settings, or pick the same model again to retry once.';
 
   @override
   String get aiError => 'Sorry, something went wrong. Please try again.';
