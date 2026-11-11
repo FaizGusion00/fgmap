@@ -160,13 +160,24 @@ class _CctvViewState extends ConsumerState<CctvView>
   @override
   void initState() {
     super.initState();
-    // Satu detik: umur imej dan kiraan undur; muat semula bila sampai masanya (hanya bila kelihatan).
+    // Satu detik: umur imej dan kiraan undur; muat semula bila sampai masanya. Hanya bila benar-benar
+    // kelihatan: halaman teratas, tab CCTV dipilih (tab dikekalkan hidup), dan app di hadapan. Dulu
+    // ia terus memuat turun imej setiap 30 s dari tab kalkulator tol dan dari latar belakang.
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted) return;
-      final visible = ModalRoute.of(context)?.isCurrent ?? true;
-      if (visible && !DateTime.now().isBefore(_nextAt)) _refresh();
+      if (!mounted || !_visible) return;
+      if (!DateTime.now().isBefore(_nextAt)) _refresh();
       setState(() {});
     });
+  }
+
+  bool get _visible {
+    if (WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
+      return false;
+    }
+    if (!(ModalRoute.of(context)?.isCurrent ?? true)) return false;
+    final tabs = DefaultTabController.maybeOf(context);
+    // CCTV ialah tab pertama dalam HighwayPage.
+    return tabs == null || tabs.index == 0;
   }
 
   @override
@@ -862,7 +873,11 @@ class _CameraFullScreenState extends ConsumerState<_CameraFullScreen> {
   void initState() {
     super.initState();
     _timer = Timer.periodic(CctvView.refreshEvery, (_) {
-      if (mounted) ref.invalidate(cctvCamerasProvider(widget.code));
+      // Jangan muat turun imej ketika app di latar belakang.
+      if (mounted &&
+          WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed) {
+        ref.invalidate(cctvCamerasProvider(widget.code));
+      }
     });
   }
 

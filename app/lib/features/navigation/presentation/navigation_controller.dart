@@ -201,6 +201,11 @@ class NavigationController extends Notifier<NavigationState> {
 
   bool _background = false;
   double? _persistedAlong;
+  DateTime? _persistedAt;
+
+  /// Simpanan perjalanan mengekod seluruh laluan (JSON) dan menulis semula fail tetapan; setiap
+  /// 25 m dulu bermaksud ~sekali sesaat di lebuh raya (tersentak + bateri).
+  static const _persistEvery = Duration(seconds: 10);
   ReplayLocationSource? _simReplay;
 
   /// Pengganda kelajuan simulasi semasa (null jika bukan simulasi).
@@ -520,6 +525,7 @@ class NavigationController extends Notifier<NavigationState> {
     _lastFix = null;
     _reroutePending = false;
     _persistedAlong = null;
+    _persistedAt = null;
     _cameras = const [];
     _announcedCameraId = null;
     _alongPois = const [];
@@ -1012,7 +1018,8 @@ class NavigationController extends Notifier<NavigationState> {
         final osm = await ref
             .read(osmCameraSearchProvider)
             .searchAlong(route.points);
-        cams = [...cams, ...osm];
+        // Aset sudah memuatkan kamera OSM; gabung tanpa pendua.
+        cams = mergeLiveCameras(cams, osm);
       }
       if (generation != _generation || state.routeVersion != routeVersion) {
         return;
@@ -1183,12 +1190,16 @@ class NavigationController extends Notifier<NavigationState> {
     final progress = state.progress;
     if (route == null || query == null) return;
     final along = progress?.alongM ?? 0;
+    final now = ref.read(navClockProvider)();
+    final lastAt = _persistedAt;
     if (!force &&
         _persistedAlong != null &&
-        (along - _persistedAlong!).abs() < 25) {
+        ((along - _persistedAlong!).abs() < 25 ||
+            (lastAt != null && now.difference(lastAt) < _persistEvery))) {
       return;
     }
     _persistedAlong = along;
+    _persistedAt = now;
     await ref
         .read(tripStoreProvider)
         .write(

@@ -253,6 +253,9 @@ class AssistantController extends AiChatController {
           );
         }
       }
+    } on LocalModelCrashedException catch (e) {
+      logDiag('FG AI gagal: $e');
+      reply = replies.text(l10n.aiModelCrashed);
     } on Object catch (e) {
       logDiag('FG AI gagal: $e');
       final code = networkErrorCode(e, online: await _linkUp());

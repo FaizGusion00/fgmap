@@ -16,6 +16,8 @@ class SpeedCamera {
     required this.source,
     this.type = 'speed',
     this.bound,
+    this.directionDegrees,
+    this.maxSpeedKmh,
     this.confidence = SpeedCameraConfidence.high,
   });
 
@@ -23,8 +25,18 @@ class SpeedCamera {
   final String name;
   final GeoPoint point;
   final SpeedCameraSource source;
+
+  /// `speed` atau `red_light`.
   final String type;
+
+  /// `NB`/`SB`/`EB`/`WB` (AwAS atau nama OSM); null = semua arah.
   final String? bound;
+
+  /// Arah perjalanan yang dikuatkuasa (darjah, 0 = utara), daripada `direction` OSM; null = semua arah.
+  final double? directionDegrees;
+
+  /// Had laju di kamera (km/j) jika diketahui.
+  final int? maxSpeedKmh;
   final SpeedCameraConfidence confidence;
 }
 

@@ -90,6 +90,13 @@ class FakeLocationService implements LocationService {
     openLocationSettingsCalls++;
     return true;
   }
+
+  /// Ujian boleh menolak perubahan GPS hidup/mati.
+  final StreamController<bool> serviceStatus =
+      StreamController<bool>.broadcast();
+
+  @override
+  Stream<bool> serviceStatusChanges() => serviceStatus.stream;
 }
 
 class FakeRoutePlanner implements RoutePlanner {

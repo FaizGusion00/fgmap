@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:app_links/app_links.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -129,7 +130,7 @@ class MapScreen extends ConsumerStatefulWidget {
 }
 
 class _MapScreenState extends ConsumerState<MapScreen>
-    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
+    with WidgetsBindingObserver, TickerProviderStateMixin {
   /// Selesai apabila pandangan peta memberi kawalan kamera.
   final Completer<MapCameraController> _camera = Completer();
   final AppLinks _appLinks = AppLinks();
@@ -142,6 +143,11 @@ class _MapScreenState extends ConsumerState<MapScreen>
   /// Bilangan pilihan laluan semasa kamera terakhir dimuatkan (untuk memuat semula selepas alternatif tiba).
   int _fittedRouteCount = 0;
   bool _startupLocationHandled = false;
+
+  /// Pelancaran tidak dapat lokasi (GPS mati / tiada kebenaran): bila akses diberi kemudian,
+  /// pusatkan dan ikut pengguna seperti pelancaran biasa.
+  bool _startupNeedsLocation = false;
+  StreamSubscription<bool>? _gpsServiceSub;
   bool _incomingLocationReceived = false;
   bool _locating = false;
 
@@ -177,6 +183,15 @@ class _MapScreenState extends ConsumerState<MapScreen>
           if (mounted) unawaited(showAzanSheet(context));
         });
     WidgetsBinding.instance.addObserver(this);
+    // GPS dihidupkan/dimatikan dari panel tetapan pantas tidak menjeda app; tanpa ini titik lokasi
+    // kekal beku sehingga app dibuka semula.
+    _gpsServiceSub = ref
+        .read(locationServiceProvider)
+        .serviceStatusChanges()
+        .listen(
+          (_) => unawaited(ref.read(locationAccessProvider.notifier).refresh()),
+          onError: (Object _) {},
+        );
     _tracker.location.addListener(_feedSunLocation);
     _tracker.location.addListener(_feedCruise);
     _linkSubscription = _appLinks.uriLinkStream.listen(
@@ -190,6 +205,29 @@ class _MapScreenState extends ConsumerState<MapScreen>
       unawaited(_handleStartupLocation());
       unawaited(ref.read(etaWidgetUpdaterProvider).refresh());
     });
+  }
+
+  /// Peta kekal dipasang di bawah halaman yang ditolak (AI, CCTV, muzik, tetapan…). Navigator
+  /// mematikan TickerMode bagi laluan yang tertutup; gunakan itu untuk menggantung GPS idle, yang
+  /// dulu terus berjalan pada ketepatan tinggi walaupun peta tidak kelihatan.
+  ValueListenable<TickerModeData>? _tickerMode;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final notifier = TickerMode.getValuesNotifier(context);
+    if (identical(notifier, _tickerMode)) return;
+    _tickerMode?.removeListener(_onCoveredChanged);
+    _tickerMode = notifier..addListener(_onCoveredChanged);
+    _onCoveredChanged();
+  }
+
+  void _onCoveredChanged() {
+    if (_tickerMode?.value.enabled ?? true) {
+      _tracker.resume(_Suspend.covered);
+    } else {
+      _tracker.suspend(_Suspend.covered);
+    }
   }
 
   /// Sampel idle untuk ambang memandu bebas. Strim navigasi mengambil alih sebaik mod itu hidup.
@@ -234,6 +272,8 @@ class _MapScreenState extends ConsumerState<MapScreen>
     _cruiseTicker?.dispose();
     _cruiseDriver?.dispose();
     unawaited(_linkSubscription?.cancel());
+    unawaited(_gpsServiceSub?.cancel());
+    _tickerMode?.removeListener(_onCoveredChanged);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -260,6 +300,8 @@ class _MapScreenState extends ConsumerState<MapScreen>
       unawaited(ref.read(azanControllerProvider.notifier).onAppResumed());
       ref.read(navigationControllerProvider.notifier).noteBackground(false);
       ref.read(cruiseControllerProvider.notifier).noteBackground(false);
+      _framesParked = false;
+      _stillSince = null;
       if (_ticker != null && !_ticker!.isActive) unawaited(_ticker!.start());
       if (_cruiseTicker != null && !_cruiseTicker!.isActive) {
         unawaited(_cruiseTicker!.start());
@@ -305,13 +347,18 @@ class _MapScreenState extends ConsumerState<MapScreen>
     } else {
       await ref.read(locationAccessProvider.notifier).refresh();
     }
-    if (access != LocationAccess.granted || !mounted) return;
+    if (!mounted) return;
+    if (access != LocationAccess.granted) {
+      _startupNeedsLocation = true;
+      return;
+    }
 
     if (_tripOwnsCamera) return;
     _tracker.start();
+    // Ikut pengguna serta-merta: titik lokasi pertama (walaupun belum tepat) terus menggerakkan
+    // kamera, bukan menunggu fix ≤20 m sehingga 12 s.
+    if (!_incomingLocationReceived) _idle.engage();
     await _centerOnUser();
-    // Selepas itu kamera terus mengikut pengguna sehingga mereka menggerakkan peta sendiri.
-    if (mounted && !_incomingLocationReceived) _idle.engage();
   }
 
   /// Navigasi memiliki kamera sepenuhnya. Semua operasi tak segerak yang menggerakkan kamera
@@ -395,10 +442,13 @@ class _MapScreenState extends ConsumerState<MapScreen>
   /// (yang sama dengan titik lokasi di peta) digunakan serta-merta; jika tidak, tunggu GPS. Fix yang
   /// lebih kasar (sehingga 150 m) lebih baik daripada kamera yang tersangkut di tempat lapuk.
   Future<LocationFix?> _freshFix() async {
-    final tracked = _tracker.location.value;
-    if (tracked != null &&
-        !tracked.stale &&
-        DateTime.now().difference(tracked.time) < const Duration(seconds: 10)) {
+    LocationFix? asFix(UserLocation? tracked) {
+      if (tracked == null ||
+          tracked.stale ||
+          DateTime.now().difference(tracked.time) >=
+              const Duration(seconds: 10)) {
+        return null;
+      }
       return LocationFix(
         point: tracked.point,
         accuracyMeters: tracked.accuracyM,
@@ -407,12 +457,46 @@ class _MapScreenState extends ConsumerState<MapScreen>
         timestamp: tracked.time,
       );
     }
-    return ref
-        .read(locationServiceProvider)
-        .currentFix(
-          timeout: const Duration(seconds: 12),
-          fallbackAccuracyMeters: 150,
-        );
+
+    final now = asFix(_tracker.location.value);
+    if (now != null) return now;
+    final service = ref.read(locationServiceProvider);
+    if (!_tracker.listening) {
+      return service.currentFix(
+        timeout: const Duration(seconds: 12),
+        fallbackAccuracyMeters: 150,
+      );
+    }
+    // Penjejak sedang mencari: ambil yang mana dahulu, titik lokasi pertama atau fix tepat. Dulu ia
+    // menunggu fix ≤20 m sehingga 12 s walaupun titik lokasi sudah kelihatan.
+    final result = Completer<LocationFix?>();
+    void onTracked() {
+      final fix = asFix(_tracker.location.value);
+      if (fix != null && !result.isCompleted) result.complete(fix);
+    }
+
+    _tracker.location.addListener(onTracked);
+    unawaited(
+      service
+          .currentFix(
+            timeout: const Duration(seconds: 12),
+            fallbackAccuracyMeters: 150,
+          )
+          .then(
+            (fix) {
+              // currentFix sendiri tamat masa selepas 12 s (null jika tiada apa-apa).
+              if (!result.isCompleted) result.complete(fix);
+            },
+            onError: (Object _) {
+              if (!result.isCompleted) result.complete(null);
+            },
+          ),
+    );
+    try {
+      return await result.future;
+    } finally {
+      _tracker.location.removeListener(onTracked);
+    }
   }
 
   /// [alreadyAt]: kamera sudah di titik ini; fix segar yang sangat hampir tidak perlu animasi kedua.
@@ -461,11 +545,13 @@ class _MapScreenState extends ConsumerState<MapScreen>
     if (driver != null && driver.follow.value == NavFollow.following) {
       // Sedang mengikut kenderaan: laras zum dalam pemacu (kamera terus mengikut).
       driver.nudgeZoom(amount);
+      _wakeFrames();
       return;
     }
     final cruise = _cruiseDriver;
     if (cruise != null && cruise.follow.value == NavFollow.following) {
       cruise.nudgeZoom(amount);
+      _wakeFrames();
       return;
     }
     if (ref.read(navigationControllerProvider).isActive) {
@@ -489,6 +575,8 @@ class _MapScreenState extends ConsumerState<MapScreen>
     }
     final access = await ensureLocationAccess(context, ref);
     if (!mounted || access != LocationAccess.granted) return;
+    // Penjejak mungkin berhenti (ralat GPS sebelum ini); butang ini mesti menghidupkannya semula.
+    _tracker.start();
     setState(() => _locating = true);
     try {
       await _flyToUser(showFailure: true);
@@ -984,6 +1072,12 @@ class _MapScreenState extends ConsumerState<MapScreen>
 
   void _onNavigationChanged(NavigationState? prev, NavigationState next) {
     _prefetchJunctions(prev, next);
+    if (_framesParked &&
+        (prev?.phase != next.phase ||
+            prev?.routeVersion != next.routeVersion ||
+            (next.progress?.speedMps ?? 0) >= 0.5)) {
+      _wakeFrames();
+    }
     final wasActive = prev?.isActive ?? false;
     if (next.isActive && !wasActive) {
       _endCruise(settle: false);
@@ -1003,6 +1097,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
   }
 
   void _onCruiseChanged(CruiseState? prev, CruiseState next) {
+    if (_framesParked && next.speedMps >= 0.5) _wakeFrames();
     final was = prev?.active ?? false;
     if (next.active && !was) {
       _tracker.suspend(_Suspend.cruise);
@@ -1046,16 +1141,18 @@ class _MapScreenState extends ConsumerState<MapScreen>
           ref.read(carSessionHubProvider).notePose(pose),
     );
     driver.follow.addListener(() {
+      _wakeFrames();
       if (mounted) setState(() {});
     });
     _driver = driver;
-    final ticker = createTicker(_frameStep(driver.step));
+    final ticker = createTicker(_frameStep(driver.step, () => _ticker));
     _ticker = ticker;
     unawaited(ticker.start());
     setState(() {});
   }
 
   void _endDriving() {
+    _framesParked = false;
     _ticker?.dispose();
     _ticker = null;
     _driver?.dispose();
@@ -1085,7 +1182,14 @@ class _MapScreenState extends ConsumerState<MapScreen>
 
   /// Mod Lite: pemacu bingkai pemanduan pada 30 fps (setiap bingkai kedua), bukan 60/120 fps. Pemacu
   /// mengira kedudukan daripada masa berlalu, jadi melangkau bingkai tidak memperlahankan pergerakan.
-  void Function(Duration) _frameStep(void Function(Duration) step) {
+  ///
+  /// Kereta pegun (atau sudah sampai) dan kamera mengikut: selepas [_parkAfter] ticker dihentikan
+  /// terus, kerana Ticker yang hidup meminta setiap bingkai (60–120 Hz) walaupun tiada apa berubah.
+  /// Ia dihidupkan semula oleh pergerakan, perubahan fasa, atau sentuhan peta ([_wakeFrames]).
+  void Function(Duration) _frameStep(
+    void Function(Duration) step,
+    Ticker? Function() ticker,
+  ) {
     var skip = false;
     return (elapsed) {
       if (LiteMode.enabled) {
@@ -1093,7 +1197,54 @@ class _MapScreenState extends ConsumerState<MapScreen>
         if (skip) return;
       }
       step(elapsed);
+      _maybeParkFrames(ticker());
     };
+  }
+
+  static const _parkAfter = Duration(seconds: 3);
+  DateTime? _stillSince;
+  bool _framesParked = false;
+
+  /// Benar jika tiada apa yang bergerak di skrin perjalanan: kereta pegun / sudah sampai DAN
+  /// kamera mengikut kereta (bukan pan bebas yang menunggu auto-recenter).
+  bool _tripIsStill() {
+    final driver = _driver;
+    if (driver != null) {
+      if (driver.follow.value != NavFollow.following) return false;
+      final nav = ref.read(navigationControllerProvider);
+      return nav.phase == NavPhase.arrived ||
+          (nav.progress?.speedMps ?? 0) < 0.5;
+    }
+    final cruise = _cruiseDriver;
+    if (cruise != null) {
+      if (cruise.follow.value != NavFollow.following) return false;
+      return ref.read(cruiseControllerProvider).speedMps < 0.5;
+    }
+    return false;
+  }
+
+  void _maybeParkFrames(Ticker? ticker) {
+    if (ticker == null || !ticker.isActive) return;
+    if (!_tripIsStill()) {
+      _stillSince = null;
+      return;
+    }
+    final now = DateTime.now();
+    final since = _stillSince ??= now;
+    if (now.difference(since) < _parkAfter) return;
+    ticker.stop();
+    _framesParked = true;
+  }
+
+  /// Hidupkan semula bingkai selepas [_maybeParkFrames] menghentikannya.
+  void _wakeFrames() {
+    _stillSince = null;
+    if (!_framesParked) return;
+    _framesParked = false;
+    final nav = _ticker;
+    if (nav != null && !nav.isActive) unawaited(nav.start());
+    final cruise = _cruiseTicker;
+    if (cruise != null && !cruise.isActive) unawaited(cruise.start());
   }
 
   Future<void> _beginCruise() async {
@@ -1114,16 +1265,18 @@ class _MapScreenState extends ConsumerState<MapScreen>
           ref.read(carSessionHubProvider).notePose(pose),
     );
     driver.follow.addListener(() {
+      _wakeFrames();
       if (mounted) setState(() {});
     });
     _cruiseDriver = driver;
-    final ticker = createTicker(_frameStep(driver.step));
+    final ticker = createTicker(_frameStep(driver.step, () => _cruiseTicker));
     _cruiseTicker = ticker;
     unawaited(ticker.start());
     setState(() {});
   }
 
   void _endCruise({required bool settle}) {
+    _framesParked = false;
     _cruiseTicker?.dispose();
     _cruiseTicker = null;
     _cruiseDriver?.dispose();
@@ -1624,6 +1777,11 @@ class _MapScreenState extends ConsumerState<MapScreen>
     ref.listen<LocationAccess>(locationAccessProvider, (prev, next) {
       if (next == LocationAccess.granted) {
         _tracker.start();
+        if (_startupNeedsLocation && !_tripOwnsCamera) {
+          _startupNeedsLocation = false;
+          if (!_incomingLocationReceived) _idle.engage();
+          unawaited(_centerOnUser(useLastKnown: false));
+        }
       } else {
         _tracker.stop();
       }
@@ -2193,6 +2351,31 @@ class _MapScreenState extends ConsumerState<MapScreen>
   List<Widget> _cruiseOverlay({double lift = 0}) {
     final follow = _cruiseDriver?.follow.value ?? NavFollow.following;
     return [
+      // Memandu bebas (tiada laluan): amaran kamera di hadapan, seperti semasa navigasi.
+      SafeArea(
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: Consumer(
+              builder: (context, liveRef, _) {
+                final alert = liveRef.watch(
+                  cruiseControllerProvider.select((s) => s.cameraAlert),
+                );
+                if (alert == null) return const SizedBox.shrink();
+                final easy = liveRef.watch(
+                  appPreferencesProvider.select((p) => p.easyMode),
+                );
+                return CameraAlertBanner(
+                  key: const ValueKey('cruise-camera-alert-banner'),
+                  alert: alert,
+                  easy: easy,
+                );
+              },
+            ),
+          ),
+        ),
+      ),
       SafeArea(
         child: Align(
           alignment: Alignment.bottomLeft,
@@ -2268,44 +2451,10 @@ class _MapScreenState extends ConsumerState<MapScreen>
           levelHints: nav.levelHints,
         ),
       if (camera != null && !arrived)
-        Material(
+        CameraAlertBanner(
           key: const ValueKey('camera-alert-banner'),
-          color: Theme.of(context).colorScheme.errorContainer,
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: easy ? 10 : 8,
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.speed_rounded,
-                  size: easy ? 26 : 22,
-                  color: Theme.of(context).colorScheme.onErrorContainer,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    camera.camera.source == SpeedCameraSource.jpjAwas
-                        ? l10n.cameraAwasAhead
-                        : l10n.cameraOsmAhead,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onErrorContainer,
-                      fontSize: easy ? 16 : null,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                Text(
-                  formatDistance(l10n, camera.distanceAheadM.round()),
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: Theme.of(context).colorScheme.onErrorContainer,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          alert: camera,
+          easy: easy,
         ),
       if (nav.hazeAlert != null && !arrived)
         Material(
@@ -2952,4 +3101,55 @@ abstract final class _Suspend {
   static const navigation = 'navigation';
   static const route = 'route';
   static const cruise = 'cruise';
+
+  /// Halaman lain (AI, CCTV, muzik, tetapan…) menutup peta sepenuhnya.
+  static const covered = 'covered';
+}
+
+/// Jalur amaran kamera kelajuan (navigasi dan memandu bebas).
+class CameraAlertBanner extends StatelessWidget {
+  const CameraAlertBanner({super.key, required this.alert, required this.easy});
+
+  final CameraAlert alert;
+  final bool easy;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Material(
+      color: Theme.of(context).colorScheme.errorContainer,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 12, vertical: easy ? 10 : 8),
+        child: Row(
+          children: [
+            Icon(
+              Icons.speed_rounded,
+              size: easy ? 26 : 22,
+              color: Theme.of(context).colorScheme.onErrorContainer,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                alert.camera.source == SpeedCameraSource.jpjAwas
+                    ? l10n.cameraAwasAhead
+                    : l10n.cameraOsmAhead,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onErrorContainer,
+                  fontSize: easy ? 16 : null,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            Text(
+              formatDistance(l10n, alert.distanceAheadM.round()),
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: Theme.of(context).colorScheme.onErrorContainer,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

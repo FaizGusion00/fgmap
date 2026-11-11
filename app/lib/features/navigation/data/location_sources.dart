@@ -44,7 +44,8 @@ class DeviceLocationSource implements NavLocationSource {
     final time = fix.timestamp;
     if (accuracy == null || accuracy > 35 || time == null) return false;
     final age = now.difference(time);
-    return !age.isNegative && age <= const Duration(seconds: 10);
+    return age >= -GeolocatorLocationService.clockSkewTolerance &&
+        age <= const Duration(seconds: 10);
   }
 
   @override

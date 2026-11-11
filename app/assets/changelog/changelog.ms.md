@@ -1,3 +1,21 @@
+# 1.8.2 | 2026-11-11
+Versi ini datang daripada laporan tester: amaran kamera kelajuan yang lebih lengkap, GPS yang lebih cepat dapat lokasi, dan penggunaan bateri yang lebih rendah.
+
+## Amaran kamera kelajuan
+Sebelum: Amaran kamera hanya keluar semasa navigasi dengan destinasi. App cuma ada 30 lokasi kamera, kebanyakannya anggaran yang jauh dari jalan, dan kamera di lebuh raya yang menyerong (contohnya PLUS di Pagoh) tidak pernah diberi amaran.
+Selepas: App membawa 95 lokasi kamera kelajuan dan lampu isyarat yang diletak di atas jalan, berfungsi tanpa internet. Amaran juga keluar ketika memandu tanpa destinasi, dengan jalur amaran di atas skrin dan suara "Kamera di hadapan — patuhi had laju".
+Cara guna: Dihidupkan secara lalai. Hidupkan atau matikan, dan pilih jarak amaran (400, 800 atau 1,200 m) dalam Tetapan navigasi. Senarai ini belum merangkumi semua kamera di Malaysia; patuhi had laju di setiap jalan.
+
+## GPS lebih cepat dapat lokasi
+Sebelum: Merancang laluan sejurus selepas membuka app kadang-kadang gagal dengan "lokasi belum tersedia" walaupun titik biru sudah ada. Peta mengambil masa sehingga 12 saat untuk mengikut anda, dan titik biru beku selepas GPS dimatikan dan dihidupkan dari panel tetapan pantas.
+Selepas: Laluan dikira dari lokasi yang ada (navigasi membetulkannya sebaik GPS tepat). Peta terus mengikut titik biru pertama. GPS yang dihidupkan semula disambung serta-merta, dan telefon dengan kebenaran lokasi "anggaran" tetap mendapat lokasi.
+Cara guna: Tiada apa-apa perlu dibuat. Untuk ketepatan terbaik, benarkan lokasi "tepat" untuk app ini.
+
+## Bateri dan kelancaran
+Sebelum: Mod memandu bebas hidup pada 9 km/j (cth. berjalan laju atau GPS melompat), menghantar permintaan ke internet setiap saat dan memegang skrin hidup. Peta terus dilukis pada kadar penuh walaupun kereta berhenti, GPS terus berjalan di halaman lain, dan navigasi menyimpan laluan hampir setiap saat.
+Selepas: Mod memandu bebas hidup pada kira-kira 20 km/j, dengan snap jalan setiap 3 saat (5 saat dalam Mod Lite) dan satu permintaan pada satu masa. Lukisan peta berhenti bila kereta pegun atau sudah sampai, GPS berhenti bila halaman lain menutup peta, dan perjalanan disimpan paling kerap setiap 10 saat. Halaman CCTV hanya memuat semula bila kelihatan, dan model FG AI dimuat bila anda mula menaip.
+Cara guna: Berlaku dengan sendirinya. Jika model FG AI pernah menutup app semasa menjawab, ia tidak digunakan lagi dan app memberitahu anda; pilih model itu semula dalam tetapan FG AI untuk mencuba sekali lagi.
+
 # 1.8.1 | 2026-11-09
 Versi ini datang daripada maklum balas pengguna: rancang perjalanan dari mana-mana tempat, dan pilih sendiri sama ada mahu melalui tol.
 

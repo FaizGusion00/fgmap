@@ -23,16 +23,16 @@ void main() {
     );
   });
 
-  test('masuk selepas 1.5 s pada atau melebihi 2.5 m/s dengan arah', () {
+  test('masuk selepas 4 s pada atau melebihi 5.5 m/s dengan arah', () {
     final g = gate();
     expect(
-      g.update(time: t0, speedMps: 3, headingKnown: true, blocked: false),
+      g.update(time: t0, speedMps: 6, headingKnown: true, blocked: false),
       isFalse,
     );
     expect(
       g.update(
-        time: t0.add(const Duration(milliseconds: 1400)),
-        speedMps: 3,
+        time: t0.add(const Duration(milliseconds: 3900)),
+        speedMps: 6,
         headingKnown: true,
         blocked: false,
       ),
@@ -40,14 +40,32 @@ void main() {
     );
     expect(
       g.update(
-        time: t0.add(const Duration(milliseconds: 1500)),
-        speedMps: 2.5,
+        time: t0.add(const Duration(seconds: 4)),
+        speedMps: 5.5,
         headingKnown: true,
         blocked: false,
       ),
       isTrue,
     );
   });
+
+  test(
+    'berjalan laju / basikal perlahan (3 m/s) tidak menghidupkan mod memandu',
+    () {
+      final g = gate();
+      for (var s = 0; s <= 30; s++) {
+        expect(
+          g.update(
+            time: t0.add(Duration(seconds: s)),
+            speedMps: 3,
+            headingKnown: true,
+            blocked: false,
+          ),
+          isFalse,
+        );
+      }
+    },
+  );
 
   test('tiada arah: tidak masuk', () {
     final g = gate();

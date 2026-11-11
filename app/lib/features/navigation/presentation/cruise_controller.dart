@@ -4,7 +4,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/location/location_service.dart';
+import '../../../core/settings/device_tier.dart';
 import '../../../core/utils/geo.dart';
+import '../../../core/utils/log.dart';
+import '../../cameras/data/awas_camera_store.dart';
+import '../../cameras/domain/camera_alert_logic.dart';
+import '../../cameras/domain/speed_camera.dart';
 import '../../reports/presentation/report_alerts_controller.dart';
 import '../../route_preview/data/route_planner.dart' show routeVehicleProvider;
 import '../../speed_limits/data/speed_limit_service.dart';
@@ -32,6 +37,7 @@ class CruiseState {
     this.point,
     this.bearing = 0,
     this.fix,
+    this.cameraAlert,
   });
 
   final bool active;
@@ -46,6 +52,9 @@ class CruiseState {
 
   /// Fix terakhir untuk pemacu kamera. Null apabila tidak aktif.
   final CruiseFix? fix;
+
+  /// Kamera kelajuan paling hampir di hadapan (memandu tanpa laluan), jika amaran dihidupkan.
+  final CameraAlert? cameraAlert;
 
   static const idle = CruiseState();
 }
@@ -64,7 +73,12 @@ class CruiseController extends Notifier<CruiseState> {
   int _snapGeneration = 0;
   DateTime? _lastPersist;
   DateTime? _lastSnapAt;
-  static const _snapEvery = Duration(seconds: 1);
+  bool _snapInFlight = false;
+
+  /// Snap jalan ialah permintaan rangkaian (atau padanan peta dalam telefon bila luar talian).
+  /// Setiap 1 s dulu ialah antara pengguna bateri terbesar; 3 s (5 s dalam Mod Lite) masih licin
+  /// kerana pemacu bingkai meramal kedudukan di antara sampel.
+  static Duration get _snapEvery => Duration(seconds: LiteMode.enabled ? 5 : 3);
   static const _snapMaxDriftM = 28.0;
 
   /// Abaikan snap jalan bila GPS lebih kasar daripada ini (meter).
@@ -174,7 +188,6 @@ class CruiseController extends Notifier<CruiseState> {
   }
 
   void _engage(CruiseFix fix) {
-    _listenGps();
     state = CruiseState(
       active: true,
       speedMps: fix.speedMps,
@@ -182,9 +195,63 @@ class CruiseController extends Notifier<CruiseState> {
       bearing: fix.bearing,
       fix: fix,
     );
+    // Selepas `state` berubah: peta menggantung penjejak idle dahulu (pendengar segerak), jadi
+    // aliran navigasi dibuka dengan tetapannya sendiri (servis latar depan), bukan menumpang
+    // aliran idle. Hab lokasi juga menjamin ini, tetapi susunan ini mengelak pertukaran dua kali.
+    _listenGps();
     if (!_background) unawaited(ref.read(screenAwakeProvider).enable());
     unawaited(_persist(force: true));
     ref.read(reportAlertsProvider.notifier).reset();
+    unawaited(_loadCameras());
+  }
+
+  List<SpeedCamera> _cameras = const [];
+  String? _announcedCameraId;
+
+  /// Kamera dimuat dari aset dalam app (luar talian), sekali sahaja.
+  Future<void> _loadCameras() async {
+    if (_cameras.isNotEmpty) return;
+    try {
+      _cameras = await ref.read(awasCameraStoreProvider).load();
+    } on Object catch (e) {
+      logDiag('Kamera kelajuan tidak dapat dimuat (memandu bebas): $e');
+    }
+  }
+
+  /// Amaran kamera tanpa laluan: kamera di hadapan mengikut arah gerakan GPS (bukan arah kamera
+  /// peta yang dilicinkan), dalam jarak tetapan amaran. Gaya Waze: tidak perlu set destinasi.
+  CameraAlert? _cameraAhead(GeoPoint point, double? heading, double speed) {
+    final settings = ref.read(navigationSettingsProvider);
+    if (!settings.speedCameraAlerts || _cameras.isEmpty) return null;
+    // Arah GPS tidak bermakna ketika hampir pegun; kekalkan amaran sedia ada.
+    if (heading == null || speed < 2) return state.cameraAlert;
+    return nextCameraAheadFreeDrive(
+      position: point,
+      headingDegrees: heading,
+      cameras: _cameras,
+      alertWithinM: settings.speedCameraAlertM.toDouble(),
+      maxLateralM: 90,
+    );
+  }
+
+  void _announceCamera(CameraAlert? alert) {
+    if (alert == null || alert.camera.id == _announcedCameraId) return;
+    _announcedCameraId = alert.camera.id;
+    final en = _language == VoiceLanguage.en;
+    final text = alert.camera.source == SpeedCameraSource.jpjAwas
+        ? (en
+              ? 'AwAS camera ahead — observe the speed limit'
+              : 'Kamera AwAS di hadapan — patuhi had laju')
+        : (en
+              ? 'Camera ahead — observe the speed limit'
+              : 'Kamera di hadapan — patuhi had laju');
+    _speak([
+      Announcement(
+        kind: AnnouncementKind.now,
+        text: text,
+        chime: ChimeKind.warning,
+      ),
+    ]);
   }
 
   void _listenGps() {
@@ -229,6 +296,7 @@ class CruiseController extends Notifier<CruiseState> {
     );
     final limit = state.limitKmh;
     final over = _overspeed(speed, limit);
+    final camera = _cameraAhead(fix.point, heading, speed);
     state = CruiseState(
       active: true,
       speedMps: speed,
@@ -237,7 +305,9 @@ class CruiseController extends Notifier<CruiseState> {
       point: fix.point,
       bearing: bearing,
       fix: sample,
+      cameraAlert: camera,
     );
+    _announceCamera(camera);
     _speak(
       _voice.update(
         voiceEnabled: ref.read(navigationSettingsProvider).voiceEnabled,
@@ -253,6 +323,7 @@ class CruiseController extends Notifier<CruiseState> {
     final accurateEnough = accuracy == null || accuracy <= _snapMinAccuracyM;
     final lastSnap = _lastSnapAt;
     if (accurateEnough &&
+        !_snapInFlight &&
         (lastSnap == null || time.difference(lastSnap) >= _snapEvery)) {
       _lastSnapAt = time;
       unawaited(_refreshSnap(fix.point, bearing, speed, time));
@@ -304,6 +375,7 @@ class CruiseController extends Notifier<CruiseState> {
       point: state.point,
       bearing: state.bearing,
       fix: state.fix,
+      cameraAlert: state.cameraAlert,
     );
   }
 
@@ -318,12 +390,16 @@ class CruiseController extends Notifier<CruiseState> {
     final generation = ++_snapGeneration;
     final points = List<GeoPoint>.of(_trail.points);
     GeoPoint? snapped;
+    // Satu permintaan pada satu masa: isyarat lemah dulu menimbunkan sehingga ~8 permintaan bertindih.
+    _snapInFlight = true;
     try {
       snapped = await ref
           .read(speedLimitServiceProvider)
           .snapTraceEnd(points, ref.read(routeVehicleProvider));
     } on Object {
       snapped = null;
+    } finally {
+      _snapInFlight = false;
     }
     if (!ref.mounted || generation != _snapGeneration || !state.active) return;
     if (snapped == null) return;
@@ -342,6 +418,7 @@ class CruiseController extends Notifier<CruiseState> {
       point: snapped,
       bearing: bearing,
       fix: sample,
+      cameraAlert: state.cameraAlert,
     );
   }
 
@@ -363,6 +440,7 @@ class CruiseController extends Notifier<CruiseState> {
     _gate.reset();
     _voice.reset();
     _trail.clear();
+    _announcedCameraId = null;
     state = CruiseState(handoff: handoff);
     if (clearTrip) {
       final saved = ref.read(tripStoreProvider).read();

@@ -1,56 +1,66 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/utils/geo.dart';
+import '../domain/osm_camera_tags.dart';
 import '../domain/speed_camera.dart';
 
-/// Memuatkan kamera AwAS JPJ yang dikurasi daripada aset app.
+/// Memuatkan kamera yang dibundel (AwAS JPJ yang disahkan + OSM) daripada aset app.
+///
+/// Aset dijana oleh `tools/cameras/build_cameras.py`; tidak perlu rangkaian.
 class AwasCameraStore {
+  static const assetPath = 'assets/cameras/cameras_my.json';
+
   List<SpeedCamera>? _cache;
 
   Future<List<SpeedCamera>> load() async {
     if (_cache != null) return _cache!;
-    final raw = await rootBundle.loadString('assets/cameras/awas_my.json');
+    final raw = await rootBundle.loadString(assetPath);
+    return _cache = parse(raw);
+  }
+
+  /// Huraikan JSON aset; entri rosak dilangkau.
+  @visibleForTesting
+  static List<SpeedCamera> parse(String raw) {
     final decoded = jsonDecode(raw);
-    if (decoded is! Map<String, dynamic>) return _cache = const [];
+    if (decoded is! Map<String, dynamic>) return const [];
     final list = decoded['cameras'];
-    if (list is! List) return _cache = const [];
+    if (list is! List) return const [];
     final out = <SpeedCamera>[];
     for (final e in list) {
       if (e is! Map) continue;
       final lat = (e['lat'] as num?)?.toDouble();
       final lng = (e['lng'] as num?)?.toDouble();
-      final id = e['id'] as String?;
-      final name = e['name'] as String?;
-      if (lat == null || lng == null || id == null || name == null) continue;
-      // Pin dibundarkan ≤2 perpuluhan (~1 km) dianggap anggaran KM.
-      final approx =
-          e['confidence'] == 'approx' ||
-          _looksRounded(lat) ||
-          _looksRounded(lng);
+      final id = e['id'];
+      final name = e['name'];
+      if (lat == null || lng == null || id is! String || name is! String) {
+        continue;
+      }
+      if (id.isEmpty || !lat.isFinite || !lng.isFinite) continue;
+      final bound = e['bound'];
+      final type = e['type'];
       out.add(
         SpeedCamera(
           id: id,
           name: name,
           point: GeoPoint(lat, lng),
-          source: SpeedCameraSource.jpjAwas,
-          type: (e['type'] as String?) ?? 'speed',
-          bound: e['bound'] as String?,
-          confidence: approx
+          source: e['source'] == 'osm'
+              ? SpeedCameraSource.osm
+              : SpeedCameraSource.jpjAwas,
+          type: type is String && type.isNotEmpty ? type : 'speed',
+          bound: bound is String && bound.isNotEmpty ? bound : null,
+          directionDegrees: parseOsmDirection(e['direction']),
+          maxSpeedKmh: parseMaxspeedKmh(e['maxspeed']),
+          confidence: e['confidence'] == 'approx'
               ? SpeedCameraConfidence.approx
               : SpeedCameraConfidence.high,
         ),
       );
     }
-    return _cache = out;
-  }
-
-  /// True jika nilai pada dasarnya 2 perpuluhan (pin KM lebuh raya).
-  static bool _looksRounded(double v) {
-    final scaled = v * 100;
-    return (scaled - scaled.roundToDouble()).abs() < 1e-6;
+    return List.unmodifiable(out);
   }
 }
 
