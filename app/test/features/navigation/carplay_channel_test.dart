@@ -104,10 +104,37 @@ void main() {
     test('CarBridge.kt guna saluran dan kaedah yang sama', () {
       final src = kotlin.readAsStringSync();
       expect(src, contains('"$channel"'));
+      // Android Auto tidak terus memulakan laluan (openPlace, kekal untuk CarPlay): ia membuka
+      // pilihan laluan dahulu (preview -> startPreview).
       for (final m in [...toNative, ...fromNative]) {
+        if (m == 'openPlace') continue;
         expect(src, contains('"$m"'), reason: m);
       }
     });
+
+    test(
+      'Android Auto sahaja: Tempat, pilihan laluan, Lapor, Tetapan, muzik',
+      () {
+        const androidOnly = [
+          'places',
+          'preview',
+          'startPreview',
+          'reportTypes',
+          'report',
+          'settings',
+          'setSetting',
+          'mediaBrowser',
+        ];
+        final src = kotlin.readAsStringSync();
+        final hub = File(
+          'lib/features/navigation/presentation/car_session_hub.dart',
+        ).readAsStringSync();
+        for (final m in androidOnly) {
+          expect(src, contains('"$m"'), reason: m);
+          expect(hub, contains("case '$m'"), reason: m);
+        }
+      },
+    );
 
     test('Android Auto sahaja: carState (keterlihatan + mod malam kereta)', () {
       // Dua hala: Kotlin melapor perubahan, Dart bertanya keadaan semasa semasa dicipta.

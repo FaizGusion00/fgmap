@@ -39,9 +39,9 @@ void main() {
       find.byKey(const ValueKey('about-whats-new')),
       300,
     );
-    expect(find.text('Baharu dalam versi 1.8.2'), findsOneWidget);
+    expect(find.text('Baharu dalam versi 1.8.3'), findsOneWidget);
+    expect(find.textContaining('Android Auto kini berfungsi tanpa membuka app telefon'), findsOneWidget);
     expect(find.textContaining('Amaran kamera kelajuan'), findsOneWidget);
-    expect(find.textContaining('GPS lebih cepat'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('about-all-changes')),
       200,

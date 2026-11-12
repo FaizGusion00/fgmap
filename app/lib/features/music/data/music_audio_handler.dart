@@ -6,11 +6,20 @@ import 'package:just_audio/just_audio.dart' as ja;
 import '../../../core/utils/log.dart';
 import '../domain/stream_title.dart';
 
+/// Senarai muzik yang boleh dilayari dari luar app (bahagian media Android Auto): folder dan lagu
+/// sebagai [MediaItem], dan main mengikut id. Dilaksanakan oleh pengawal pemain supaya keadaan app
+/// telefon (baris gilir, mini pemain) kekal sama dengan apa yang dimain dari kereta.
+abstract interface class MediaBrowseSource {
+  Future<List<MediaItem>> children(String parentMediaId);
+  Future<void> playFromMediaId(String mediaId);
+}
+
 /// Pengendali `audio_service`: kawalan skrin kunci / notifikasi media dan butang fon telinga,
-/// dipetakan terus kepada pemain just_audio. Dimulakan malas pada main pertama (kos permulaan sifar).
+/// dipetakan terus kepada pemain just_audio. Dimulakan malas pada main pertama (kos permulaan sifar),
+/// atau bila Android Auto membuka bahagian media FGMaps.
 class FgMusicAudioHandler extends BaseAudioHandler
     with QueueHandler, SeekHandler {
-  FgMusicAudioHandler(this._player) {
+  FgMusicAudioHandler(this._player, {this.browse}) {
     _player.playbackEventStream.map(_transform).pipe(playbackState);
     _player.sequenceStateStream.listen((state) {
       final tag = state.currentSource?.tag;
@@ -32,6 +41,32 @@ class FgMusicAudioHandler extends BaseAudioHandler
   }
 
   final ja.AudioPlayer _player;
+
+  /// Null: tiada senarai untuk dilayari (bahagian media kereta kosong, kawalan tetap berfungsi).
+  final MediaBrowseSource? browse;
+
+  @override
+  Future<List<MediaItem>> getChildren(
+    String parentMediaId, [
+    Map<String, dynamic>? options,
+  ]) async {
+    final source = browse;
+    if (source == null) return const [];
+    try {
+      return await source.children(parentMediaId);
+    } on Object catch (e) {
+      logDiag('Senarai media kereta gagal: $e');
+      return const [];
+    }
+  }
+
+  @override
+  Future<void> playFromMediaId(
+    String mediaId, [
+    Map<String, dynamic>? extras,
+  ]) async {
+    await browse?.playFromMediaId(mediaId);
+  }
 
   PlaybackState _transform(ja.PlaybackEvent event) {
     final playing = _player.playing;
@@ -94,24 +129,32 @@ class FgMusicAudioHandler extends BaseAudioHandler
 class AudioServiceStarter {
   Future<FgMusicAudioHandler?>? _pending;
 
-  Future<FgMusicAudioHandler?> ensureStarted(ja.AudioPlayer player) =>
-      _pending ??= () async {
-        try {
-          return await AudioService.init(
-            builder: () => FgMusicAudioHandler(player),
-            config: const AudioServiceConfig(
-              androidNotificationChannelId:
-                  'com.fguniversalempire.fgmaps.channel.music',
-              androidNotificationChannelName: 'Muzik',
-              androidNotificationOngoing: true,
-              // Ikon kecil satu warna (logo F-laluan), bukan ikon pelancar berwarna.
-              androidNotificationIcon: 'drawable/ic_stat_fgmaps',
-              androidStopForegroundOnPause: true,
-            ),
-          );
-        } on Object catch (e) {
-          logDiag('audio_service gagal dimulakan: $e');
-          return null;
-        }
-      }();
+  Future<FgMusicAudioHandler?> ensureStarted(
+    ja.AudioPlayer player, {
+    MediaBrowseSource? browse,
+  }) => _pending ??= () async {
+    try {
+      return await AudioService.init(
+        builder: () => FgMusicAudioHandler(player, browse: browse),
+        config: const AudioServiceConfig(
+          androidNotificationChannelId:
+              'com.fguniversalempire.fgmaps.channel.music',
+          androidNotificationChannelName: 'Muzik',
+          androidNotificationOngoing: true,
+          // Ikon kecil satu warna (logo F-laluan), bukan ikon pelancar berwarna.
+          androidNotificationIcon: 'drawable/ic_stat_fgmaps',
+          androidStopForegroundOnPause: true,
+          // Android Auto: folder sebagai senarai, lagu sebagai senarai (bukan grid gambar kosong).
+          androidBrowsableRootExtras: {
+            'android.media.browse.CONTENT_STYLE_SUPPORTED': true,
+            'android.media.browse.CONTENT_STYLE_BROWSABLE_HINT': 1,
+            'android.media.browse.CONTENT_STYLE_PLAYABLE_HINT': 1,
+          },
+        ),
+      );
+    } on Object catch (e) {
+      logDiag('audio_service gagal dimulakan: $e');
+      return null;
+    }
+  }();
 }

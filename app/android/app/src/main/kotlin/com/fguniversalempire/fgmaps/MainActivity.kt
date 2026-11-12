@@ -18,7 +18,9 @@ class MainActivity : AudioServiceActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        CarBridge.attach(flutterEngine.dartExecutor.binaryMessenger)
+        // Enjin dikongsi audio_service: sama dengan enjin yang dimulakan skrin kereta (jika sudah).
+        CarBridge.attach(flutterEngine)
+        CarBridge.watchConnection(applicationContext)
         // Kompas sensor sebenar untuk Kiblat (arah GPS tidak wujud ketika telefon diam).
         compass = CompassBridge(this, flutterEngine.dartExecutor.binaryMessenger)
         // Maklumat peranti untuk Mod Lite: RAM keseluruhan, bendera "RAM rendah" sistem dan bilangan teras.

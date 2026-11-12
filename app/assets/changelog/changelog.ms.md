@@ -1,3 +1,16 @@
+# 1.8.3 | 2026-11-11
+Versi ini membaiki Android Auto berdasarkan laporan tester.
+
+## Android Auto berfungsi tanpa membuka app telefon
+Sebelum: Jika FGMaps dibuka terus dari skrin kereta, peta kosong. Carian dan Berdekatan pula berkata "Semak sambungan internet" walaupun internet ada, dan waktu solat serta ciri lain tidak muncul. Bila skrin telefon padam, peta kereta berhenti mengikut kereta, dan mod memandu bebas tidak hidup di skrin kereta.
+Selepas: Skrin kereta memulakan FGMaps sendiri, jadi app telefon tidak perlu dibuka. Peta kereta mengikut lokasi anda walaupun skrin telefon padam, dan mod memandu bebas (kelajuan, had laju dan amaran kamera) hidup seperti di telefon. Mesej ralat kini menerangkan sebab sebenar: FGMaps sedang dimulakan, lokasi belum tersedia, carian gagal atau tiada hasil.
+Cara guna: Sambung telefon ke kereta dan buka FGMaps dari skrin kereta. Benarkan lokasi untuk FGMaps sekali di telefon jika belum.
+
+## Lebih banyak ciri di skrin kereta
+Sebelum: Skrin kereta hanya ada Cari dan Berdekatan. Memilih tempat terus memulakan laluan tanpa pilihan, dan muzik FGMaps tidak muncul di Android Auto.
+Selepas: Butang Tempat membuka grid Rumah, Kerja, Berdekatan, Kegemaran, Terkini, Lapor dan Tetapan. Hasil carian dan Berdekatan kini dipaparkan di atas peta dengan pin bernombor dan jarak. Sebelum memandu, anda boleh memilih antara laluan (masa, jarak dan anggaran tol), dan laluan yang dipilih ditunjukkan di peta. Butang Lapor menghantar laporan polis, kemalangan, sesak, banjir dan lain-lain dengan satu ketukan. Tetapan di kereta: suara panduan, elak tol, amaran kamera laju dan peta satelit. Semasa navigasi ada butang senyap suara di tepi peta. Muzik FGMaps (radio Malaysia, radio kegemaran, lagu dalam telefon dan lagu diimport) kini ada dalam bahagian media Android Auto.
+Cara guna: Di skrin kereta, ketik Tempat atau Cari. Pilih tempat, pilih laluan, kemudian ketik Mula. Untuk muzik, buka FGMaps dalam senarai app media Android Auto. Lagu dalam telefon hanya muncul jika kebenaran muzik sudah diberi dalam app telefon.
+
 # 1.8.2 | 2026-11-11
 Versi ini datang daripada laporan tester: amaran kamera kelajuan yang lebih lengkap, GPS yang lebih cepat dapat lokasi, dan penggunaan bateri yang lebih rendah.
 

@@ -3785,13 +3785,13 @@ abstract class AppLocalizations {
   /// No description provided for @aboutNew1.
   ///
   /// In ms, this message translates to:
-  /// **'Amaran kamera kelajuan dengan 95 lokasi di atas jalan, berfungsi tanpa internet dan juga ketika memandu tanpa destinasi'**
+  /// **'Android Auto kini berfungsi tanpa membuka app telefon, dengan Tempat (Rumah, Kerja, Kegemaran), pilihan laluan dengan tol, Lapor, Tetapan dan muzik di skrin kereta'**
   String get aboutNew1;
 
   /// No description provided for @aboutNew2.
   ///
   /// In ms, this message translates to:
-  /// **'GPS lebih cepat dapat lokasi dan penggunaan bateri lebih rendah: mod memandu bebas, lukisan peta dan GPS di latar kini lebih jimat'**
+  /// **'Amaran kamera kelajuan dengan 95 lokasi, GPS lebih cepat dapat lokasi dan bateri lebih jimat'**
   String get aboutNew2;
 
   /// No description provided for @alongRouteTitle.

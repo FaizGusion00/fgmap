@@ -40,6 +40,11 @@ android {
         buildConfig = true
     }
 
+    // Ujian templat kereta perlu ikon sebenar (CarIcon menyemak sumber wujud).
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
+
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.fguniversalempire.fgmaps"
@@ -105,8 +110,20 @@ dependencies {
     implementation("androidx.car.app:app-projected:1.7.0")
     // Sama dengan pemalam maplibre_gl supaya satu SDK peta sahaja.
     implementation("org.maplibre.gl:android-sdk-opengl:13.7.1")
+    // Ujian templat Android Auto (skrin kereta) tanpa kereta: Robolectric + TestCarContext.
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.robolectric:robolectric:4.14.1")
+    testImplementation("androidx.car.app:app-testing:1.7.0")
 }
 
 flutter {
     source = "../.."
+}
+
+// Ujian unit memakej aset app; aset Flutter disalin oleh tugasan Flutter bagi varian yang sama.
+afterEvaluate {
+    listOf("Debug", "Profile", "Release").forEach { variant ->
+        val copy = tasks.findByName("copyFlutterAssets$variant") ?: return@forEach
+        tasks.findByName("package${variant}UnitTestForUnitTest")?.dependsOn(copy)
+    }
 }

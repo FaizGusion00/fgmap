@@ -19,6 +19,7 @@ import 'core/licenses.dart';
 import 'core/storage/preferences.dart';
 import 'features/map/data/map_style_loader.dart';
 import 'features/music/data/local_library.dart';
+import 'features/navigation/presentation/car_session_hub.dart';
 import 'features/offline_maps/data/offline_engine_host.dart';
 import 'features/offline_maps/data/offline_map_store.dart';
 import 'features/reports/data/reports_repository.dart';
@@ -66,24 +67,28 @@ Future<void> main() async {
   final styleCache = Directory(p.join(support.path, 'map_styles'))
     ..createSync(recursive: true);
 
+  final container = ProviderContainer(
+    overrides: [
+      sharedPreferencesProvider.overrideWithValue(prefs),
+      deviceInfoProvider.overrideWithValue(device),
+      errorLogProvider.overrideWithValue(errorLog),
+      mapStyleCacheDirProvider.overrideWithValue(styleCache),
+      offlineMapStoreProvider.overrideWithValue(offlineStore),
+      localLibraryDirProvider.overrideWithValue(
+        Directory(p.join(documents.path, 'music')),
+      ),
+      // Laporan komuniti: simpanan tempatan pada peranti ini (belum dikongsi; lihat ADR 0005).
+      reportsRepositoryProvider.overrideWithValue(
+        LocalReportsRepository(File(p.join(support.path, 'reports.json'))),
+      ),
+    ],
+  );
+  // Android Auto boleh memulakan enjin ini tanpa skrin telefon (FGMaps dibuka terus dari kereta):
+  // hab sesi kereta mesti wujud tanpa menunggu pokok widget dibina, supaya peta, carian dan
+  // Berdekatan di skrin kereta berfungsi walaupun app telefon tidak pernah dibuka.
+  container.read(carSessionHubProvider);
   runApp(
-    ProviderScope(
-      overrides: [
-        sharedPreferencesProvider.overrideWithValue(prefs),
-        deviceInfoProvider.overrideWithValue(device),
-        errorLogProvider.overrideWithValue(errorLog),
-        mapStyleCacheDirProvider.overrideWithValue(styleCache),
-        offlineMapStoreProvider.overrideWithValue(offlineStore),
-        localLibraryDirProvider.overrideWithValue(
-          Directory(p.join(documents.path, 'music')),
-        ),
-        // Laporan komuniti: simpanan tempatan pada peranti ini (belum dikongsi; lihat ADR 0005).
-        reportsRepositoryProvider.overrideWithValue(
-          LocalReportsRepository(File(p.join(support.path, 'reports.json'))),
-        ),
-      ],
-      child: const FgmapApp(),
-    ),
+    UncontrolledProviderScope(container: container, child: const FgmapApp()),
   );
 }
 

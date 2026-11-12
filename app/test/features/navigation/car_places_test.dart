@@ -117,19 +117,34 @@ void main() {
       },
     );
 
-    test(
-      'id tidak dikenali, ralat carian, atau tiada GPS: senarai kosong',
-      () async {
-        expect(await (await setUp0()).nearby('bukan-kategori'), isEmpty);
-        expect(
-          await (await setUp0(
-            nearbyError: StateError('offline'),
-          )).nearby('fuel'),
-          isEmpty,
-        );
-        expect(await (await setUp0(gps: false)).nearby('fuel'), isEmpty);
-      },
-    );
+    test('id tidak dikenali: senarai kosong', () async {
+      expect(await (await setUp0()).nearby('bukan-kategori'), isEmpty);
+    });
+
+    // Dahulu kedua-duanya senarai kosong, dan skrin kereta berkata "semak internet" walaupun
+    // masalahnya GPS (atau sebaliknya).
+    test('ralat carian dan tiada GPS dibezakan untuk skrin kereta', () async {
+      await expectLater(
+        (await setUp0(nearbyError: StateError('offline'))).nearby('fuel'),
+        throwsA(
+          isA<CarPlacesFailure>().having(
+            (e) => e.code,
+            'code',
+            CarPlacesFailure.failed,
+          ),
+        ),
+      );
+      await expectLater(
+        (await setUp0(gps: false)).nearby('fuel'),
+        throwsA(
+          isA<CarPlacesFailure>().having(
+            (e) => e.code,
+            'code',
+            CarPlacesFailure.noLocation,
+          ),
+        ),
+      );
+    });
   });
 
   group('carian suara dan teks', () {
@@ -213,12 +228,26 @@ void main() {
       expect(geocoder.queries, isNotEmpty);
     });
 
-    test('teks kosong dan ralat geocoder: senarai kosong', () async {
-      final places = await setUp0();
-      expect(await places.search('   '), isEmpty);
-      geocoder.error = DioException(requestOptions: RequestOptions(path: '/'));
-      expect(await places.search('klcc'), isEmpty);
-    });
+    test(
+      'teks kosong: senarai kosong; ralat geocoder: gagal (bukan "tiada hasil")',
+      () async {
+        final places = await setUp0();
+        expect(await places.search('   '), isEmpty);
+        geocoder.error = DioException(
+          requestOptions: RequestOptions(path: '/'),
+        );
+        await expectLater(
+          places.search('klcc'),
+          throwsA(
+            isA<CarPlacesFailure>().having(
+              (e) => e.code,
+              'code',
+              CarPlacesFailure.failed,
+            ),
+          ),
+        );
+      },
+    );
 
     test('baris dihadkan supaya hos kereta tidak terlebih muatan', () async {
       final places = await setUp0();

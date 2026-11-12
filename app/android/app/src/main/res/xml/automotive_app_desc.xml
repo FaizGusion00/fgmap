@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- template: peta dan navigasi (Car App Library). media: muzik dan radio FGMaps dalam bahagian
+     media Android Auto (MediaBrowserService audio_service). -->
 <automotiveApp>
     <uses name="template"/>
+    <uses name="media"/>
 </automotiveApp>

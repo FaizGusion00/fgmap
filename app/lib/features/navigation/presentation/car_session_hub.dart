@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/app_config.dart';
+import '../../../core/location/location_service.dart';
 import '../../../core/theme/theme_controller.dart';
 import '../../../core/utils/geo.dart';
 import '../../air_quality/domain/air_quality.dart';
@@ -18,6 +19,7 @@ import '../../map/data/map_layer.dart';
 import '../../map/data/map_style_loader.dart';
 import '../../route_preview/data/route_planner.dart';
 import '../../route_preview/domain/route_option.dart';
+import '../../route_preview/presentation/route_preview_controller.dart';
 import '../../search/domain/place.dart';
 import '../data/navigation_settings.dart';
 import '../domain/camera_planner.dart';
@@ -29,6 +31,7 @@ import '../domain/lane_plan.dart';
 import '../domain/nav_route.dart';
 import '../domain/navigation_session.dart' show NavStatus;
 import '../domain/vehicle_model.dart' show VehiclePose;
+import 'car_actions.dart';
 import 'car_places.dart';
 import 'cruise_controller.dart';
 import 'navigation_controller.dart';
@@ -41,12 +44,16 @@ class CarSessionHub {
   CarSessionHub(this.ref) {
     carSessionChannel.setMethodCallHandler(_onCall);
     unawaited(_pullCarState());
+    _watchHeadlessStart();
   }
 
   final Ref ref;
 
   /// Carian dan "Berdekatan" untuk skrin kereta (penghala arahan FG AI + carian kategori).
   late final CarPlaces _places = CarPlaces(ref, live: _near);
+
+  /// Tempat, pilihan laluan, laporan, tetapan dan muzik untuk skrin kereta.
+  late final CarActions _actions = CarActions(ref, _places, heading: _heading);
 
   /// Kamera skrin kereta sendiri (lihat [CarCamera]); pose kamera telefon hanya isyarat kadar.
   final CarCamera _camera = CarCamera();
@@ -110,8 +117,9 @@ class CarSessionHub {
   /// yang berhenti sebaik telefon dikunci atau app ke latar (kes biasa ketika Android Auto).
   static const _pumpEvery = Duration(milliseconds: 100);
 
-  /// Hidupkan/matikan pam kamera kereta mengikut keadaan semasa.
+  /// Hidupkan/matikan pam kamera kereta (dan GPS skrin kereta) mengikut keadaan semasa.
   void syncPump() {
+    _syncCarFeed();
     final want =
         _carVisible &&
         (ref.read(navigationControllerProvider).isActive ||
@@ -121,6 +129,66 @@ class CarSessionHub {
     _pump = want
         ? Timer.periodic(_pumpEvery, (_) => _schedule(Duration.zero))
         : null;
+  }
+
+  /// GPS skrin kereta sendiri ketika tiada perjalanan. Penjejak peta telefon digantung bila app
+  /// telefon di latar atau skrin telefon padam (kes biasa dengan Android Auto), atau tidak pernah
+  /// bermula bila FGMaps dibuka terus dari kereta. Tanpa ini peta kereta beku di lokasi lama dan
+  /// memandu bebas (kelajuan, had laju, amaran kamera) tidak pernah hidup di skrin kereta.
+  /// Satu langganan GPS dikongsi dengan peta telefon melalui hab lokasi; tidak pernah meminta kebenaran.
+  StreamSubscription<LocationFix>? _carFeed;
+
+  void _syncCarFeed() {
+    final want =
+        _carVisible &&
+        !ref.read(navigationControllerProvider).isActive &&
+        !ref.read(cruiseControllerProvider).active;
+    if (want == (_carFeed != null)) return;
+    if (!want) {
+      unawaited(_carFeed?.cancel());
+      _carFeed = null;
+      return;
+    }
+    StreamSubscription<LocationFix>? sub;
+    try {
+      sub = ref
+          .read(locationServiceProvider)
+          .trackingFixes()
+          .listen(
+            _onCarFix,
+            // Tiada kebenaran / GPS mati: peta kereta kekal pada lokasi terakhir.
+            onError: (Object _) {},
+            onDone: () {
+              if (identical(_carFeed, sub)) _carFeed = null;
+            },
+          );
+    } on Object {
+      return;
+    }
+    _carFeed = sub;
+  }
+
+  /// Fix lapuk atau terlalu kasar diabaikan (sama seperti penjejak peta).
+  static const _carFixMaxAge = Duration(seconds: 10);
+  static const _carFixMaxAccuracyM = 100.0;
+
+  void _onCarFix(LocationFix fix) {
+    final now = ref.read(navClockProvider)();
+    final time = fix.timestamp ?? now;
+    if (now.difference(time) > _carFixMaxAge) return;
+    if ((fix.accuracyMeters ?? 0) > _carFixMaxAccuracyM) return;
+    noteLocation(fix.point);
+    ref
+        .read(cruiseControllerProvider.notifier)
+        .noteIdle(
+          point: fix.point,
+          speedMps: fix.speedMps ?? 0,
+          heading: fix.headingDegrees?.toDouble(),
+          time: time,
+          blocked:
+              ref.read(navigationControllerProvider).isActive ||
+              ref.read(routePreviewControllerProvider) is! RouteIdle,
+        );
   }
 
   Duration? _pendingDelay;
@@ -160,10 +228,14 @@ class CarSessionHub {
           snapshot.routeVersion != _sentRouteVersion ||
           snapshot.mode != CarDriveMode.navigating;
       final includeStyle = snapshot.styleKey != _sentStyleKey;
-      await carSessionChannel.invokeMethod<void>(
-        'session',
-        snapshot.toMap(includeRoute: includeRoute, includeStyle: includeStyle),
-      );
+      await carSessionChannel.invokeMethod<void>('session', {
+        ...snapshot.toMap(
+          includeRoute: includeRoute,
+          includeStyle: includeStyle,
+        ),
+        // Butang senyap di peta kereta mengikut suis suara di telefon.
+        'voice': ref.read(navigationSettingsProvider).voiceEnabled,
+      });
       _sentRouteVersion = snapshot.routeVersion;
       _sentStyleKey = snapshot.styleKey;
     } on MissingPluginException {
@@ -455,12 +527,12 @@ class CarSessionHub {
     switch (call.method) {
       case 'search':
         final query = (call.arguments as Map?)?['query']?.toString() ?? '';
-        return _places.search(query);
+        return _withReason(() => _places.search(query));
       case 'nearbyCategories':
         return _places.categories();
       case 'nearby':
         final id = (call.arguments as Map?)?['category']?.toString() ?? '';
-        return _places.nearby(id);
+        return _withReason(() => _places.nearby(id));
       case 'openPlace':
         final args = (call.arguments as Map).cast<String, Object?>();
         final lat = (args['lat'] as num?)?.toDouble();
@@ -473,6 +545,44 @@ class CarSessionHub {
             point: GeoPoint(lat, lng),
           ),
         );
+      case 'places':
+        return _actions.places();
+      case 'preview':
+        final args = (call.arguments as Map).cast<String, Object?>();
+        final lat = (args['lat'] as num?)?.toDouble();
+        final lng = (args['lng'] as num?)?.toDouble();
+        if (lat == null || lng == null) {
+          throw PlatformException(code: CarActions.noRoute);
+        }
+        return _withReason(
+          () => _actions.preview(
+            Place(
+              name: args['name']?.toString() ?? '',
+              subtitle: args['subtitle']?.toString() ?? '',
+              point: GeoPoint(lat, lng),
+            ),
+          ),
+        );
+      case 'startPreview':
+        final index = ((call.arguments as Map?)?['index'] as num?)?.toInt();
+        return _actions.startPreview(index ?? 0);
+      case 'reportTypes':
+        return _actions.reportTypes();
+      case 'report':
+        return _actions.report(
+          (call.arguments as Map?)?['type']?.toString() ?? '',
+        );
+      case 'settings':
+        return _actions.settings();
+      case 'setSetting':
+        final args = (call.arguments as Map?) ?? const {};
+        return _actions.setSetting(
+          args['key']?.toString() ?? '',
+          args['value'] == true,
+        );
+      case 'mediaBrowser':
+        await _actions.startMedia();
+        return null;
       case 'endNavigation':
         await ref.read(navigationControllerProvider.notifier).stop();
         return null;
@@ -491,8 +601,22 @@ class CarSessionHub {
     }
   }
 
+  /// Kegagalan carian dihantar sebagai kod ralat saluran (`no-location` / `failed`), supaya skrin
+  /// kereta tidak lagi berkata "semak internet" untuk setiap senarai kosong.
+  Future<Object?> _withReason(
+    Future<List<Map<String, Object?>>> Function() run,
+  ) async {
+    try {
+      return await run();
+    } on CarPlacesFailure catch (e) {
+      throw PlatformException(code: e.code);
+    }
+  }
+
   void _applyCarState(Object? raw) {
     if (raw is! Map) return;
+    // Android Auto bersambung atau skrin kereta FGMaps dibuka: muzik FGMaps sedia di bahagian media.
+    if (raw['connected'] == true || raw['visible'] == true) _startMediaOnce();
     final visible = raw['visible'] == true;
     final dark = raw['dark'] is bool ? raw['dark'] as bool : null;
     if (visible == _carVisible && (dark == null || dark == _carDark)) return;
@@ -500,6 +624,25 @@ class CarSessionHub {
     if (dark != null) _carDark = dark;
     syncPump();
     flush();
+  }
+
+  bool _mediaStarted = false;
+  Timer? _headlessCheck;
+
+  void _startMediaOnce() {
+    if (_mediaStarted) return;
+    _mediaStarted = true;
+    unawaited(_actions.startMedia());
+  }
+
+  /// Enjin dimulakan tanpa skrin telefon (Android Auto membuka bahagian media atau peta FGMaps terus):
+  /// tiada paparan telefon selepas beberapa saat. Perkhidmatan muzik dihidupkan supaya senarai lagu di
+  /// kereta tidak kosong. App telefon yang dibuka biasa tidak terjejas (muzik kekal dimulakan malas).
+  void _watchHeadlessStart() {
+    _headlessCheck = Timer(const Duration(seconds: 3), () {
+      final view = WidgetsBinding.instance.platformDispatcher.implicitView;
+      if (view == null || view.physicalSize.isEmpty) _startMediaOnce();
+    });
   }
 
   /// Keadaan kereta semasa (enjin Flutter mungkin bermula selepas Android Auto bersambung).
@@ -601,10 +744,13 @@ class CarSessionHub {
   }
 
   void dispose() {
+    _headlessCheck?.cancel();
     _throttle?.cancel();
     _throttle = null;
     _pump?.cancel();
     _pump = null;
+    unawaited(_carFeed?.cancel());
+    _carFeed = null;
     _pendingDelay = null;
     _dirty = false;
   }

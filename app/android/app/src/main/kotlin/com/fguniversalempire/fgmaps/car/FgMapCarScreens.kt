@@ -4,7 +4,6 @@ import android.content.Intent
 import android.content.res.Configuration
 import androidx.car.app.AppManager
 import androidx.car.app.CarContext
-import androidx.car.app.CarToast
 import androidx.car.app.Screen
 import androidx.car.app.constraints.ConstraintManager
 import androidx.car.app.Session
@@ -44,11 +43,12 @@ class FgMapSession : Session() {
     override fun onCreateScreen(intent: Intent): Screen {
         // Ikatan penemuan tidak boleh melempar: Android Auto membuang aplikasi dari pelancar.
         return try {
-            if (!CarBridge.ready) {
-                try {
-                    CarBridge.launchPhone(carContext)
-                } catch (_: Throwable) {
-                }
+            // App telefon tidak perlu dibuka: enjin Flutter dimulakan di sini tanpa paparan. Dahulu
+            // app telefon cuba dibuka dari latar (dihalang Android 10+), jadi peta kereta kosong.
+            try {
+                CarBridge.ensureEngine(carContext)
+                CarBridge.watchConnection(carContext)
+            } catch (_: Throwable) {
             }
             FgMapNavScreen(carContext)
         } catch (_: Throwable) {
@@ -181,13 +181,15 @@ class FgMapNavScreen(
             session["rerouting"],
             session["arrived"],
             session["destination"],
+            session["voice"],
         )
     }
 
     override fun onGetTemplate(): Template {
         return try {
             filledTemplate()
-        } catch (_: Throwable) {
+        } catch (e: Throwable) {
+            CarTemplateErrors.note(e)
             bareTemplate()
         }
     }
@@ -196,11 +198,12 @@ class FgMapNavScreen(
         val session = CarBridge.session
         val mode = session["mode"] as? String ?: "browse"
         val builder = NavigationTemplate.Builder().setActionStrip(actions(mode))
+        // Muka depan bersih seperti app peta kereta lain: peta penuh, butang di tepi, kad hanya bila perlu.
         // Jalur peta dan mod seret ialah API kereta 2. Butang tersuai ialah API 4.
         // Di bawah itu templat kekal pada NavigationTemplate asas (API 1).
         val api = carContext.carAppApiLevel
         if (api >= 2) {
-            builder.setMapActionStrip(mapActions(api))
+            builder.setMapActionStrip(mapActions(api, session))
             builder.setPanModeListener { inPan ->
                 // Peta kereta diseret sendiri (onScroll/onScale di CarMapSurface).
                 surface.setPanMode(inPan)
@@ -234,20 +237,24 @@ class FgMapNavScreen(
         .build()
 
     private fun actions(mode: String): ActionStrip {
-        // NavigationTemplate membenarkan paling banyak 2 tindakan bertajuk: semasa navigasi
-        // (Cari + Tamat) "Berdekatan" hanya ikon; selainnya (Cari + Berdekatan) kedua-duanya bertajuk.
+        // Tanpa perjalanan: Cari dan Tempat bertajuk (tindakan utama), Lapor ikon. Semasa navigasi
+        // ruang dikongsi dengan "Tamat": Cari, Tempat dan Lapor menjadi ikon sahaja.
         val navigating = mode == "navigating"
         val search = Action.Builder()
             .setIcon(icon(R.drawable.ic_car_search))
-            .setTitle(CarStrings.search)
+            .apply { if (!navigating) setTitle(CarStrings.search) }
             .setOnClickListener { screenManager.push(FgMapSearchScreen(carContext)) }
             .build()
-        val nearby = Action.Builder()
-            .setIcon(icon(R.drawable.ic_car_nearby))
-            .apply { if (!navigating) setTitle(CarStrings.nearby) }
-            .setOnClickListener { screenManager.push(FgMapNearbyScreen(carContext)) }
+        val places = Action.Builder()
+            .setIcon(icon(R.drawable.ic_car_place))
+            .apply { if (!navigating) setTitle(CarStrings.places) }
+            .setOnClickListener { screenManager.push(FgMapPlacesHubScreen(carContext)) }
             .build()
-        val strip = ActionStrip.Builder().addAction(search).addAction(nearby)
+        val report = Action.Builder()
+            .setIcon(icon(R.drawable.ic_car_report))
+            .setOnClickListener { screenManager.push(FgMapReportScreen(carContext)) }
+            .build()
+        val strip = ActionStrip.Builder().addAction(search).addAction(places).addAction(report)
         if (navigating) {
             strip.addAction(
                 Action.Builder()
@@ -260,10 +267,23 @@ class FgMapNavScreen(
         return strip.build()
     }
 
-    private fun mapActions(api: Int): ActionStrip {
+    private fun mapActions(api: Int, session: Map<String, Any?>): ActionStrip {
         // Tanpa Action.PAN hos tidak menghantar seretan dan tidak pernah masuk mod seret, jadi
         // dahulu API 4+ (hanya butang pusatkan) tidak boleh menggerakkan peta langsung.
         val strip = ActionStrip.Builder().addAction(Action.PAN)
+        // Senyap/bunyi suara panduan, satu ketukan (sama dengan suis di telefon).
+        val voice = session["voice"] as? Boolean
+        if (api >= 4 && voice != null && session["mode"] == "navigating") {
+            strip.addAction(
+                Action.Builder()
+                    .setIcon(icon(if (voice) R.drawable.ic_car_volume_on else R.drawable.ic_car_volume_off))
+                    .setOnClickListener {
+                        CarBridge.setSetting("voice", !voice) { }
+                        carToast(carContext, if (voice) CarStrings.voiceOff else CarStrings.voiceOn)
+                    }
+                    .build(),
+            )
+        }
         if (api >= 4) {
             strip.addAction(
                 Action.Builder()
@@ -341,26 +361,17 @@ class FgMapNavScreen(
         ).setRemainingTimeSeconds(remainingS).build()
     }
 
-    /**
-     * Jarak dibundar sama seperti telefon (`carFormatDistance`): 10 m di bawah 1 km, 0.1 km di bawah
-     * 10 km, km bulat selepas itu. Dahulu nilai mentah (cth. 1.2374 km) dihantar.
-     */
-    private fun distanceOf(meters: Double): Distance {
-        if (meters < 995) {
-            val m = (Math.round(meters / 10.0) * 10).coerceIn(10L, 990L)
-            return Distance.create(m.toDouble(), Distance.UNIT_METERS)
-        }
-        val km = meters / 1000.0
-        if (km < 10) return Distance.create(Math.round(km * 10) / 10.0, Distance.UNIT_KILOMETERS_P1)
-        return Distance.create(Math.round(km).toDouble(), Distance.UNIT_KILOMETERS)
-    }
+    private fun distanceOf(meters: Double): Distance = carDistance(meters)
 
     /** Browse: waktu solat seterusnya, dengan IPU di bawahnya jika ada. */
     private fun browseMessage(session: Map<String, Any?>): MessageInfo {
+        // Enjin Flutter masih bermula (belum ada gambar sesi pertama): beritahu, bukan skrin kosong.
+        if (session.isEmpty()) return MessageInfo.Builder(CarStrings.starting).build()
         val prayer = (session["prayerLine"] as? String)?.takeIf { it.isNotBlank() }
         val aqi = (session["airAqi"] as? String)?.takeIf { it.isNotBlank() }
         val info = MessageInfo.Builder(prayer ?: aqi ?: "FGMaps")
         if (prayer != null && aqi != null) info.setText(aqi)
+        if (prayer != null) info.setImage(icon(R.drawable.ic_car_clock))
         return info.build()
     }
 
@@ -446,15 +457,16 @@ internal fun listLimit(context: CarContext): Int = try {
     6
 }
 
-/** Baris tempat: nama, dan "jarak · kawasan" di bawahnya. Klik memulakan laluan ke sana. */
+/** Baris tempat: nama, dan "jarak · kawasan" di bawahnya. Klik membuka pilihan laluan ke sana. */
 private fun placeRows(
     context: CarContext,
     screen: Screen,
     places: List<CarPlace>,
+    failure: CarFailure?,
 ): ItemList {
     val list = ItemList.Builder()
     if (places.isEmpty()) {
-        list.setNoItemsMessage(CarStrings.noResults)
+        list.setNoItemsMessage(CarStrings.emptyMessage(failure))
         return list.build()
     }
     for (place in places.take(listLimit(context))) {
@@ -462,18 +474,7 @@ private fun placeRows(
         if (place.subtitle.isNotBlank()) row.addText(place.subtitle)
         list.addItem(
             row.setOnClickListener {
-                CarBridge.openPlace(place) { error ->
-                    if (error == null || error == "tolls") {
-                        // "tolls": navigasi sudah bermula, cuma "Tanpa tol" tidak dapat dipenuhi.
-                        if (error != null) {
-                            CarToast.makeText(context, CarStrings.tollsOnRoute, CarToast.LENGTH_LONG).show()
-                        }
-                        screen.screenManager.popToRoot()
-                    } else {
-                        // Kekal pada senarai supaya pemandu boleh cuba tempat lain.
-                        CarToast.makeText(context, CarStrings.cannotStart, CarToast.LENGTH_LONG).show()
-                    }
-                }
+                screen.screenManager.push(FgMapRoutePreviewScreen(context, place))
             }.build(),
         )
     }
@@ -494,8 +495,8 @@ class FgMapSearchScreen(carContext: CarContext) : Screen(carContext) {
                 hint = CarStrings.searching
                 invalidate()
                 // Teks atau suara: "kedai gunting terdekat", "balik rumah" atau nama tempat.
-                CarBridge.search(searchText) { places ->
-                    items = placeRows(carContext, this@FgMapSearchScreen, places)
+                CarBridge.search(searchText) { places, failure ->
+                    items = placeRows(carContext, this@FgMapSearchScreen, places, failure)
                     hint = CarStrings.searchHint
                     invalidate()
                 }
@@ -516,11 +517,23 @@ class FgMapSearchScreen(carContext: CarContext) : Screen(carContext) {
  */
 class FgMapNearbyScreen(carContext: CarContext) : Screen(carContext) {
     private var categories: List<CarCategory>? = null
+    private var failure: CarFailure? = null
 
     init {
-        CarBridge.categories { rows ->
+        load()
+    }
+
+    private fun load() {
+        CarBridge.categories { rows, why ->
             categories = rows
+            failure = why
             invalidate()
+            // Enjin masih bermula: cuba sekali lagi sebentar lagi supaya pemandu tidak perlu keluar-masuk.
+            if (why == CarFailure.STARTING) {
+                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                    if (categories.isNullOrEmpty()) load()
+                }, 2_000L)
+            }
         }
     }
 
@@ -532,43 +545,26 @@ class FgMapNearbyScreen(carContext: CarContext) : Screen(carContext) {
         if (rows == null) return builder.setLoading(true).build()
         val list = ItemList.Builder()
         if (rows.isEmpty()) {
-            list.setNoItemsMessage(CarStrings.noResults)
+            list.setNoItemsMessage(CarStrings.emptyMessage(failure))
         }
         for (category in rows.take(listLimit(carContext))) {
             list.addItem(
                 Row.Builder()
                     .setTitle(category.label)
+                    .setImage(icon(categoryIcon(category.id)), Row.IMAGE_TYPE_ICON)
                     .setBrowsable(true)
                     .setOnClickListener {
-                        screenManager.push(FgMapPlacesScreen(carContext, category))
+                        screenManager.push(
+                            FgMapPlaceListScreen(carContext, category.label) { done ->
+                                CarBridge.nearby(category.id, done)
+                            },
+                        )
                     }
                     .build(),
             )
         }
         return builder.setSingleList(list.build()).build()
     }
-}
 
-/** Tempat terdekat bagi satu kategori, tersusun ikut jarak. */
-class FgMapPlacesScreen(
-    carContext: CarContext,
-    private val category: CarCategory,
-) : Screen(carContext) {
-    private var places: List<CarPlace>? = null
-
-    init {
-        CarBridge.nearby(category.id) { rows ->
-            places = rows
-            invalidate()
-        }
-    }
-
-    override fun onGetTemplate(): Template {
-        val rows = places
-        val builder = ListTemplate.Builder()
-            .setTitle(category.label)
-            .setHeaderAction(Action.BACK)
-        if (rows == null) return builder.setLoading(true).build()
-        return builder.setSingleList(placeRows(carContext, this, rows)).build()
-    }
+    private fun icon(res: Int): CarIcon = carIcon(carContext, res)
 }

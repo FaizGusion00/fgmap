@@ -1,3 +1,16 @@
+# 1.8.3 | 2026-11-11
+This release fixes Android Auto, based on tester reports.
+
+## Android Auto works without opening the phone app
+Before: If FGMaps was opened straight from the car screen, the map was empty. Search and Nearby said "Check your internet connection" even with internet, and prayer times and other features did not appear. With the phone screen off, the car map stopped following the car, and free-drive mode never started on the car screen.
+After: The car screen starts FGMaps by itself, so the phone app does not need to be opened. The car map follows your location even with the phone screen off, and free-drive mode (speed, speed limit and camera alerts) works as on the phone. Error messages now give the real reason: FGMaps is starting, location not available yet, search failed, or no results.
+How to use: Connect your phone to the car and open FGMaps from the car screen. Allow location for FGMaps on the phone once if you have not yet.
+
+## More features on the car screen
+Before: The car screen only had Search and Nearby. Choosing a place started a route straight away with no choice, and FGMaps music did not appear in Android Auto.
+After: The Places button opens a grid with Home, Work, Nearby, Favourites, Recent, Report and Settings. Search and Nearby results now appear on the map with numbered pins and distances. Before driving, you can choose between routes (time, distance and toll estimate), and the chosen route is shown on the map. The Report button sends a police, accident, traffic jam, flood or other report with one tap. Car settings: voice guidance, avoid tolls, speed camera alerts and satellite map. During navigation there is a mute button beside the map. FGMaps music (Malaysian radio, favourite radio, songs on your phone and imported songs) is now in the Android Auto media section.
+How to use: On the car screen, tap Places or Search. Pick a place, pick a route, then tap Go. For music, open FGMaps from the Android Auto media apps. Songs on your phone only appear if music permission was already given in the phone app.
+
 # 1.8.2 | 2026-11-11
 This release comes from tester reports: more complete speed camera alerts, faster GPS location, and lower battery use.
 

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/audio/audio_coordinator.dart';
 import '../../../core/utils/log.dart';
 import '../data/apple_music_channel.dart';
+import '../data/car_media_library.dart';
 import '../data/just_audio_engine.dart';
 import '../data/music_audio_handler.dart';
 import '../data/music_settings.dart';
@@ -102,16 +103,31 @@ class PlayerController extends Notifier<PlayerState> implements DuckTarget {
   Future<void> _ensureService(Track track) async {
     if (_serviceStarted || _isApple(track)) return;
     _serviceStarted = true;
+    await _startService();
+  }
+
+  static bool _isApple(Track t) => t.source == TrackSource.appleMusic;
+
+  /// Android Auto membuka bahagian media FGMaps: perkhidmatan audio mesti hidup untuk menjawab senarai
+  /// lagu walaupun belum ada lagu dimain. Tiada bunyi dan tiada notifikasi sehingga pengguna memilih lagu.
+  Future<void> ensureMediaService() async {
+    if (_serviceStarted) return;
+    _serviceStarted = true;
+    await _startService();
+  }
+
+  Future<void> _startService() async {
     final engine = _engine;
     final starter = ref.read(audioServiceStarterProvider);
     if (starter != null &&
         engine is RoutingMusicEngine &&
         engine.justAudio is JustAudioEngine) {
-      await starter.ensureStarted((engine.justAudio as JustAudioEngine).player);
+      await starter.ensureStarted(
+        (engine.justAudio as JustAudioEngine).player,
+        browse: CarMediaLibrary(ref, this),
+      );
     }
   }
-
-  static bool _isApple(Track t) => t.source == TrackSource.appleMusic;
 
   /// MusicKit tiada kawalan kelantangan, jadi suara navigasi menjeda lagu Apple Music dan bukan
   /// memperlahankannya.

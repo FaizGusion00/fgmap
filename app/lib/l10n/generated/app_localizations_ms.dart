@@ -2155,11 +2155,11 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get aboutNew1 =>
-      'Amaran kamera kelajuan dengan 95 lokasi di atas jalan, berfungsi tanpa internet dan juga ketika memandu tanpa destinasi';
+      'Android Auto kini berfungsi tanpa membuka app telefon, dengan Tempat (Rumah, Kerja, Kegemaran), pilihan laluan dengan tol, Lapor, Tetapan dan muzik di skrin kereta';
 
   @override
   String get aboutNew2 =>
-      'GPS lebih cepat dapat lokasi dan penggunaan bateri lebih rendah: mod memandu bebas, lukisan peta dan GPS di latar kini lebih jimat';
+      'Amaran kamera kelajuan dengan 95 lokasi, GPS lebih cepat dapat lokasi dan bateri lebih jimat';
 
   @override
   String get alongRouteTitle => 'Sepanjang laluan';

@@ -12,7 +12,7 @@ final appPackageInfoProvider = FutureProvider<PackageInfo>(
 
 /// Versi yang diterangkan oleh kad "Baharu dalam versi". Mesti sama dengan `version:` dalam pubspec.yaml;
 /// `about_page_test.dart` gagal jika berbeza.
-const aboutWhatsNewVersion = '1.8.2';
+const aboutWhatsNewVersion = '1.8.3';
 
 /// Tarikh keluaran versi [aboutWhatsNewVersion] (dipaparkan dalam About).
 final aboutReleaseDate = DateTime(2026, 11, 11);

@@ -2161,11 +2161,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutNew1 =>
-      'Speed camera alerts with 95 on-road locations, working without internet and also when driving without a destination';
+      'Android Auto now works without opening the phone app, with Places (Home, Work, Favourites), route choices with tolls, Report, Settings and music on the car screen';
 
   @override
   String get aboutNew2 =>
-      'Faster GPS location and lower battery use: free-drive mode, map drawing and background GPS now use less power';
+      'Speed camera alerts with 95 locations, faster GPS fix and lower battery use';
 
   @override
   String get alongRouteTitle => 'Along the route';

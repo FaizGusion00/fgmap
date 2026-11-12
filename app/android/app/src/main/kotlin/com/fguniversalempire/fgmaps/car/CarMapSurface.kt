@@ -23,6 +23,7 @@ import org.maplibre.android.MapLibre
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
+import org.maplibre.android.geometry.LatLngBounds
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.Style
@@ -30,6 +31,9 @@ import org.maplibre.android.style.expressions.Expression
 import org.maplibre.android.style.layers.LineLayer
 import org.maplibre.android.style.layers.Property
 import org.maplibre.android.style.layers.PropertyFactory.iconAllowOverlap
+import org.maplibre.android.style.layers.PropertyFactory.iconAnchor
+import org.maplibre.android.style.layers.PropertyFactory.lineSortKey
+import org.maplibre.android.style.layers.PropertyFactory.symbolSortKey
 import org.maplibre.android.style.layers.PropertyFactory.iconIgnorePlacement
 import org.maplibre.android.style.layers.PropertyFactory.iconImage
 import org.maplibre.android.style.layers.PropertyFactory.iconPitchAlignment
@@ -84,14 +88,66 @@ class CarMapSurface(
 
     fun attach() {
         carContext.getCarService(AppManager::class.java).setSurfaceCallback(this)
+        current = this
     }
 
     fun detach() {
+        if (current === this) current = null
         try {
             carContext.getCarService(AppManager::class.java).setSurfaceCallback(null)
         } catch (_: Throwable) {
         }
         destroyMap()
+    }
+
+    /**
+     * Lapisan sementara skrin lain (senarai tempat bernombor, pilihan laluan) di atas peta yang sama.
+     * [owner] ialah skrin yang memaparkannya: skrin baharu bermula sebelum skrin lama berhenti, jadi
+     * skrin lama tidak boleh memadam lapisan skrin baharu.
+     */
+    private var overlayOwner: Any? = null
+    private var overlayPins: List<DoubleArray> = emptyList()
+    private var overlayRoutes: List<List<DoubleArray>> = emptyList()
+    private var overlaySelected = 0
+    private var overlayFitted = false
+
+    /** Tempat bernombor 1..N di peta, sepadan dengan nombor baris dalam senarai kereta. */
+    fun showPins(owner: Any, pins: List<DoubleArray>) {
+        overlayOwner = owner
+        overlayPins = pins
+        overlayRoutes = emptyList()
+        overlayFitted = false
+        refreshOverlay()
+    }
+
+    /** Pilihan laluan: yang dipilih biru di atas, yang lain kelabu di bawah; destinasi sebagai pin. */
+    fun showRoutes(owner: Any, routes: List<List<DoubleArray>>, selected: Int) {
+        val changedRoutes = overlayOwner !== owner || routes !== overlayRoutes
+        overlayOwner = owner
+        overlayRoutes = routes
+        overlaySelected = selected
+        overlayPins = routes.getOrNull(selected)?.lastOrNull()?.let { listOf(it) } ?: emptyList()
+        if (changedRoutes) overlayFitted = false
+        refreshOverlay()
+    }
+
+    fun clearOverlay(owner: Any) {
+        if (overlayOwner !== owner) return
+        overlayOwner = null
+        overlayPins = emptyList()
+        overlayRoutes = emptyList()
+        refreshOverlay()
+        // Kembali mengikut kenderaan selepas senarai/pratonton ditutup.
+        map?.let { if (!userMovedMap()) moveCamera(it, lastSession) }
+    }
+
+    private fun refreshOverlay() {
+        val map = map ?: return
+        try {
+            map.style?.let { drawOverlay(it) }
+            if (!overlayFitted) fitOverlay(map)
+        } catch (_: Throwable) {
+        }
     }
 
     fun apply(session: Map<String, Any?>) {
@@ -111,6 +167,7 @@ class CarMapSurface(
                 // Gaya baharu membuang sumber/lapisan: lukis semula daripada sesi TERKINI.
                 drawRoute(it, lastSession)
                 drawChevrons(it, lastSession)
+                drawOverlay(it)
                 drawVehicle(it, lastSession)
             }
         } else {
@@ -120,7 +177,12 @@ class CarMapSurface(
                 drawVehicle(it, session)
             }
         }
-        if (session["following"] != false && !userMovedMap()) moveCamera(map, session)
+        // Senarai tempat / pratonton laluan dibuka: peta kekal menunjukkan semuanya, bukan mengikut kenderaan.
+        if (overlayOwner == null && session["following"] != false && !userMovedMap()) {
+            moveCamera(map, session)
+        } else if (overlayOwner != null && !overlayFitted) {
+            fitOverlay(map)
+        }
         overlay?.session = session
         overlay?.stable = stable
         overlay?.invalidate()
@@ -223,6 +285,9 @@ class CarMapSurface(
                     ready.uiSettings.isLogoEnabled = false
                     ready.uiSettings.isAttributionEnabled = false
                     vehicleIcons = VehicleIcons.render(density.density, density.densityDpi)
+                    pinDensity = density.density
+                    pinDpi = density.densityDpi
+                    overlayFitted = false
                     chevronIcon = try {
                         CarRouteGuide.icon(density.density, density.densityDpi)
                     } catch (_: Throwable) {
@@ -251,7 +316,14 @@ class CarMapSurface(
         stable.set(stableArea)
         overlay?.stable = stable
         overlay?.invalidate()
-        map?.let { if (!userMovedMap()) moveCamera(it, lastSession) }
+        map?.let {
+            if (overlayOwner != null) {
+                overlayFitted = false
+                fitOverlay(it)
+            } else if (!userMovedMap()) {
+                moveCamera(it, lastSession)
+            }
+        }
     }
 
     override fun onSurfaceDestroyed(container: SurfaceContainer) {
@@ -272,6 +344,146 @@ class CarMapSurface(
         appliedStyleKey = null
         appliedRouteVersion = null
         CarBridge.reportCar(visible = false)
+    }
+
+    private var pinDensity = 0f
+    private var pinDpi = 0
+
+    /** Muatkan semua pin/laluan (dan kenderaan, bagi senarai tempat) dalam kawasan stabil. */
+    private fun fitOverlay(map: MapLibreMap) {
+        try {
+            fitOverlayOrThrow(map)
+        } catch (_: Throwable) {
+            overlayFitted = true
+        }
+    }
+
+    private fun fitOverlayOrThrow(map: MapLibreMap) {
+        val points = mutableListOf<LatLng>()
+        overlayRoutes.forEach { r -> r.forEach { points.add(LatLng(it[0], it[1])) } }
+        overlayPins.forEach { points.add(LatLng(it[0], it[1])) }
+        if (overlayRoutes.isEmpty()) {
+            val lat = (lastSession["vehicleLat"] as? Number ?: lastSession["lat"] as? Number)?.toDouble()
+            val lng = (lastSession["vehicleLng"] as? Number ?: lastSession["lng"] as? Number)?.toDouble()
+            if (lat != null && lng != null) points.add(LatLng(lat, lng))
+        }
+        if (points.isEmpty()) return
+        val width = mapView?.width?.takeIf { it > 0 } ?: surfaceWidth
+        val height = mapView?.height?.takeIf { it > 0 } ?: surfaceHeight
+        if (width <= 0 || height <= 0) return
+        val area = when {
+            stable.width() > 0 && stable.height() > 0 -> stable
+            visible.width() > 0 && visible.height() > 0 -> visible
+            else -> Rect(0, 0, width, height)
+        }
+        val margin = (40f * (if (pinDensity > 0f) pinDensity else 1f)).toInt()
+        val left = area.left + margin
+        val top = area.top + margin
+        val right = (width - area.right) + margin
+        val bottom = (height - area.bottom) + margin
+        if (width - left - right < 50 || height - top - bottom < 50) return
+        if (points.size == 1) {
+            map.moveCamera(
+                CameraUpdateFactory.newCameraPosition(
+                    CameraPosition.Builder()
+                        .target(points[0])
+                        .zoom(15.0)
+                        .tilt(0.0)
+                        .bearing(0.0)
+                        .padding(doubleArrayOf(left.toDouble(), top.toDouble(), right.toDouble(), bottom.toDouble()))
+                        .build(),
+                ),
+            )
+        } else {
+            val bounds = LatLngBounds.Builder().includes(points).build()
+            map.moveCamera(
+                CameraUpdateFactory.newLatLngBounds(bounds, 0.0, 0.0, left, top, right, bottom),
+            )
+        }
+        overlayFitted = true
+    }
+
+    /** Laluan pratonton dan pin bernombor. Semuanya pilihan: kegagalan hanya menggugurkan lapisan ini. */
+    private fun drawOverlay(style: Style) {
+        try {
+            val lines = overlayRoutes.mapIndexedNotNull { i, route ->
+                if (route.size < 2) return@mapIndexedNotNull null
+                Feature.fromGeometry(
+                    LineString.fromLngLats(route.map { Point.fromLngLat(it[1], it[0]) }),
+                ).also { it.addNumberProperty("sel", if (i == overlaySelected) 1 else 0) }
+            }
+            var routeSource = style.getSource(PREVIEW_SOURCE) as? GeoJsonSource
+            if (routeSource == null && lines.isNotEmpty()) {
+                routeSource = GeoJsonSource(PREVIEW_SOURCE)
+                style.addSource(routeSource)
+                val selected = Expression.eq(Expression.get("sel"), Expression.literal(1))
+                val casing = LineLayer(PREVIEW_CASING, PREVIEW_SOURCE).withProperties(
+                    lineColor("#FFFFFF"),
+                    lineWidth(Expression.switchCase(selected, Expression.literal(12.5f), Expression.literal(9f))),
+                    lineCap("round"),
+                    lineJoin("round"),
+                    lineSortKey(Expression.get("sel")),
+                )
+                val line = LineLayer(PREVIEW_LINE, PREVIEW_SOURCE).withProperties(
+                    lineColor(
+                        Expression.switchCase(
+                            selected,
+                            Expression.color(Color.rgb(47, 107, 255)),
+                            Expression.color(Color.rgb(140, 152, 175)),
+                        ),
+                    ),
+                    lineWidth(Expression.switchCase(selected, Expression.literal(8f), Expression.literal(6f))),
+                    lineCap("round"),
+                    lineJoin("round"),
+                    lineSortKey(Expression.get("sel")),
+                )
+                addBelowVehicle(style, casing)
+                addBelowVehicle(style, line)
+            }
+            routeSource?.setGeoJson(FeatureCollection.fromFeatures(lines))
+
+            val pins = overlayPins.mapIndexed { i, p ->
+                Feature.fromGeometry(Point.fromLngLat(p[1], p[0])).also {
+                    val n = (i + 1).coerceAtMost(MAX_PIN_NUMBER)
+                    it.addStringProperty("icon", if (overlayRoutes.isEmpty()) "$PIN$n" else PIN_DEST)
+                    it.addNumberProperty("order", -i)
+                }
+            }
+            var pinSource = style.getSource(PIN_SOURCE) as? GeoJsonSource
+            if (pinSource == null && pins.isNotEmpty()) {
+                val density = if (pinDensity > 0f) pinDensity else 2f
+                for (n in 1..MAX_PIN_NUMBER) {
+                    if (style.getImage("$PIN$n") == null) {
+                        style.addImage("$PIN$n", CarPins.numbered(n, density, pinDpi))
+                    }
+                }
+                if (style.getImage(PIN_DEST) == null) {
+                    style.addImage(PIN_DEST, CarPins.destination(density, pinDpi))
+                }
+                pinSource = GeoJsonSource(PIN_SOURCE)
+                style.addSource(pinSource)
+                addBelowVehicle(
+                    style,
+                    SymbolLayer(PIN_LAYER, PIN_SOURCE).withProperties(
+                        iconImage(Expression.get("icon")),
+                        iconAnchor(Property.ICON_ANCHOR_BOTTOM),
+                        iconAllowOverlap(true),
+                        iconIgnorePlacement(true),
+                        symbolSortKey(Expression.get("order")),
+                    ),
+                )
+            }
+            pinSource?.setGeoJson(FeatureCollection.fromFeatures(pins))
+        } catch (_: Throwable) {
+        }
+    }
+
+    private fun addBelowVehicle(style: Style, layer: org.maplibre.android.style.layers.Layer) {
+        if (style.getLayer(VEHICLE_LAYER) != null) {
+            style.addLayerBelow(layer, VEHICLE_LAYER)
+        } else {
+            style.addLayer(layer)
+        }
     }
 
     private fun moveCamera(map: MapLibreMap, session: Map<String, Any?>) {
@@ -469,7 +681,20 @@ class CarMapSurface(
         source.setGeoJson(feature)
     }
 
-    private companion object {
+    companion object {
+        /** Peta kereta yang sedang dipasang (satu sesi kereta pada satu masa). */
+        @Volatile
+        var current: CarMapSurface? = null
+            private set
+
+        private const val PREVIEW_SOURCE = "fgmap-car-preview"
+        private const val PREVIEW_LINE = "fgmap-car-preview-line"
+        private const val PREVIEW_CASING = "fgmap-car-preview-casing"
+        private const val PIN_SOURCE = "fgmap-car-pins"
+        private const val PIN_LAYER = "fgmap-car-pin-icons"
+        private const val PIN = "fgmap-car-pin-"
+        private const val PIN_DEST = "fgmap-car-pin-dest"
+        private const val MAX_PIN_NUMBER = 12
         const val SOURCE = "fgmap-car-route"
         const val LAYER = "fgmap-car-route-line"
         const val CASING_LAYER = "fgmap-car-route-casing"

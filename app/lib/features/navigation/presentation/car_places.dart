@@ -15,6 +15,23 @@ import '../../search/domain/nearby_category.dart';
 import '../../search/domain/place.dart';
 import '../../search/presentation/nearby_category_label.dart';
 
+/// Sebab carian kereta tiada hasil selain "memang tiada": skrin kereta memaparkan mesej yang betul.
+/// Dahulu semua kegagalan menjadi senarai kosong dan kereta berkata "semak internet".
+class CarPlacesFailure implements Exception {
+  const CarPlacesFailure(this.code);
+
+  /// Tiada GPS untuk "Berdekatan".
+  static const noLocation = 'no-location';
+
+  /// Pelayan carian gagal / tamat masa.
+  static const failed = 'failed';
+
+  final String code;
+
+  @override
+  String toString() => 'CarPlacesFailure($code)';
+}
+
 /// Carian dan "Berdekatan" untuk skrin kereta (Android Auto dan CarPlay).
 ///
 /// Pemandu bercakap atau menaip ayat biasa ("kedai gunting terdekat", "bawa saya balik rumah",
@@ -121,7 +138,7 @@ class CarPlaces {
           final label = slot == SavedSlot.home
               ? l10n.savedHome
               : l10n.savedWork;
-          return [_row(target.place, from, l10n, name: label)];
+          return [row(target.place, from, l10n, name: label)];
         }
       case RouteIntent(:final destination):
         final found = await _byName(destination, l10n);
@@ -140,9 +157,10 @@ class CarPlaces {
     AppLocalizations l10n,
   ) async {
     final from = await origin();
-    if (from == null) return const [];
+    if (from == null) throw const CarPlacesFailure(CarPlacesFailure.noLocation);
+    final NearbyResult result;
     try {
-      final result = await _ref
+      result = await _ref
           .read(nearbySearchProvider)
           .search(
             category,
@@ -150,10 +168,10 @@ class CarPlaces {
             fallbackName: nearbyCategoryLabel(l10n, category),
           )
           .timeout(const Duration(seconds: 15));
-      return [for (final p in result.places.take(maxRows)) _row(p, from, l10n)];
     } on Object {
-      return const [];
+      throw const CarPlacesFailure(CarPlacesFailure.failed);
     }
+    return [for (final p in result.places.take(maxRows)) row(p, from, l10n)];
   }
 
   Future<List<Map<String, Object?>>> _byName(
@@ -161,19 +179,21 @@ class CarPlaces {
     AppLocalizations l10n,
   ) async {
     final from = await origin();
+    final List<Place> places;
     try {
-      final places = await _ref
+      places = await _ref
           .read(geocoderProvider)
           .search(query, near: from)
           .timeout(const Duration(seconds: 15));
-      return [for (final p in places.take(maxRows)) _row(p, from, l10n)];
     } on Object {
-      return const [];
+      throw const CarPlacesFailure(CarPlacesFailure.failed);
     }
+    return [for (final p in places.take(maxRows)) row(p, from, l10n)];
   }
 
-  /// Satu baris untuk hos: nama, "jarak · kawasan", koordinat.
-  Map<String, Object?> _row(
+  /// Satu baris untuk hos: nama, "jarak · kawasan", koordinat. `meters` dan `area` berasingan untuk
+  /// templat peta Android Auto (jarak sebagai span jarak hos, yang wajib bagi senarai tempat atas peta).
+  Map<String, Object?> row(
     Place p,
     GeoPoint? from,
     AppLocalizations l10n, {
@@ -189,6 +209,8 @@ class CarPlaces {
     return {
       'name': shown,
       'subtitle': detail,
+      'meters': ?meters,
+      'area': area.isNotEmpty && area != shown ? area : '',
       'lat': p.point.lat,
       'lng': p.point.lng,
     };
