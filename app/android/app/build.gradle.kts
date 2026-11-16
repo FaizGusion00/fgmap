@@ -112,7 +112,7 @@ dependencies {
     implementation("org.maplibre.gl:android-sdk-opengl:13.7.1")
     // Ujian templat Android Auto (skrin kereta) tanpa kereta: Robolectric + TestCarContext.
     testImplementation("junit:junit:4.13.2")
-    testImplementation("org.robolectric:robolectric:4.14.1")
+    testImplementation("org.robolectric:robolectric:4.17")
     testImplementation("androidx.car.app:app-testing:1.7.0")
 }
 
